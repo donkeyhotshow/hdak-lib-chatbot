@@ -1,6 +1,14 @@
-import { eq } from "drizzle-orm";
+import { eq, like, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { 
+  InsertUser, users, 
+  conversations, Conversation, InsertConversation,
+  messages, Message, InsertMessage,
+  libraryResources, LibraryResource, InsertLibraryResource,
+  libraryContacts, LibraryContact, InsertLibraryContact,
+  libraryInfo, LibraryInfo, InsertLibraryInfo,
+  userQueries, UserQuery, InsertUserQuery
+} from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -89,4 +97,271 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+// Conversation helpers
+export async function createConversation(userId: number, title: string, language: string): Promise<Conversation | null> {
+  const db = await getDb();
+  if (!db) return null;
+  
+  try {
+    const result = await db.insert(conversations).values({
+      userId,
+      title,
+      language: language as any,
+    });
+    
+    // Get the last inserted ID
+    const lastId = (result as any).insertId;
+    if (lastId) {
+      const created = await db.select().from(conversations).where(eq(conversations.id, lastId)).limit(1);
+      return created[0] || null;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error("Error creating conversation:", error);
+    return null;
+  }
+}
+
+export async function getConversations(userId: number): Promise<Conversation[]> {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return db.select().from(conversations).where(eq(conversations.userId, userId));
+}
+
+export async function getConversation(conversationId: number): Promise<Conversation | null> {
+  const db = await getDb();
+  if (!db) return null;
+  
+  const result = await db.select().from(conversations).where(eq(conversations.id, conversationId)).limit(1);
+  return result[0] || null;
+}
+
+// Message helpers
+export async function createMessage(conversationId: number, role: 'user' | 'assistant', content: string): Promise<Message | null> {
+  const db = await getDb();
+  if (!db) return null;
+  
+  try {
+    const result = await db.insert(messages).values({
+      conversationId,
+      role,
+      content,
+    });
+    
+    // Get the last inserted ID
+    const lastId = (result as any).insertId;
+    if (lastId) {
+      const created = await db.select().from(messages).where(eq(messages.id, lastId)).limit(1);
+      return created[0] || null;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error("Error creating message:", error);
+    return null;
+  }
+}
+
+export async function getMessages(conversationId: number): Promise<Message[]> {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return db.select().from(messages).where(eq(messages.conversationId, conversationId));
+}
+
+// Library Resource helpers
+export async function getAllResources(): Promise<LibraryResource[]> {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return db.select().from(libraryResources);
+}
+
+export async function searchResources(query: string): Promise<LibraryResource[]> {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return db.select().from(libraryResources).where(
+    or(
+      like(libraryResources.nameEn, `%${query}%`),
+      like(libraryResources.nameUk, `%${query}%`),
+      like(libraryResources.nameRu, `%${query}%`),
+      like(libraryResources.descriptionEn, `%${query}%`),
+      like(libraryResources.descriptionUk, `%${query}%`),
+      like(libraryResources.descriptionRu, `%${query}%`)
+    )
+  );
+}
+
+export async function getResourcesByType(type: string): Promise<LibraryResource[]> {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return db.select().from(libraryResources).where(eq(libraryResources.type, type as any));
+}
+
+export async function createResource(resource: InsertLibraryResource): Promise<LibraryResource | null> {
+  const db = await getDb();
+  if (!db) return null;
+  
+  try {
+    const result = await db.insert(libraryResources).values(resource);
+    
+    // Get the last inserted ID
+    const lastId = (result as any).insertId;
+    if (lastId) {
+      const created = await db.select().from(libraryResources).where(eq(libraryResources.id, lastId)).limit(1);
+      return created[0] || null;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error("Error creating resource:", error);
+    return null;
+  }
+}
+
+export async function updateResource(id: number, resource: Partial<InsertLibraryResource>): Promise<LibraryResource | null> {
+  const db = await getDb();
+  if (!db) return null;
+  
+  try {
+    await db.update(libraryResources).set(resource).where(eq(libraryResources.id, id));
+    return db.select().from(libraryResources).where(eq(libraryResources.id, id)).limit(1).then(r => r[0] || null);
+  } catch (error) {
+    console.error("Error updating resource:", error);
+    return null;
+  }
+}
+
+export async function deleteResource(id: number): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  
+  try {
+    await db.delete(libraryResources).where(eq(libraryResources.id, id));
+    return true;
+  } catch (error) {
+    console.error("Error deleting resource:", error);
+    return false;
+  }
+}
+
+// Library Contact helpers
+export async function getAllContacts(): Promise<LibraryContact[]> {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return db.select().from(libraryContacts);
+}
+
+export async function createContact(contact: InsertLibraryContact): Promise<LibraryContact | null> {
+  const db = await getDb();
+  if (!db) return null;
+  
+  try {
+    const result = await db.insert(libraryContacts).values(contact);
+    
+    // Get the last inserted ID
+    const lastId = (result as any).insertId;
+    if (lastId) {
+      const created = await db.select().from(libraryContacts).where(eq(libraryContacts.id, lastId)).limit(1);
+      return created[0] || null;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error("Error creating contact:", error);
+    return null;
+  }
+}
+
+export async function updateContact(id: number, contact: Partial<InsertLibraryContact>): Promise<LibraryContact | null> {
+  const db = await getDb();
+  if (!db) return null;
+  
+  try {
+    await db.update(libraryContacts).set(contact).where(eq(libraryContacts.id, id));
+    return db.select().from(libraryContacts).where(eq(libraryContacts.id, id)).limit(1).then(r => r[0] || null);
+  } catch (error) {
+    console.error("Error updating contact:", error);
+    return null;
+  }
+}
+
+export async function deleteContact(id: number): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  
+  try {
+    await db.delete(libraryContacts).where(eq(libraryContacts.id, id));
+    return true;
+  } catch (error) {
+    console.error("Error deleting contact:", error);
+    return false;
+  }
+}
+
+// Library Info helpers
+export async function getLibraryInfo(key: string): Promise<LibraryInfo | null> {
+  const db = await getDb();
+  if (!db) return null;
+  
+  const result = await db.select().from(libraryInfo).where(eq(libraryInfo.key, key)).limit(1);
+  return result[0] || null;
+}
+
+export async function setLibraryInfo(key: string, valueEn: string, valueUk: string, valueRu: string): Promise<LibraryInfo | null> {
+  const db = await getDb();
+  if (!db) return null;
+  
+  try {
+    const existing = await getLibraryInfo(key);
+    
+    if (existing) {
+      await db.update(libraryInfo).set({ valueEn, valueUk, valueRu }).where(eq(libraryInfo.key, key));
+      return db.select().from(libraryInfo).where(eq(libraryInfo.key, key)).limit(1).then(r => r[0] || null);
+    } else {
+      const result = await db.insert(libraryInfo).values({ key, valueEn, valueUk, valueRu });
+      const lastId = (result as any).insertId;
+      if (lastId) {
+        const created = await db.select().from(libraryInfo).where(eq(libraryInfo.id, lastId)).limit(1);
+        return created[0] || null;
+      }
+      return null;
+    }
+  } catch (error) {
+    console.error("Error setting library info:", error);
+    return null;
+  }
+}
+
+// User Query logging
+export async function logUserQuery(userId: number | null, conversationId: number | null, query: string, language: string, resourcesReturned: any = null): Promise<UserQuery | null> {
+  const db = await getDb();
+  if (!db) return null;
+  
+  try {
+    const result = await db.insert(userQueries).values({
+      userId,
+      conversationId,
+      query,
+      language: language as any,
+      resourcesReturned: resourcesReturned ? JSON.stringify(resourcesReturned) : null,
+    });
+    
+    // Get the last inserted ID
+    const lastId = (result as any).insertId;
+    if (lastId) {
+      const created = await db.select().from(userQueries).where(eq(userQueries.id, lastId)).limit(1);
+      return created[0] || null;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error("Error logging user query:", error);
+    return null;
+  }
+}
