@@ -68,6 +68,20 @@ export function registerChatRoutes(app: Express): void {
       // Save user message
       await chatStorage.createMessage(conversationId, "user", content);
 
+      // Get library data for context
+      const [libInfo, libResources] = await Promise.all([
+        chatStorage.getLibraryInfo(),
+        chatStorage.getLibraryResources(),
+      ]);
+
+      const libDataContext = `
+Library Information:
+${libInfo.map(i => `- ${i.key}: ${i.value}`).join('\n')}
+
+Library Resources:
+${libResources.map(r => `- ${r.name}: ${r.url} (${r.description})`).join('\n')}
+      `;
+
       // Get conversation history for context
       const messages = await chatStorage.getMessagesByConversation(conversationId);
       const chatMessages = messages.map((m) => ({
@@ -81,13 +95,20 @@ export function registerChatRoutes(app: Express): void {
         content: `You are a helpful AI assistant for the HDAK Library (Kharkiv State Academy of Culture).
 Your goal is to assist users with information about the library and its resources.
 
-Key Resources:
-- Library Website: https://lib-hdak.in.ua/
-- Electronic Catalog: https://library-service.com.ua:8443/khkhdak/DocumentSearchForm
+Context Data from Database:
+${libDataContext}
 
-If a user asks about searching for books or documents, guide them to the Electronic Catalog link.
-If a user asks about general library news or info, refer them to the main website.
-Be polite, concise, and helpful. Use Ukrainian language by default as it is a Ukrainian library, but answer in the language the user asks.`
+Guidelines:
+1. Sources: Use ONLY provided URLs and data.
+2. Search: For searching books/articles, ALWAYS guide to the Electronic Catalog.
+3. Repositories: Mention the Institutional Repository for scientific works.
+4. Rules/Hours/Contacts: Use data from the 'Library Information' section.
+5. Safety:
+   - NEVER invent links or inventory numbers.
+   - If information is missing from the provided context, politely suggest contacting a librarian.
+   - Do not hallucinate library departments or rules not listed.
+6. Language: Respond in the language used by the user (defaulting to Ukrainian).
+7. Politeness: Be professional and concise.`
       });
 
       // Set up SSE

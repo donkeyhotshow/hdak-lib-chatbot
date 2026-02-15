@@ -1,12 +1,15 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { registerChatRoutes } from "./replit_integrations/chat";
+import { registerChatRoutes, chatStorage } from "./replit_integrations/chat";
 import { storage } from "./storage";
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  // Seed initial library data
+  await chatStorage.seedLibraryData();
+
   // Register the chat integration routes
   registerChatRoutes(app);
 
