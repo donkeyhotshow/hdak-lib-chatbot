@@ -1,38 +1,15 @@
-import { type User, type InsertUser } from "@shared/schema";
-import { randomUUID } from "crypto";
+// This file is kept for compatibility with the template structure.
+// The actual storage logic for chat is in server/replit_integrations/chat/storage.ts
+// We can re-export it or just leave this empty/minimal if we don't have other data.
 
-// modify the interface with any CRUD methods
-// you might need
+import { chatStorage } from "./replit_integrations/chat/storage";
 
 export interface IStorage {
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  // Add any application-specific storage methods here if needed
 }
 
 export class MemStorage implements IStorage {
-  private users: Map<string, User>;
-
-  constructor() {
-    this.users = new Map();
-  }
-
-  async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
-  }
-
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
-  }
+  // MemStorage implementation if needed for non-persistent data
 }
 
 export const storage = new MemStorage();

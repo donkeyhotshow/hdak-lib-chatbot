@@ -1,16 +1,19 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { registerChatRoutes } from "./replit_integrations/chat";
 import { storage } from "./storage";
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  // put application routes here
-  // prefix all routes with /api
+  // Register the chat integration routes
+  registerChatRoutes(app);
 
-  // use storage to perform CRUD operations on the storage interface
-  // e.g. storage.insertUser(user) or storage.getUserByUsername(username)
+  // Add a simple health check or welcome route
+  app.get("/api/health", (req, res) => {
+    res.json({ status: "ok" });
+  });
 
   return httpServer;
 }
