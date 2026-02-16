@@ -50,3 +50,15 @@
 - [ ] Create checkpoint
 - [ ] Verify dev server stability
 - [ ] Prepare deployment documentation
+
+
+## Official KSAC Library Bot Integration
+- [x] Extract and analyze official project components
+- [x] Integrate official system prompts (Ukrainian, Russian, English)
+- [x] Integrate library data (address, contacts, hours, rules)
+- [x] Integrate library resources (catalog, repository, databases)
+- [x] Update AI context with real KSAC information
+- [x] Adapt chat routes and message handling logic
+- [ ] Fix remaining TypeScript errors in components
+- [ ] Test full integration cycle
+- [ ] Final verification and optimization

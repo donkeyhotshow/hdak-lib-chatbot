@@ -7,6 +7,7 @@ import { TRPCError } from "@trpc/server";
 import { generateText } from "ai";
 import { openai } from "@ai-sdk/openai";
 import * as db from "./db";
+import { getSystemPrompt, officialLibraryInfo, officialLibraryResources } from "./system-prompts-official";
 
 // Admin-only procedure
 const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
@@ -16,65 +17,17 @@ const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
   return next({ ctx });
 });
 
-// System prompt for the AI chatbot
-const getSystemPrompt = (language: string) => {
-  const prompts: Record<string, string> = {
-    en: `You are a helpful AI assistant for the KSAC (King Saud bin Abdulaziz University for Health Sciences) library. 
-Your role is to help users discover and access library resources through conversational interaction.
-
-Key responsibilities:
-1. Help users find library resources by answering questions about available materials
-2. Provide information about electronic libraries, repositories, catalogs, and databases
-3. Guide users on how to access different types of resources
-4. Answer questions about library services and functionality
-5. Suggest relevant resources based on user queries
-6. For complex research needs, direct users to submit a thematic search request via Google Form
-
-When responding:
-- Be helpful, friendly, and professional
-- Provide direct links to resources when available
-- If a resource is not found in the database, acknowledge this and suggest alternatives
-- Keep responses concise and focused on the user's query
-- Ask clarifying questions if needed to better assist the user`,
-    
-    uk: `Ви - корисний AI-помічник бібліотеки KSAC (Університету медичних наук імені короля Сауда бін Абдулазіза).
-Ваша роль - допомогти користувачам знайти та отримати доступ до ресурсів бібліотеки через розмовну взаємодію.
-
-Основні обов'язки:
-1. Допомогти користувачам знайти ресурси бібліотеки, відповідаючи на запитання про доступні матеріали
-2. Надати інформацію про електронні бібліотеки, репозиторії, каталоги та бази даних
-3. Керувати користувачами щодо того, як отримати доступ до різних типів ресурсів
-4. Відповідати на запитання про послуги та функціональність бібліотеки
-5. Пропонувати відповідні ресурси на основі запитів користувача
-6. Для складних дослідницьких потреб спрямовувати користувачів на подання запиту на тематичний пошук через Google Form
-
-При відповіді:
-- Будьте корисними, дружелюбними та професійними
-- Надавайте прямі посилання на ресурси, коли вони доступні
-- Якщо ресурс не знайдено в базі даних, визнайте це та запропонуйте альтернативи
-- Тримайте відповіді лаконічними та зосередженими на запиті користувача
-- Задавайте уточнюючі запитання, якщо потрібно, щоб краще допомогти користувачу`,
-    
-    ru: `Вы - полезный AI-помощник библиотеки KSAC (Университета медицинских наук имени короля Сауда бин Абдулазиза).
-Ваша роль - помочь пользователям найти и получить доступ к ресурсам библиотеки через разговорное взаимодействие.
-
-Основные обязанности:
-1. Помочь пользователям найти ресурсы библиотеки, отвечая на вопросы о доступных материалах
-2. Предоставить информацию об электронных библиотеках, репозиториях, каталогах и базах данных
-3. Направить пользователей о том, как получить доступ к различным типам ресурсов
-4. Ответить на вопросы об услугах и функциональности библиотеки
-5. Предложить соответствующие ресурсы на основе запросов пользователя
-6. Для сложных исследовательских потребностей направить пользователей на отправку запроса на тематический поиск через Google Form
-
-При ответе:
-- Будьте полезными, дружелюбными и профессиональными
-- Предоставляйте прямые ссылки на ресурсы, когда они доступны
-- Если ресурс не найден в базе данных, признайте это и предложите альтернативы
-- Держите ответы лаконичными и сосредоточенными на запросе пользователя
-- Задавайте уточняющие вопросы, если необходимо, чтобы лучше помочь пользователю`
+// Get the official KSAC library system prompt
+const getOfficialSystemPrompt = (language: "en" | "uk" | "ru") => {
+  const libInfo = officialLibraryInfo[language];
+  const libResources = officialLibraryResources[language];
+  
+  const context = {
+    libraryInfo: libInfo,
+    libraryResources: libResources,
   };
   
-  return prompts[language] || prompts.en;
+  return getSystemPrompt(language, context);
 };
 
 export const appRouter = router({
@@ -160,7 +113,7 @@ export const appRouter = router({
 
           const { text } = await generateText({
             model: openai("gpt-4o-mini"),
-            system: getSystemPrompt(conversation.language) + resourceContext,
+            system: getOfficialSystemPrompt(conversation.language as "en" | "uk" | "ru") + resourceContext,
             messages: conversationHistory as any,
             prompt: input.content,
           });
