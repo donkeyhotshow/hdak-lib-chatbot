@@ -8,6 +8,7 @@ import { generateText } from "ai";
 import { openai } from "@ai-sdk/openai";
 import * as db from "./db";
 import { getSystemPrompt, officialLibraryInfo, officialLibraryResources } from "./system-prompts-official";
+import { getRagContext } from "./rag-service";
 
 // Admin-only procedure
 const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
@@ -97,6 +98,9 @@ export const appRouter = router({
         // Search for relevant resources
         const relevantResources = await db.searchResources(input.content);
 
+        // Get RAG context from document chunks
+        const ragContext = await getRagContext(input.content, conversation.language as "en" | "uk" | "ru");
+
         // Log the query
         await db.logUserQuery(ctx.user!.id, input.conversationId, input.content, conversation.language, relevantResources.map(r => r.id));
 
@@ -104,7 +108,7 @@ export const appRouter = router({
         let aiResponse = "";
         try {
           const resourceContext = relevantResources.length > 0
-            ? `\n\nRelevant resources found:\n${relevantResources.map(r => {
+            ? `\n\nДоступні ресурси:\n${relevantResources.map(r => {
                 const name = conversation.language === "uk" ? r.nameUk : conversation.language === "ru" ? r.nameRu : r.nameEn;
                 const desc = conversation.language === "uk" ? r.descriptionUk : conversation.language === "ru" ? r.descriptionRu : r.descriptionEn;
                 return `- ${name}: ${desc}${r.url ? ` (${r.url})` : ""}`;
@@ -113,7 +117,7 @@ export const appRouter = router({
 
           const { text } = await generateText({
             model: openai("gpt-4o-mini"),
-            system: getOfficialSystemPrompt(conversation.language as "en" | "uk" | "ru") + resourceContext,
+            system: getOfficialSystemPrompt(conversation.language as "en" | "uk" | "ru") + resourceContext + ragContext,
             messages: conversationHistory as any,
             prompt: input.content,
           });
@@ -126,6 +130,7 @@ export const appRouter = router({
             : conversation.language === "ru"
             ? "Извините, произошла ошибка при генерировании ответа. Пожалуйста, попробуйте еще раз."
             : "Sorry, an error occurred while generating the response. Please try again.";
+          console.error("Full error:", error);
         }
 
         // Save assistant message

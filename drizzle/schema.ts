@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, decimal } from "drizzle-orm/mysql-core";
 import { relations } from "drizzle-orm";
 
 /**
@@ -125,3 +125,46 @@ export const userQueries = mysqlTable("userQueries", {
 
 export type UserQuery = typeof userQueries.$inferSelect;
 export type InsertUserQuery = typeof userQueries.$inferInsert;
+
+/**
+ * Document Chunks table - stores PDF document chunks for RAG
+ */
+export const documentChunks = mysqlTable("documentChunks", {
+  id: int("id").autoincrement().primaryKey(),
+  documentId: varchar("documentId", { length: 255 }).notNull(),
+  documentTitle: varchar("documentTitle", { length: 500 }).notNull(),
+  documentUrl: varchar("documentUrl", { length: 1000 }),
+  chunkIndex: int("chunkIndex").notNull(),
+  content: text("content").notNull(),
+  // Store embedding as JSON array of floats (MySQL doesn't have native vector type)
+  embedding: json("embedding"),
+  sourceType: mysqlEnum("sourceType", ["catalog", "repository", "database", "other"]).notNull(),
+  language: mysqlEnum("language", ["en", "uk", "ru"]).default("uk").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type DocumentChunk = typeof documentChunks.$inferSelect;
+export type InsertDocumentChunk = typeof documentChunks.$inferInsert;
+
+/**
+ * Document Metadata table - stores metadata about processed documents
+ */
+export const documentMetadata = mysqlTable("documentMetadata", {
+  id: int("id").autoincrement().primaryKey(),
+  documentId: varchar("documentId", { length: 255 }).notNull().unique(),
+  title: varchar("title", { length: 500 }).notNull(),
+  url: varchar("url", { length: 1000 }),
+  author: varchar("author", { length: 255 }),
+  publishedDate: timestamp("publishedDate"),
+  sourceType: mysqlEnum("sourceType", ["catalog", "repository", "database", "other"]).notNull(),
+  language: mysqlEnum("language", ["en", "uk", "ru"]).default("uk").notNull(),
+  totalChunks: int("totalChunks").default(0),
+  isProcessed: int("isProcessed").default(0),
+  processingError: text("processingError"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type DocumentMetadata = typeof documentMetadata.$inferSelect;
+export type InsertDocumentMetadata = typeof documentMetadata.$inferInsert;

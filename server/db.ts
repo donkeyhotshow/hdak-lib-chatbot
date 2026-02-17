@@ -1,4 +1,4 @@
-import { eq, like, or } from "drizzle-orm";
+import { eq, like, or, and } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { 
   InsertUser, users, 
@@ -7,7 +7,9 @@ import {
   libraryResources, LibraryResource, InsertLibraryResource,
   libraryContacts, LibraryContact, InsertLibraryContact,
   libraryInfo, LibraryInfo, InsertLibraryInfo,
-  userQueries, UserQuery, InsertUserQuery
+  userQueries, UserQuery, InsertUserQuery,
+  documentChunks, DocumentChunk, InsertDocumentChunk,
+  documentMetadata, DocumentMetadata, InsertDocumentMetadata
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -363,5 +365,122 @@ export async function logUserQuery(userId: number | null, conversationId: number
   } catch (error) {
     console.error("Error logging user query:", error);
     return null;
+  }
+}
+
+
+// Document Chunks functions
+export async function createDocumentChunk(chunk: InsertDocumentChunk): Promise<DocumentChunk | null> {
+  const db = await getDb();
+  if (!db) return null;
+  
+  try {
+    const result = await db.insert(documentChunks).values(chunk);
+    const lastId = (result as any).insertId;
+    if (lastId) {
+      const created = await db.select().from(documentChunks).where(eq(documentChunks.id, lastId)).limit(1);
+      return created[0] || null;
+    }
+    return null;
+  } catch (error) {
+    console.error("Error creating document chunk:", error);
+    return null;
+  }
+}
+
+export async function getDocumentChunks(language?: string): Promise<DocumentChunk[]> {
+  const db = await getDb();
+  if (!db) return [];
+  
+  try {
+    if (language) {
+      return await db.select().from(documentChunks).where(eq(documentChunks.language, language as any));
+    }
+    return await db.select().from(documentChunks);
+  } catch (error) {
+    console.error("Error getting document chunks:", error);
+    return [];
+  }
+}
+
+export async function getDocumentChunksByDocument(documentId: string): Promise<DocumentChunk[]> {
+  const db = await getDb();
+  if (!db) return [];
+  
+  try {
+    return await db.select().from(documentChunks).where(eq(documentChunks.documentId, documentId));
+  } catch (error) {
+    console.error("Error getting document chunks by document:", error);
+    return [];
+  }
+}
+
+// Document Metadata functions
+export async function createDocumentMetadata(metadata: InsertDocumentMetadata): Promise<DocumentMetadata | null> {
+  const db = await getDb();
+  if (!db) return null;
+  
+  try {
+    const result = await db.insert(documentMetadata).values(metadata);
+    const lastId = (result as any).insertId;
+    if (lastId) {
+      const created = await db.select().from(documentMetadata).where(eq(documentMetadata.id, lastId)).limit(1);
+      return created[0] || null;
+    }
+    return null;
+  } catch (error) {
+    console.error("Error creating document metadata:", error);
+    return null;
+  }
+}
+
+export async function getDocumentMetadata(documentId: string): Promise<DocumentMetadata | null> {
+  const db = await getDb();
+  if (!db) return null;
+  
+  try {
+    const result = await db.select().from(documentMetadata).where(eq(documentMetadata.documentId, documentId)).limit(1);
+    return result[0] || null;
+  } catch (error) {
+    console.error("Error getting document metadata:", error);
+    return null;
+  }
+}
+
+export async function updateDocumentMetadata(documentId: string, updates: Partial<InsertDocumentMetadata>): Promise<DocumentMetadata | null> {
+  const db = await getDb();
+  if (!db) return null;
+  
+  try {
+    await db.update(documentMetadata).set(updates).where(eq(documentMetadata.documentId, documentId));
+    return getDocumentMetadata(documentId);
+  } catch (error) {
+    console.error("Error updating document metadata:", error);
+    return null;
+  }
+}
+
+export async function getAllDocumentMetadata(): Promise<DocumentMetadata[]> {
+  const db = await getDb();
+  if (!db) return [];
+  
+  try {
+    return await db.select().from(documentMetadata);
+  } catch (error) {
+    console.error("Error getting all document metadata:", error);
+    return [];
+  }
+}
+
+export async function deleteDocumentChunks(documentId: string): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  
+  try {
+    await db.delete(documentChunks).where(eq(documentChunks.documentId, documentId));
+    return true;
+  } catch (error) {
+    console.error("Error deleting document chunks:", error);
+    return false;
   }
 }
