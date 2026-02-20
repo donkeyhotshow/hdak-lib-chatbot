@@ -12,8 +12,12 @@ import type { Express } from "express";
 import { z } from "zod/v4";
 import { ENV } from "./env";
 import { createPatchedFetch } from "./patchedFetch";
+import { logger } from "./logger";
 import * as db from "../db";
 import { getSystemPrompt, officialLibraryInfo, officialLibraryResources, hdakResources } from "../system-prompts-official";
+
+/** Maximum time (ms) allowed for a single streaming chat request. */
+const CHAT_TIMEOUT_MS = 30_000;
 
 /**
  * Creates an OpenAI-compatible provider with patched fetch.
@@ -167,11 +171,12 @@ export function registerChatRoutes(app: Express) {
         messages,
         tools,
         stopWhen: stepCountIs(5),
+        timeout: CHAT_TIMEOUT_MS,
       });
 
       result.pipeUIMessageStreamToResponse(res);
     } catch (error) {
-      console.error("[/api/chat] Error:", error);
+      logger.error("[/api/chat] Error", { error: error instanceof Error ? error.message : String(error) });
       if (!res.headersSent) {
         res.status(500).json({ error: "Internal server error" });
       }
