@@ -12,7 +12,7 @@ type Language = "en" | "uk" | "ru";
 
 const translations: Record<Language, Record<string, string>> = {
   en: {
-    title: "KSAC Library Assistant",
+    title: "HDAK Library Assistant",
     subtitle: "Your AI-powered library guide",
     newChat: "New Chat",
     language: "Language",
@@ -31,8 +31,8 @@ const translations: Record<Language, Record<string, string>> = {
     russian: "Русский",
   },
   uk: {
-    title: "Помічник бібліотеки KSAC",
-    subtitle: "Ваш AI-помічник бібліотеки",
+    title: "Помічник бібліотеки ХДАК",
+    subtitle: "Ваш AI-помічник бібліотеки ХДАК",
     newChat: "Новий чат",
     language: "Мова",
     logout: "Вихід",
@@ -50,8 +50,8 @@ const translations: Record<Language, Record<string, string>> = {
     russian: "Русский",
   },
   ru: {
-    title: "Помощник библиотеки KSAC",
-    subtitle: "Ваш AI-помощник библиотеки",
+    title: "Помощник библиотеки ХДАК",
+    subtitle: "Ваш AI-помощник библиотеки ХДАК",
     newChat: "Новый чат",
     language: "Язык",
     logout: "Выход",

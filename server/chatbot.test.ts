@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import * as db from "./db";
+import { hdakResources } from "./system-prompts-official";
 
 describe("Chatbot Database Functions", () => {
   describe("Library Resource Management", () => {
@@ -10,8 +11,8 @@ describe("Chatbot Database Functions", () => {
       expect(resources.length).toBeGreaterThan(0);
       
       // Verify seeded resources exist
-      const hasElectronicLibrary = resources.some(r => r.nameEn === "Electronic Library");
-      expect(hasElectronicLibrary).toBe(true);
+      const hasElectronicCatalog = resources.some(r => r.nameEn === "Electronic Catalog");
+      expect(hasElectronicCatalog).toBe(true);
     });
 
     it("should search resources by English keywords", async () => {
@@ -241,6 +242,33 @@ describe("Chatbot Database Functions", () => {
         const messages = await db.getMessages(conversations[0].id);
         expect(Array.isArray(messages)).toBe(true);
       }
+    });
+  });
+
+  describe("HDAK Site Resources", () => {
+    it("should return HDAK site resources list", () => {
+      expect(Array.isArray(hdakResources)).toBe(true);
+      expect(hdakResources.length).toBeGreaterThan(0);
+    });
+
+    it("should include the Electronic Catalog with correct URL", () => {
+      const catalog = hdakResources.find(r => r.name === "Електронний каталог");
+      expect(catalog).toBeDefined();
+      expect(catalog?.url).toBe("https://library-service.com.ua:8443/khkhdak/DocumentSearchForm");
+    });
+
+    it("should include the HDAK Repository with open access", () => {
+      const repo = hdakResources.find(r => r.type === "repository");
+      expect(repo).toBeDefined();
+      expect(repo?.accessConditions).toBe("відкритий доступ");
+    });
+
+    it("should mark corporate-access databases correctly", () => {
+      const corporateResources = hdakResources.filter(r => r.accessConditions?.includes("корпоративний доступ"));
+      expect(corporateResources.length).toBeGreaterThan(0);
+      const names = corporateResources.map(r => r.name);
+      expect(names).toContain("Scopus");
+      expect(names).toContain("Web of Science");
     });
   });
 });

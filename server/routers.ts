@@ -7,7 +7,7 @@ import { TRPCError } from "@trpc/server";
 import { generateText } from "ai";
 import { openai } from "@ai-sdk/openai";
 import * as db from "./db";
-import { getSystemPrompt, officialLibraryInfo, officialLibraryResources } from "./system-prompts-official";
+import { getSystemPrompt, officialLibraryInfo, officialLibraryResources, hdakResources } from "./system-prompts-official";
 import { getRagContext } from "./rag-service";
 
 // Admin-only procedure
@@ -210,6 +210,11 @@ export const appRouter = router({
         const success = await db.deleteResource(input.id);
         if (!success) throw new TRPCError({ code: "NOT_FOUND" });
         return { success: true };
+      }),
+
+    getSiteResources: publicProcedure
+      .query(() => {
+        return hdakResources;
       }),
   }),
 
