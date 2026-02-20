@@ -484,6 +484,7 @@ export async function updateResource(id: number, resource: Partial<InsertLibrary
       ...existing,
       ...resource,
       id: existing.id,
+      createdAt: existing.createdAt,
       updatedAt: new Date(),
     };
     mockState.resources = mockState.resources.map(r => r.id === id ? updated : r);
@@ -574,6 +575,7 @@ export async function updateContact(id: number, contact: Partial<InsertLibraryCo
       ...existing,
       ...contact,
       id: existing.id,
+      createdAt: existing.createdAt,
       updatedAt: new Date(),
     };
     mockState.contacts = mockState.contacts.map(c => c.id === id ? updated : c);
