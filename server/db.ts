@@ -484,11 +484,15 @@ export async function updateResource(id: number, resource: Partial<InsertLibrary
     ensureMockState();
     const existing = mockState.resources.find(r => r.id === id);
     if (!existing) return null;
-    const updated: LibraryResource = { ...existing, ...resource };
-    updated.id = existing.id;
-    updated.createdAt = existing.createdAt;
-    updated.type = existing.type;
-    updated.updatedAt = new Date();
+    const { id: _id, createdAt: _createdAt, type: _type, ...mutableFields } = resource;
+    const updated: LibraryResource = {
+      ...existing,
+      ...mutableFields,
+      id: existing.id,
+      createdAt: existing.createdAt,
+      type: existing.type,
+      updatedAt: new Date(),
+    };
     mockState.resources = mockState.resources.map(r => r.id === id ? updated : r);
     return updated;
   }
@@ -573,11 +577,15 @@ export async function updateContact(id: number, contact: Partial<InsertLibraryCo
     ensureMockState();
     const existing = mockState.contacts.find(c => c.id === id);
     if (!existing) return null;
-    const updated: LibraryContact = { ...existing, ...contact };
-    updated.id = existing.id;
-    updated.createdAt = existing.createdAt;
-    updated.type = existing.type;
-    updated.updatedAt = new Date();
+    const { id: _id, createdAt: _createdAt, type: _type, ...mutableFields } = contact;
+    const updated: LibraryContact = {
+      ...existing,
+      ...mutableFields,
+      id: existing.id,
+      createdAt: existing.createdAt,
+      type: existing.type,
+      updatedAt: new Date(),
+    };
     mockState.contacts = mockState.contacts.map(c => c.id === id ? updated : c);
     return updated;
   }
