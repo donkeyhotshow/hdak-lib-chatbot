@@ -12,6 +12,7 @@ import {
   documentMetadata, DocumentMetadata, InsertDocumentMetadata
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
+import { logger } from './_core/logger';
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -420,6 +421,22 @@ export async function getAllResources(): Promise<LibraryResource[]> {
   }
   
   return db.select().from(libraryResources);
+}
+
+export async function getResourceByUrl(url: string): Promise<LibraryResource | null> {
+  const db = await getDb();
+  if (!db) {
+    ensureMockState();
+    return mockState.resources.find(r => r.url === url) ?? null;
+  }
+
+  try {
+    const result = await db.select().from(libraryResources).where(eq(libraryResources.url, url)).limit(1);
+    return result[0] ?? null;
+  } catch (error) {
+    logger.error("Error getting resource by URL", { error: String(error), url });
+    return null;
+  }
 }
 
 export async function searchResources(query: string): Promise<LibraryResource[]> {
@@ -841,5 +858,46 @@ export async function deleteDocumentChunks(documentId: string): Promise<boolean>
   } catch (error) {
     console.error("Error deleting document chunks:", error);
     return false;
+  }
+}
+
+// Analytics helpers
+export async function getQueryAnalytics(limit = 20): Promise<{
+  topQueries: { query: string; count: number }[];
+  languageBreakdown: { language: string; count: number }[];
+  totalQueries: number;
+}> {
+  const db = await getDb();
+  if (!db) {
+    return { topQueries: [], languageBreakdown: [], totalQueries: 0 };
+  }
+
+  try {
+    const rows = await db.select().from(userQueries);
+    const totalQueries = rows.length;
+
+    // Compute top queries by frequency
+    const queryCounts: Record<string, number> = {};
+    const langCounts: Record<string, number> = {};
+    for (const row of rows) {
+      const q = row.query.trim().toLowerCase();
+      queryCounts[q] = (queryCounts[q] ?? 0) + 1;
+      langCounts[row.language] = (langCounts[row.language] ?? 0) + 1;
+    }
+
+    const topQueries = Object.entries(queryCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, limit)
+      .map(([query, count]) => ({ query, count }));
+
+    const languageBreakdown = Object.entries(langCounts).map(([language, count]) => ({
+      language,
+      count,
+    }));
+
+    return { topQueries, languageBreakdown, totalQueries };
+  } catch (error) {
+    logger.error("Error getting query analytics", { error: String(error) });
+    return { topQueries: [], languageBreakdown: [], totalQueries: 0 };
   }
 }

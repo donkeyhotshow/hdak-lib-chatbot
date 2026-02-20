@@ -7,17 +7,19 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { trpc } from "@/lib/trpc";
-import { Loader2, Plus, Edit2, Trash2, ArrowLeft } from "lucide-react";
+import { Loader2, Plus, Edit2, Trash2, ArrowLeft, RefreshCw, BarChart2, Info } from "lucide-react";
 import { useLocation } from "wouter";
 
 type ResourceType = "electronic_library" | "repository" | "catalog" | "database" | "other";
 type ContactType = "email" | "phone" | "address" | "telegram" | "viber" | "facebook" | "instagram" | "other";
+type ActiveTab = "resources" | "contacts" | "info" | "analytics";
 
 export default function Admin() {
   const { user, isAuthenticated } = useAuth();
   const [location, setLocation] = useLocation();
-  const [activeTab, setActiveTab] = useState<"resources" | "contacts">("resources");
+  const [activeTab, setActiveTab] = useState<ActiveTab>("resources");
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [syncResult, setSyncResult] = useState<{ synced: number; errors: string[] } | null>(null);
 
   // Resource form state
   const [resourceForm, setResourceForm] = useState({
@@ -40,11 +42,27 @@ export default function Admin() {
     labelRu: "",
   });
 
+  // Library info form state
+  const [infoForm, setInfoForm] = useState({
+    key: "about",
+    valueEn: "",
+    valueUk: "",
+    valueRu: "",
+  });
+
   // Fetch resources
   const { data: resources = [], isLoading: resourcesLoading } = trpc.resources.getAll.useQuery();
 
   // Fetch contacts
   const { data: contacts = [], isLoading: contactsLoading } = trpc.contacts.getAll.useQuery();
+
+  // Fetch library info entries
+  const { data: infoEntries = [], isLoading: infoLoading, refetch: refetchInfo } = trpc.libraryInfo.getAll.useQuery();
+
+  // Fetch analytics
+  const { data: analytics, isLoading: analyticsLoading } = trpc.analytics.getQueryStats.useQuery(undefined, {
+    enabled: activeTab === "analytics",
+  });
 
   // Mutations
   const createResourceMutation = trpc.resources.create.useMutation({
@@ -84,6 +102,19 @@ export default function Admin() {
   const deleteContactMutation = trpc.contacts.delete.useMutation({
     onSuccess: () => {
       trpc.useUtils().contacts.getAll.invalidate();
+    },
+  });
+
+  const setInfoMutation = trpc.libraryInfo.set.useMutation({
+    onSuccess: () => {
+      refetchInfo();
+    },
+  });
+
+  const syncMutation = trpc.sync.runNow.useMutation({
+    onSuccess: (result) => {
+      setSyncResult(result);
+      trpc.useUtils().resources.getAll.invalidate();
     },
   });
 
@@ -150,6 +181,19 @@ export default function Admin() {
     }
   };
 
+  const handleSaveInfo = () => {
+    setInfoMutation.mutate(infoForm);
+  };
+
+  const handleEditInfo = (entry: any) => {
+    setInfoForm({
+      key: entry.key,
+      valueEn: entry.valueEn ?? "",
+      valueUk: entry.valueUk ?? "",
+      valueRu: entry.valueRu ?? "",
+    });
+  };
+
   const handleEditResource = (resource: any) => {
     setResourceForm({
       nameEn: resource.nameEn,
@@ -193,7 +237,7 @@ export default function Admin() {
 
       <div className="max-w-7xl mx-auto p-6">
         {/* Tabs */}
-        <div className="flex gap-4 mb-6">
+        <div className="flex flex-wrap gap-2 mb-6">
           <Button
             variant={activeTab === "resources" ? "default" : "outline"}
             onClick={() => setActiveTab("resources")}
@@ -208,6 +252,43 @@ export default function Admin() {
           >
             Contacts
           </Button>
+          <Button
+            variant={activeTab === "info" ? "default" : "outline"}
+            onClick={() => setActiveTab("info")}
+            className={activeTab === "info" ? "bg-indigo-600 hover:bg-indigo-700" : ""}
+          >
+            <Info className="w-4 h-4 mr-2" />
+            Library Info
+          </Button>
+          <Button
+            variant={activeTab === "analytics" ? "default" : "outline"}
+            onClick={() => setActiveTab("analytics")}
+            className={activeTab === "analytics" ? "bg-indigo-600 hover:bg-indigo-700" : ""}
+          >
+            <BarChart2 className="w-4 h-4 mr-2" />
+            Analytics
+          </Button>
+          {/* Manual catalog sync button */}
+          <div className="ml-auto flex items-center gap-2">
+            {syncResult && (
+              <span className="text-xs text-gray-500">
+                Synced: {syncResult.synced}{syncResult.errors.length > 0 ? ` | Errors: ${syncResult.errors.length}` : ""}
+              </span>
+            )}
+            <Button
+              variant="outline"
+              onClick={() => syncMutation.mutate()}
+              disabled={syncMutation.isPending}
+              title="Run catalog sync now"
+            >
+              {syncMutation.isPending ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4 mr-2" />
+              )}
+              Sync Catalog
+            </Button>
+          </div>
         </div>
 
         {/* Resources Tab */}
@@ -474,6 +555,138 @@ export default function Admin() {
                 </ScrollArea>
               )}
             </Card>
+          </div>
+        )}
+
+        {/* Library Info Tab */}
+        {activeTab === "info" && (
+          <div className="space-y-6">
+            <Card className="p-6">
+              <h2 className="text-lg font-bold mb-4">Edit Library Info</h2>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Key</label>
+                  <Select value={infoForm.key} onValueChange={(val) => setInfoForm({ ...infoForm, key: val })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="about">about</SelectItem>
+                      <SelectItem value="hours">hours</SelectItem>
+                      <SelectItem value="address">address</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Value (Ukrainian)</label>
+                  <Input
+                    value={infoForm.valueUk}
+                    onChange={(e) => setInfoForm({ ...infoForm, valueUk: e.target.value })}
+                    placeholder="Значення українською"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Value (English)</label>
+                  <Input
+                    value={infoForm.valueEn}
+                    onChange={(e) => setInfoForm({ ...infoForm, valueEn: e.target.value })}
+                    placeholder="Value in English"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Value (Russian)</label>
+                  <Input
+                    value={infoForm.valueRu}
+                    onChange={(e) => setInfoForm({ ...infoForm, valueRu: e.target.value })}
+                    placeholder="Значение на русском"
+                  />
+                </div>
+              </div>
+              <Button
+                onClick={handleSaveInfo}
+                disabled={setInfoMutation.isPending}
+                className="mt-4 bg-indigo-600 hover:bg-indigo-700"
+              >
+                {setInfoMutation.isPending ? (
+                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</>
+                ) : (
+                  <><Plus className="w-4 h-4 mr-2" />Save Info</>
+                )}
+              </Button>
+            </Card>
+
+            <Card className="p-6">
+              <h2 className="text-lg font-bold mb-4">Current Library Info</h2>
+              {infoLoading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-indigo-600" />
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {(infoEntries as any[]).map((entry: any) => (
+                    <div key={entry.key} className="flex items-start justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900 text-sm">[{entry.key}]</div>
+                        <div className="text-sm text-gray-600 mt-1 line-clamp-2">{entry.valueUk}</div>
+                      </div>
+                      <Button size="sm" variant="outline" onClick={() => handleEditInfo(entry)}>
+                        <Edit2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </div>
+        )}
+
+        {/* Analytics Tab */}
+        {activeTab === "analytics" && (
+          <div className="space-y-6">
+            {analyticsLoading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+              </div>
+            ) : analytics ? (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <Card className="p-4 text-center">
+                    <p className="text-3xl font-bold text-indigo-600">{analytics.totalQueries}</p>
+                    <p className="text-sm text-gray-600 mt-1">Total Queries</p>
+                  </Card>
+                  {analytics.languageBreakdown.map((lb: any) => (
+                    <Card key={lb.language} className="p-4 text-center">
+                      <p className="text-3xl font-bold text-indigo-600">{lb.count}</p>
+                      <p className="text-sm text-gray-600 mt-1 uppercase">{lb.language}</p>
+                    </Card>
+                  ))}
+                </div>
+
+                <Card className="p-6">
+                  <h2 className="text-lg font-bold mb-4">Top Queries</h2>
+                  {analytics.topQueries.length === 0 ? (
+                    <p className="text-gray-500 text-center py-8">No queries logged yet</p>
+                  ) : (
+                    <ScrollArea className="h-72">
+                      <div className="space-y-2">
+                        {analytics.topQueries.map((item: any, i: number) => (
+                          <div key={i} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                            <span className="text-sm text-gray-800 flex-1 truncate">{item.query}</span>
+                            <span className="ml-3 text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
+                              {item.count}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  )}
+                </Card>
+              </>
+            ) : (
+              <p className="text-gray-500 text-center py-12">Failed to load analytics</p>
+            )}
           </div>
         )}
       </div>
