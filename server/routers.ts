@@ -75,6 +75,14 @@ export const appRouter = router({
         return await db.getMessages(input.conversationId);
       }),
 
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        const success = await db.deleteConversation(input.id);
+        if (!success) throw new TRPCError({ code: "NOT_FOUND" });
+        return { success: true };
+      }),
+
     sendMessage: protectedProcedure
       .input(z.object({
         conversationId: z.number(),
@@ -95,18 +103,20 @@ export const appRouter = router({
           .slice(-10) // Last 10 messages for context
           .map(m => ({ role: m.role, content: m.content }));
 
-        // Search for relevant resources
-        const relevantResources = await db.searchResources(input.content);
-
-        // Get RAG context from document chunks
-        const ragContext = await getRagContext(input.content, conversation.language as "en" | "uk" | "ru");
-
-        // Log the query
-        await db.logUserQuery(ctx.user!.id, input.conversationId, input.content, conversation.language, relevantResources.map(r => r.id));
-
-        // Generate AI response
+        // Generate AI response (resource search and RAG are inside the try/catch
+        // so that embedding or search failures produce a graceful error message
+        // rather than an uncaught exception)
         let aiResponse = "";
         try {
+          // Search for relevant resources
+          const relevantResources = await db.searchResources(input.content);
+
+          // Get RAG context from document chunks (requires embeddings API)
+          const ragContext = await getRagContext(input.content, conversation.language as "en" | "uk" | "ru");
+
+          // Log the query
+          await db.logUserQuery(ctx.user!.id, input.conversationId, input.content, conversation.language, relevantResources.map(r => r.id));
+
           const resourceContext = relevantResources.length > 0
             ? `\n\nДоступні ресурси:\n${relevantResources.map(r => {
                 const name = conversation.language === "uk" ? r.nameUk : conversation.language === "ru" ? r.nameRu : r.nameEn;

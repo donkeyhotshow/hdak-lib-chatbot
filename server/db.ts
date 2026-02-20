@@ -363,6 +363,21 @@ export async function getConversation(conversationId: number): Promise<Conversat
   return result[0] || null;
 }
 
+export async function deleteConversation(conversationId: number): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+
+  try {
+    // Delete messages first (no ON DELETE CASCADE in MySQL without FK constraints)
+    await db.delete(messages).where(eq(messages.conversationId, conversationId));
+    const result = await db.delete(conversations).where(eq(conversations.id, conversationId));
+    return (result as any).affectedRows > 0;
+  } catch (error) {
+    console.error("Error deleting conversation:", error);
+    return false;
+  }
+}
+
 // Message helpers
 export async function createMessage(conversationId: number, role: 'user' | 'assistant', content: string): Promise<Message | null> {
   const db = await getDb();

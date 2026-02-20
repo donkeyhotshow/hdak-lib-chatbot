@@ -7,7 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Markdown } from "@/components/Markdown";
 import { trpc } from "@/lib/trpc";
-import { Bot, BookOpen, Database, Search, Loader2, Send, Plus, Globe, LogOut, ExternalLink } from "lucide-react";
+import { Bot, BookOpen, Database, Search, Loader2, Send, Plus, Globe, LogOut, ExternalLink, Trash2, AlertCircle } from "lucide-react";
 
 /** Maximum character length used when deriving a conversation title from a prompt. */
 const CHAT_TITLE_MAX_LENGTH = 50;
@@ -51,6 +51,7 @@ const translations: Record<Language, Record<string, string>> = {
     ex4: "What are the library's opening hours?",
     ex5: "Where can I find the institutional repository?",
     libraryWebsite: "Visit the official library website",
+    deleteConversation: "Delete conversation",
   },
   uk: {
     title: "Помічник бібліотеки ХДАК",
@@ -86,6 +87,7 @@ const translations: Record<Language, Record<string, string>> = {
     ex4: "Який графік роботи бібліотеки?",
     ex5: "Де знайти інституційний репозитарій?",
     libraryWebsite: "Офіційний сайт бібліотеки",
+    deleteConversation: "Видалити розмову",
   },
   ru: {
     title: "Помощник библиотеки ХДАК",
@@ -121,6 +123,7 @@ const translations: Record<Language, Record<string, string>> = {
     ex4: "Какой режим работы библиотеки?",
     ex5: "Где найти институциональный репозиторий?",
     libraryWebsite: "Официальный сайт библиотеки",
+    deleteConversation: "Удалить разговор",
   },
 };
 
@@ -145,8 +148,10 @@ export default function Home() {
   const [messages, setMessages] = useState<any[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const utils = trpc.useUtils();
 
   const t = translations[language];
 
@@ -166,14 +171,13 @@ export default function Home() {
     onSuccess: (data) => {
       setCurrentConversationId(data.id);
       setMessages([]);
-      if (conversationsData) {
-        setConversations([...conversationsData, data]);
-      }
+      utils.conversations.list.invalidate();
       // If there's a pending prompt from a quick-start click, send it now
       if (pendingPrompt) {
         const prompt = pendingPrompt;
         setPendingPrompt(null);
         setIsLoading(true);
+        setSendError(null);
         setMessages([{
           id: Date.now(),
           conversationId: data.id,
@@ -186,15 +190,34 @@ export default function Home() {
     },
   });
 
+  // Delete conversation mutation
+  const deleteConversationMutation = trpc.conversations.delete.useMutation({
+    onSuccess: (_data, variables) => {
+      utils.conversations.list.invalidate();
+      if (currentConversationId === variables.id) {
+        setCurrentConversationId(null);
+        setMessages([]);
+      }
+    },
+  });
+
   // Send message mutation
   const sendMessageMutation = trpc.conversations.sendMessage.useMutation({
     onSuccess: (data) => {
       setMessages((prev) => [...prev, data]);
       setInputMessage("");
       setIsLoading(false);
+      setSendError(null);
     },
     onError: () => {
       setIsLoading(false);
+      setSendError(
+        language === "uk"
+          ? "Помилка надсилання повідомлення. Спробуйте ще раз."
+          : language === "ru"
+          ? "Ошибка отправки сообщения. Попробуйте ещё раз."
+          : "Failed to send message. Please try again."
+      );
     },
   });
 
@@ -241,6 +264,7 @@ export default function Home() {
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || !currentConversationId) return;
 
+    setSendError(null);
     setIsLoading(true);
     // Add user message optimistically
     setMessages((prev) => [
@@ -263,6 +287,7 @@ export default function Home() {
   const handleSelectConversation = (id: number) => {
     setCurrentConversationId(id);
     setMessages([]);
+    setSendError(null);
   };
 
   if (!isAuthenticated) {
@@ -281,6 +306,7 @@ export default function Home() {
   }
 
   const exampleQuestions = [t.ex1, t.ex2, t.ex3, t.ex4, t.ex5];
+  const currentConversation = conversations.find(c => c.id === currentConversationId) ?? null;
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -333,20 +359,37 @@ export default function Home() {
                 <p className="text-sm text-gray-500 text-center py-8">{t.noConversations}</p>
               ) : (
                 conversations.map((conv) => (
-                  <button
+                  <div
                     key={conv.id}
-                    onClick={() => handleSelectConversation(conv.id)}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                    className={`group flex items-start rounded-lg text-sm transition-colors ${
                       currentConversationId === conv.id
-                        ? "bg-indigo-100 text-indigo-900 font-medium"
+                        ? "bg-indigo-100 text-indigo-900"
                         : "text-gray-700 hover:bg-gray-100"
                     }`}
                   >
-                    <div className="truncate">{conv.title}</div>
-                    <div className="text-xs text-gray-500">
-                      {new Date(conv.createdAt).toLocaleDateString()}
-                    </div>
-                  </button>
+                    <button
+                      onClick={() => handleSelectConversation(conv.id)}
+                      className={`flex-1 text-left px-3 py-2 ${
+                        currentConversationId === conv.id ? "font-medium" : ""
+                      }`}
+                    >
+                      <div className="truncate">{conv.title}</div>
+                      <div className="text-xs text-gray-500">
+                        {new Date(conv.createdAt).toLocaleDateString()}
+                      </div>
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteConversationMutation.mutate({ id: conv.id });
+                      }}
+                      disabled={deleteConversationMutation.isPending}
+                      title={t.deleteConversation}
+                      className="opacity-0 group-hover:opacity-100 p-2 mt-1 mr-1 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all disabled:opacity-30"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 ))
               )}
             </div>
@@ -422,6 +465,13 @@ export default function Home() {
             </ScrollArea>
           ) : (
             <>
+              {/* Conversation title header */}
+              {currentConversation && (
+                <div className="border-b border-gray-200 bg-white px-6 py-3">
+                  <p className="text-sm font-medium text-gray-800 truncate">{currentConversation.title}</p>
+                </div>
+              )}
+
               {/* Messages */}
               <ScrollArea className="flex-1 p-6">
                 <div className="max-w-3xl mx-auto space-y-4">
@@ -451,6 +501,14 @@ export default function Home() {
                     <div className="flex justify-start">
                       <div className="bg-gray-200 text-gray-900 px-4 py-2 rounded-lg rounded-bl-none">
                         <Loader2 className="w-4 h-4 animate-spin" />
+                      </div>
+                    </div>
+                  )}
+                  {sendError && (
+                    <div className="flex justify-center">
+                      <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+                        <AlertCircle className="w-4 h-4 shrink-0" />
+                        {sendError}
                       </div>
                     </div>
                   )}
