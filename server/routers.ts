@@ -2,6 +2,7 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
+import { logger } from "./_core/logger";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import * as db from "./db";
@@ -13,6 +14,7 @@ import {
   normalizeLanguage,
   type ConversationHistoryMessage,
 } from "./services/aiPipeline";
+import { runSync } from "./services/syncService";
 
 // Admin-only procedure
 const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
@@ -96,10 +98,13 @@ export const appRouter = router({
           .map((m) => {
             const isSupportedRole = m.role === "assistant" || m.role === "user";
             if (!isSupportedRole) {
-              console.warn(
-                `[sendMessage] Unexpected role "${m.role}" in conversation ${input.conversationId} for message ${
-                  m.id ?? "unknown"
-                }; defaulting to 'user'.`
+              logger.warn(
+                `[sendMessage] Unexpected role in conversation`,
+                {
+                  role: m.role,
+                  conversationId: input.conversationId,
+                  messageId: m.id ?? "unknown",
+                }
               );
             }
             const role: ConversationHistoryMessage["role"] = isSupportedRole
