@@ -94,6 +94,26 @@ export const getOfficialSystemPrompt = (language: SupportedLanguage) => {
 
 export const normalizeLanguage = (language: string | null | undefined): SupportedLanguage => {
   if (language === "uk" || language === "ru" || language === "en") return language;
+  return "uk";
+};
+
+/**
+ * Heuristic language detector for the latest user message.
+ * Prefers Ukrainian by default, distinguishes Russian via ё/ы/э/ъ.
+ * Returns null when the text is empty so callers can fall back to stored language.
+ */
+export const detectLanguageFromText = (text: string): SupportedLanguage | null => {
+  if (!text.trim()) return null;
+  const sample = text.toLowerCase();
+
+  const ukScore = (sample.match(/[іїєґ]/g) ?? []).length;
+  // Russian indicators: hard signs/vowels plus the common greeting stem "здравств".
+  const ruScore = (sample.match(/[ёыэъ]|здравств/g) ?? []).length;
+
+  if (ukScore > ruScore && ukScore > 0) return "uk";
+  if (ruScore > ukScore && ruScore > 0) return "ru";
+  const hasCyrillic = /[\u0400-\u04FF]/.test(sample);
+  if (hasCyrillic) return "uk";
   return "en";
 };
 
