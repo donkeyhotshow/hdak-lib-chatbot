@@ -9,6 +9,7 @@ export interface DocumentCardProps {
   type: ResourceType;
   url?: string | null;
   accessConditions?: string;
+  language?: "en" | "uk" | "ru";
 }
 
 const TYPE_ICONS: Record<ResourceType, React.ReactNode> = {
@@ -19,12 +20,34 @@ const TYPE_ICONS: Record<ResourceType, React.ReactNode> = {
   other: <Folder className="w-5 h-5 text-gray-500" />,
 };
 
-const TYPE_LABELS: Record<ResourceType, string> = {
-  catalog: "Каталог",
-  database: "База даних",
-  electronic_library: "Електронна бібліотека",
-  repository: "Репозитарій",
-  other: "Інше",
+const TYPE_LABELS: Record<"en" | "uk" | "ru", Record<ResourceType, string>> = {
+  en: {
+    catalog: "Catalog",
+    database: "Database",
+    electronic_library: "E-Library",
+    repository: "Repository",
+    other: "Other",
+  },
+  uk: {
+    catalog: "Каталог",
+    database: "База даних",
+    electronic_library: "Е-бібліотека",
+    repository: "Репозитарій",
+    other: "Інше",
+  },
+  ru: {
+    catalog: "Каталог",
+    database: "База данных",
+    electronic_library: "Э-библиотека",
+    repository: "Репозиторий",
+    other: "Прочее",
+  },
+};
+
+const OPEN_LINK_LABELS: Record<"en" | "uk" | "ru", string> = {
+  en: "Open",
+  uk: "Відкрити",
+  ru: "Открыть",
 };
 
 const TYPE_BADGE_CLASSES: Record<ResourceType, string> = {
@@ -35,7 +58,10 @@ const TYPE_BADGE_CLASSES: Record<ResourceType, string> = {
   other: "bg-gray-100 text-gray-600 border-gray-200",
 };
 
-export function DocumentCard({ name, description, type, url, accessConditions }: DocumentCardProps) {
+export function DocumentCard({ name, description, type, url, accessConditions, language = "uk" }: DocumentCardProps) {
+  const typeLabel = TYPE_LABELS[language][type];
+  const openLabel = OPEN_LINK_LABELS[language];
+
   return (
     <Card className="p-4 flex flex-col gap-3 hover:shadow-md transition-shadow border-gray-200 hover:border-indigo-300">
       {/* Header row */}
@@ -61,7 +87,7 @@ export function DocumentCard({ name, description, type, url, accessConditions }:
         <span
           className={`inline-flex items-center text-xs px-2 py-0.5 rounded border font-medium ${TYPE_BADGE_CLASSES[type]}`}
         >
-          {TYPE_LABELS[type]}
+          {typeLabel}
         </span>
         {url && (
           <a
@@ -71,7 +97,7 @@ export function DocumentCard({ name, description, type, url, accessConditions }:
             className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 hover:underline"
           >
             <ExternalLink className="w-3 h-3" />
-            Відкрити
+            {openLabel}
           </a>
         )}
       </div>

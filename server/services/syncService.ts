@@ -19,6 +19,9 @@ export const CATALOG_URL =
 /** How often (ms) to re-sync.  Default: every 6 hours. */
 const DEFAULT_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
+/** Timeout (ms) for the catalog HTTP fetch. */
+const FETCH_TIMEOUT_MS = 15_000;
+
 export interface ParsedResource {
   nameUk: string;
   nameEn: string;
@@ -78,7 +81,7 @@ export function parseResourcesFromHtml(html: string): ParsedResource[] {
 /** Fetch the catalog HTML page and return its body text. */
 async function fetchCatalogHtml(): Promise<string> {
   const response = await fetch(CATALOG_URL, {
-    signal: AbortSignal.timeout(15_000),
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     headers: { "User-Agent": "HDAK-LibBot-Sync/1.0" },
   });
   if (!response.ok) {
@@ -112,8 +115,7 @@ export async function runSync(): Promise<{ synced: number; errors: string[] }> {
   for (const resource of parsed) {
     try {
       // Check if a resource with this URL already exists to avoid duplicates.
-      const existing = await db.searchResources(resource.url);
-      const alreadyExists = existing.some(r => r.url === resource.url);
+      const alreadyExists = !!(await db.getResourceByUrl(resource.url));
 
       if (!alreadyExists) {
         await db.createResource({

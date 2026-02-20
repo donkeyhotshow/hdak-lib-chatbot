@@ -539,6 +539,7 @@ export default function Home() {
                           type={resource.type as ResourceType}
                           url={resource.url}
                           accessConditions={resource.accessConditions}
+                          language={language}
                         />
                       ))}
                     </div>

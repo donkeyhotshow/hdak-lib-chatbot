@@ -12,6 +12,7 @@ import {
   documentMetadata, DocumentMetadata, InsertDocumentMetadata
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
+import { logger } from './_core/logger';
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -420,6 +421,22 @@ export async function getAllResources(): Promise<LibraryResource[]> {
   }
   
   return db.select().from(libraryResources);
+}
+
+export async function getResourceByUrl(url: string): Promise<LibraryResource | null> {
+  const db = await getDb();
+  if (!db) {
+    ensureMockState();
+    return mockState.resources.find(r => r.url === url) ?? null;
+  }
+
+  try {
+    const result = await db.select().from(libraryResources).where(eq(libraryResources.url, url)).limit(1);
+    return result[0] ?? null;
+  } catch (error) {
+    logger.error("Error getting resource by URL", { error: String(error), url });
+    return null;
+  }
 }
 
 export async function searchResources(query: string): Promise<LibraryResource[]> {
@@ -880,7 +897,7 @@ export async function getQueryAnalytics(limit = 20): Promise<{
 
     return { topQueries, languageBreakdown, totalQueries };
   } catch (error) {
-    console.error("Error getting query analytics:", error);
+    logger.error("Error getting query analytics", { error: String(error) });
     return { topQueries: [], languageBreakdown: [], totalQueries: 0 };
   }
 }

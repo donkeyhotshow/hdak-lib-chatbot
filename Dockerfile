@@ -2,7 +2,7 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
 # Copy lockfile first for better layer caching
-COPY package.json pnpm-lock.yaml patches/ ./
+COPY package.json pnpm-lock.yaml ./
 COPY patches/ ./patches/
 RUN corepack enable pnpm && pnpm install --frozen-lockfile
 
