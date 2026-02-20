@@ -1,18 +1,24 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Markdown } from "@/components/Markdown";
 import { trpc } from "@/lib/trpc";
-import { Loader2, Send, Plus, Globe, LogOut } from "lucide-react";
+import { Bot, BookOpen, Database, Search, Loader2, Send, Plus, Globe, LogOut, ExternalLink, Trash2, AlertCircle } from "lucide-react";
+
+/** Maximum character length used when deriving a conversation title from a prompt. */
+const CHAT_TITLE_MAX_LENGTH = 50;
+/** Truncated length (leaves room for the ellipsis character). */
+const CHAT_TITLE_TRUNCATED_LENGTH = 47;
 
 type Language = "en" | "uk" | "ru";
 
 const translations: Record<Language, Record<string, string>> = {
   en: {
-    title: "KSAC Library Assistant",
+    title: "HDAK Library Assistant",
     subtitle: "Your AI-powered library guide",
     newChat: "New Chat",
     language: "Language",
@@ -29,10 +35,27 @@ const translations: Record<Language, Record<string, string>> = {
     english: "English",
     ukrainian: "Українська",
     russian: "Русский",
+    // Overview panel
+    overviewGreeting: "Hello! I'm the HDAK Library AI Assistant.",
+    overviewDesc: "Ask me about library resources, how to find a book or author, or how to navigate the library website.",
+    feature1Title: "Site Navigation",
+    feature1Desc: "Find any page on the library website — catalog, usage rules, contacts, exhibitions, or publications.",
+    feature2Title: "Resource Search",
+    feature2Desc: "Discover available databases and collections: Scopus, Web of Science, the institutional repository, and more.",
+    feature3Title: "Author & Book Lookup",
+    feature3Desc: "Ask whether the library has a specific author or book — I'll give you step-by-step catalog instructions.",
+    examplesTitle: "Try asking:",
+    ex1: "How do I register as a library reader?",
+    ex2: "Does the library have access to Scopus?",
+    ex3: "Do you have books by Taras Shevchenko?",
+    ex4: "What are the library's opening hours?",
+    ex5: "Where can I find the institutional repository?",
+    libraryWebsite: "Visit the official library website",
+    deleteConversation: "Delete conversation",
   },
   uk: {
-    title: "Помічник бібліотеки KSAC",
-    subtitle: "Ваш AI-помічник бібліотеки",
+    title: "Помічник бібліотеки ХДАК",
+    subtitle: "Ваш AI-помічник бібліотеки ХДАК",
     newChat: "Новий чат",
     language: "Мова",
     logout: "Вихід",
@@ -48,10 +71,27 @@ const translations: Record<Language, Record<string, string>> = {
     english: "English",
     ukrainian: "Українська",
     russian: "Русский",
+    // Overview panel
+    overviewGreeting: "Вітаю! Я AI-асистент бібліотеки ХДАК.",
+    overviewDesc: "Запитайте мене про ресурси бібліотеки, як знайти книгу чи автора, або як орієнтуватися на сайті.",
+    feature1Title: "Навігація сайтом",
+    feature1Desc: "Знайду будь-яку сторінку сайту бібліотеки — каталог, правила, контакти, виставки, публікації.",
+    feature2Title: "Пошук ресурсів",
+    feature2Desc: "Розкажу про доступні бази даних та колекції: Scopus, Web of Science, репозитарій та інші.",
+    feature3Title: "Пошук автора і книги",
+    feature3Desc: "Перевірю, чи є в бібліотеці потрібний автор або книга, і дам покрокову інструкцію для каталогу.",
+    examplesTitle: "Спробуйте запитати:",
+    ex1: "Як записатися до бібліотеки?",
+    ex2: "Чи є у вас доступ до Scopus?",
+    ex3: "Чи є книги Тараса Шевченка?",
+    ex4: "Який графік роботи бібліотеки?",
+    ex5: "Де знайти інституційний репозитарій?",
+    libraryWebsite: "Офіційний сайт бібліотеки",
+    deleteConversation: "Видалити розмову",
   },
   ru: {
-    title: "Помощник библиотеки KSAC",
-    subtitle: "Ваш AI-помощник библиотеки",
+    title: "Помощник библиотеки ХДАК",
+    subtitle: "Ваш AI-помощник библиотеки ХДАК",
     newChat: "Новый чат",
     language: "Язык",
     logout: "Выход",
@@ -67,18 +107,51 @@ const translations: Record<Language, Record<string, string>> = {
     english: "English",
     ukrainian: "Українська",
     russian: "Русский",
+    // Overview panel
+    overviewGreeting: "Здравствуйте! Я AI-ассистент библиотеки ХДАК.",
+    overviewDesc: "Спросите меня о ресурсах библиотеки, как найти книгу или автора, или как ориентироваться на сайте.",
+    feature1Title: "Навигация по сайту",
+    feature1Desc: "Найду любую страницу сайта библиотеки — каталог, правила, контакты, выставки, публикации.",
+    feature2Title: "Поиск ресурсов",
+    feature2Desc: "Расскажу о доступных базах данных и коллекциях: Scopus, Web of Science, репозиторий и другие.",
+    feature3Title: "Поиск автора и книги",
+    feature3Desc: "Проверю, есть ли в библиотеке нужный автор или книга, и дам пошаговую инструкцию по каталогу.",
+    examplesTitle: "Попробуйте спросить:",
+    ex1: "Как записаться в библиотеку?",
+    ex2: "Есть ли у вас доступ к Scopus?",
+    ex3: "Есть ли книги Тараса Шевченко?",
+    ex4: "Какой режим работы библиотеки?",
+    ex5: "Где найти институциональный репозиторий?",
+    libraryWebsite: "Официальный сайт библиотеки",
+    deleteConversation: "Удалить разговор",
   },
 };
 
+/** Reusable feature card for the overview panel. */
+function FeatureCard({ icon, title, description }: { icon: ReactNode; title: string; description: string }) {
+  return (
+    <Card className="p-4 flex flex-col gap-2 border-indigo-100 hover:border-indigo-300 transition-colors">
+      <div className="w-9 h-9 rounded-lg bg-indigo-50 flex items-center justify-center">
+        {icon}
+      </div>
+      <p className="font-semibold text-gray-900 text-sm">{title}</p>
+      <p className="text-xs text-gray-500 leading-relaxed">{description}</p>
+    </Card>
+  );
+}
+
 export default function Home() {
   const { user, isAuthenticated, logout } = useAuth();
-  const [language, setLanguage] = useState<Language>("en");
+  const [language, setLanguage] = useState<Language>("uk");
   const [conversations, setConversations] = useState<any[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<number | null>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
+  const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const utils = trpc.useUtils();
 
   const t = translations[language];
 
@@ -98,8 +171,32 @@ export default function Home() {
     onSuccess: (data) => {
       setCurrentConversationId(data.id);
       setMessages([]);
-      if (conversationsData) {
-        setConversations([...conversationsData, data]);
+      utils.conversations.list.invalidate();
+      // If there's a pending prompt from a quick-start click, send it now
+      if (pendingPrompt) {
+        const prompt = pendingPrompt;
+        setPendingPrompt(null);
+        setIsLoading(true);
+        setSendError(null);
+        setMessages([{
+          id: Date.now(),
+          conversationId: data.id,
+          role: "user",
+          content: prompt,
+          createdAt: new Date(),
+        }]);
+        sendMessageMutation.mutate({ conversationId: data.id, content: prompt });
+      }
+    },
+  });
+
+  // Delete conversation mutation
+  const deleteConversationMutation = trpc.conversations.delete.useMutation({
+    onSuccess: (_data, variables) => {
+      utils.conversations.list.invalidate();
+      if (currentConversationId === variables.id) {
+        setCurrentConversationId(null);
+        setMessages([]);
       }
     },
   });
@@ -110,9 +207,17 @@ export default function Home() {
       setMessages((prev) => [...prev, data]);
       setInputMessage("");
       setIsLoading(false);
+      setSendError(null);
     },
     onError: () => {
       setIsLoading(false);
+      setSendError(
+        language === "uk"
+          ? "Помилка надсилання повідомлення. Спробуйте ще раз."
+          : language === "ru"
+          ? "Ошибка отправки сообщения. Попробуйте ещё раз."
+          : "Failed to send message. Please try again."
+      );
     },
   });
 
@@ -147,9 +252,19 @@ export default function Home() {
     });
   };
 
+  /** Start a new chat and immediately send the given prompt. */
+  const handleQuickStart = (prompt: string) => {
+    setPendingPrompt(prompt);
+    createConversationMutation.mutate({
+      title: prompt.length > CHAT_TITLE_MAX_LENGTH ? prompt.slice(0, CHAT_TITLE_TRUNCATED_LENGTH) + "…" : prompt,
+      language,
+    });
+  };
+
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || !currentConversationId) return;
 
+    setSendError(null);
     setIsLoading(true);
     // Add user message optimistically
     setMessages((prev) => [
@@ -172,6 +287,7 @@ export default function Home() {
   const handleSelectConversation = (id: number) => {
     setCurrentConversationId(id);
     setMessages([]);
+    setSendError(null);
   };
 
   if (!isAuthenticated) {
@@ -188,6 +304,9 @@ export default function Home() {
       </div>
     );
   }
+
+  const exampleQuestions = [t.ex1, t.ex2, t.ex3, t.ex4, t.ex5];
+  const currentConversation = conversations.find(c => c.id === currentConversationId) ?? null;
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -240,20 +359,37 @@ export default function Home() {
                 <p className="text-sm text-gray-500 text-center py-8">{t.noConversations}</p>
               ) : (
                 conversations.map((conv) => (
-                  <button
+                  <div
                     key={conv.id}
-                    onClick={() => handleSelectConversation(conv.id)}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                    className={`group flex items-start rounded-lg text-sm transition-colors ${
                       currentConversationId === conv.id
-                        ? "bg-indigo-100 text-indigo-900 font-medium"
+                        ? "bg-indigo-100 text-indigo-900"
                         : "text-gray-700 hover:bg-gray-100"
                     }`}
                   >
-                    <div className="truncate">{conv.title}</div>
-                    <div className="text-xs text-gray-500">
-                      {new Date(conv.createdAt).toLocaleDateString()}
-                    </div>
-                  </button>
+                    <button
+                      onClick={() => handleSelectConversation(conv.id)}
+                      className={`flex-1 text-left px-3 py-2 ${
+                        currentConversationId === conv.id ? "font-medium" : ""
+                      }`}
+                    >
+                      <div className="truncate">{conv.title}</div>
+                      <div className="text-xs text-gray-500">
+                        {new Date(conv.createdAt).toLocaleDateString()}
+                      </div>
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteConversationMutation.mutate({ id: conv.id });
+                      }}
+                      disabled={deleteConversationMutation.isPending}
+                      title={t.deleteConversation}
+                      className="opacity-0 group-hover:opacity-100 p-2 mt-1 mr-1 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all disabled:opacity-30"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 ))
               )}
             </div>
@@ -263,17 +399,79 @@ export default function Home() {
         {/* Main Chat Area */}
         <main className="flex-1 flex flex-col">
           {currentConversationId === null ? (
-            <div className="flex-1 flex items-center justify-center">
-              <Card className="text-center p-8">
-                <Globe className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                <p className="text-gray-600 mb-4">{t.noConversations}</p>
-                <Button onClick={handleNewChat} className="bg-indigo-600 hover:bg-indigo-700">
-                  {t.startChat}
-                </Button>
-              </Card>
-            </div>
+            /* ── Overview Panel ─────────────────────────────────────────── */
+            <ScrollArea className="flex-1">
+              <div className="max-w-2xl mx-auto px-6 py-10 space-y-8">
+
+                {/* Bot greeting */}
+                <div className="flex items-start gap-4">
+                  <div className="shrink-0 w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center">
+                    <Bot className="w-7 h-7 text-indigo-600" />
+                  </div>
+                  <div>
+                    <p className="text-xl font-semibold text-gray-900">{t.overviewGreeting}</p>
+                    <p className="mt-1 text-gray-600">{t.overviewDesc}</p>
+                  </div>
+                </div>
+
+                {/* Feature cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <FeatureCard
+                    icon={<BookOpen className="w-5 h-5 text-indigo-600" />}
+                    title={t.feature1Title}
+                    description={t.feature1Desc}
+                  />
+                  <FeatureCard
+                    icon={<Database className="w-5 h-5 text-indigo-600" />}
+                    title={t.feature2Title}
+                    description={t.feature2Desc}
+                  />
+                  <FeatureCard
+                    icon={<Search className="w-5 h-5 text-indigo-600" />}
+                    title={t.feature3Title}
+                    description={t.feature3Desc}
+                  />
+                </div>
+
+                {/* Example questions */}
+                <div>
+                  <p className="text-sm font-semibold text-gray-700 mb-3">{t.examplesTitle}</p>
+                  <div className="flex flex-col gap-2">
+                    {exampleQuestions.map((q, i) => (
+                      <button
+                        key={i}
+                        onClick={() => handleQuickStart(q)}
+                        disabled={createConversationMutation.isPending}
+                        className="w-full text-left px-4 py-3 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-900 transition-colors disabled:opacity-50"
+                      >
+                        {q}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Official website link */}
+                <a
+                  href="https://lib-hdak.in.ua/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-sm text-indigo-600 hover:text-indigo-800 hover:underline"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  {t.libraryWebsite}
+                </a>
+
+              </div>
+            </ScrollArea>
           ) : (
             <>
+              {/* Conversation title header */}
+              {currentConversation && (
+                <div className="border-b border-gray-200 bg-white px-6 py-3">
+                  <p className="text-sm font-medium text-gray-800 truncate">{currentConversation.title}</p>
+                </div>
+              )}
+
               {/* Messages */}
               <ScrollArea className="flex-1 p-6">
                 <div className="max-w-3xl mx-auto space-y-4">
@@ -283,13 +481,19 @@ export default function Home() {
                       className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                     >
                       <div
-                        className={`max-w-md px-4 py-2 rounded-lg ${
+                        className={`max-w-2xl px-4 py-2 rounded-lg ${
                           msg.role === "user"
                             ? "bg-indigo-600 text-white rounded-br-none"
                             : "bg-gray-200 text-gray-900 rounded-bl-none"
                         }`}
                       >
-                        <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                        {msg.role === "user" ? (
+                          <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                        ) : (
+                          <div className="text-sm prose prose-sm max-w-none prose-a:text-indigo-700 prose-a:underline">
+                            <Markdown>{msg.content}</Markdown>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -297,6 +501,14 @@ export default function Home() {
                     <div className="flex justify-start">
                       <div className="bg-gray-200 text-gray-900 px-4 py-2 rounded-lg rounded-bl-none">
                         <Loader2 className="w-4 h-4 animate-spin" />
+                      </div>
+                    </div>
+                  )}
+                  {sendError && (
+                    <div className="flex justify-center">
+                      <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+                        <AlertCircle className="w-4 h-4 shrink-0" />
+                        {sendError}
                       </div>
                     </div>
                   )}
