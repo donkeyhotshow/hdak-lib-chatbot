@@ -487,6 +487,7 @@ export async function updateResource(id: number, resource: Partial<InsertLibrary
     const updated: LibraryResource = { ...existing, ...resource };
     updated.id = existing.id;
     updated.createdAt = existing.createdAt;
+    updated.type = existing.type;
     updated.updatedAt = new Date();
     mockState.resources = mockState.resources.map(r => r.id === id ? updated : r);
     return updated;
@@ -575,6 +576,7 @@ export async function updateContact(id: number, contact: Partial<InsertLibraryCo
     const updated: LibraryContact = { ...existing, ...contact };
     updated.id = existing.id;
     updated.createdAt = existing.createdAt;
+    updated.type = existing.type;
     updated.updatedAt = new Date();
     mockState.contacts = mockState.contacts.map(c => c.id === id ? updated : c);
     return updated;
