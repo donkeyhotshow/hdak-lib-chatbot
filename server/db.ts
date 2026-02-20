@@ -40,8 +40,8 @@ const nextResourceId = () => mockState.resourceId++;
 const nextContactId = () => mockState.contactId++;
 const nextInfoId = () => mockState.infoId++;
 const stripImmutableFields = <T extends { id?: unknown; createdAt?: unknown; type?: unknown }>(value: T) => {
-  const { id: _id, createdAt: _createdAt, type: _type, ...mutable } = value;
-  return mutable;
+  const { id: _id, createdAt: _createdAt, type: _type, ...mutableFields } = value;
+  return mutableFields;
 };
 
 function ensureMockState() {
@@ -416,7 +416,7 @@ export async function searchResources(query: string): Promise<LibraryResource[]>
         resource.descriptionEn,
         resource.descriptionUk,
         resource.descriptionRu,
-      ].filter((value): value is string => typeof value === "string");
+      ].filter((value): value is string => value != null);
       return fields.some(field => field.toLowerCase().includes(q));
     });
   }
