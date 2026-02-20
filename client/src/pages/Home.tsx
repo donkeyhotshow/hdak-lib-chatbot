@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Markdown } from "@/components/Markdown";
 import { trpc } from "@/lib/trpc";
 import { Loader2, Send, Plus, Globe, LogOut } from "lucide-react";
 
@@ -283,13 +284,19 @@ export default function Home() {
                       className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                     >
                       <div
-                        className={`max-w-md px-4 py-2 rounded-lg ${
+                        className={`max-w-2xl px-4 py-2 rounded-lg ${
                           msg.role === "user"
                             ? "bg-indigo-600 text-white rounded-br-none"
                             : "bg-gray-200 text-gray-900 rounded-bl-none"
                         }`}
                       >
-                        <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                        {msg.role === "user" ? (
+                          <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                        ) : (
+                          <div className="text-sm prose prose-sm max-w-none prose-a:text-indigo-700 prose-a:underline">
+                            <Markdown>{msg.content}</Markdown>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}

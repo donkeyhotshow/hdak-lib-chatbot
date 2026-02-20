@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import * as db from "./db";
 import { hdakResources } from "./system-prompts-official";
+import { tools } from "./_core/chat";
 
 describe("Chatbot Database Functions", () => {
   describe("Library Resource Management", () => {
@@ -269,6 +270,62 @@ describe("Chatbot Database Functions", () => {
       const names = corporateResources.map(r => r.name);
       expect(names).toContain("Scopus");
       expect(names).toContain("Web of Science");
+    });
+  });
+
+  describe("Chat tools — library integration", () => {
+    it("searchLibraryResources tool: finds resources by English keyword", async () => {
+      const result = await tools.searchLibraryResources.execute({ query: "catalog" }, {} as any);
+      expect(result.query).toBe("catalog");
+      expect(Array.isArray(result.dbResources)).toBe(true);
+      expect(Array.isArray(result.siteResources)).toBe(true);
+      expect(result.found).toBeGreaterThanOrEqual(0);
+    });
+
+    it("searchLibraryResources tool: finds resources by Ukrainian keyword", async () => {
+      const result = await tools.searchLibraryResources.execute({ query: "каталог" }, {} as any);
+      expect(result.found).toBeGreaterThan(0);
+      const allNames = [
+        ...result.dbResources.map((r: any) => r.name),
+        ...result.siteResources.map((r: any) => r.name),
+      ];
+      expect(allNames.some((n: string) => n.toLowerCase().includes("каталог"))).toBe(true);
+    });
+
+    it("searchLibraryResources tool: returns siteResources for Scopus", async () => {
+      const result = await tools.searchLibraryResources.execute({ query: "Scopus" }, {} as any);
+      const scopusEntry = result.siteResources.find((r: any) => r.name === "Scopus");
+      expect(scopusEntry).toBeDefined();
+      expect(scopusEntry.url).toBe("https://www.scopus.com/");
+    });
+
+    it("getCatalogSearchLink tool: returns catalog URL and steps for author search", async () => {
+      const result = await tools.getCatalogSearchLink.execute(
+        { searchTerm: "Шевченко", searchType: "author" },
+        {} as any
+      );
+      expect(result.catalogUrl).toBe("https://library-service.com.ua:8443/khkhdak/DocumentSearchForm");
+      expect(result.searchTerm).toBe("Шевченко");
+      expect(result.searchType).toBe("author");
+      expect(Array.isArray(result.steps)).toBe(true);
+      expect(result.steps.length).toBeGreaterThan(0);
+      expect(result.repositoryUrl).toBe("https://repository.ac.kharkov.ua/home");
+    });
+
+    it("getCatalogSearchLink tool: defaults to author search type", async () => {
+      const result = await tools.getCatalogSearchLink.execute(
+        { searchTerm: "Франко", searchType: "author" },
+        {} as any
+      );
+      expect(result.searchFieldLabel).toContain("Автор");
+    });
+
+    it("getCatalogSearchLink tool: title search uses correct field label", async () => {
+      const result = await tools.getCatalogSearchLink.execute(
+        { searchTerm: "Кобзар", searchType: "title" },
+        {} as any
+      );
+      expect(result.searchFieldLabel).toContain("Назва");
     });
   });
 });

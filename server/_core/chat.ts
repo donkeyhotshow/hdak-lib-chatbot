@@ -1,7 +1,7 @@
 /**
  * Chat API Handler
  *
- * Express endpoint for AI SDK streaming chat with tool calling support.
+ * Express endpoint for AI SDK streaming chat with HDAK library tools.
  * Uses patched fetch to fix OpenAI-compatible proxy issues.
  */
 
@@ -12,6 +12,8 @@ import type { Express } from "express";
 import { z } from "zod/v4";
 import { ENV } from "./env";
 import { createPatchedFetch } from "./patchedFetch";
+import * as db from "../db";
+import { getSystemPrompt, officialLibraryInfo, officialLibraryResources, hdakResources } from "../system-prompts-official";
 
 /**
  * Creates an OpenAI-compatible provider with patched fetch.
@@ -29,57 +31,112 @@ function createLLMProvider() {
 }
 
 /**
- * Example tool registry - customize these for your app.
+ * HDAK Library tool registry.
+ * These tools let the AI search library resources and generate catalog links
+ * when a user asks "do you have author X?" or "what databases do you have?".
  */
-const tools = {
-  getWeather: tool({
-    description: "Get the current weather for a location",
+export const tools = {
+  /**
+   * Search library resources by keyword/author/topic.
+   * Returns matching local resource records and relevant hdakResources entries.
+   */
+  searchLibraryResources: tool({
+    description:
+      "Search library databases and resources by keyword, topic, or author. " +
+      "Use this when the user asks about available databases, what resources " +
+      "the library has, or anything related to specific topics or research areas.",
     inputSchema: z.object({
-      location: z
+      query: z
         .string()
-        .describe("The city and country, e.g. 'Tokyo, Japan'"),
-      unit: z.enum(["celsius", "fahrenheit"]).optional().default("celsius"),
+        .describe("Search query — author name, subject, database name, topic, etc."),
     }),
-    execute: async ({ location, unit }) => {
-      // Simulate weather API call
-      const temp = Math.floor(Math.random() * 30) + 5;
-      const conditions = ["sunny", "cloudy", "rainy", "partly cloudy"][
-        Math.floor(Math.random() * 4)
-      ] as string;
+    execute: async ({ query }) => {
+      const dbResources = await db.searchResources(query);
+      const q = query.toLowerCase();
+      const siteResources = hdakResources.filter(
+        (r) =>
+          r.name.toLowerCase().includes(q) ||
+          r.description.toLowerCase().includes(q)
+      );
       return {
-        location,
-        temperature: unit === "fahrenheit" ? Math.round(temp * 1.8 + 32) : temp,
-        unit,
-        conditions,
-        humidity: Math.floor(Math.random() * 50) + 30,
+        query,
+        dbResources: dbResources.slice(0, 5).map((r) => ({
+          name: r.nameUk || r.nameEn,
+          description: r.descriptionUk || r.descriptionEn,
+          url: r.url,
+          type: r.type,
+        })),
+        siteResources: siteResources.slice(0, 4).map((r) => ({
+          name: r.name,
+          description: r.description,
+          url: r.url,
+          accessConditions: r.accessConditions,
+        })),
+        found: dbResources.length + siteResources.length,
       };
     },
   }),
 
-  calculate: tool({
-    description: "Perform a mathematical calculation",
+  /**
+   * Get a direct link to the HDAK electronic catalog and step-by-step search
+   * instructions for finding a specific author, title, or subject.
+   * Use this when the user asks "do you have author X?" or "how do I find book Y?".
+   */
+  getCatalogSearchLink: tool({
+    description:
+      "Get the HDAK electronic catalog URL and step-by-step instructions for " +
+      "searching by author, title, or subject. Use this when the user asks " +
+      "whether the library has a specific author or book, or how to find a " +
+      "publication in the catalog.",
     inputSchema: z.object({
-      expression: z
+      searchTerm: z
         .string()
-        .describe("The math expression to evaluate, e.g. '2 + 2'"),
+        .describe("The author name, book title, or subject to search for"),
+      searchType: z
+        .enum(["author", "title", "subject", "keyword"])
+        .default("author")
+        .describe("Type of search field to use"),
     }),
-    execute: async ({ expression }) => {
-      try {
-        // Simple safe eval for basic math
-        const sanitized = expression.replace(/[^0-9+\-*/().%\s]/g, "");
-        const result = Function(
-          `"use strict"; return (${sanitized})`
-        )() as number;
-        return { expression, result };
-      } catch {
-        return { expression, error: "Invalid expression" };
-      }
+    execute: async ({ searchTerm, searchType }) => {
+      const fieldLabel: Record<string, string> = {
+        author: "Автор / Author",
+        title: "Назва / Title",
+        subject: "Тематика / Subject",
+        keyword: "Ключові слова / Keywords",
+      };
+      return {
+        catalogUrl: "https://library-service.com.ua:8443/khkhdak/DocumentSearchForm",
+        catalogPageUrl: "https://lib-hdak.in.ua/e-catalog.html",
+        repositoryUrl: "https://repository.ac.kharkov.ua/home",
+        searchTerm,
+        searchType,
+        searchFieldLabel: fieldLabel[searchType] ?? fieldLabel.author,
+        steps: [
+          `Відкрийте електронний каталог ХДАК: https://lib-hdak.in.ua/e-catalog.html`,
+          `Натисніть кнопку "Пошук" або перейдіть за посиланням: https://library-service.com.ua:8443/khkhdak/DocumentSearchForm`,
+          `У полі "${fieldLabel[searchType]}" введіть: ${searchTerm}`,
+          `Натисніть кнопку пошуку та перегляньте результати.`,
+        ],
+        repositoryNote:
+          "Якщо шукаєте публікації вчених ХДАК — скористайтесь репозитарієм: https://repository.ac.kharkov.ua/home",
+      };
     },
   }),
 };
 
 /**
+ * Build the HDAK library system prompt for the given language.
+ */
+function buildSystemPrompt(language: "en" | "uk" | "ru"): string {
+  return getSystemPrompt(language, {
+    libraryInfo: officialLibraryInfo[language],
+    libraryResources: officialLibraryResources[language],
+  });
+}
+
+/**
  * Registers the /api/chat endpoint for streaming AI responses.
+ * Accepts optional `language` ("uk" | "ru" | "en") in the request body.
  *
  * @example
  * ```ts
@@ -94,17 +151,19 @@ export function registerChatRoutes(app: Express) {
 
   app.post("/api/chat", async (req, res) => {
     try {
-      const { messages } = req.body;
+      const { messages, language } = req.body;
 
       if (!messages || !Array.isArray(messages)) {
         res.status(400).json({ error: "messages array is required" });
         return;
       }
 
+      const lang: "en" | "uk" | "ru" =
+        language === "uk" || language === "ru" || language === "en" ? language : "uk";
+
       const result = streamText({
         model: openai.chat("gpt-4o"),
-        system:
-          "You are a helpful assistant. You have access to tools for getting weather and doing calculations. Use them when appropriate.",
+        system: buildSystemPrompt(lang),
         messages,
         tools,
         stopWhen: stepCountIs(5),
@@ -119,5 +178,3 @@ export function registerChatRoutes(app: Express) {
     }
   });
 }
-
-export { tools };
