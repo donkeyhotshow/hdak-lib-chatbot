@@ -204,7 +204,8 @@ export async function getRagContext(
   const context = relevantChunks
     .map((chunk) => {
       const source = chunk.documentTitle || "Unknown";
-      return `**${source}:**\n${chunk.content}`;
+      const url = chunk.documentUrl ? ` (${chunk.documentUrl})` : "";
+      return `**${source}${url}:**\n${chunk.content}`;
     })
     .join("\n\n---\n\n");
 

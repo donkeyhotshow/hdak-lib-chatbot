@@ -13,6 +13,12 @@ import {
 /** Maximum time (ms) allowed for a single AI text generation call. */
 const AI_TIMEOUT_MS = 30_000;
 
+/** Sampling temperature for AI responses. Balanced between consistency and creativity. */
+export const AI_TEMPERATURE = 0.7;
+
+/** Default chat model name, centralised here so both pathways stay in sync. */
+export const AI_MODEL_NAME = "gpt-4o-mini";
+
 /**
  * Patterns that indicate prompt injection attempts.
  * Used to sanitize untrusted text (RAG chunks, tool outputs) before
@@ -191,11 +197,23 @@ export async function generateConversationReply(params: AiPipelineParams): Promi
       { role: "user", content: prompt },
     ];
 
-    const { text } = await generateText({
-      model: openai("gpt-4o-mini"),
+    const startMs = Date.now();
+    const { text, usage } = await generateText({
+      model: openai(AI_MODEL_NAME),
       system: systemPrompt,
       messages: allMessages,
+      temperature: AI_TEMPERATURE,
       timeout: AI_TIMEOUT_MS,
+    });
+    const latencyMs = Date.now() - startMs;
+
+    logger.info("[AI pipeline] Response generated", {
+      conversationId,
+      userId,
+      latencyMs,
+      inputTokens: usage?.inputTokens ?? 0,
+      outputTokens: usage?.outputTokens ?? 0,
+      totalTokens: usage?.totalTokens ?? 0,
     });
 
     return text;
