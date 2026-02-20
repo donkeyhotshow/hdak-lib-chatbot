@@ -17,6 +17,24 @@ import * as db from "../db";
 import { getSystemPrompt, officialLibraryInfo, officialLibraryResources, hdakResources } from "../system-prompts-official";
 import { detectLanguageFromText } from "../services/aiPipeline";
 
+/** Maximum number of recent messages to scan when detecting the last user language. */
+const MAX_LANGUAGE_LOOKBACK = 20;
+
+type IncomingMessage = { role?: string; content?: string };
+
+function findLastUserMessage(messages: IncomingMessage[] | unknown): string {
+  if (!Array.isArray(messages)) return "";
+
+  let scanned = 0;
+  for (let i = messages.length - 1; i >= 0 && scanned < MAX_LANGUAGE_LOOKBACK; i--, scanned++) {
+    const msg = messages[i];
+    if (msg?.role === "user" && typeof msg.content === "string") {
+      return msg.content;
+    }
+  }
+  return "";
+}
+
 /** Maximum time (ms) allowed for a single streaming chat request. */
 const CHAT_TIMEOUT_MS = 30_000;
 
@@ -163,10 +181,8 @@ export function registerChatRoutes(app: Express) {
         return;
       }
 
-      const lastUserMessage = Array.isArray(messages)
-        ? [...messages].reverse().find((m) => m?.role === "user")?.content
-        : "";
-      const detectedLanguage = lastUserMessage ? detectLanguageFromText(String(lastUserMessage)) : null;
+      const lastUserMessage = findLastUserMessage(messages);
+      const detectedLanguage = lastUserMessage ? detectLanguageFromText(lastUserMessage) : null;
       const normalizedLanguage =
         language === "uk" || language === "ru" || language === "en" ? language : null;
       const lang: "en" | "uk" | "ru" = normalizedLanguage ?? detectedLanguage ?? "uk";

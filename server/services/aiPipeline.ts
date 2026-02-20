@@ -100,18 +100,20 @@ export const normalizeLanguage = (language: string | null | undefined): Supporte
 /**
  * Heuristic language detector for the latest user message.
  * Prefers Ukrainian by default, distinguishes Russian via ё/ы/э/ъ.
+ * Returns null when the text is empty so callers can fall back to stored language.
  */
 export const detectLanguageFromText = (text: string): SupportedLanguage | null => {
+  if (!text.trim()) return null;
   const sample = text.toLowerCase();
-  if (!sample.trim()) return null;
 
-  const hasCyrillic = /[а-яёёіїєґъыэ]/i.test(sample);
   const ukScore = (sample.match(/[іїєґ]/g) ?? []).length;
-  const ruScore = (sample.match(/[ёыэъ]/g) ?? []).length;
+  // Russian indicators: hard signs/vowels plus the common greeting stem "здравств".
+  const ruScore = (sample.match(/[ёыэъ]|здравств/g) ?? []).length;
 
   if (ukScore > ruScore && ukScore > 0) return "uk";
   if (ruScore > ukScore && ruScore > 0) return "ru";
-  if (hasCyrillic) return "ru";
+  const hasCyrillic = /[\u0400-\u04FF]/.test(sample);
+  if (hasCyrillic) return "uk";
   return "en";
 };
 
