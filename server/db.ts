@@ -483,6 +483,7 @@ export async function updateResource(id: number, resource: Partial<InsertLibrary
     const updated: LibraryResource = {
       ...existing,
       ...resource,
+      id: existing.id,
       updatedAt: new Date(),
     };
     mockState.resources = mockState.resources.map(r => r.id === id ? updated : r);
@@ -572,6 +573,7 @@ export async function updateContact(id: number, contact: Partial<InsertLibraryCo
     const updated: LibraryContact = {
       ...existing,
       ...contact,
+      id: existing.id,
       updatedAt: new Date(),
     };
     mockState.contacts = mockState.contacts.map(c => c.id === id ? updated : c);
