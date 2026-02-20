@@ -4,11 +4,15 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { generateText } from "ai";
-import { openai } from "@ai-sdk/openai";
 import * as db from "./db";
-import { getSystemPrompt, officialLibraryInfo, officialLibraryResources, hdakResources } from "./system-prompts-official";
-import { getRagContext } from "./rag-service";
+import { hdakResources } from "./system-prompts-official";
+import {
+  generateConversationReply,
+  getLocalizedAiErrorMessage,
+  logAiPipelineError,
+  normalizeLanguage,
+  type ConversationHistoryMessage,
+} from "./services/aiPipeline";
 
 // Admin-only procedure
 const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
@@ -17,19 +21,6 @@ const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
   }
   return next({ ctx });
 });
-
-// Get the official KSAC library system prompt
-const getOfficialSystemPrompt = (language: "en" | "uk" | "ru") => {
-  const libInfo = officialLibraryInfo[language];
-  const libResources = officialLibraryResources[language];
-  
-  const context = {
-    libraryInfo: libInfo,
-    libraryResources: libResources,
-  };
-  
-  return getSystemPrompt(language, context);
-};
 
 export const appRouter = router({
   system: systemRouter,
@@ -96,51 +87,46 @@ export const appRouter = router({
         // Get conversation for language context
         const conversation = await db.getConversation(input.conversationId);
         if (!conversation) throw new TRPCError({ code: "NOT_FOUND" });
+        const language = normalizeLanguage(conversation.language as string | null);
 
         // Get conversation history for context
         const messages = await db.getMessages(input.conversationId);
-        const conversationHistory = messages
+        const conversationHistory: ConversationHistoryMessage[] = messages
           .slice(-10) // Last 10 messages for context
-          .map(m => ({ role: m.role, content: m.content }));
+          .map((m) => {
+            const isSupportedRole = m.role === "assistant" || m.role === "user";
+            if (!isSupportedRole) {
+              console.warn(
+                `[sendMessage] Unexpected role "${m.role}" in conversation ${input.conversationId} for message ${
+                  m.id ?? "unknown"
+                }; defaulting to 'user'.`
+              );
+            }
+            const role: ConversationHistoryMessage["role"] = isSupportedRole
+              ? (m.role as ConversationHistoryMessage["role"])
+              : "user";
+            return { role, content: m.content };
+          });
 
         // Generate AI response (resource search and RAG are inside the try/catch
         // so that embedding or search failures produce a graceful error message
         // rather than an uncaught exception)
         let aiResponse = "";
         try {
-          // Search for relevant resources
-          const relevantResources = await db.searchResources(input.content);
-
-          // Get RAG context from document chunks (requires embeddings API)
-          const ragContext = await getRagContext(input.content, conversation.language as "en" | "uk" | "ru");
-
-          // Log the query
-          await db.logUserQuery(ctx.user!.id, input.conversationId, input.content, conversation.language, relevantResources.map(r => r.id));
-
-          const resourceContext = relevantResources.length > 0
-            ? `\n\nДоступні ресурси:\n${relevantResources.map(r => {
-                const name = conversation.language === "uk" ? r.nameUk : conversation.language === "ru" ? r.nameRu : r.nameEn;
-                const desc = conversation.language === "uk" ? r.descriptionUk : conversation.language === "ru" ? r.descriptionRu : r.descriptionEn;
-                return `- ${name}: ${desc}${r.url ? ` (${r.url})` : ""}`;
-              }).join("\n")}`
-            : "";
-
-          const { text } = await generateText({
-            model: openai("gpt-4o-mini"),
-            system: getOfficialSystemPrompt(conversation.language as "en" | "uk" | "ru") + resourceContext + ragContext,
-            messages: conversationHistory as any,
+          aiResponse = await generateConversationReply({
+            prompt: input.content,
+            conversationId: input.conversationId,
+            language,
+            userId: ctx.user!.id,
+            history: conversationHistory,
+          });
+        } catch (error) {
+          logAiPipelineError(error, {
+            conversationId: input.conversationId,
+            userId: ctx.user!.id,
             prompt: input.content,
           });
-
-          aiResponse = text;
-        } catch (error) {
-          console.error("AI generation error:", error);
-          aiResponse = conversation.language === "uk" 
-            ? "Вибачте, сталася помилка при генеруванні відповіді. Будь ласка, спробуйте ще раз."
-            : conversation.language === "ru"
-            ? "Извините, произошла ошибка при генерировании ответа. Пожалуйста, попробуйте еще раз."
-            : "Sorry, an error occurred while generating the response. Please try again.";
-          console.error("Full error:", error);
+          aiResponse = getLocalizedAiErrorMessage(language);
         }
 
         // Save assistant message
