@@ -39,7 +39,7 @@ const mockState: MockState = {
 const nextResourceId = () => mockState.resourceId++;
 const nextContactId = () => mockState.contactId++;
 const nextInfoId = () => mockState.infoId++;
-const stripImmutableFields = <T extends { id?: unknown; createdAt?: unknown; type?: unknown }>(value: T) => {
+const getMutableFields = <T extends { id?: unknown; createdAt?: unknown; type?: unknown }>(value: T) => {
   const { id: _id, createdAt: _createdAt, type: _type, ...mutableFields } = value;
   return mutableFields;
 };
@@ -417,7 +417,8 @@ export async function searchResources(query: string): Promise<LibraryResource[]>
         resource.descriptionUk,
         resource.descriptionRu,
       ].filter((value): value is string => value != null);
-      return fields.some(field => field.toLowerCase().includes(q));
+      const normalizedFields = fields.map(field => field.toLowerCase());
+      return normalizedFields.some(field => field.includes(q));
     });
   }
   
@@ -448,6 +449,7 @@ export async function createResource(resource: InsertLibraryResource): Promise<L
   if (!db) {
     ensureMockState();
     const now = new Date();
+    // In mock mode ensure required localized names are populated.
     const created: LibraryResource = {
       id: nextResourceId(),
       nameEn: resource.nameEn ?? "",
@@ -489,13 +491,10 @@ export async function updateResource(id: number, resource: Partial<InsertLibrary
     ensureMockState();
     const existing = mockState.resources.find(r => r.id === id);
     if (!existing) return null;
-    const mutableFields = stripImmutableFields(resource);
+    const mutableFields = getMutableFields(resource);
     const updated: LibraryResource = {
       ...existing,
       ...mutableFields,
-      id: existing.id,
-      createdAt: existing.createdAt,
-      type: existing.type,
       updatedAt: new Date(),
     };
     mockState.resources = mockState.resources.map(r => r.id === id ? updated : r);
@@ -582,13 +581,10 @@ export async function updateContact(id: number, contact: Partial<InsertLibraryCo
     ensureMockState();
     const existing = mockState.contacts.find(c => c.id === id);
     if (!existing) return null;
-    const mutableFields = stripImmutableFields(contact);
+    const mutableFields = getMutableFields(contact);
     const updated: LibraryContact = {
       ...existing,
       ...mutableFields,
-      id: existing.id,
-      createdAt: existing.createdAt,
-      type: existing.type,
       updatedAt: new Date(),
     };
     mockState.contacts = mockState.contacts.map(c => c.id === id ? updated : c);
