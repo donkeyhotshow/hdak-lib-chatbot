@@ -30,10 +30,14 @@ const mockState: MockState = {
   resources: [],
   contacts: [],
   info: [],
-  resourceId: 0,
-  contactId: 0,
-  infoId: 0,
+  resourceId: 1,
+  contactId: 1,
+  infoId: 1,
 };
+
+const nextResourceId = () => mockState.resourceId++;
+const nextContactId = () => mockState.contactId++;
+const nextInfoId = () => mockState.infoId++;
 
 function ensureMockState() {
   if (mockState.initialized) return;
@@ -41,7 +45,7 @@ function ensureMockState() {
 
   const seedResources: LibraryResource[] = [
     {
-      id: ++mockState.resourceId,
+      id: nextResourceId(),
       nameEn: "Electronic Library",
       nameUk: "Електронна бібліотека",
       nameRu: "Электронная библиотека",
@@ -55,7 +59,7 @@ function ensureMockState() {
       updatedAt: now,
     },
     {
-      id: ++mockState.resourceId,
+      id: nextResourceId(),
       nameEn: "KSAC Repository",
       nameUk: "Репозитарій KSAC",
       nameRu: "Репозиторий KSAC",
@@ -69,7 +73,7 @@ function ensureMockState() {
       updatedAt: now,
     },
     {
-      id: ++mockState.resourceId,
+      id: nextResourceId(),
       nameEn: "Online Catalog",
       nameUk: "Електронний каталог",
       nameRu: "Электронный каталог",
@@ -83,7 +87,7 @@ function ensureMockState() {
       updatedAt: now,
     },
     {
-      id: ++mockState.resourceId,
+      id: nextResourceId(),
       nameEn: "Scopus Database",
       nameUk: "База даних Scopus",
       nameRu: "База данных Scopus",
@@ -97,7 +101,7 @@ function ensureMockState() {
       updatedAt: now,
     },
     {
-      id: ++mockState.resourceId,
+      id: nextResourceId(),
       nameEn: "Web of Science",
       nameUk: "Web of Science",
       nameRu: "Web of Science",
@@ -111,7 +115,7 @@ function ensureMockState() {
       updatedAt: now,
     },
     {
-      id: ++mockState.resourceId,
+      id: nextResourceId(),
       nameEn: "PubMed Central",
       nameUk: "PubMed Central",
       nameRu: "PubMed Central",
@@ -128,7 +132,7 @@ function ensureMockState() {
 
   const seedContacts: LibraryContact[] = [
     {
-      id: ++mockState.contactId,
+      id: nextContactId(),
       type: "email",
       value: "library@ksac.edu.sa",
       labelEn: "Library Email",
@@ -138,7 +142,7 @@ function ensureMockState() {
       updatedAt: now,
     },
     {
-      id: ++mockState.contactId,
+      id: nextContactId(),
       type: "phone",
       value: "+966-11-XXXX-XXXX",
       labelEn: "Library Phone",
@@ -148,7 +152,7 @@ function ensureMockState() {
       updatedAt: now,
     },
     {
-      id: ++mockState.contactId,
+      id: nextContactId(),
       type: "address",
       value: "King Saud bin Abdulaziz University for Health Sciences, Riyadh, Saudi Arabia",
       labelEn: "Library Address",
@@ -158,7 +162,7 @@ function ensureMockState() {
       updatedAt: now,
     },
     {
-      id: ++mockState.contactId,
+      id: nextContactId(),
       type: "telegram",
       value: "https://t.me/ksac_library",
       labelEn: "Telegram Channel",
@@ -168,7 +172,7 @@ function ensureMockState() {
       updatedAt: now,
     },
     {
-      id: ++mockState.contactId,
+      id: nextContactId(),
       type: "facebook",
       value: "https://www.facebook.com/ksac.library",
       labelEn: "Facebook Page",
@@ -178,7 +182,7 @@ function ensureMockState() {
       updatedAt: now,
     },
     {
-      id: ++mockState.contactId,
+      id: nextContactId(),
       type: "instagram",
       value: "https://www.instagram.com/ksac_library",
       labelEn: "Instagram Account",
@@ -191,7 +195,7 @@ function ensureMockState() {
 
   const seedInfo: LibraryInfo[] = [
     {
-      id: ++mockState.infoId,
+      id: nextInfoId(),
       key: "about",
       valueEn: "KSAC Library is a modern academic library serving the King Saud bin Abdulaziz University for Health Sciences community with comprehensive collections and services.",
       valueUk: "Бібліотека KSAC - це сучасна академічна бібліотека, яка обслуговує спільноту Університету медичних наук імені короля Сауда бін Абдулазіза з комплексними колекціями та послугами.",
@@ -200,7 +204,7 @@ function ensureMockState() {
       updatedAt: now,
     },
     {
-      id: ++mockState.infoId,
+      id: nextInfoId(),
       key: "hours",
       valueEn: "Monday to Friday: 8:00 AM - 8:00 PM, Saturday: 10:00 AM - 6:00 PM, Sunday: Closed",
       valueUk: "Понеділок-п'ятниця: 8:00-20:00, Субота: 10:00-18:00, Неділя: Закрито",
@@ -209,7 +213,7 @@ function ensureMockState() {
       updatedAt: now,
     },
     {
-      id: ++mockState.infoId,
+      id: nextInfoId(),
       key: "thematic_search_form",
       valueEn: "https://forms.gle/example",
       valueUk: "https://forms.gle/example",
@@ -440,7 +444,7 @@ export async function createResource(resource: InsertLibraryResource): Promise<L
     ensureMockState();
     const now = new Date();
     const created: LibraryResource = {
-      id: ++mockState.resourceId,
+      id: nextResourceId(),
       nameEn: resource.nameEn ?? "",
       nameUk: resource.nameUk ?? resource.nameEn ?? "",
       nameRu: resource.nameRu ?? resource.nameEn ?? "",
@@ -480,13 +484,10 @@ export async function updateResource(id: number, resource: Partial<InsertLibrary
     ensureMockState();
     const existing = mockState.resources.find(r => r.id === id);
     if (!existing) return null;
-    const updated: LibraryResource = {
-      ...existing,
-      ...resource,
-      id: existing.id,
-      createdAt: existing.createdAt,
-      updatedAt: new Date(),
-    };
+    const updated: LibraryResource = { ...existing, ...resource };
+    updated.id = existing.id;
+    updated.createdAt = existing.createdAt;
+    updated.updatedAt = new Date();
     mockState.resources = mockState.resources.map(r => r.id === id ? updated : r);
     return updated;
   }
@@ -535,7 +536,7 @@ export async function createContact(contact: InsertLibraryContact): Promise<Libr
     ensureMockState();
     const now = new Date();
     const created: LibraryContact = {
-      id: ++mockState.contactId,
+      id: nextContactId(),
       type: contact.type as LibraryContact["type"],
       value: contact.value ?? "",
       labelEn: contact.labelEn ?? null,
@@ -571,13 +572,10 @@ export async function updateContact(id: number, contact: Partial<InsertLibraryCo
     ensureMockState();
     const existing = mockState.contacts.find(c => c.id === id);
     if (!existing) return null;
-    const updated: LibraryContact = {
-      ...existing,
-      ...contact,
-      id: existing.id,
-      createdAt: existing.createdAt,
-      updatedAt: new Date(),
-    };
+    const updated: LibraryContact = { ...existing, ...contact };
+    updated.id = existing.id;
+    updated.createdAt = existing.createdAt;
+    updated.updatedAt = new Date();
     mockState.contacts = mockState.contacts.map(c => c.id === id ? updated : c);
     return updated;
   }
@@ -639,7 +637,7 @@ export async function setLibraryInfo(key: string, valueEn: string, valueUk: stri
       return updated;
     }
     const created: LibraryInfo = {
-      id: ++mockState.infoId,
+      id: nextInfoId(),
       key,
       valueEn,
       valueUk,
