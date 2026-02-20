@@ -843,3 +843,44 @@ export async function deleteDocumentChunks(documentId: string): Promise<boolean>
     return false;
   }
 }
+
+// Analytics helpers
+export async function getQueryAnalytics(limit = 20): Promise<{
+  topQueries: { query: string; count: number }[];
+  languageBreakdown: { language: string; count: number }[];
+  totalQueries: number;
+}> {
+  const db = await getDb();
+  if (!db) {
+    return { topQueries: [], languageBreakdown: [], totalQueries: 0 };
+  }
+
+  try {
+    const rows = await db.select().from(userQueries);
+    const totalQueries = rows.length;
+
+    // Compute top queries by frequency
+    const queryCounts: Record<string, number> = {};
+    const langCounts: Record<string, number> = {};
+    for (const row of rows) {
+      const q = row.query.trim().toLowerCase();
+      queryCounts[q] = (queryCounts[q] ?? 0) + 1;
+      langCounts[row.language] = (langCounts[row.language] ?? 0) + 1;
+    }
+
+    const topQueries = Object.entries(queryCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, limit)
+      .map(([query, count]) => ({ query, count }));
+
+    const languageBreakdown = Object.entries(langCounts).map(([language, count]) => ({
+      language,
+      count,
+    }));
+
+    return { topQueries, languageBreakdown, totalQueries };
+  } catch (error) {
+    console.error("Error getting query analytics:", error);
+    return { topQueries: [], languageBreakdown: [], totalQueries: 0 };
+  }
+}

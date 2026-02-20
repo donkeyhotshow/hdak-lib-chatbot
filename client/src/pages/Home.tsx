@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Markdown } from "@/components/Markdown";
+import { DocumentCard, type ResourceType } from "@/components/DocumentCard";
 import { trpc } from "@/lib/trpc";
 import { Bot, BookOpen, Database, Search, Loader2, Send, Plus, Globe, LogOut, ExternalLink, Trash2, AlertCircle } from "lucide-react";
 
@@ -52,6 +53,16 @@ const translations: Record<Language, Record<string, string>> = {
     ex5: "Where can I find the institutional repository?",
     libraryWebsite: "Visit the official library website",
     deleteConversation: "Delete conversation",
+    // Resource search
+    resourcesTitle: "Library Resources",
+    searchPlaceholder: "Search resources…",
+    filterAll: "All types",
+    filterCatalog: "Catalog",
+    filterDatabase: "Database",
+    filterElectronic: "E-Library",
+    filterRepository: "Repository",
+    filterOther: "Other",
+    noResults: "No resources match your filters.",
   },
   uk: {
     title: "Помічник бібліотеки ХДАК",
@@ -88,6 +99,16 @@ const translations: Record<Language, Record<string, string>> = {
     ex5: "Де знайти інституційний репозитарій?",
     libraryWebsite: "Офіційний сайт бібліотеки",
     deleteConversation: "Видалити розмову",
+    // Resource search
+    resourcesTitle: "Ресурси бібліотеки",
+    searchPlaceholder: "Пошук ресурсів…",
+    filterAll: "Всі типи",
+    filterCatalog: "Каталог",
+    filterDatabase: "База даних",
+    filterElectronic: "Е-бібліотека",
+    filterRepository: "Репозитарій",
+    filterOther: "Інше",
+    noResults: "Ресурсів за вашими фільтрами не знайдено.",
   },
   ru: {
     title: "Помощник библиотеки ХДАК",
@@ -124,6 +145,16 @@ const translations: Record<Language, Record<string, string>> = {
     ex5: "Где найти институциональный репозиторий?",
     libraryWebsite: "Официальный сайт библиотеки",
     deleteConversation: "Удалить разговор",
+    // Resource search
+    resourcesTitle: "Ресурсы библиотеки",
+    searchPlaceholder: "Поиск ресурсов…",
+    filterAll: "Все типы",
+    filterCatalog: "Каталог",
+    filterDatabase: "База данных",
+    filterElectronic: "Э-библиотека",
+    filterRepository: "Репозиторий",
+    filterOther: "Прочее",
+    noResults: "Ресурсов по вашим фильтрам не найдено.",
   },
 };
 
@@ -152,6 +183,23 @@ export default function Home() {
   const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const utils = trpc.useUtils();
+
+  // Resource search / filter state
+  const [resourceSearch, setResourceSearch] = useState("");
+  const [resourceTypeFilter, setResourceTypeFilter] = useState<ResourceType | "all">("all");
+
+  // Fetch site resources (from hdakResources list via tRPC)
+  const { data: siteResources = [] } = trpc.resources.getSiteResources.useQuery();
+
+  const filteredResources = siteResources.filter((r: any) => {
+    const typeMatch = resourceTypeFilter === "all" || r.type === resourceTypeFilter;
+    const q = resourceSearch.trim().toLowerCase();
+    const textMatch =
+      !q ||
+      r.name.toLowerCase().includes(q) ||
+      (r.description ?? "").toLowerCase().includes(q);
+    return typeMatch && textMatch;
+  });
 
   const t = translations[language];
 
@@ -448,6 +496,53 @@ export default function Home() {
                       </button>
                     ))}
                   </div>
+                </div>
+
+                {/* Resource search section */}
+                <div>
+                  <p className="text-sm font-semibold text-gray-700 mb-3">{t.resourcesTitle}</p>
+                  {/* Filter bar */}
+                  <div className="flex flex-col sm:flex-row gap-2 mb-4">
+                    <Input
+                      value={resourceSearch}
+                      onChange={(e) => setResourceSearch(e.target.value)}
+                      placeholder={t.searchPlaceholder}
+                      className="flex-1"
+                    />
+                    <Select
+                      value={resourceTypeFilter}
+                      onValueChange={(val) => setResourceTypeFilter(val as ResourceType | "all")}
+                    >
+                      <SelectTrigger className="w-full sm:w-44">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">{t.filterAll}</SelectItem>
+                        <SelectItem value="catalog">{t.filterCatalog}</SelectItem>
+                        <SelectItem value="database">{t.filterDatabase}</SelectItem>
+                        <SelectItem value="electronic_library">{t.filterElectronic}</SelectItem>
+                        <SelectItem value="repository">{t.filterRepository}</SelectItem>
+                        <SelectItem value="other">{t.filterOther}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {/* Resource cards grid */}
+                  {filteredResources.length === 0 ? (
+                    <p className="text-sm text-gray-500 text-center py-4">{t.noResults}</p>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {filteredResources.map((resource: any, idx: number) => (
+                        <DocumentCard
+                          key={resource.url ?? idx}
+                          name={resource.name}
+                          description={resource.description}
+                          type={resource.type as ResourceType}
+                          url={resource.url}
+                          accessConditions={resource.accessConditions}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Official website link */}

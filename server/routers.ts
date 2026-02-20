@@ -9,6 +9,7 @@ import { openai } from "@ai-sdk/openai";
 import * as db from "./db";
 import { getSystemPrompt, officialLibraryInfo, officialLibraryResources, hdakResources } from "./system-prompts-official";
 import { getRagContext } from "./rag-service";
+import { runSync } from "./services/syncService";
 
 // Admin-only procedure
 const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
@@ -282,6 +283,14 @@ export const appRouter = router({
         return await db.getLibraryInfo(input.key);
       }),
 
+    getAll: adminProcedure
+      .query(async () => {
+        // Return the three standard keys used throughout the app
+        const keys = ["about", "hours", "address"];
+        const entries = await Promise.all(keys.map(k => db.getLibraryInfo(k)));
+        return entries.filter(Boolean);
+      }),
+
     set: adminProcedure
       .input(z.object({
         key: z.string(),
@@ -293,6 +302,24 @@ export const appRouter = router({
         const info = await db.setLibraryInfo(input.key, input.valueEn, input.valueUk, input.valueRu);
         if (!info) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
         return info;
+      }),
+  }),
+
+  // Analytics (admin only)
+  analytics: router({
+    getQueryStats: adminProcedure
+      .input(z.object({ limit: z.number().min(1).max(100).default(20) }).optional())
+      .query(async ({ input }) => {
+        return await db.getQueryAnalytics(input?.limit ?? 20);
+      }),
+  }),
+
+  // Catalog sync (admin only)
+  sync: router({
+    runNow: adminProcedure
+      .mutation(async () => {
+        const result = await runSync();
+        return result;
       }),
   }),
 });
