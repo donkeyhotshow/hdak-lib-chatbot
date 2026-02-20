@@ -4,6 +4,7 @@ import {
   generateConversationReply,
   getLocalizedAiErrorMessage,
   normalizeLanguage,
+  detectLanguageFromText,
   sanitizeUntrustedContent,
 } from "./aiPipeline";
 import { searchResources, logUserQuery } from "../db";
@@ -62,10 +63,17 @@ describe("aiPipeline helpers", () => {
     expect(getLocalizedAiErrorMessage("en")).toContain("Sorry");
   });
 
-  it("normalizes unsupported languages to English", () => {
-    expect(normalizeLanguage("de")).toBe("en");
-    expect(normalizeLanguage(null)).toBe("en");
+  it("normalizes unsupported languages to Ukrainian by default", () => {
+    expect(normalizeLanguage("de")).toBe("uk");
+    expect(normalizeLanguage(null)).toBe("uk");
     expect(normalizeLanguage("uk")).toBe("uk");
+  });
+
+  it("detects language heuristically from text", () => {
+    expect(detectLanguageFromText("Привіт, як справи?")).toBe("uk");
+    expect(detectLanguageFromText("Здравствуйте, где каталог?")).toBe("ru");
+    expect(detectLanguageFromText("Hello, how are you?")).toBe("en");
+    expect(detectLanguageFromText(" ")).toBeNull();
   });
 
   it("generates AI replies using the pipeline and logs queries", async () => {

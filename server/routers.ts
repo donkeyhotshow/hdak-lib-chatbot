@@ -8,6 +8,7 @@ import { TRPCError } from "@trpc/server";
 import * as db from "./db";
 import { hdakResources } from "./system-prompts-official";
 import {
+  detectLanguageFromText,
   generateConversationReply,
   getLocalizedAiErrorMessage,
   logAiPipelineError,
@@ -43,7 +44,7 @@ export const appRouter = router({
     create: protectedProcedure
       .input(z.object({
         title: z.string().min(1),
-        language: z.enum(["en", "uk", "ru"]).default("en"),
+        language: z.enum(["en", "uk", "ru"]).default("uk"),
       }))
       .mutation(async ({ ctx, input }) => {
         const conversation = await db.createConversation(ctx.user!.id, input.title, input.language);
@@ -89,7 +90,9 @@ export const appRouter = router({
         // Get conversation for language context
         const conversation = await db.getConversation(input.conversationId);
         if (!conversation) throw new TRPCError({ code: "NOT_FOUND" });
-        const language = normalizeLanguage(conversation.language as string | null);
+        const conversationLanguage = normalizeLanguage(conversation.language as string | null);
+        const detectedLanguage = detectLanguageFromText(input.content);
+        const language = detectedLanguage ?? conversationLanguage;
 
         // Get conversation history for context
         const messages = await db.getMessages(input.conversationId);

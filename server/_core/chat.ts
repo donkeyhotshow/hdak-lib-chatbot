@@ -15,6 +15,7 @@ import { createPatchedFetch } from "./patchedFetch";
 import { logger } from "./logger";
 import * as db from "../db";
 import { getSystemPrompt, officialLibraryInfo, officialLibraryResources, hdakResources } from "../system-prompts-official";
+import { detectLanguageFromText } from "../services/aiPipeline";
 
 /** Maximum time (ms) allowed for a single streaming chat request. */
 const CHAT_TIMEOUT_MS = 30_000;
@@ -162,8 +163,13 @@ export function registerChatRoutes(app: Express) {
         return;
       }
 
-      const lang: "en" | "uk" | "ru" =
-        language === "uk" || language === "ru" || language === "en" ? language : "uk";
+      const lastUserMessage = Array.isArray(messages)
+        ? [...messages].reverse().find((m) => m?.role === "user")?.content
+        : "";
+      const detectedLanguage = lastUserMessage ? detectLanguageFromText(String(lastUserMessage)) : null;
+      const normalizedLanguage =
+        language === "uk" || language === "ru" || language === "en" ? language : null;
+      const lang: "en" | "uk" | "ru" = normalizedLanguage ?? detectedLanguage ?? "uk";
 
       const result = streamText({
         model: openai.chat("gpt-4o"),
