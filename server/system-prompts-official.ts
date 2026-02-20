@@ -13,34 +13,55 @@ export interface SystemPromptContext {
 export const hdakSiteMap = `Офіційний сайт бібліотеки ХДАК: https://lib-hdak.in.ua/
 
 ГОЛОВНЕ МЕНЮ (верхня навігація):
-- Головна → https://lib-hdak.in.ua/ — загальна інформація, анонси, новини
-- Про бібліотеку → https://lib-hdak.in.ua/pro-biblioteky/
-  • Про нас — https://lib-hdak.in.ua/pro-biblioteky/pro-nas/
-  • Структура — https://lib-hdak.in.ua/pro-biblioteky/struktura/
-  • Відділи бібліотеки — https://lib-hdak.in.ua/pro-biblioteky/viddily/
-  • Правила користування — https://lib-hdak.in.ua/pro-biblioteky/pravyla/
-  • Години роботи — https://lib-hdak.in.ua/pro-biblioteky/ghodyny-roboty/
-  • Новини — https://lib-hdak.in.ua/novyny/
-- Електронні ресурси → https://lib-hdak.in.ua/elektronni-resursy/
-  • Електронний каталог — https://library-service.com.ua:8443/khkhdak/DocumentSearchForm
-  • Електронна бібліотека — https://lib-hdak.in.ua/elektronni-resursy/elektronna-biblioteka/
-  • Інституційний репозитарій — https://repository.ac.kharkov.ua/
-  • Бази даних — https://lib-hdak.in.ua/elektronni-resursy/bazy-danykh/
-  • Корисні посилання — https://lib-hdak.in.ua/elektronni-resursy/korysni-posylannya/
-- Читачам → https://lib-hdak.in.ua/chytacham/
-  • Запис до бібліотеки — https://lib-hdak.in.ua/chytacham/zapys/
-  • Тематичний запит — https://lib-hdak.in.ua/chytacham/tematychnyj-zapyt/
-  • Послуги — https://lib-hdak.in.ua/chytacham/poslugy/
-  • Виставки — https://lib-hdak.in.ua/chytacham/vystavky/
-- Видання ХДАК → https://lib-hdak.in.ua/vydannya-khdak/
-  • Наукові видання — https://lib-hdak.in.ua/vydannya-khdak/naukovi/
-  • Методичні матеріали — https://lib-hdak.in.ua/vydannya-khdak/metodychni/
-- Контакти → https://lib-hdak.in.ua/kontakty/
+- Головна → https://lib-hdak.in.ua/
+- Новини → https://lib-hdak.in.ua/news.html
+- Контакти → https://lib-hdak.in.ua/contacts.html
+- Мапа сайту → https://lib-hdak.in.ua/site-map.html
+- Е-Каталог → https://lib-hdak.in.ua/e-catalog.html (пошук: https://library-service.com.ua:8443/khkhdak/DocumentSearchForm)
+- ХДАК (академія) → http://www.ic.ac.kharkov.ua/
 
-ФУТЕР (нижня частина сайту):
+БІЧНЕ МЕНЮ — повна структура розділів:
+
+1. Про бібліотеку:
+  • Історія бібліотеки → https://lib-hdak.in.ua/history-of-libraries.html
+  • Структура бібліотеки → https://lib-hdak.in.ua/structure-library.html
+  • Правила користування бібліотекою → https://lib-hdak.in.ua/rules-library.html
+  • Правила користування е-читальною залою → https://lib-hdak.in.ua/rules-library-e-reading-room.html
+  • Проєкт «Єдина картка читача» → https://lib-hdak.in.ua/project-unified-reader-card.html
+  • Проєкт ХДАК у Вікіпедії → https://lib-hdak.in.ua/hdak-wiki.html
+
+2. Ресурси бібліотеки:
+  • Електронний каталог → https://lib-hdak.in.ua/e-catalog.html
+  • Артефактні книжкові видання → https://lib-hdak.in.ua/artifacts.html
+
+3. Інфосупровід науки ХДАК:
+  • Публікації вчених ХДАК → https://lib-hdak.in.ua/scientists-publications.html
+  • Авторські профілі. Інструкції. → https://lib-hdak.in.ua/author-profiles-instructions.html
+  • Пошук наукової інформації → https://lib-hdak.in.ua/search-scientific-info.html
+
+4. Інформація для читачів:
+  • Віртуальні виставки → https://lib-hdak.in.ua/virtual-exhibitions.html
+  • Нові надходження → https://lib-hdak.in.ua/new-acquisitions.html
+  • Архів нових надходжень → https://lib-hdak.in.ua/new-acquisitions-archive.html
+  • Галерея → https://lib-hdak.in.ua/gallery-all.html
+
+5. Видавнича діяльність:
+  • „Віват, Академіє!" → https://lib-hdak.in.ua/vivat-academy.html
+  • Праці викладачів та співробітників → https://lib-hdak.in.ua/unfold-teachers.html
+  • Біобібліографічні та бібліографічні покажчики → https://lib-hdak.in.ua/bibliographic-indices.html
+
+6. Ресурси інтернет:
+  • Корисні посилання → https://lib-hdak.in.ua/helpful-links.html
+  • Каталог DOAJ → https://lib-hdak.in.ua/catalog-doaj.html
+
+ДОКУМЕНТИ (для завантаження):
+- Зведений каталог передплат → https://lib-hdak.in.ua/docs/consolidated-directory-1-2019.xlsx
+- Список бібліотек-учасниць → https://lib-hdak.in.ua/docs/list-libraries-participants.docx
+- Правила користування карткою → https://lib-hdak.in.ua/docs/reader-card-rules.pdf
+
+КОНТАКТИ (футер):
 - Адреса: вул. Бурсацький узвіз, 4, Харків
-- Email: library@hdak.edu.ua
-- Посилання: Головна, Про бібліотеку, Контакти, Карта сайту`;
+- Email: library@hdak.edu.ua`;
 
 /** Extended resource definitions with type and access information. */
 export interface SiteResource {
@@ -55,56 +76,89 @@ export const hdakResources: SiteResource[] = [
   {
     name: "Електронний каталог",
     type: "catalog",
-    description: "Пошук книг, журналів, дисертацій та інших документів бібліотечного фонду ХДАК (303 552 записи)",
+    description:
+      "Пошук документів бібліотечного фонду ХДАК за автором, назвою, тематикою. Розпочато у 1997 р. на базі CDS/ISIS, з 2008 р. — АІБС «УФД/Бібліотека». Перший в Україні ЕК «Нотні видання» створено саме тут.",
     url: "https://library-service.com.ua:8443/khkhdak/DocumentSearchForm",
     accessConditions: "відкритий доступ",
   },
   {
-    name: "Інституційний репозитарій",
+    name: "Інституційний репозитарій ХДАК",
     type: "repository",
-    description: "Наукові праці викладачів та студентів ХДАК (3 277+ документів): статті, монографії, дисертації",
-    url: "https://repository.ac.kharkov.ua/",
+    description:
+      "Повнотекстові публікації учених академії: підручники, монографії, статті, кваліфікаційні роботи, навчально-методичні матеріали. Введено в дію 29 березня 2019 р.",
+    url: "https://repository.ac.kharkov.ua/home",
     accessConditions: "відкритий доступ",
   },
   {
-    name: "Електронна бібліотека",
+    name: "Електронна бібліотека «Культура України»",
     type: "electronic_library",
-    description: "Повнотекстові електронні видання та оцифровані матеріали бібліотеки ХДАК",
-    url: "https://lib-hdak.in.ua/elektronni-resursy/elektronna-biblioteka/",
-    accessConditions: "відкритий доступ (окремі матеріали — лише з мережі академії)",
+    description: "Ресурс Національної парламентської бібліотеки України з повнотекстовими виданнями.",
+    url: "http://elib.nplu.org/",
+    accessConditions: "відкритий доступ",
   },
   {
     name: "Scopus",
     type: "database",
-    description: "Міжнародна база даних анотацій та цитувань наукових публікацій",
+    description:
+      "Міжнародна наукометрична база даних анотацій та цитувань. Публікації вчених ХДАК у Scopus: 13 статей.",
     url: "https://www.scopus.com/",
     accessConditions: "корпоративний доступ (лише з мережі академії або через VPN)",
   },
   {
     name: "Web of Science",
     type: "database",
-    description: "Індекс цитування та база даних наукових досліджень",
+    description:
+      "Міжнародна наукометрична база даних. Публікації вчених ХДАК у Web of Science: 10 статей.",
     url: "https://www.webofscience.com/",
     accessConditions: "корпоративний доступ (лише з мережі академії або через VPN)",
   },
   {
-    name: "ScienceDirect",
+    name: "ScienceDirect (Elsevier)",
     type: "database",
-    description: "Повнотекстові статті наукових журналів видавництва Elsevier",
+    description: "Повнотекстові статті наукових журналів видавництва Elsevier.",
     url: "https://www.sciencedirect.com/",
     accessConditions: "корпоративний доступ (лише з мережі академії або через VPN)",
   },
   {
-    name: "Наукова електронна бібліотека eLibrary.ru",
+    name: "Springer Link",
     type: "database",
-    description: "База наукових публікацій, переважно україно- та російськомовних",
-    url: "https://elibrary.ru/",
-    accessConditions: "частково відкритий; повний доступ — з мережі академії",
+    description: "Повнотекстові ресурси порталу Springer: журнали, книги, протоколи конференцій.",
+    url: "https://link.springer.com/",
+    accessConditions: "корпоративний доступ (лише з мережі академії або через VPN)",
+  },
+  {
+    name: "Research 4 Life",
+    type: "database",
+    description: "Міжнародна програма доступу до наукової та медичної літератури для закладів освіти.",
+    url: "https://login.research4life.org/tacsgr1portal_research4life_org/",
+    accessConditions: "корпоративний доступ (лише з мережі академії або через VPN)",
+  },
+  {
+    name: "Артефактні книжкові видання (фонд рідкісних видань)",
+    type: "other",
+    description:
+      "Стародруки і рідкісні видання XVII–XIX ст. Виділено в окрему колекцію у 1997 р. (1262 примірники станом на 2009 р.). Найдавніша книга — «Маргирит» Іоана Златоуста (Острог, 1595 р.).",
+    url: "https://lib-hdak.in.ua/artifacts.html",
+    accessConditions: "відкритий доступ (перегляд каталогу онлайн)",
+  },
+  {
+    name: "Каталог DOAJ (Directory of Open Access Journals)",
+    type: "other",
+    description: "Каталог рецензованих відкритих наукових журналів.",
+    url: "https://lib-hdak.in.ua/catalog-doaj.html",
+    accessConditions: "відкритий доступ",
+  },
+  {
+    name: "Реєстр авторефератів дисертацій (УкрІНТЕІ)",
+    type: "other",
+    description: "Загальнодержавна база авторефератів дисертацій України.",
+    url: "http://nrat.ukrintei.ua/",
+    accessConditions: "відкритий доступ",
   },
   {
     name: "Офіційний сайт бібліотеки ХДАК",
     type: "other",
-    description: "Головна сторінка бібліотеки: новини, структура, послуги, контакти",
+    description: "Головна сторінка бібліотеки: новини, структура, послуги, контакти.",
     url: "https://lib-hdak.in.ua/",
     accessConditions: "відкритий доступ",
   },
@@ -329,59 +383,89 @@ export const officialLibraryResources = {
     {
       name: "Електронний каталог",
       url: "https://library-service.com.ua:8443/khkhdak/DocumentSearchForm",
-      description: "Пошук книг, журналів, дисертацій та інших документів (303,552 записів)",
+      description: "Пошук документів бібліотечного фонду ХДАК",
     },
     {
-      name: "Інституційний репозитарій",
-      url: "https://repository.ac.kharkov.ua/",
-      description: "Наукові праці викладачів та студентів ХДАК (3,277+ документів)",
+      name: "Інституційний репозитарій ХДАК",
+      url: "https://repository.ac.kharkov.ua/home",
+      description: "Повнотекстові публікації учених академії (відкритий доступ)",
+    },
+    {
+      name: "Електронна бібліотека «Культура України»",
+      url: "http://elib.nplu.org/",
+      description: "Ресурс Національної парламентської бібліотеки України",
     },
     {
       name: "Scopus",
       url: "https://www.scopus.com/",
-      description: "Міжнародна база даних анотацій та цитувань (корпоративний доступ)",
+      description: "Міжнародна наукометрична БД (корпоративний доступ)",
     },
     {
       name: "Web of Science",
       url: "https://www.webofscience.com/",
-      description: "Індекс цитування та база даних досліджень (корпоративний доступ)",
+      description: "Міжнародна наукометрична БД (корпоративний доступ)",
     },
     {
       name: "ScienceDirect",
       url: "https://www.sciencedirect.com/",
-      description: "Повнотекстові статті наукових журналів (корпоративний доступ)",
+      description: "Повнотекстові статті журналів Elsevier (корпоративний доступ)",
+    },
+    {
+      name: "Springer Link",
+      url: "https://link.springer.com/",
+      description: "Повнотекстові ресурси порталу Springer (корпоративний доступ)",
+    },
+    {
+      name: "Research 4 Life",
+      url: "https://login.research4life.org/tacsgr1portal_research4life_org/",
+      description: "Програма доступу до наукової літератури (корпоративний доступ)",
     },
   ],
   ru: [
     {
       name: "Официальный сайт",
       url: "https://lib-hdak.in.ua/",
-      description: "Главная страница библиотеки KSAC",
+      description: "Главная страница библиотеки ХГАК",
     },
     {
       name: "Электронный каталог",
       url: "https://library-service.com.ua:8443/khkhdak/DocumentSearchForm",
-      description: "Поиск книг, журналов, диссертаций и других документов (303,552 записей)",
+      description: "Поиск документов библиотечного фонда ХГАК",
     },
     {
-      name: "Институциональный репозиторий",
-      url: "https://repository.ac.kharkov.ua/",
-      description: "Научные работы преподавателей и студентов KSAC (3,277+ документов)",
+      name: "Институциональный репозиторий ХГАК",
+      url: "https://repository.ac.kharkov.ua/home",
+      description: "Полнотекстовые публикации учёных академии (открытый доступ)",
+    },
+    {
+      name: "Электронная библиотека «Культура Украины»",
+      url: "http://elib.nplu.org/",
+      description: "Ресурс Национальной парламентской библиотеки Украины",
     },
     {
       name: "Scopus",
       url: "https://www.scopus.com/",
-      description: "Международная база данных аннотаций и цитирований (корпоративный доступ)",
+      description: "Международная наукометрическая БД (корпоративный доступ)",
     },
     {
       name: "Web of Science",
       url: "https://www.webofscience.com/",
-      description: "Индекс цитирования и база данных исследований (корпоративный доступ)",
+      description: "Международная наукометрическая БД (корпоративный доступ)",
     },
     {
       name: "ScienceDirect",
       url: "https://www.sciencedirect.com/",
-      description: "Полнотекстовые статьи научных журналов (корпоративный доступ)",
+      description: "Полнотекстовые статьи журналов Elsevier (корпоративный доступ)",
+    },
+    {
+      name: "Springer Link",
+      url: "https://link.springer.com/",
+      description: "Полнотекстовые ресурсы портала Springer (корпоративный доступ)",
+    },
+    {
+      name: "Research 4 Life",
+      url: "https://login.research4life.org/tacsgr1portal_research4life_org/",
+      description: "Программа доступа к научной литературе (корпоративный доступ)",
     },
   ],
   en: [
@@ -393,12 +477,17 @@ export const officialLibraryResources = {
     {
       name: "Electronic Catalog",
       url: "https://library-service.com.ua:8443/khkhdak/DocumentSearchForm",
-      description: "Search books, journals, dissertations and other documents (303,552 records)",
+      description: "Search HDAK library holdings",
     },
     {
       name: "Institutional Repository",
-      url: "https://repository.ac.kharkov.ua/",
-      description: "Scientific works of HDAK faculty and students (3,277+ documents)",
+      url: "https://repository.ac.kharkov.ua/home",
+      description: "Full-text publications by HDAK scholars (open access)",
+    },
+    {
+      name: "Electronic Library 'Culture of Ukraine'",
+      url: "http://elib.nplu.org/",
+      description: "Resource of the National Parliamentary Library of Ukraine",
     },
     {
       name: "Scopus",
@@ -413,7 +502,17 @@ export const officialLibraryResources = {
     {
       name: "ScienceDirect",
       url: "https://www.sciencedirect.com/",
-      description: "Full-text scientific journal articles (corporate access)",
+      description: "Full-text scientific journal articles by Elsevier (corporate access)",
+    },
+    {
+      name: "Springer Link",
+      url: "https://link.springer.com/",
+      description: "Full-text resources from Springer portal (corporate access)",
+    },
+    {
+      name: "Research 4 Life",
+      url: "https://login.research4life.org/tacsgr1portal_research4life_org/",
+      description: "Programme providing access to scientific literature (corporate access)",
     },
   ],
 };
