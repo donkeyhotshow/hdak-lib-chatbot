@@ -39,10 +39,16 @@ const mockState: MockState = {
 const nextResourceId = () => mockState.resourceId++;
 const nextContactId = () => mockState.contactId++;
 const nextInfoId = () => mockState.infoId++;
+// Extract only mutable fields to avoid overwriting immutable identifiers or timestamps during mock updates.
 const getMutableFields = <T extends { id?: unknown; createdAt?: unknown; type?: unknown }>(value: T) => {
   const { id: _id, createdAt: _createdAt, type: _type, ...mutableFields } = value;
   return mutableFields;
 };
+const applyResourceNameDefaults = (resource: InsertLibraryResource) => ({
+  nameEn: resource.nameEn ?? "",
+  nameUk: resource.nameUk ?? resource.nameEn ?? "",
+  nameRu: resource.nameRu ?? resource.nameEn ?? "",
+});
 
 function ensureMockState() {
   if (mockState.initialized) return;
@@ -417,6 +423,7 @@ export async function searchResources(query: string): Promise<LibraryResource[]>
         resource.descriptionUk,
         resource.descriptionRu,
       ].filter((value): value is string => value != null);
+      // Mock data set is small; normalize strings per search for clarity.
       const normalizedFields = fields.map(field => field.toLowerCase());
       return normalizedFields.some(field => field.includes(q));
     });
@@ -449,12 +456,10 @@ export async function createResource(resource: InsertLibraryResource): Promise<L
   if (!db) {
     ensureMockState();
     const now = new Date();
-    // In mock mode ensure required localized names are populated.
+    const names = applyResourceNameDefaults(resource);
     const created: LibraryResource = {
       id: nextResourceId(),
-      nameEn: resource.nameEn ?? "",
-      nameUk: resource.nameUk ?? resource.nameEn ?? "",
-      nameRu: resource.nameRu ?? resource.nameEn ?? "",
+      ...names,
       descriptionEn: resource.descriptionEn ?? null,
       descriptionUk: resource.descriptionUk ?? null,
       descriptionRu: resource.descriptionRu ?? null,
