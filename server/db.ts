@@ -35,9 +35,14 @@ const mockState: MockState = {
   infoId: 1,
 };
 
+// Mock state is only used in single-process test runs, so simple counters are sufficient.
 const nextResourceId = () => mockState.resourceId++;
 const nextContactId = () => mockState.contactId++;
 const nextInfoId = () => mockState.infoId++;
+const stripImmutableFields = <T extends { id?: unknown; createdAt?: unknown; type?: unknown }>(value: T) => {
+  const { id: _id, createdAt: _createdAt, type: _type, ...mutable } = value;
+  return mutable;
+};
 
 function ensureMockState() {
   if (mockState.initialized) return;
@@ -411,7 +416,7 @@ export async function searchResources(query: string): Promise<LibraryResource[]>
         resource.descriptionEn,
         resource.descriptionUk,
         resource.descriptionRu,
-      ].filter(Boolean) as string[];
+      ].filter((value): value is string => typeof value === "string");
       return fields.some(field => field.toLowerCase().includes(q));
     });
   }
@@ -484,7 +489,7 @@ export async function updateResource(id: number, resource: Partial<InsertLibrary
     ensureMockState();
     const existing = mockState.resources.find(r => r.id === id);
     if (!existing) return null;
-    const { id: _id, createdAt: _createdAt, type: _type, ...mutableFields } = resource;
+    const mutableFields = stripImmutableFields(resource);
     const updated: LibraryResource = {
       ...existing,
       ...mutableFields,
@@ -577,7 +582,7 @@ export async function updateContact(id: number, contact: Partial<InsertLibraryCo
     ensureMockState();
     const existing = mockState.contacts.find(c => c.id === id);
     if (!existing) return null;
-    const { id: _id, createdAt: _createdAt, type: _type, ...mutableFields } = contact;
+    const mutableFields = stripImmutableFields(contact);
     const updated: LibraryContact = {
       ...existing,
       ...mutableFields,
