@@ -15,7 +15,7 @@ import { createPatchedFetch } from "./patchedFetch";
 import { logger } from "./logger";
 import * as db from "../db";
 import { getSystemPrompt, officialLibraryInfo, officialLibraryResources, hdakResources } from "../system-prompts-official";
-import { detectLanguageFromText } from "../services/aiPipeline";
+import { detectLanguageFromText, sanitizeUntrustedContent, AI_TEMPERATURE } from "../services/aiPipeline";
 
 /** Maximum number of recent messages to scan when detecting the last user language. */
 const MAX_LANGUAGE_LOOKBACK = 20;
@@ -84,8 +84,8 @@ export const tools = {
       return {
         query,
         dbResources: dbResources.slice(0, 5).map((r) => ({
-          name: r.nameUk || r.nameEn,
-          description: r.descriptionUk || r.descriptionEn,
+          name: sanitizeUntrustedContent(r.nameUk || r.nameEn || ""),
+          description: sanitizeUntrustedContent(r.descriptionUk || r.descriptionEn || ""),
           url: r.url,
           type: r.type,
         })),
@@ -192,6 +192,7 @@ export function registerChatRoutes(app: Express) {
         system: buildSystemPrompt(lang),
         messages,
         tools,
+        temperature: AI_TEMPERATURE,
         stopWhen: stepCountIs(5),
         timeout: CHAT_TIMEOUT_MS,
       });
