@@ -173,14 +173,12 @@ function FeatureCard({ icon, title, description }: { icon: ReactNode; title: str
 }
 
 /** Extract a displayable string from a message content field (handles useChat parts array). */
-function getMessageText(msg: UIMessage | any): string {
-  // Handle both UIMessage and database message formats
-  if (typeof msg === 'string') return msg;
-  if (typeof msg?.content === 'string') return msg.content;
-  if (Array.isArray(msg?.content)) {
-    return msg.content
-      .filter((part: any): part is { type: "text"; text: string } => part?.type === "text")
-      .map((part: any) => part.text)
+function getMessageText(content: unknown): string {
+  if (typeof content === "string") return content;
+  if (Array.isArray(content)) {
+    return content
+      .filter((part): part is { type: "text"; text: string } => part?.type === "text")
+      .map((part) => part.text)
       .join("");
   }
   return "";
@@ -197,16 +195,14 @@ export default function Home() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const utils = trpc.useUtils();
 
-  // Local state for input management (useChat doesn't provide this)
-  const [localInput, setLocalInput] = useState("");
-  const [isLocalLoading, setIsLocalLoading] = useState(false);
-
   const {
     messages: streamMessages,
-    setMessages: setStreamMessages,
-    sendMessage,
-    status,
+    input,
+    setInput,
+    isLoading: isStreaming,
     error: streamError,
+    append,
+    setMessages: setStreamMessages,
   } = useChat({
     onFinish: () => {
       if (currentConversationId) {
@@ -214,6 +210,10 @@ export default function Home() {
       }
     },
   });
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInput(e.target.value);
+  };
 
   // Resource search / filter state
   const [resourceSearch, setResourceSearch] = useState("");
@@ -255,169 +255,113 @@ export default function Home() {
       const pendingPrompt = pendingPromptRef.current;
       pendingPromptRef.current = null;
       if (pendingPrompt) {
-        setLocalInput(pendingPrompt);
-        // Trigger send after state update
-        setTimeout(() => {
-          handleSendMessage(pendingPrompt);
-        }, 0);
+        setSendError(null);
+        append(
+          { role: "user", content: pendingPrompt },
+          { body: { language, conversationId: data.id } }
+        );
       }
     },
   });
 
   // Delete conversation mutation
   const deleteConversationMutation = trpc.conversations.delete.useMutation({
-    onSuccess: () => {
-      setCurrentConversationId(null);
-      setStreamMessages([]);
+    onSuccess: (_data, variables) => {
       utils.conversations.list.invalidate();
+      if (currentConversationId === variables.id) {
+        userHasDeselected.current = true;
+        setCurrentConversationId(null);
+        setStreamMessages([]);
+      }
     },
   });
 
-  // Send message mutation
-  const sendMessageMutation = trpc.conversations.sendMessage.useMutation({
-    onSuccess: () => {
-      setLocalInput("");
-      setIsLocalLoading(false);
-      utils.conversations.getMessages.invalidate({ conversationId: currentConversationId! });
-    },
-    onError: (error) => {
-      setSendError(error.message);
-      setIsLocalLoading(false);
-    },
-  });
-
-  // Update conversations list when data changes
+  // Update conversations when data changes
   useEffect(() => {
     if (conversationsData) {
       setConversations(conversationsData);
+      if (!currentConversationId && conversationsData.length > 0 && !userHasDeselected.current) {
+        setCurrentConversationId(conversationsData[0].id);
+      }
     }
-  }, [conversationsData]);
+  }, [conversationsData, currentConversationId]);
 
-  // Auto-scroll to bottom when new messages arrive
+  // Scroll to bottom when messages change
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [streamMessages, messagesData]);
 
-  // Combine stream messages and database messages
-  const allMessages = [
-    ...(messagesData || []),
-    ...streamMessages,
-  ];
-
-  const handleSendMessage = async (messageText?: string) => {
-    const textToSend = messageText || localInput;
-    if (!textToSend.trim()) return;
-
-    setSendError(null);
-    setIsLocalLoading(true);
-
-    if (currentConversationId) {
-      // Send via tRPC for persistence
-      sendMessageMutation.mutate({
-        conversationId: currentConversationId,
-        content: textToSend,
-      });
-    } else {
-      // Create new conversation first
-      createConversationMutation.mutate({
-        title: textToSend.slice(0, CHAT_TITLE_MAX_LENGTH),
-        language,
-      });
-      pendingPromptRef.current = textToSend;
-    }
-  };
-
   const handleNewChat = () => {
-    userHasDeselected.current = true;
-    setCurrentConversationId(null);
-    setStreamMessages([]);
-    setLocalInput("");
-  };
-
-  const handleSelectConversation = (conversationId: number) => {
     userHasDeselected.current = false;
-    setCurrentConversationId(conversationId);
-    setStreamMessages([]);
+    createConversationMutation.mutate({
+      title: `Chat - ${new Date().toLocaleString(language === "uk" ? "uk-UA" : language === "ru" ? "ru-RU" : "en-US")}`,
+      language,
+    });
   };
 
-  const handleDeleteConversation = (conversationId: number) => {
-    deleteConversationMutation.mutate({ id: conversationId });
+  /** Start a new chat and immediately send the given prompt. */
+  const handleQuickStart = (prompt: string) => {
+    pendingPromptRef.current = prompt;
+    createConversationMutation.mutate(
+      {
+        title: prompt.length > CHAT_TITLE_MAX_LENGTH ? prompt.slice(0, CHAT_TITLE_TRUNCATED_LENGTH) + "…" : prompt,
+        language,
+      }
+    );
+  };
+
+  const handleSendMessage = () => {
+    if (!input.trim() || !currentConversationId) return;
+    setSendError(null);
+    append(
+      { role: "user", content: input },
+      { body: { language, conversationId: currentConversationId } }
+    );
+  };
+
+  const handleSelectConversation = (id: number) => {
+    userHasDeselected.current = false;
+    setCurrentConversationId(id);
+    setStreamMessages([]);
+    setSendError(null);
   };
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-50 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md p-8">
-          <div className="text-center mb-6">
-            <Bot className="w-12 h-12 text-indigo-600 mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-gray-900">{t.title}</h1>
-            <p className="text-sm text-gray-600 mt-2">{t.subtitle}</p>
-          </div>
-          <Button className="w-full bg-indigo-600 hover:bg-indigo-700">
-            {t.login}
-          </Button>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md p-8 text-center">
+          <Globe className="w-16 h-16 mx-auto mb-4 text-indigo-600" />
+          <h1 className="text-3xl font-bold mb-2 text-gray-900">{t.title}</h1>
+          <p className="text-gray-600 mb-6">{t.subtitle}</p>
+          <a href={`${import.meta.env.VITE_OAUTH_PORTAL_URL}?redirect_uri=${encodeURIComponent(window.location.href)}`}>
+            <Button className="w-full bg-indigo-600 hover:bg-indigo-700">{t.login}</Button>
+          </a>
         </Card>
       </div>
     );
   }
 
+  const exampleQuestions = [t.ex1, t.ex2, t.ex3, t.ex4, t.ex5];
+  const currentConversation = conversations.find(c => c.id === currentConversationId) ?? null;
+
   return (
-    <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
-      <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
-        {/* Header */}
-        <div className="p-4 border-b border-gray-200">
-          <Button onClick={handleNewChat} className="w-full bg-indigo-600 hover:bg-indigo-700 gap-2">
-            <Plus className="w-4 h-4" />
-            {t.newChat}
-          </Button>
-        </div>
-
-        {/* Conversations List */}
-        <div className="flex-1 overflow-y-auto">
-          {conversations.length === 0 ? (
-            <div className="p-4 text-center text-sm text-gray-500">
-              {t.noConversations}
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Globe className="w-8 h-8 text-indigo-600" />
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">{t.title}</h1>
+              <p className="text-sm text-gray-600">{t.subtitle}</p>
             </div>
-          ) : (
-            <div className="p-2">
-              {conversations.map((conv) => (
-                <div
-                  key={conv.id}
-                  onClick={() => handleSelectConversation(conv.id)}
-                  className={`p-3 rounded-lg cursor-pointer mb-2 transition-colors group ${
-                    currentConversationId === conv.id
-                      ? "bg-indigo-100 text-indigo-900"
-                      : "hover:bg-gray-100 text-gray-700"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium truncate flex-1">{conv.title}</span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteConversation(conv.id);
-                      }}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <Trash2 className="w-4 h-4 text-red-500 hover:text-red-700" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="p-4 border-t border-gray-200 space-y-3">
-          <div className="flex items-center gap-2">
-            <Globe className="w-4 h-4 text-gray-600" />
-            <Select value={language} onValueChange={(value) => setLanguage(value as Language)}>
-              <SelectTrigger className="h-8">
-                <SelectValue />
+          </div>
+          <div className="flex items-center gap-3">
+            <Select value={language} onValueChange={(val) => setLanguage(val as Language)}>
+              <SelectTrigger className="w-32">
+                <SelectValue placeholder={t.selectLanguage} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="en">{t.english}</SelectItem>
@@ -425,34 +369,91 @@ export default function Home() {
                 <SelectItem value="ru">{t.russian}</SelectItem>
               </SelectContent>
             </Select>
+            <Button variant="outline" size="sm" onClick={logout}>
+              <LogOut className="w-4 h-4 mr-2" />
+              {t.logout}
+            </Button>
           </div>
-          <Button
-            onClick={logout}
-            variant="outline"
-            className="w-full gap-2"
-          >
-            <LogOut className="w-4 h-4" />
-            {t.logout}
-          </Button>
         </div>
-      </div>
+      </header>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        <main className="flex-1 overflow-hidden flex">
-          {!currentConversationId && !userHasDeselected.current ? (
-            // Overview Panel
-            <div className="flex-1 overflow-y-auto p-8">
-              <div className="max-w-3xl mx-auto">
-                <div className="text-center mb-12">
-                  <Bot className="w-16 h-16 text-indigo-600 mx-auto mb-4" />
-                  <h2 className="text-3xl font-bold text-gray-900 mb-2">
-                    {t.overviewGreeting}
-                  </h2>
-                  <p className="text-gray-600">{t.overviewDesc}</p>
+      <div className="flex-1 flex overflow-hidden">
+        {/* Sidebar - Conversations */}
+        <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
+          <div className="p-4 border-b border-gray-200">
+            <Button
+              onClick={handleNewChat}
+              disabled={createConversationMutation.isPending}
+              className="w-full bg-indigo-600 hover:bg-indigo-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              {t.newChat}
+            </Button>
+          </div>
+
+          <ScrollArea className="flex-1">
+            <div className="p-4 space-y-2">
+              {conversations.length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-8">{t.noConversations}</p>
+              ) : (
+                conversations.map((conv) => (
+                  <div
+                    key={conv.id}
+                    className={`group flex items-start rounded-lg text-sm transition-colors ${
+                      currentConversationId === conv.id
+                        ? "bg-indigo-100 text-indigo-900"
+                        : "text-gray-700 hover:bg-gray-100"
+                    }`}
+                  >
+                    <button
+                      onClick={() => handleSelectConversation(conv.id)}
+                      className={`flex-1 text-left px-3 py-2 ${
+                        currentConversationId === conv.id ? "font-medium" : ""
+                      }`}
+                    >
+                      <div className="truncate">{conv.title}</div>
+                      <div className="text-xs text-gray-500">
+                        {new Date(conv.createdAt).toLocaleDateString()}
+                      </div>
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteConversationMutation.mutate({ id: conv.id });
+                      }}
+                      disabled={deleteConversationMutation.isPending}
+                      title={t.deleteConversation}
+                      className="opacity-0 group-hover:opacity-100 p-2 mt-1 mr-1 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all disabled:opacity-30"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </ScrollArea>
+        </aside>
+
+        {/* Main Chat Area */}
+        <main className="flex-1 flex flex-col">
+          {currentConversationId === null ? (
+            /* ── Overview Panel ─────────────────────────────────────────── */
+            <ScrollArea className="flex-1">
+              <div className="max-w-2xl mx-auto px-6 py-10 space-y-8">
+
+                {/* Bot greeting */}
+                <div className="flex items-start gap-4">
+                  <div className="shrink-0 w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center">
+                    <Bot className="w-7 h-7 text-indigo-600" />
+                  </div>
+                  <div>
+                    <p className="text-xl font-semibold text-gray-900">{t.overviewGreeting}</p>
+                    <p className="mt-1 text-gray-600">{t.overviewDesc}</p>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
+                {/* Feature cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <FeatureCard
                     icon={<BookOpen className="w-5 h-5 text-indigo-600" />}
                     title={t.feature1Title}
@@ -470,52 +471,106 @@ export default function Home() {
                   />
                 </div>
 
-                <Card className="p-6 bg-indigo-50 border-indigo-200 mb-8">
-                  <h3 className="font-semibold text-gray-900 mb-3">{t.examplesTitle}</h3>
-                  <div className="space-y-2">
-                    {[t.ex1, t.ex2, t.ex3, t.ex4, t.ex5].map((example, idx) => (
+                {/* Example questions */}
+                <div>
+                  <p className="text-sm font-semibold text-gray-700 mb-3">{t.examplesTitle}</p>
+                  <div className="flex flex-col gap-2">
+                    {exampleQuestions.map((q, i) => (
                       <button
-                        key={idx}
-                        onClick={() => {
-                          createConversationMutation.mutate({
-                            title: example.slice(0, CHAT_TITLE_MAX_LENGTH),
-                            language,
-                          });
-                          pendingPromptRef.current = example;
-                        }}
-                        className="block w-full text-left p-2 rounded hover:bg-indigo-100 transition-colors text-sm text-indigo-900"
+                        key={i}
+                        onClick={() => handleQuickStart(q)}
+                        disabled={createConversationMutation.isPending}
+                        className="w-full text-left px-4 py-3 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-900 transition-colors disabled:opacity-50"
                       >
-                        • {example}
+                        {q}
                       </button>
                     ))}
                   </div>
-                </Card>
-
-                <div className="text-center">
-                  <a
-                    href="https://lib-hdak.in.ua/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-medium"
-                  >
-                    {t.libraryWebsite}
-                    <ExternalLink className="w-4 h-4" />
-                  </a>
                 </div>
+
+                {/* Resource search section */}
+                <div>
+                  <p className="text-sm font-semibold text-gray-700 mb-3">{t.resourcesTitle}</p>
+                  {/* Filter bar */}
+                  <div className="flex flex-col sm:flex-row gap-2 mb-4">
+                    <Input
+                      value={resourceSearch}
+                      onChange={(e) => setResourceSearch(e.target.value)}
+                      placeholder={t.searchPlaceholder}
+                      className="flex-1"
+                    />
+                    <Select
+                      value={resourceTypeFilter}
+                      onValueChange={(val) => setResourceTypeFilter(val as ResourceType | "all")}
+                    >
+                      <SelectTrigger className="w-full sm:w-44">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">{t.filterAll}</SelectItem>
+                        <SelectItem value="catalog">{t.filterCatalog}</SelectItem>
+                        <SelectItem value="database">{t.filterDatabase}</SelectItem>
+                        <SelectItem value="electronic_library">{t.filterElectronic}</SelectItem>
+                        <SelectItem value="repository">{t.filterRepository}</SelectItem>
+                        <SelectItem value="other">{t.filterOther}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {/* Resource cards grid */}
+                  {filteredResources.length === 0 ? (
+                    <p className="text-sm text-gray-500 text-center py-4">{t.noResults}</p>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {filteredResources.map((resource: any, idx: number) => (
+                        <DocumentCard
+                          key={resource.url ?? idx}
+                          name={resource.name}
+                          description={resource.description}
+                          type={resource.type as ResourceType}
+                          url={resource.url}
+                          accessConditions={resource.accessConditions}
+                          language={language}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Official website link */}
+                <a
+                  href="https://lib-hdak.in.ua/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-sm text-indigo-600 hover:text-indigo-800 hover:underline"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  {t.libraryWebsite}
+                </a>
+
               </div>
-            </div>
+            </ScrollArea>
           ) : (
             <>
-              {/* Chat Messages */}
-              <ScrollArea className="flex-1 w-full">
-                <div className="max-w-3xl mx-auto p-4 space-y-4">
-                  {allMessages.map((msg, idx) => (
+              {/* Conversation title header */}
+              {currentConversation && (
+                <div className="border-b border-gray-200 bg-white px-6 py-3">
+                  <p className="text-sm font-medium text-gray-800 truncate">{currentConversation.title}</p>
+                </div>
+              )}
+
+              {/* Messages */}
+              <ScrollArea className="flex-1 p-6">
+                <div className="max-w-3xl mx-auto space-y-4">
+                  {(isStreaming || streamMessages.length > 0
+                    ? streamMessages
+                    : (messagesData ?? [])
+                  ).map((msg) => (
                     <div
-                      key={idx}
+                      key={msg.id}
                       className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                     >
                       <div
-                        className={`max-w-xl px-4 py-2 rounded-lg ${
+                        className={`max-w-2xl px-4 py-2 rounded-lg ${
                           msg.role === "user"
                             ? "bg-indigo-600 text-white rounded-br-none"
                             : "bg-gray-200 text-gray-900 rounded-bl-none"
@@ -531,6 +586,21 @@ export default function Home() {
                       </div>
                     </div>
                   ))}
+                  {isStreaming && (
+                    <div className="flex justify-start">
+                      <div className="bg-gray-200 text-gray-900 px-4 py-2 rounded-lg rounded-bl-none">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      </div>
+                    </div>
+                  )}
+                  {(sendError ?? streamError?.message) && (
+                    <div className="flex justify-center">
+                      <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+                        <AlertCircle className="w-4 h-4 shrink-0" />
+                        {sendError ?? streamError?.message}
+                      </div>
+                    </div>
+                  )}
                   <div ref={scrollRef} />
                 </div>
               </ScrollArea>
@@ -539,8 +609,8 @@ export default function Home() {
               <div className="border-t border-gray-200 bg-white p-4">
                 <div className="max-w-3xl mx-auto flex gap-3">
                   <Input
-                    value={localInput}
-                    onChange={(e) => setLocalInput(e.target.value)}
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();
@@ -548,15 +618,15 @@ export default function Home() {
                       }
                     }}
                     placeholder={t.typeMessage}
-                    disabled={isLocalLoading}
+                    disabled={isStreaming}
                     className="flex-1"
                   />
                   <Button
-                    onClick={() => handleSendMessage()}
-                    disabled={isLocalLoading || !localInput.trim()}
+                    onClick={handleSendMessage}
+                    disabled={isStreaming || !input.trim()}
                     className="bg-indigo-600 hover:bg-indigo-700"
                   >
-                    {isLocalLoading ? (
+                    {isStreaming ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
                       <Send className="w-4 h-4" />
