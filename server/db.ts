@@ -1,4 +1,4 @@
-import { eq, like, or, and } from "drizzle-orm";
+import { eq, like, or, and, lt, desc, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { 
   InsertUser, users, 
@@ -376,6 +376,41 @@ export async function deleteConversation(conversationId: number): Promise<boolea
   } catch (error) {
     logger.error("[Database] Error deleting conversation:", { error: error instanceof Error ? error.message : String(error) });
     return false;
+  }
+}
+
+/**
+ * Delete conversations (and their messages) that are older than `days` days.
+ * Intended for scheduled garbage-collection in autonomous / "deploy-and-forget" mode.
+ * Returns the number of conversations removed.
+ */
+export async function clearOldConversations(days: number = 30): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+
+  const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+  try {
+    // Find IDs of conversations older than the cutoff date
+    const old = await db
+      .select({ id: conversations.id })
+      .from(conversations)
+      .where(lt(conversations.createdAt, cutoff));
+
+    if (old.length === 0) return 0;
+
+    const ids = old.map(r => r.id);
+
+    // Batch-delete messages and conversations in two queries instead of N+1 loops.
+    await db.delete(messages).where(inArray(messages.conversationId, ids));
+    const result = await db.delete(conversations).where(inArray(conversations.id, ids));
+    const deleted = (result as any).affectedRows ?? ids.length;
+
+    logger.info("[Database] clearOldConversations: removed old conversations", { days, removed: deleted });
+    return deleted;
+  } catch (error) {
+    logger.error("[Database] Error in clearOldConversations:", { error: error instanceof Error ? error.message : String(error) });
+    return 0;
   }
 }
 
@@ -767,12 +802,24 @@ export async function createDocumentChunk(chunk: InsertDocumentChunk): Promise<D
 export async function getDocumentChunks(language?: string): Promise<DocumentChunk[]> {
   const db = await getDb();
   if (!db) return [];
-  
+
+  /** Cap in-memory vector search at 100 most-recent chunks to protect RAM. */
+  const CHUNK_LIMIT = 100;
+
   try {
     if (language) {
-      return await db.select().from(documentChunks).where(eq(documentChunks.language, language as any));
+      return await db
+        .select()
+        .from(documentChunks)
+        .where(eq(documentChunks.language, language as any))
+        .orderBy(desc(documentChunks.createdAt))
+        .limit(CHUNK_LIMIT);
     }
-    return await db.select().from(documentChunks);
+    return await db
+      .select()
+      .from(documentChunks)
+      .orderBy(desc(documentChunks.createdAt))
+      .limit(CHUNK_LIMIT);
   } catch (error) {
     logger.error("[Database] Error getting document chunks:", { error: error instanceof Error ? error.message : String(error) });
     return [];

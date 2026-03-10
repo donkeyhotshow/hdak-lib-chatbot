@@ -9,8 +9,10 @@
  * startSyncScheduler call with a proper job queue or a cloud scheduler.
  */
 
+import * as cheerio from "cheerio";
 import { logger } from "../_core/logger";
 import * as db from "../db";
+import { clearReplyCache } from "./aiPipeline";
 
 /** Public catalog/resource endpoint. Exported for testing. */
 export const CATALOG_URL =
@@ -32,46 +34,49 @@ export interface ParsedResource {
 }
 
 /**
- * Parse resource links from an HTML string.
+ * Parse resource links from an HTML string using cheerio.
  * Looks for anchor tags that reference known library resource domains,
  * then extracts the href and visible text as the resource name.
  *
- * This is intentionally simple so it works without a full DOM parser
- * dependency.  Exported for unit testing.
+ * Exported for unit testing.
  */
 export function parseResourcesFromHtml(html: string): ParsedResource[] {
   const results: ParsedResource[] = [];
 
-  // Match every <a href="…">…</a> in the page.
-  const anchorRe = /<a\s+[^>]*href=["']([^"']+)["'][^>]*>([^<]+)<\/a>/gi;
-  let match: RegExpExecArray | null;
+  try {
+    const $ = cheerio.load(html);
 
-  while ((match = anchorRe.exec(html)) !== null) {
-    const href = match[1].trim();
-    const text = match[2].replace(/\s+/g, " ").trim();
+    $("a[href]").each((_index, el) => {
+      const href = ($(el).attr("href") ?? "").trim();
+      const text = $(el).text().replace(/\s+/g, " ").trim();
 
-    if (!href.startsWith("http") || !text) continue;
+      if (!href.startsWith("http") || !text) return;
 
-    // Infer resource type from URL patterns
-    let type: ParsedResource["type"] = "other";
-    if (href.includes("DocumentSearchForm") || href.includes("catalog")) {
-      type = "catalog";
-    } else if (href.includes("repository") || href.includes("репозитор")) {
-      type = "repository";
-    } else if (href.includes("scopus") || href.includes("webofscience") || href.includes("doaj")) {
-      type = "database";
-    } else if (href.includes("elib") || href.includes("e-library")) {
-      type = "electronic_library";
-    }
+      // Infer resource type from URL patterns
+      let type: ParsedResource["type"] = "other";
+      if (href.includes("DocumentSearchForm") || href.includes("catalog")) {
+        type = "catalog";
+      } else if (href.includes("repository") || href.includes("репозитор")) {
+        type = "repository";
+      } else if (href.includes("scopus") || href.includes("webofscience") || href.includes("doaj")) {
+        type = "database";
+      } else if (href.includes("elib") || href.includes("e-library")) {
+        type = "electronic_library";
+      }
 
-    if (type === "other") continue; // skip unrelated links
+      if (type === "other") return; // skip unrelated links
 
-    results.push({
-      nameUk: text,
-      nameEn: text,
-      nameRu: text,
-      type,
-      url: href,
+      results.push({
+        nameUk: text,
+        nameEn: text,
+        nameRu: text,
+        type,
+        url: href,
+      });
+    });
+  } catch (err) {
+    logger.error("[syncService] Failed to parse catalog HTML", {
+      error: err instanceof Error ? err.message : String(err),
     });
   }
 
@@ -92,7 +97,22 @@ async function fetchCatalogHtml(): Promise<string> {
 
 /**
  * Run a single synchronisation cycle.
- * Exported so it can be called manually (e.g. from the admin panel).
+ *
+ * Fetches the HDAK catalog HTML, parses resource links with cheerio, and
+ * upserts any new resources into the database.  Applies a "sanity check":
+ * if the remote page yields 0 resources but the database already contains
+ * resources, the result is treated as a parse/network error rather than a
+ * legitimate empty catalog — protecting against accidental data loss or
+ * stale-cache events caused by temporary site outages.
+ *
+ * On success with new resources, the AI reply cache is automatically
+ * invalidated so users receive answers reflecting the updated catalog.
+ *
+ * Exported so it can be triggered manually from the admin panel.
+ *
+ * @returns Promise resolving to `{ synced, errors }` where `synced` is the
+ *   number of newly inserted resources and `errors` is a list of per-resource
+ *   failure messages.
  */
 export async function runSync(): Promise<{ synced: number; errors: string[] }> {
   if (_isSyncing) {
@@ -113,11 +133,27 @@ export async function runSync(): Promise<{ synced: number; errors: string[] }> {
     const msg = err instanceof Error ? err.message : String(err);
     logger.error("[syncService] Failed to fetch catalog HTML", { error: msg });
     _isSyncing = false;
+    _lastSyncStatus = { success: false, timestamp: new Date(), synced: 0, errors: [msg] };
     return { synced: 0, errors: [msg] };
   }
 
   const parsed = parseResourcesFromHtml(html);
-  logger.info(`[syncService] Parsed ${parsed.length} resources from catalog`);
+  logger.info(`[SYNC] Catalog parsed: ${parsed.length} resources found`);
+
+  // Sanity check: if the parser found nothing but the DB already has resources,
+  // treat this as a parsing/network error rather than a legitimate empty catalog.
+  // This prevents stale-cache evictions and misleading "sync succeeded" statuses
+  // caused by temporary site outages or HTML-structure changes.
+  if (parsed.length === 0) {
+    const existing = await db.getAllResources();
+    if (existing.length > 0) {
+      const msg = `[SYNC] Sanity check failed: catalog page returned 0 resources but DB has ${existing.length}. Possible parse error or site outage. Skipping sync.`;
+      logger.warn(msg);
+      _isSyncing = false;
+      _lastSyncStatus = { success: false, timestamp: new Date(), synced: 0, errors: [msg] };
+      return { synced: 0, errors: [msg] };
+    }
+  }
 
   for (const resource of parsed) {
     try {
@@ -143,8 +179,19 @@ export async function runSync(): Promise<{ synced: number; errors: string[] }> {
     }
   }
 
-  logger.info(`[syncService] Sync complete. synced=${synced} errors=${errors.length}`);
+  const success = errors.length === 0;
   _isSyncing = false;
+  _lastSyncStatus = { success, timestamp: new Date(), synced, errors };
+
+  if (success && synced > 0) {
+    // New data was added — invalidate the AI reply cache so responses reflect
+    // the updated catalog rather than returning stale cached answers.
+    clearReplyCache();
+    logger.milestone(`[SYNC] Catalog sync complete: ${synced} new resources added — reply cache cleared`);
+  } else {
+    logger.info(`[SYNC] Catalog sync complete. synced=${synced} errors=${errors.length}`);
+  }
+
   return { synced, errors };
 }
 
@@ -152,9 +199,27 @@ let _syncTimer: ReturnType<typeof setInterval> | null = null;
 /** True while a sync cycle is in progress; prevents concurrent runs. */
 let _isSyncing = false;
 
+/** Last sync result, for admin status display. */
+let _lastSyncStatus: {
+  success: boolean;
+  timestamp: Date;
+  synced: number;
+  errors: string[];
+} | null = null;
+
 /** Returns true if a sync is currently in progress. */
 export function isSyncing(): boolean {
   return _isSyncing;
+}
+
+/** Returns the result of the most recent completed sync, or null if never synced. */
+export function getLastSyncStatus(): {
+  success: boolean;
+  timestamp: Date;
+  synced: number;
+  errors: string[];
+} | null {
+  return _lastSyncStatus;
 }
 
 /** Start the periodic background synchronisation scheduler. */

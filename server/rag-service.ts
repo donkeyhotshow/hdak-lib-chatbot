@@ -2,7 +2,7 @@ import { embed } from "ai";
 import { openai } from "@ai-sdk/openai";
 import * as db from "./db";
 import { logger } from "./_core/logger";
-import { DocumentChunk, DocumentMetadata, InsertDocumentChunk, InsertDocumentMetadata } from "../drizzle/schema";
+import { DocumentChunk, InsertDocumentChunk, InsertDocumentMetadata } from "../drizzle/schema";
 
 /**
  * RAG Service - Handles PDF processing, chunking, and embedding generation
@@ -11,6 +11,8 @@ import { DocumentChunk, DocumentMetadata, InsertDocumentChunk, InsertDocumentMet
 // Configuration
 const CHUNK_SIZE = 1000; // characters per chunk
 const CHUNK_OVERLAP = 200; // overlap between chunks
+/** Maximum document size accepted for RAG processing. Larger inputs are truncated. */
+const MAX_DOCUMENT_SIZE = 500_000; // characters
 
 /**
  * Split text into chunks with overlap
@@ -65,7 +67,23 @@ export function cosineSimilarity(a: number[], b: number[]): number {
 }
 
 /**
- * Process a document and store chunks with embeddings
+ * Process a document atomically: all chunks must succeed or the entire
+ * operation is rolled back (all created chunks are deleted) and the
+ * document status is set to 'failed'.
+ *
+ * Status lifecycle: processing → completed | failed
+ *
+ * @param documentId  Unique identifier for the document (e.g. a URL or UUID).
+ * @param title       Human-readable document title stored with each chunk.
+ * @param content     Raw text content to split and embed. Truncated at
+ *                    {@link MAX_DOCUMENT_SIZE} characters if larger.
+ * @param sourceType  Origin of the document for filtering and display.
+ * @param language    Language of the content — used to scope similarity searches.
+ * @param url         Optional canonical URL of the source document.
+ * @param author      Optional author name.
+ * @param publishedDate  Optional publication date.
+ * @returns `{ success, chunksCreated, error? }` — `success` is `false` and
+ *   `chunksCreated` is `0` if any embedding call fails (atomic rollback applied).
  */
 export async function processDocument(
   documentId: string,
@@ -77,103 +95,138 @@ export async function processDocument(
   author?: string,
   publishedDate?: Date
 ): Promise<{ success: boolean; chunksCreated: number; error?: string }> {
-  try {
-    // Create document metadata
-    const chunks = chunkText(content);
-
-    // Store metadata
-    const metadata: any = {
+  // Enforce the maximum document size to avoid RAM exhaustion during chunking.
+  if (content.length > MAX_DOCUMENT_SIZE) {
+    logger.warn("[RAG] Document exceeds max size — truncating", {
       documentId,
-      title,
-      sourceType,
-      language,
-      totalChunks: chunks.length,
-      isProcessed: 0,
-    };
+      originalLength: content.length,
+      maxLength: MAX_DOCUMENT_SIZE,
+    });
+    content = content.slice(0, MAX_DOCUMENT_SIZE);
+  }
 
-    if (url) metadata.url = url;
-    if (author) metadata.author = author;
-    if (publishedDate) metadata.publishedDate = publishedDate;
+  // Skip empty documents early.
+  if (!content.trim()) {
+    const errorMsg = "Document content is empty or contains only whitespace";
+    logger.warn("[RAG] Skipping empty document", { documentId });
+    return { success: false, chunksCreated: 0, error: errorMsg };
+  }
 
+  const rawChunks = chunkText(content);
+  // Filter out whitespace-only chunks to avoid wasting embedding API tokens.
+  const chunks = rawChunks.filter(c => c.trim().length > 0);
+
+  if (chunks.length === 0) {
+    const errorMsg = "No non-empty chunks produced from document content";
+    logger.warn("[RAG] No valid chunks produced", { documentId });
+    return { success: false, chunksCreated: 0, error: errorMsg };
+  }
+
+  // Store metadata with status='processing' before we begin
+  const metadata: InsertDocumentMetadata = {
+    documentId,
+    title,
+    sourceType,
+    language,
+    totalChunks: chunks.length,
+    isProcessed: 0,
+    status: "processing",
+    ...(url ? { url } : {}),
+    ...(author ? { author } : {}),
+    ...(publishedDate ? { publishedDate } : {}),
+  };
+
+  try {
     await db.createDocumentMetadata(metadata);
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : "Unknown error";
+    logger.error("[RAG] Failed to create document metadata", { error: errorMsg, documentId });
+    return { success: false, chunksCreated: 0, error: errorMsg };
+  }
 
-    // Process each chunk
-    let successCount = 0;
+  try {
     for (let i = 0; i < chunks.length; i++) {
-      try {
-        const chunk = chunks[i];
-        const embedding = await generateEmbedding(chunk);
+      const chunk = chunks[i];
+      // generateEmbedding throws on API error — caught below to trigger rollback
+      const embedding = await generateEmbedding(chunk);
 
-        await db.createDocumentChunk({
-          documentId,
-          documentTitle: title,
-          documentUrl: url,
-          chunkIndex: i,
-          content: chunk,
-          embedding: embedding,
-          sourceType,
-          language,
-        });
-
-        successCount++;
-      } catch (error) {
-        logger.warn(`[processDocument] Failed to process chunk ${i}`, {
-          error: error instanceof Error ? error.message : String(error),
-          documentId,
-          chunkIndex: i,
-        });
-      }
+      await db.createDocumentChunk({
+        documentId,
+        documentTitle: title,
+        documentUrl: url,
+        chunkIndex: i,
+        content: chunk,
+        embedding,
+        sourceType,
+        language,
+      });
     }
 
-    // Update metadata with processing status
+    // All chunks succeeded — mark as completed
     await db.updateDocumentMetadata(documentId, {
-      isProcessed: successCount === chunks.length ? 1 : 0,
-      processingError: successCount < chunks.length ? "Partial processing completed" : null,
+      isProcessed: 1,
+      status: "completed",
+      processingError: null,
     });
 
-    return {
-      success: successCount === chunks.length,
-      chunksCreated: successCount,
-    };
-  } catch (error) {
-    logger.error("[processDocument] Failed to process document", {
-      error: error instanceof Error ? error.message : String(error),
+    logger.info(`[RAG] Document processed successfully`, {
       documentId,
+      title,
+      chunks: chunks.length,
     });
+
+    return { success: true, chunksCreated: chunks.length };
+  } catch (error) {
     const errorMsg = error instanceof Error ? error.message : "Unknown error";
 
-    // Update metadata with error
+    logger.warn("[RAG] Atomic rollback triggered — removing partial chunks", {
+      documentId,
+      error: errorMsg,
+    });
+
+    // Rollback: delete all chunks inserted before the failure (identified by documentId)
+    await db.deleteDocumentChunks(documentId);
+
+    // Mark metadata as failed
     await db.updateDocumentMetadata(documentId, {
       isProcessed: 0,
+      status: "failed",
       processingError: errorMsg,
     });
 
-    return {
-      success: false,
-      chunksCreated: 0,
-      error: errorMsg,
-    };
+    return { success: false, chunksCreated: 0, error: errorMsg };
   }
 }
 
 /**
- * Search for relevant document chunks using semantic similarity
+ * Search for relevant document chunks using semantic similarity.
+ *
+ * Generates an embedding for the query, retrieves stored chunks from the DB
+ * (capped at 100 by the database layer), and returns the top-K chunks whose
+ * cosine similarity to the query embedding meets the threshold.
+ *
+ * @param query               Natural-language search query.
+ * @param language            Filter chunks by language.
+ * @param topK                Maximum number of chunks to return (default 5).
+ * @param similarityThreshold Minimum cosine similarity score (0–1, default 0.5).
+ * @returns Object containing matched `chunks` and optional `embeddingUnavailable`
+ *   flag set to `true` when the embedding API call fails.
  */
 export async function semanticSearch(
   query: string,
   language: "en" | "uk" | "ru" = "uk",
   topK: number = 5,
   similarityThreshold: number = 0.5
-): Promise<DocumentChunk[]> {
+): Promise<{ chunks: DocumentChunk[]; embeddingUnavailable?: boolean }> {
   try {
     // Generate embedding for the query
     const queryEmbedding = await generateEmbedding(query);
 
-    // Get all chunks from the database
+    // Get all chunks from the database (capped at 100 by db layer)
     const allChunks = await db.getDocumentChunks(language);
 
     if (!allChunks || allChunks.length === 0) {
-      return [];
+      return { chunks: [] };
     }
 
     // Calculate similarity scores
@@ -190,27 +243,57 @@ export async function semanticSearch(
       .sort((a: any, b: any) => b.score - a.score)
       .slice(0, topK);
 
-    return scoredChunks.map((item: any) => item.chunk);
+    return { chunks: scoredChunks.map((item: any) => item.chunk) };
   } catch (error) {
-    logger.error("[semanticSearch] Failed", {
+    logger.error("[RAG] Semantic search failed — embedding API unavailable", {
       error: error instanceof Error ? error.message : String(error),
     });
-    return [];
+    return { chunks: [], embeddingUnavailable: true };
   }
 }
 
 /**
- * Get RAG context for AI responses
+ * Get RAG context for AI responses.
+ *
+ * Runs a semantic search for the given query, formats the top matching chunks
+ * into a Markdown block suitable for injection into an AI system prompt, and
+ * returns it as a string.
+ *
+ * Returns a localised unavailability notice (not an empty string) when the
+ * embedding API is down, so callers can distinguish "no relevant docs" from
+ * "search temporarily broken" without crashing the main chat pipeline.
+ *
+ * @param query    The user's message or search string.
+ * @param language Language code used to filter chunks and select the fallback message.
+ * @returns Formatted Markdown context string, a localised fallback warning if the
+ *   embedding API is unavailable, or `""` when no relevant chunks are found.
  */
 export async function getRagContext(
   query: string,
   language: "en" | "uk" | "ru" = "uk"
 ): Promise<string> {
-  const relevantChunks = await semanticSearch(query, language, 3);
+  const result = await semanticSearch(query, language, 3);
+
+  if (result.embeddingUnavailable) {
+    const unavailableMsg: Record<string, string> = {
+      uk: "\n\n> ⚠️ Пошук по документах тимчасово недоступний.",
+      ru: "\n\n> ⚠️ Поиск по документам временно недоступен.",
+      en: "\n\n> ⚠️ Document search is temporarily unavailable.",
+    };
+    return unavailableMsg[language] ?? unavailableMsg.uk;
+  }
+
+  const relevantChunks = result.chunks;
 
   if (relevantChunks.length === 0) {
+    logger.info("[RAG] No relevant context found", { query: query.slice(0, 80) });
     return "";
   }
+
+  logger.info(`[RAG] Context found (${relevantChunks.length} chunks)`, {
+    query: query.slice(0, 80),
+    sources: relevantChunks.map(c => c.documentTitle).filter(Boolean),
+  });
 
   const context = relevantChunks
     .map((chunk) => {

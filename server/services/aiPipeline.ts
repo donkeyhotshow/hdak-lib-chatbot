@@ -1,5 +1,6 @@
 import { generateText } from "ai";
 import { openai } from "@ai-sdk/openai";
+import NodeCache from "node-cache";
 import type { LibraryResource } from "../../drizzle/schema";
 import * as db from "../db";
 import { getRagContext } from "../rag-service";
@@ -18,6 +19,14 @@ export const AI_TEMPERATURE = 0.7;
 
 /** Default chat model name, centralised here so both pathways stay in sync. */
 export const AI_MODEL_NAME = "gpt-4o-mini";
+
+/** Cache for AI conversation replies: key = hash of (prompt+lang+history), TTL = 24h. */
+const replyCache = new NodeCache({ stdTTL: 24 * 60 * 60, checkperiod: 60 * 60 });
+
+/** Flush the reply cache — intended for testing only. */
+export function clearReplyCache(): void {
+  replyCache.flushAll();
+}
 
 /**
  * Patterns that indicate prompt injection attempts.
@@ -169,14 +178,59 @@ type AiPipelineParams = {
   history: ConversationHistoryMessage[];
 };
 
-export async function generateConversationReply(params: AiPipelineParams): Promise<string> {
+/** Indicates which knowledge source primarily contributed to the AI reply. */
+export type MessageSource = "rag" | "catalog_search" | "general";
+
+export type ConversationReplyResult = {
+  text: string;
+  source: MessageSource;
+};
+
+/**
+ * Generate an AI reply for a chat message using the full pipeline.
+ *
+ * The pipeline executes the following steps in order:
+ * 1. Checks the in-memory reply cache (24 h TTL) for an identical request.
+ * 2. Runs a catalog resource search to find relevant library links.
+ * 3. Calls `getRagContext` to retrieve semantically similar document chunks.
+ * 4. Sanitises RAG content to prevent prompt-injection attacks.
+ * 5. Builds a composite system prompt and calls the LLM.
+ * 6. Caches the raw LLM text for subsequent identical requests.
+ *
+ * The `source` field in the result always reflects the **current** knowledge
+ * base (computed fresh from live context, never read from cache) so that
+ * UI attribution labels stay accurate even after catalog updates.
+ *
+ * @param params.prompt          The latest user message.
+ * @param params.language        Detected/normalised language of the conversation.
+ * @param params.conversationId  DB ID of the current conversation (for analytics).
+ * @param params.userId          DB ID of the requesting user (for analytics).
+ * @param params.history         Recent conversation history (up to last 10 messages).
+ * @returns `{ text, source }` where `source` is `'rag'`, `'catalog_search'`, or `'general'`.
+ * @throws {AiPipelineError} when the LLM call fails after all retries/timeouts.
+ */
+export async function generateConversationReply(params: AiPipelineParams): Promise<ConversationReplyResult> {
   const { prompt, language, conversationId, userId, history } = params;
+
+  // Build a deterministic cache key from the user prompt, language, and recent history.
+  // Use sorted message pairs to avoid JSON property-ordering inconsistencies.
+  const historySummary = history.slice(-5).map(m => `${m.role}\x00${m.content}`).join("\x01");
+  const cacheKey = `reply:${language}:${historySummary}:${prompt}`;
 
   try {
     const relevantResources = await db.searchResources(prompt);
     const rawRagContext = await getRagContext(prompt, language);
     // Sanitize RAG context before injecting into the model prompt
     const ragContext = rawRagContext ? sanitizeUntrustedContent(rawRagContext) : "";
+
+    // Determine the knowledge source for this request (always computed fresh —
+    // not cached — so source accurately reflects the current knowledge base).
+    const hasRagContext = ragContext.length > 0 && !ragContext.includes("⚠️");
+    const source: MessageSource = hasRagContext
+      ? "rag"
+      : relevantResources.length > 0
+      ? "catalog_search"
+      : "general";
 
     await db.logUserQuery(
       userId,
@@ -185,6 +239,13 @@ export async function generateConversationReply(params: AiPipelineParams): Promi
       language,
       relevantResources.map((r) => r.id)
     );
+
+    // Only the expensive LLM call is cached; source is computed from live context above.
+    const cachedText = replyCache.get<string>(cacheKey);
+    if (cachedText !== undefined) {
+      logger.info("[AI pipeline] Cache hit — returning cached reply", { conversationId, userId, source });
+      return { text: cachedText, source };
+    }
 
     const systemPrompt = [
       getOfficialSystemPrompt(language),
@@ -211,12 +272,14 @@ export async function generateConversationReply(params: AiPipelineParams): Promi
       conversationId,
       userId,
       latencyMs,
+      source,
       inputTokens: usage?.inputTokens ?? 0,
       outputTokens: usage?.outputTokens ?? 0,
       totalTokens: usage?.totalTokens ?? 0,
     });
 
-    return text;
+    replyCache.set(cacheKey, text);
+    return { text, source };
   } catch (error) {
     const cause = error instanceof Error ? error : new Error(String(error));
     throw new AiPipelineError("AI pipeline failed", { cause });

@@ -14,6 +14,42 @@ type ResourceType = "electronic_library" | "repository" | "catalog" | "database"
 type ContactType = "email" | "phone" | "address" | "telegram" | "viber" | "facebook" | "instagram" | "other";
 type ActiveTab = "resources" | "contacts" | "info" | "analytics";
 
+function SyncStatusBadge({
+  success,
+  timestamp,
+  errors,
+}: {
+  success: boolean;
+  timestamp: string;
+  errors?: string[];
+}) {
+  const badgeClass = success
+    ? "bg-green-100 text-green-800"
+    : "bg-red-100 text-red-800";
+  const dotClass = success ? "bg-green-500" : "bg-red-500";
+  const label = success ? "Sync OK" : "Sync Failed";
+
+  const tooltipText =
+    errors && errors.length > 0
+      ? `Last error:\n${errors[errors.length - 1]}`
+      : success
+      ? "All resources synced successfully"
+      : "Sync failed with no error details";
+
+  return (
+    <div
+      className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium cursor-default ${badgeClass}`}
+      title={tooltipText}
+    >
+      <span className={`inline-block w-2 h-2 rounded-full ${dotClass}`} />
+      {label}
+      <span className="ml-1 font-normal opacity-75">
+        {new Date(timestamp).toLocaleTimeString()}
+      </span>
+    </div>
+  );
+}
+
 export default function Admin() {
   const { user, isAuthenticated } = useAuth();
   const [location, setLocation] = useLocation();
@@ -115,7 +151,12 @@ export default function Admin() {
     onSuccess: (result) => {
       setSyncResult(result);
       trpc.useUtils().resources.getAll.invalidate();
+      trpc.useUtils().sync.lastStatus.invalidate();
     },
+  });
+
+  const { data: lastSyncStatus } = trpc.sync.lastStatus.useQuery(undefined, {
+    refetchInterval: 30_000,
   });
 
   // Check admin access
@@ -269,11 +310,46 @@ export default function Admin() {
             Analytics
           </Button>
           {/* Manual catalog sync button */}
-          <div className="ml-auto flex items-center gap-2">
-            {syncResult && (
+          <div className="ml-auto flex items-center gap-3">
+            {/* Last sync status badge with error tooltip */}
+            {lastSyncStatus ? (
+              <SyncStatusBadge
+                success={lastSyncStatus.success}
+                timestamp={lastSyncStatus.timestamp}
+                errors={lastSyncStatus.errors}
+              />
+            ) : syncResult ? (
               <span className="text-xs text-gray-500">
                 Synced: {syncResult.synced}{syncResult.errors.length > 0 ? ` | Errors: ${syncResult.errors.length}` : ""}
               </span>
+            ) : null}
+            {/* Download sync error log */}
+            {lastSyncStatus && lastSyncStatus.errors.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                title="Download sync error log as TXT"
+                onClick={() => {
+                  const lines = [
+                    `Sync log — ${new Date(lastSyncStatus.timestamp).toISOString()}`,
+                    `Status: ${lastSyncStatus.success ? "OK" : "Failed"}`,
+                    `Synced: ${lastSyncStatus.synced}`,
+                    "",
+                    "Errors:",
+                    ...lastSyncStatus.errors.map((e, i) => `${i + 1}. ${e}`),
+                  ];
+                  const blob = new Blob([lines.join("\n")], { type: "text/plain" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `sync-log-${Date.now()}.txt`;
+                  a.click();
+                  // Delay revocation to ensure the download starts in all browsers
+                  setTimeout(() => URL.revokeObjectURL(url), 100);
+                }}
+              >
+                ↓ Download Logs
+              </Button>
             )}
             <Button
               variant="outline"

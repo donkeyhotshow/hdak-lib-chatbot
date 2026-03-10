@@ -18,11 +18,11 @@ const handler = (
 
 /**
  * Rate limiter for the /api/chat streaming endpoint.
- * 30 requests per minute per IP to keep LLM costs bounded.
+ * 5 requests per minute per IP to keep LLM costs bounded.
  */
 export const chatRateLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
-  limit: 30,
+  limit: 5,
   standardHeaders: "draft-8",
   legacyHeaders: false,
   handler,

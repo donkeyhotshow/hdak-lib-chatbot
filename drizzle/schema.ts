@@ -161,6 +161,8 @@ export const documentMetadata = mysqlTable("documentMetadata", {
   language: mysqlEnum("language", ["en", "uk", "ru"]).default("uk").notNull(),
   totalChunks: int("totalChunks").default(0),
   isProcessed: int("isProcessed").default(0),
+  /** Processing lifecycle: 'processing' → 'completed' | 'failed'. */
+  status: mysqlEnum("status", ["processing", "completed", "failed"]).default("processing").notNull(),
   processingError: text("processingError"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   AiPipelineError,
+  clearReplyCache,
   generateConversationReply,
   getLocalizedAiErrorMessage,
   normalizeLanguage,
@@ -51,6 +52,7 @@ const mockResource = {
 describe("aiPipeline helpers", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearReplyCache();
     mockedSearchResources.mockResolvedValue([mockResource]);
     mockedLogUserQuery.mockResolvedValue(null);
     mockedGetRagContext.mockResolvedValue("\nRAG");
@@ -77,7 +79,7 @@ describe("aiPipeline helpers", () => {
   });
 
   it("generates AI replies using the pipeline and logs queries", async () => {
-    const text = await generateConversationReply({
+    const result = await generateConversationReply({
       prompt: "hello",
       conversationId: 1,
       language: "en",
@@ -85,7 +87,9 @@ describe("aiPipeline helpers", () => {
       history: [{ role: "user", content: "hi" }],
     });
 
-    expect(text).toBe("mock reply");
+    // getRagContext mock returns "\nRAG" (non-empty, no ⚠️) → source='rag'
+    expect(result.text).toBe("mock reply");
+    expect(result.source).toBe("rag");
     expect(mockedSearchResources).toHaveBeenCalledWith("hello");
     expect(mockedGetRagContext).toHaveBeenCalledWith("hello", "en");
     expect(mockedLogUserQuery).toHaveBeenCalledWith(2, 1, "hello", "en", [1]);
@@ -94,6 +98,31 @@ describe("aiPipeline helpers", () => {
         model: "mock-model",
       })
     );
+  });
+
+  it("reports source=catalog_search when RAG context is empty but resources exist", async () => {
+    mockedGetRagContext.mockResolvedValueOnce(""); // no RAG chunks
+    const result = await generateConversationReply({
+      prompt: "hello",
+      conversationId: 1,
+      language: "en",
+      userId: 2,
+      history: [],
+    });
+    expect(result.source).toBe("catalog_search");
+  });
+
+  it("reports source=general when neither RAG nor catalog resources are found", async () => {
+    mockedGetRagContext.mockResolvedValueOnce("");
+    mockedSearchResources.mockResolvedValueOnce([]);
+    const result = await generateConversationReply({
+      prompt: "hello",
+      conversationId: 1,
+      language: "en",
+      userId: 2,
+      history: [],
+    });
+    expect(result.source).toBe("general");
   });
 
   it("wraps failures in AiPipelineError", async () => {
