@@ -37,7 +37,22 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 }
 
 async function startServer() {
-  // Validate critical environment variables before starting
+  // Validate critical environment variables before starting.
+  // OPENAI_API_KEY and DATABASE_URL are required in every environment;
+  // the remaining secrets are only checked in production.
+  const alwaysRequired: Array<[string, string]> = [
+    ["OPENAI_API_KEY", process.env.OPENAI_API_KEY ?? ""],
+    ["DATABASE_URL", ENV.databaseUrl],
+  ];
+  const alwaysMissing = alwaysRequired.filter(([, v]) => !v).map(([k]) => k);
+  if (alwaysMissing.length > 0) {
+    logger.error(
+      `Missing required environment variable(s): ${alwaysMissing.join(", ")}. ` +
+      "Set them in your .env file or deployment environment and restart the server."
+    );
+    process.exit(1);
+  }
+
   if (ENV.isProduction) {
     const required: Array<[string, string]> = [
       ["JWT_SECRET", ENV.cookieSecret],

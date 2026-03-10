@@ -97,7 +97,22 @@ async function fetchCatalogHtml(): Promise<string> {
 
 /**
  * Run a single synchronisation cycle.
- * Exported so it can be called manually (e.g. from the admin panel).
+ *
+ * Fetches the HDAK catalog HTML, parses resource links with cheerio, and
+ * upserts any new resources into the database.  Applies a "sanity check":
+ * if the remote page yields 0 resources but the database already contains
+ * resources, the result is treated as a parse/network error rather than a
+ * legitimate empty catalog — protecting against accidental data loss or
+ * stale-cache events caused by temporary site outages.
+ *
+ * On success with new resources, the AI reply cache is automatically
+ * invalidated so users receive answers reflecting the updated catalog.
+ *
+ * Exported so it can be triggered manually from the admin panel.
+ *
+ * @returns Promise resolving to `{ synced, errors }` where `synced` is the
+ *   number of newly inserted resources and `errors` is a list of per-resource
+ *   failure messages.
  */
 export async function runSync(): Promise<{ synced: number; errors: string[] }> {
   if (_isSyncing) {
@@ -124,6 +139,21 @@ export async function runSync(): Promise<{ synced: number; errors: string[] }> {
 
   const parsed = parseResourcesFromHtml(html);
   logger.info(`[SYNC] Catalog parsed: ${parsed.length} resources found`);
+
+  // Sanity check: if the parser found nothing but the DB already has resources,
+  // treat this as a parsing/network error rather than a legitimate empty catalog.
+  // This prevents stale-cache evictions and misleading "sync succeeded" statuses
+  // caused by temporary site outages or HTML-structure changes.
+  if (parsed.length === 0) {
+    const existing = await db.getAllResources();
+    if (existing.length > 0) {
+      const msg = `[SYNC] Sanity check failed: catalog page returned 0 resources but DB has ${existing.length}. Possible parse error or site outage. Skipping sync.`;
+      logger.warn(msg);
+      _isSyncing = false;
+      _lastSyncStatus = { success: false, timestamp: new Date(), synced: 0, errors: [msg] };
+      return { synced: 0, errors: [msg] };
+    }
+  }
 
   for (const resource of parsed) {
     try {

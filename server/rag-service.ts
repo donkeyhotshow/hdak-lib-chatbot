@@ -11,6 +11,8 @@ import { DocumentChunk, InsertDocumentChunk, InsertDocumentMetadata } from "../d
 // Configuration
 const CHUNK_SIZE = 1000; // characters per chunk
 const CHUNK_OVERLAP = 200; // overlap between chunks
+/** Maximum document size accepted for RAG processing. Larger inputs are truncated. */
+const MAX_DOCUMENT_SIZE = 500_000; // characters
 
 /**
  * Split text into chunks with overlap
@@ -70,6 +72,18 @@ export function cosineSimilarity(a: number[], b: number[]): number {
  * document status is set to 'failed'.
  *
  * Status lifecycle: processing → completed | failed
+ *
+ * @param documentId  Unique identifier for the document (e.g. a URL or UUID).
+ * @param title       Human-readable document title stored with each chunk.
+ * @param content     Raw text content to split and embed. Truncated at
+ *                    {@link MAX_DOCUMENT_SIZE} characters if larger.
+ * @param sourceType  Origin of the document for filtering and display.
+ * @param language    Language of the content — used to scope similarity searches.
+ * @param url         Optional canonical URL of the source document.
+ * @param author      Optional author name.
+ * @param publishedDate  Optional publication date.
+ * @returns `{ success, chunksCreated, error? }` — `success` is `false` and
+ *   `chunksCreated` is `0` if any embedding call fails (atomic rollback applied).
  */
 export async function processDocument(
   documentId: string,
@@ -81,7 +95,32 @@ export async function processDocument(
   author?: string,
   publishedDate?: Date
 ): Promise<{ success: boolean; chunksCreated: number; error?: string }> {
-  const chunks = chunkText(content);
+  // Enforce the maximum document size to avoid RAM exhaustion during chunking.
+  if (content.length > MAX_DOCUMENT_SIZE) {
+    logger.warn("[RAG] Document exceeds max size — truncating", {
+      documentId,
+      originalLength: content.length,
+      maxLength: MAX_DOCUMENT_SIZE,
+    });
+    content = content.slice(0, MAX_DOCUMENT_SIZE);
+  }
+
+  // Skip empty documents early.
+  if (!content.trim()) {
+    const errorMsg = "Document content is empty or contains only whitespace";
+    logger.warn("[RAG] Skipping empty document", { documentId });
+    return { success: false, chunksCreated: 0, error: errorMsg };
+  }
+
+  const rawChunks = chunkText(content);
+  // Filter out whitespace-only chunks to avoid wasting embedding API tokens.
+  const chunks = rawChunks.filter(c => c.trim().length > 0);
+
+  if (chunks.length === 0) {
+    const errorMsg = "No non-empty chunks produced from document content";
+    logger.warn("[RAG] No valid chunks produced", { documentId });
+    return { success: false, chunksCreated: 0, error: errorMsg };
+  }
 
   // Store metadata with status='processing' before we begin
   const metadata: InsertDocumentMetadata = {
@@ -160,7 +199,18 @@ export async function processDocument(
 }
 
 /**
- * Search for relevant document chunks using semantic similarity
+ * Search for relevant document chunks using semantic similarity.
+ *
+ * Generates an embedding for the query, retrieves stored chunks from the DB
+ * (capped at 100 by the database layer), and returns the top-K chunks whose
+ * cosine similarity to the query embedding meets the threshold.
+ *
+ * @param query               Natural-language search query.
+ * @param language            Filter chunks by language.
+ * @param topK                Maximum number of chunks to return (default 5).
+ * @param similarityThreshold Minimum cosine similarity score (0–1, default 0.5).
+ * @returns Object containing matched `chunks` and optional `embeddingUnavailable`
+ *   flag set to `true` when the embedding API call fails.
  */
 export async function semanticSearch(
   query: string,
@@ -204,8 +254,19 @@ export async function semanticSearch(
 
 /**
  * Get RAG context for AI responses.
- * Returns a localized fallback message when the embedding API is unavailable,
- * or an empty string when no relevant chunks are found.
+ *
+ * Runs a semantic search for the given query, formats the top matching chunks
+ * into a Markdown block suitable for injection into an AI system prompt, and
+ * returns it as a string.
+ *
+ * Returns a localised unavailability notice (not an empty string) when the
+ * embedding API is down, so callers can distinguish "no relevant docs" from
+ * "search temporarily broken" without crashing the main chat pipeline.
+ *
+ * @param query    The user's message or search string.
+ * @param language Language code used to filter chunks and select the fallback message.
+ * @returns Formatted Markdown context string, a localised fallback warning if the
+ *   embedding API is unavailable, or `""` when no relevant chunks are found.
  */
 export async function getRagContext(
   query: string,

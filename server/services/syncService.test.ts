@@ -1,8 +1,11 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { parseResourcesFromHtml, stopSyncScheduler, runSync, isSyncing, CATALOG_URL } from "./syncService";
+import type { LibraryResource } from "../../drizzle/schema";
+import * as db from "../db";
 
 afterEach(() => {
   stopSyncScheduler();
+  vi.restoreAllMocks();
 });
 
 describe("syncService — parseResourcesFromHtml", () => {
@@ -111,5 +114,41 @@ describe("syncService — concurrency guard", () => {
   it("isSyncing() resets to false after stopSyncScheduler()", async () => {
     stopSyncScheduler();
     expect(isSyncing()).toBe(false);
+  });
+});
+
+describe("syncService — sanity check", () => {
+  it("returns an error and does not update sync status when 0 resources parsed but DB has resources", async () => {
+    // Simulate the catalog page returning empty HTML (no known links)
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response("<html><body><p>Under maintenance</p></body></html>", { status: 200 })
+    );
+    // Mock DB returning pre-existing resources
+    const mockResources: Pick<LibraryResource, "id" | "nameEn" | "nameUk" | "nameRu" | "type">[] = [
+      { id: 1, nameEn: "Catalog", nameUk: "Каталог", nameRu: "Каталог", type: "catalog" },
+      { id: 2, nameEn: "Repo", nameUk: "Репозитарій", nameRu: "Репозитарий", type: "repository" },
+    ];
+    vi.spyOn(db, "getAllResources").mockResolvedValueOnce(mockResources as LibraryResource[]);
+
+    const result = await runSync();
+
+    expect(result.synced).toBe(0);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]).toContain("Sanity check failed");
+    expect(result.errors[0]).toContain("0 resources");
+  });
+
+  it("proceeds normally when 0 resources parsed and DB is also empty", async () => {
+    // Empty catalog HTML AND empty DB — valid "nothing to sync" case
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response("<html><body></body></html>", { status: 200 })
+    );
+    vi.spyOn(db, "getAllResources").mockResolvedValueOnce([]);
+
+    const result = await runSync();
+
+    // No error, just nothing synced
+    expect(result.synced).toBe(0);
+    expect(result.errors).toHaveLength(0);
   });
 });

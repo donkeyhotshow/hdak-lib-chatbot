@@ -186,6 +186,29 @@ export type ConversationReplyResult = {
   source: MessageSource;
 };
 
+/**
+ * Generate an AI reply for a chat message using the full pipeline.
+ *
+ * The pipeline executes the following steps in order:
+ * 1. Checks the in-memory reply cache (24 h TTL) for an identical request.
+ * 2. Runs a catalog resource search to find relevant library links.
+ * 3. Calls `getRagContext` to retrieve semantically similar document chunks.
+ * 4. Sanitises RAG content to prevent prompt-injection attacks.
+ * 5. Builds a composite system prompt and calls the LLM.
+ * 6. Caches the raw LLM text for subsequent identical requests.
+ *
+ * The `source` field in the result always reflects the **current** knowledge
+ * base (computed fresh from live context, never read from cache) so that
+ * UI attribution labels stay accurate even after catalog updates.
+ *
+ * @param params.prompt          The latest user message.
+ * @param params.language        Detected/normalised language of the conversation.
+ * @param params.conversationId  DB ID of the current conversation (for analytics).
+ * @param params.userId          DB ID of the requesting user (for analytics).
+ * @param params.history         Recent conversation history (up to last 10 messages).
+ * @returns `{ text, source }` where `source` is `'rag'`, `'catalog_search'`, or `'general'`.
+ * @throws {AiPipelineError} when the LLM call fails after all retries/timeouts.
+ */
 export async function generateConversationReply(params: AiPipelineParams): Promise<ConversationReplyResult> {
   const { prompt, language, conversationId, userId, history } = params;
 
