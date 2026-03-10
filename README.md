@@ -526,6 +526,12 @@ All tests use the **in-memory mock** (no database required).
 
 ## Build & Deployment
 
+### Development
+
+```bash
+npm run dev      # starts Vite dev server + Express backend in one command
+```
+
 ### Build
 
 ```bash
@@ -540,6 +546,57 @@ This runs two steps in parallel:
 
 ```bash
 NODE_ENV=production node dist/index.js
+```
+
+### Docker Compose (recommended for production)
+
+The included `docker-compose.yml` starts the app together with a MySQL database. All schema migrations run automatically on container start.
+
+**1. Copy the example env file and fill in your values:**
+
+```bash
+cp .env.example .env
+# Edit .env and set: JWT_SECRET, VITE_APP_ID, OAUTH_SERVER_URL, OWNER_OPEN_ID,
+#                    VITE_OAUTH_PORTAL_URL, BUILT_IN_FORGE_API_URL, BUILT_IN_FORGE_API_KEY
+```
+
+**2. Start:**
+
+```bash
+docker compose up -d
+```
+
+The app will be available at `http://localhost:3000`.
+
+**3. Stop:**
+
+```bash
+docker compose down          # keep database volume
+docker compose down -v       # also delete the database volume
+```
+
+**Environment variables for Docker:**
+
+Set the following in a `.env` file next to `docker-compose.yml`, or pass them as environment variables to the `app` service. The `db` service credentials are pre-configured for local use — change them for internet-facing deployments.
+
+| Variable | Description |
+|----------|-------------|
+| `JWT_SECRET` | Secret for signing session cookies (required in production) |
+| `VITE_APP_ID` | OAuth application ID |
+| `OAUTH_SERVER_URL` | Base URL of the OAuth server |
+| `VITE_OAUTH_PORTAL_URL` | Full URL of the OAuth login portal |
+| `OWNER_OPEN_ID` | OpenID that receives the admin role on first login |
+| `BUILT_IN_FORGE_API_URL` | OpenAI-compatible API base URL |
+| `BUILT_IN_FORGE_API_KEY` | API key for the above endpoint |
+| `DATABASE_URL` | Override if you use an external MySQL (default: the bundled `db` service) |
+
+### Database schema
+
+Run migrations manually (outside Docker):
+
+```bash
+npm run db:push      # push schema to DB (development / first deploy)
+npm run db:migrate   # run generated migration files (production-safe)
 ```
 
 ### Type checking
