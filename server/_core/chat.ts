@@ -174,7 +174,7 @@ export function registerChatRoutes(app: Express) {
 
   app.post("/api/chat", async (req, res) => {
     try {
-      const { messages, language } = req.body;
+      const { messages, language, conversationId } = req.body;
 
       if (!messages || !Array.isArray(messages)) {
         res.status(400).json({ error: "messages array is required" });
@@ -187,6 +187,9 @@ export function registerChatRoutes(app: Express) {
         language === "uk" || language === "ru" || language === "en" ? language : null;
       const lang: "en" | "uk" | "ru" = normalizedLanguage ?? detectedLanguage ?? "uk";
 
+      const convId: number | null =
+        typeof conversationId === "number" && Number.isFinite(conversationId) ? conversationId : null;
+
       const result = streamText({
         model: openai.chat(AI_MODEL_NAME),
         system: buildSystemPrompt(lang),
@@ -195,6 +198,19 @@ export function registerChatRoutes(app: Express) {
         temperature: AI_TEMPERATURE,
         stopWhen: stepCountIs(5),
         timeout: CHAT_TIMEOUT_MS,
+        onFinish: async ({ text }) => {
+          if (convId !== null) {
+            try {
+              const lastUserMsg = findLastUserMessage(messages);
+              if (lastUserMsg) {
+                await db.createMessage(convId, "user", lastUserMsg);
+              }
+              await db.createMessage(convId, "assistant", text);
+            } catch (err) {
+              logger.error("[/api/chat] Failed to save messages", { err });
+            }
+          }
+        },
       });
 
       result.pipeUIMessageStreamToResponse(res);
