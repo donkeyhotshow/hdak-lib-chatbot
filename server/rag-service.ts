@@ -1,6 +1,7 @@
 import { embed } from "ai";
 import { openai } from "@ai-sdk/openai";
 import * as db from "./db";
+import { logger } from "./_core/logger";
 import { DocumentChunk, DocumentMetadata, InsertDocumentChunk, InsertDocumentMetadata } from "../drizzle/schema";
 
 /**
@@ -38,8 +39,9 @@ export async function generateEmbedding(text: string): Promise<number[]> {
     });
     return embedding;
   } catch (error) {
-    console.error("Error generating embedding:", error);
-    throw new Error("Failed to generate embedding");
+    const msg = error instanceof Error ? error.message : String(error);
+    logger.error("[generateEmbedding] Failed to generate embedding", { error: msg });
+    throw new Error(`Failed to generate embedding: ${msg}`);
   }
 }
 
@@ -115,7 +117,11 @@ export async function processDocument(
 
         successCount++;
       } catch (error) {
-        console.error(`Error processing chunk ${i}:`, error);
+        logger.warn(`[processDocument] Failed to process chunk ${i}`, {
+          error: error instanceof Error ? error.message : String(error),
+          documentId,
+          chunkIndex: i,
+        });
       }
     }
 
@@ -130,7 +136,10 @@ export async function processDocument(
       chunksCreated: successCount,
     };
   } catch (error) {
-    console.error("Error processing document:", error);
+    logger.error("[processDocument] Failed to process document", {
+      error: error instanceof Error ? error.message : String(error),
+      documentId,
+    });
     const errorMsg = error instanceof Error ? error.message : "Unknown error";
 
     // Update metadata with error
@@ -183,7 +192,9 @@ export async function semanticSearch(
 
     return scoredChunks.map((item: any) => item.chunk);
   } catch (error) {
-    console.error("Error in semantic search:", error);
+    logger.error("[semanticSearch] Failed", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return [];
   }
 }

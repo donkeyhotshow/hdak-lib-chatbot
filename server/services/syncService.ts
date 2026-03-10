@@ -95,6 +95,12 @@ async function fetchCatalogHtml(): Promise<string> {
  * Exported so it can be called manually (e.g. from the admin panel).
  */
 export async function runSync(): Promise<{ synced: number; errors: string[] }> {
+  if (_isSyncing) {
+    logger.warn("[syncService] Sync already in progress, skipping");
+    return { synced: 0, errors: ["Sync already in progress"] };
+  }
+
+  _isSyncing = true;
   const errors: string[] = [];
   let synced = 0;
 
@@ -106,6 +112,7 @@ export async function runSync(): Promise<{ synced: number; errors: string[] }> {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     logger.error("[syncService] Failed to fetch catalog HTML", { error: msg });
+    _isSyncing = false;
     return { synced: 0, errors: [msg] };
   }
 
@@ -137,10 +144,18 @@ export async function runSync(): Promise<{ synced: number; errors: string[] }> {
   }
 
   logger.info(`[syncService] Sync complete. synced=${synced} errors=${errors.length}`);
+  _isSyncing = false;
   return { synced, errors };
 }
 
 let _syncTimer: ReturnType<typeof setInterval> | null = null;
+/** True while a sync cycle is in progress; prevents concurrent runs. */
+let _isSyncing = false;
+
+/** Returns true if a sync is currently in progress. */
+export function isSyncing(): boolean {
+  return _isSyncing;
+}
 
 /** Start the periodic background synchronisation scheduler. */
 export function startSyncScheduler(intervalMs: number = DEFAULT_INTERVAL_MS): void {
@@ -167,4 +182,5 @@ export function stopSyncScheduler(): void {
     _syncTimer = null;
     logger.info("[syncService] Scheduler stopped");
   }
+  _isSyncing = false;
 }

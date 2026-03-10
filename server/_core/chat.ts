@@ -15,7 +15,7 @@ import { createPatchedFetch } from "./patchedFetch";
 import { logger } from "./logger";
 import * as db from "../db";
 import { getSystemPrompt, officialLibraryInfo, officialLibraryResources, hdakResources } from "../system-prompts-official";
-import { detectLanguageFromText, sanitizeUntrustedContent, AI_TEMPERATURE } from "../services/aiPipeline";
+import { detectLanguageFromText, sanitizeUntrustedContent, AI_TEMPERATURE, AI_MODEL_NAME } from "../services/aiPipeline";
 
 /** Maximum number of recent messages to scan when detecting the last user language. */
 const MAX_LANGUAGE_LOOKBACK = 20;
@@ -188,7 +188,7 @@ export function registerChatRoutes(app: Express) {
       const lang: "en" | "uk" | "ru" = normalizedLanguage ?? detectedLanguage ?? "uk";
 
       const result = streamText({
-        model: openai.chat("gpt-4o"),
+        model: openai.chat(AI_MODEL_NAME),
         system: buildSystemPrompt(lang),
         messages,
         tools,

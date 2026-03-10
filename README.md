@@ -34,6 +34,7 @@ The bot helps readers navigate the library website, search for resources, find a
 - [Testing](#testing)
 - [Build & Deployment](#build--deployment)
 - [Library Resources Reference](#library-resources-reference)
+- [Known Limitations](#known-limitations)
 
 ---
 
@@ -190,7 +191,7 @@ NODE_ENV=development   # "development" | "production"
 npm install
 
 # 2. Copy and fill environment variables
-cp .env.example .env   # (no .env.example yet — create manually)
+cp .env.example .env
 
 # 3. (Optional) Push the database schema and seed initial data
 DATABASE_URL=mysql://... npm run db:push
@@ -573,6 +574,67 @@ The following resources are built into `system-prompts-official.ts` and always a
 | [DOAJ](https://lib-hdak.in.ua/catalog-doaj.html) | other | Відкритий доступ |
 | [УкрІНТЕІ (авторефератів)](http://nrat.ukrintei.ua/) | other | Відкритий доступ |
 | [Офіційний сайт бібліотеки ХДАК](https://lib-hdak.in.ua/) | other | Відкритий доступ |
+
+---
+
+## Known Limitations
+
+### AI & Chat
+
+| Limitation | Detail |
+|-----------|--------|
+| **Message history window** | Only the last 10 messages are passed to the AI for context in `sendMessage` (tRPC); earlier messages are silently dropped |
+| **Tool-call depth** | The streaming `/api/chat` endpoint stops after 5 tool-call + generation cycles (`stepCountIs(5)`) |
+| **Non-streaming tRPC** | `conversations.sendMessage` uses `generateText` (non-streaming); the user sees no output until the full response is ready |
+| **Fixed model** | Both pathways use `gpt-4o-mini`; there is no per-user or per-conversation model selection |
+| **Timeout** | AI calls time out after 30 seconds (`AI_TIMEOUT_MS`). Long documents or slow proxies may hit this limit |
+| **Language detection** | Language is inferred from Cyrillic character heuristics (ї/є/ґ → Ukrainian; ё/ы/э → Russian). Mixed-script or code-heavy messages may be misclassified |
+
+### RAG (Retrieval-Augmented Generation)
+
+| Limitation | Detail |
+|-----------|--------|
+| **In-memory similarity** | Cosine similarity is computed in-process over all stored embeddings — no vector index. Performance degrades as the number of document chunks grows |
+| **MySQL vector storage** | Embeddings are stored as JSON arrays in MySQL, which has no native vector type or ANN (approximate nearest neighbor) index |
+| **No PDF parsing** | `rag-service.ts` accepts plain text input. There is no built-in PDF-to-text conversion; callers must extract text themselves before calling `processDocument` |
+| **No deduplication** | Re-uploading the same document appends duplicate chunks instead of replacing the previous version |
+| **Partial failure** | If embedding generation fails for some chunks, the successfully stored chunks remain without any cleanup or retry |
+
+### Catalog Sync
+
+| Limitation | Detail |
+|-----------|--------|
+| **Regex-based parsing** | The sync service parses the library catalog HTML with simple regular expressions — not a DOM parser. Any layout change on the source page can silently break the sync |
+| **Hardcoded interval** | The scheduler runs every 6 hours; the interval is not configurable via environment variable |
+| **No concurrency guard** | Nothing prevents two sync runs from overlapping if the previous one takes longer than 6 hours |
+| **Silent failures** | Sync errors are logged but do not trigger any alert or notification |
+
+### Database & Storage
+
+| Limitation | Detail |
+|-----------|--------|
+| **Conversations require MySQL** | Without `DATABASE_URL`, conversation history and message persistence are unavailable; only the mock in-memory data for resources/contacts is active |
+| **No file upload UI** | `server/storage.ts` provides file upload/download helpers but there is no admin UI or endpoint wired up to it |
+| **No soft deletes** | Deleting a conversation or resource is permanent — there is no archive or recycle bin |
+
+### Hardcoded Values
+
+Several values are embedded directly in source code and cannot be overridden without a code change:
+
+| Value | Location |
+|-------|---------|
+| Catalog URL `https://library-service.com.ua:8443/khkhdak/DocumentSearchForm` | `server/system-prompts-official.ts`, `server/_core/chat.ts` |
+| Repository URL `https://repository.ac.kharkov.ua/home` | `server/system-prompts-official.ts`, `server/_core/chat.ts` |
+| Phone placeholder `+38 (057) XXX-XX-XX` | `server/system-prompts-official.ts` (3 places) |
+| 40+ HDAK website page URLs (site map) | `server/system-prompts-official.ts` |
+
+### Security Notes
+
+| Area | Current State |
+|------|--------------|
+| **CSP** | `helmet` is configured with `'unsafe-inline'` for scripts and styles (required by Vite/Tailwind in development; should be tightened for production) |
+| **Rate limiting** | IP-based: `/api/chat` 30 req/min · `/api/trpc` 60 req/min · `/api/oauth` 10 req/min. No per-user limits |
+| **Prompt injection** | RAG content is sanitized via `sanitizeUntrustedContent()` before insertion into AI prompts |
 
 ---
 

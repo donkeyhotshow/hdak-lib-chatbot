@@ -135,4 +135,7 @@ async function startServer() {
   process.on("SIGINT", shutdown);
 }
 
-startServer().catch(console.error);
+startServer().catch(err => {
+  logger.error("Fatal server startup error", { error: err instanceof Error ? err.message : String(err) });
+  process.exit(1);
+});
