@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, type ReactNode } from "react";
+import { useChat } from "@ai-sdk/react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -171,18 +172,45 @@ function FeatureCard({ icon, title, description }: { icon: ReactNode; title: str
   );
 }
 
+/** Extract a displayable string from a message content field (handles useChat parts array). */
+function getMessageText(content: unknown): string {
+  if (typeof content === "string") return content;
+  if (Array.isArray(content)) {
+    return content
+      .filter((part): part is { type: "text"; text: string } => part?.type === "text")
+      .map((part) => part.text)
+      .join("");
+  }
+  return "";
+}
+
 export default function Home() {
   const { user, isAuthenticated, logout } = useAuth();
   const [language, setLanguage] = useState<Language>("uk");
   const [conversations, setConversations] = useState<any[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<number | null>(null);
-  const [messages, setMessages] = useState<any[]>([]);
-  const [inputMessage, setInputMessage] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
-  const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
+  const userHasDeselected = useRef(false);
+  const pendingPromptRef = useRef<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const utils = trpc.useUtils();
+
+  const {
+    messages: streamMessages,
+    input,
+    setInput,
+    isLoading: isStreaming,
+    error: streamError,
+    append,
+    setMessages: setStreamMessages,
+  } = useChat({
+    api: "/api/chat",
+    onFinish: () => {
+      if (currentConversationId) {
+        utils.conversations.getMessages.invalidate({ conversationId: currentConversationId });
+      }
+    },
+  });
 
   // Resource search / filter state
   const [resourceSearch, setResourceSearch] = useState("");
@@ -218,22 +246,17 @@ export default function Home() {
   const createConversationMutation = trpc.conversations.create.useMutation({
     onSuccess: (data) => {
       setCurrentConversationId(data.id);
-      setMessages([]);
+      setStreamMessages([]);
       utils.conversations.list.invalidate();
       // If there's a pending prompt from a quick-start click, send it now
+      const pendingPrompt = pendingPromptRef.current;
+      pendingPromptRef.current = null;
       if (pendingPrompt) {
-        const prompt = pendingPrompt;
-        setPendingPrompt(null);
-        setIsLoading(true);
         setSendError(null);
-        setMessages([{
-          id: Date.now(),
-          conversationId: data.id,
-          role: "user",
-          content: prompt,
-          createdAt: new Date(),
-        }]);
-        sendMessageMutation.mutate({ conversationId: data.id, content: prompt });
+        append(
+          { role: "user", content: pendingPrompt },
+          { body: { language, conversationId: data.id } }
+        );
       }
     },
   });
@@ -243,29 +266,10 @@ export default function Home() {
     onSuccess: (_data, variables) => {
       utils.conversations.list.invalidate();
       if (currentConversationId === variables.id) {
+        userHasDeselected.current = true;
         setCurrentConversationId(null);
-        setMessages([]);
+        setStreamMessages([]);
       }
-    },
-  });
-
-  // Send message mutation
-  const sendMessageMutation = trpc.conversations.sendMessage.useMutation({
-    onSuccess: (data) => {
-      setMessages((prev) => [...prev, data]);
-      setInputMessage("");
-      setIsLoading(false);
-      setSendError(null);
-    },
-    onError: () => {
-      setIsLoading(false);
-      setSendError(
-        language === "uk"
-          ? "Помилка надсилання повідомлення. Спробуйте ще раз."
-          : language === "ru"
-          ? "Ошибка отправки сообщения. Попробуйте ещё раз."
-          : "Failed to send message. Please try again."
-      );
     },
   });
 
@@ -273,27 +277,21 @@ export default function Home() {
   useEffect(() => {
     if (conversationsData) {
       setConversations(conversationsData);
-      if (!currentConversationId && conversationsData.length > 0) {
+      if (!currentConversationId && conversationsData.length > 0 && !userHasDeselected.current) {
         setCurrentConversationId(conversationsData[0].id);
       }
     }
   }, [conversationsData, currentConversationId]);
-
-  // Update messages when data changes
-  useEffect(() => {
-    if (messagesData) {
-      setMessages(messagesData);
-    }
-  }, [messagesData]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages]);
+  }, [streamMessages, messagesData]);
 
   const handleNewChat = () => {
+    userHasDeselected.current = false;
     createConversationMutation.mutate({
       title: `Chat - ${new Date().toLocaleString(language === "uk" ? "uk-UA" : language === "ru" ? "ru-RU" : "en-US")}`,
       language,
@@ -302,39 +300,28 @@ export default function Home() {
 
   /** Start a new chat and immediately send the given prompt. */
   const handleQuickStart = (prompt: string) => {
-    setPendingPrompt(prompt);
-    createConversationMutation.mutate({
-      title: prompt.length > CHAT_TITLE_MAX_LENGTH ? prompt.slice(0, CHAT_TITLE_TRUNCATED_LENGTH) + "…" : prompt,
-      language,
-    });
+    pendingPromptRef.current = prompt;
+    createConversationMutation.mutate(
+      {
+        title: prompt.length > CHAT_TITLE_MAX_LENGTH ? prompt.slice(0, CHAT_TITLE_TRUNCATED_LENGTH) + "…" : prompt,
+        language,
+      }
+    );
   };
 
-  const handleSendMessage = async () => {
-    if (!inputMessage.trim() || !currentConversationId) return;
-
+  const handleSendMessage = () => {
+    if (!input.trim() || !currentConversationId) return;
     setSendError(null);
-    setIsLoading(true);
-    // Add user message optimistically
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: Date.now(),
-        conversationId: currentConversationId,
-        role: "user",
-        content: inputMessage,
-        createdAt: new Date(),
-      },
-    ]);
-
-    sendMessageMutation.mutate({
-      conversationId: currentConversationId,
-      content: inputMessage,
-    });
+    append(
+      { role: "user", content: input },
+      { body: { language, conversationId: currentConversationId } }
+    );
   };
 
   const handleSelectConversation = (id: number) => {
+    userHasDeselected.current = false;
     setCurrentConversationId(id);
-    setMessages([]);
+    setStreamMessages([]);
     setSendError(null);
   };
 
@@ -571,7 +558,10 @@ export default function Home() {
               {/* Messages */}
               <ScrollArea className="flex-1 p-6">
                 <div className="max-w-3xl mx-auto space-y-4">
-                  {messages.map((msg) => (
+                  {(isStreaming || streamMessages.length > 0
+                    ? streamMessages
+                    : (messagesData ?? [])
+                  ).map((msg) => (
                     <div
                       key={msg.id}
                       className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
@@ -584,27 +574,27 @@ export default function Home() {
                         }`}
                       >
                         {msg.role === "user" ? (
-                          <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                          <p className="text-sm whitespace-pre-wrap">{getMessageText(msg.content)}</p>
                         ) : (
                           <div className="text-sm prose prose-sm max-w-none prose-a:text-indigo-700 prose-a:underline">
-                            <Markdown>{msg.content}</Markdown>
+                            <Markdown>{getMessageText(msg.content)}</Markdown>
                           </div>
                         )}
                       </div>
                     </div>
                   ))}
-                  {isLoading && (
+                  {isStreaming && (
                     <div className="flex justify-start">
                       <div className="bg-gray-200 text-gray-900 px-4 py-2 rounded-lg rounded-bl-none">
                         <Loader2 className="w-4 h-4 animate-spin" />
                       </div>
                     </div>
                   )}
-                  {sendError && (
+                  {(sendError ?? streamError?.message) && (
                     <div className="flex justify-center">
                       <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
                         <AlertCircle className="w-4 h-4 shrink-0" />
-                        {sendError}
+                        {sendError ?? streamError?.message}
                       </div>
                     </div>
                   )}
@@ -616,24 +606,24 @@ export default function Home() {
               <div className="border-t border-gray-200 bg-white p-4">
                 <div className="max-w-3xl mx-auto flex gap-3">
                   <Input
-                    value={inputMessage}
-                    onChange={(e) => setInputMessage(e.target.value)}
-                    onKeyPress={(e) => {
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={(e) => {
                       if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();
                         handleSendMessage();
                       }
                     }}
                     placeholder={t.typeMessage}
-                    disabled={isLoading}
+                    disabled={isStreaming}
                     className="flex-1"
                   />
                   <Button
                     onClick={handleSendMessage}
-                    disabled={isLoading || !inputMessage.trim()}
+                    disabled={isStreaming || !input.trim()}
                     className="bg-indigo-600 hover:bg-indigo-700"
                   >
-                    {isLoading ? (
+                    {isStreaming ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
                       <Send className="w-4 h-4" />
