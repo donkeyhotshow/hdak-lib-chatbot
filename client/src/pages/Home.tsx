@@ -172,6 +172,18 @@ function FeatureCard({ icon, title, description }: { icon: ReactNode; title: str
   );
 }
 
+/** Extract a displayable string from a message content field (handles useChat parts array). */
+function getMessageText(content: unknown): string {
+  if (typeof content === "string") return content;
+  if (Array.isArray(content)) {
+    return content
+      .filter((part): part is { type: "text"; text: string } => part?.type === "text")
+      .map((part) => part.text)
+      .join("");
+  }
+  return "";
+}
+
 export default function Home() {
   const { user, isAuthenticated, logout } = useAuth();
   const [language, setLanguage] = useState<Language>("uk");
@@ -193,7 +205,6 @@ export default function Home() {
     setMessages: setStreamMessages,
   } = useChat({
     api: "/api/chat",
-    body: { language },
     onFinish: () => {
       if (currentConversationId) {
         utils.conversations.getMessages.invalidate({ conversationId: currentConversationId });
@@ -563,10 +574,10 @@ export default function Home() {
                         }`}
                       >
                         {msg.role === "user" ? (
-                          <p className="text-sm whitespace-pre-wrap">{typeof msg.content === "string" ? msg.content : ""}</p>
+                          <p className="text-sm whitespace-pre-wrap">{getMessageText(msg.content)}</p>
                         ) : (
                           <div className="text-sm prose prose-sm max-w-none prose-a:text-indigo-700 prose-a:underline">
-                            <Markdown>{typeof msg.content === "string" ? msg.content : ""}</Markdown>
+                            <Markdown>{getMessageText(msg.content)}</Markdown>
                           </div>
                         )}
                       </div>
