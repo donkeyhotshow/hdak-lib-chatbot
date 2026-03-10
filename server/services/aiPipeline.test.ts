@@ -87,9 +87,9 @@ describe("aiPipeline helpers", () => {
       history: [{ role: "user", content: "hi" }],
     });
 
+    // getRagContext mock returns "\nRAG" (non-empty, no ⚠️) → source='rag'
     expect(result.text).toBe("mock reply");
-    // With no RAG context and one catalog resource, source should be 'catalog_search'
-    expect(result.source).toBe("catalog_search");
+    expect(result.source).toBe("rag");
     expect(mockedSearchResources).toHaveBeenCalledWith("hello");
     expect(mockedGetRagContext).toHaveBeenCalledWith("hello", "en");
     expect(mockedLogUserQuery).toHaveBeenCalledWith(2, 1, "hello", "en", [1]);
@@ -98,6 +98,31 @@ describe("aiPipeline helpers", () => {
         model: "mock-model",
       })
     );
+  });
+
+  it("reports source=catalog_search when RAG context is empty but resources exist", async () => {
+    mockedGetRagContext.mockResolvedValueOnce(""); // no RAG chunks
+    const result = await generateConversationReply({
+      prompt: "hello",
+      conversationId: 1,
+      language: "en",
+      userId: 2,
+      history: [],
+    });
+    expect(result.source).toBe("catalog_search");
+  });
+
+  it("reports source=general when neither RAG nor catalog resources are found", async () => {
+    mockedGetRagContext.mockResolvedValueOnce("");
+    mockedSearchResources.mockResolvedValueOnce([]);
+    const result = await generateConversationReply({
+      prompt: "hello",
+      conversationId: 1,
+      language: "en",
+      userId: 2,
+      history: [],
+    });
+    expect(result.source).toBe("general");
   });
 
   it("wraps failures in AiPipelineError", async () => {

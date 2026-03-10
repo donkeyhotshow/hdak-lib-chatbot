@@ -110,7 +110,7 @@ async function startServer() {
   }
 
   server.listen(port, () => {
-    logger.info(`Server running on http://localhost:${port}/`);
+    logger.milestone(`Server started on http://localhost:${port}/`, { env: process.env.NODE_ENV ?? "development" });
     // Start periodic catalog sync (only outside test environments)
     if (process.env.NODE_ENV !== "test") {
       startSyncScheduler();

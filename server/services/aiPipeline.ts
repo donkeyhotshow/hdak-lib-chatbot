@@ -193,11 +193,6 @@ export async function generateConversationReply(params: AiPipelineParams): Promi
   // Use sorted message pairs to avoid JSON property-ordering inconsistencies.
   const historySummary = history.slice(-5).map(m => `${m.role}\x00${m.content}`).join("\x01");
   const cacheKey = `reply:${language}:${historySummary}:${prompt}`;
-  const cached = replyCache.get<ConversationReplyResult>(cacheKey);
-  if (cached !== undefined) {
-    logger.info("[AI pipeline] Cache hit — returning cached reply", { conversationId, userId });
-    return cached;
-  }
 
   try {
     const relevantResources = await db.searchResources(prompt);
@@ -205,7 +200,8 @@ export async function generateConversationReply(params: AiPipelineParams): Promi
     // Sanitize RAG context before injecting into the model prompt
     const ragContext = rawRagContext ? sanitizeUntrustedContent(rawRagContext) : "";
 
-    // Determine the knowledge source for metadata
+    // Determine the knowledge source for this request (always computed fresh —
+    // not cached — so source accurately reflects the current knowledge base).
     const hasRagContext = ragContext.length > 0 && !ragContext.includes("⚠️");
     const source: MessageSource = hasRagContext
       ? "rag"
@@ -220,6 +216,13 @@ export async function generateConversationReply(params: AiPipelineParams): Promi
       language,
       relevantResources.map((r) => r.id)
     );
+
+    // Only the expensive LLM call is cached; source is computed from live context above.
+    const cachedText = replyCache.get<string>(cacheKey);
+    if (cachedText !== undefined) {
+      logger.info("[AI pipeline] Cache hit — returning cached reply", { conversationId, userId, source });
+      return { text: cachedText, source };
+    }
 
     const systemPrompt = [
       getOfficialSystemPrompt(language),
@@ -252,9 +255,8 @@ export async function generateConversationReply(params: AiPipelineParams): Promi
       totalTokens: usage?.totalTokens ?? 0,
     });
 
-    const result: ConversationReplyResult = { text, source };
-    replyCache.set(cacheKey, result);
-    return result;
+    replyCache.set(cacheKey, text);
+    return { text, source };
   } catch (error) {
     const cause = error instanceof Error ? error : new Error(String(error));
     throw new AiPipelineError("AI pipeline failed", { cause });

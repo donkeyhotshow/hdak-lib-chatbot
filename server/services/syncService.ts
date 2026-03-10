@@ -12,6 +12,7 @@
 import * as cheerio from "cheerio";
 import { logger } from "../_core/logger";
 import * as db from "../db";
+import { clearReplyCache } from "./aiPipeline";
 
 /** Public catalog/resource endpoint. Exported for testing. */
 export const CATALOG_URL =
@@ -148,9 +149,19 @@ export async function runSync(): Promise<{ synced: number; errors: string[] }> {
     }
   }
 
-  logger.info(`[syncService] Sync complete. synced=${synced} errors=${errors.length}`);
+  const success = errors.length === 0;
   _isSyncing = false;
-  _lastSyncStatus = { success: errors.length === 0, timestamp: new Date(), synced, errors };
+  _lastSyncStatus = { success, timestamp: new Date(), synced, errors };
+
+  if (success && synced > 0) {
+    // New data was added — invalidate the AI reply cache so responses reflect
+    // the updated catalog rather than returning stale cached answers.
+    clearReplyCache();
+    logger.milestone(`[SYNC] Catalog sync complete: ${synced} new resources added — reply cache cleared`);
+  } else {
+    logger.info(`[SYNC] Catalog sync complete. synced=${synced} errors=${errors.length}`);
+  }
+
   return { synced, errors };
 }
 

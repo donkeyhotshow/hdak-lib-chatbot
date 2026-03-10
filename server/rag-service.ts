@@ -105,16 +105,13 @@ export async function processDocument(
     return { success: false, chunksCreated: 0, error: errorMsg };
   }
 
-  // Track chunk IDs created so far for rollback
-  const createdChunkIds: number[] = [];
-
   try {
     for (let i = 0; i < chunks.length; i++) {
       const chunk = chunks[i];
       // generateEmbedding throws on API error — caught below to trigger rollback
       const embedding = await generateEmbedding(chunk);
 
-      const created = await db.createDocumentChunk({
+      await db.createDocumentChunk({
         documentId,
         documentTitle: title,
         documentUrl: url,
@@ -124,10 +121,6 @@ export async function processDocument(
         sourceType,
         language,
       });
-
-      if (created?.id !== undefined && created.id !== null) {
-        createdChunkIds.push(created.id as number);
-      }
     }
 
     // All chunks succeeded — mark as completed
@@ -149,11 +142,10 @@ export async function processDocument(
 
     logger.warn("[RAG] Atomic rollback triggered — removing partial chunks", {
       documentId,
-      chunksCreated: createdChunkIds.length,
       error: errorMsg,
     });
 
-    // Rollback: delete every chunk we managed to insert
+    // Rollback: delete all chunks inserted before the failure (identified by documentId)
     await db.deleteDocumentChunks(documentId);
 
     // Mark metadata as failed

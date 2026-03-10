@@ -1,4 +1,4 @@
-import { eq, like, or, and, lt, desc } from "drizzle-orm";
+import { eq, like, or, and, lt, desc, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { 
   InsertUser, users, 
@@ -401,17 +401,10 @@ export async function clearOldConversations(days: number = 30): Promise<number> 
 
     const ids = old.map(r => r.id);
 
-    // Delete messages belonging to those conversations first
-    for (const id of ids) {
-      await db.delete(messages).where(eq(messages.conversationId, id));
-    }
-
-    // Delete the conversations themselves
-    let deleted = 0;
-    for (const id of ids) {
-      const result = await db.delete(conversations).where(eq(conversations.id, id));
-      if ((result as any).affectedRows > 0) deleted++;
-    }
+    // Batch-delete messages and conversations in two queries instead of N+1 loops.
+    await db.delete(messages).where(inArray(messages.conversationId, ids));
+    const result = await db.delete(conversations).where(inArray(conversations.id, ids));
+    const deleted = (result as any).affectedRows ?? ids.length;
 
     logger.info("[Database] clearOldConversations: removed old conversations", { days, removed: deleted });
     return deleted;
