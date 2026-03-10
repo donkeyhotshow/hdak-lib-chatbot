@@ -245,7 +245,7 @@ export async function getDb() {
     try {
       _db = drizzle(process.env.DATABASE_URL);
     } catch (error) {
-      console.warn("[Database] Failed to connect:", error);
+      logger.warn("[Database] Failed to connect", { error: error instanceof Error ? error.message : String(error) });
       _db = null;
     }
   }
@@ -259,7 +259,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
 
   const db = await getDb();
   if (!db) {
-    console.warn("[Database] Cannot upsert user: database not available");
+    logger.warn("[Database] Cannot upsert user: database not available");
     return;
   }
 
@@ -306,7 +306,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       set: updateSet,
     });
   } catch (error) {
-    console.error("[Database] Failed to upsert user:", error);
+    logger.error("[Database] Failed to upsert user", { error: error instanceof Error ? error.message : String(error) });
     throw error;
   }
 }
@@ -314,7 +314,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
 export async function getUserByOpenId(openId: string) {
   const db = await getDb();
   if (!db) {
-    console.warn("[Database] Cannot get user: database not available");
+    logger.warn("[Database] Cannot get user: database not available");
     return undefined;
   }
 
@@ -344,7 +344,7 @@ export async function createConversation(userId: number, title: string, language
     
     return null;
   } catch (error) {
-    console.error("Error creating conversation:", error);
+    logger.error("[Database] Error creating conversation:", { error: error instanceof Error ? error.message : String(error) });
     return null;
   }
 }
@@ -374,7 +374,7 @@ export async function deleteConversation(conversationId: number): Promise<boolea
     const result = await db.delete(conversations).where(eq(conversations.id, conversationId));
     return (result as any).affectedRows > 0;
   } catch (error) {
-    console.error("Error deleting conversation:", error);
+    logger.error("[Database] Error deleting conversation:", { error: error instanceof Error ? error.message : String(error) });
     return false;
   }
 }
@@ -400,7 +400,7 @@ export async function createMessage(conversationId: number, role: 'user' | 'assi
     
     return null;
   } catch (error) {
-    console.error("Error creating message:", error);
+    logger.error("[Database] Error creating message:", { error: error instanceof Error ? error.message : String(error) });
     return null;
   }
 }
@@ -434,7 +434,7 @@ export async function getResourceByUrl(url: string): Promise<LibraryResource | n
     const result = await db.select().from(libraryResources).where(eq(libraryResources.url, url)).limit(1);
     return result[0] ?? null;
   } catch (error) {
-    logger.error("Error getting resource by URL", { error: String(error), url });
+    logger.error("[Database] Error getting resource by URL", { error: String(error), url });
     return null;
   }
 }
@@ -515,7 +515,7 @@ export async function createResource(resource: InsertLibraryResource): Promise<L
     
     return null;
   } catch (error) {
-    console.error("Error creating resource:", error);
+    logger.error("[Database] Error creating resource:", { error: error instanceof Error ? error.message : String(error) });
     return null;
   }
 }
@@ -540,7 +540,7 @@ export async function updateResource(id: number, resource: Partial<InsertLibrary
     await db.update(libraryResources).set(resource).where(eq(libraryResources.id, id));
     return db.select().from(libraryResources).where(eq(libraryResources.id, id)).limit(1).then(r => r[0] || null);
   } catch (error) {
-    console.error("Error updating resource:", error);
+    logger.error("[Database] Error updating resource:", { error: error instanceof Error ? error.message : String(error) });
     return null;
   }
 }
@@ -558,7 +558,7 @@ export async function deleteResource(id: number): Promise<boolean> {
     await db.delete(libraryResources).where(eq(libraryResources.id, id));
     return true;
   } catch (error) {
-    console.error("Error deleting resource:", error);
+    logger.error("[Database] Error deleting resource:", { error: error instanceof Error ? error.message : String(error) });
     return false;
   }
 }
@@ -605,7 +605,7 @@ export async function createContact(contact: InsertLibraryContact): Promise<Libr
     
     return null;
   } catch (error) {
-    console.error("Error creating contact:", error);
+    logger.error("[Database] Error creating contact:", { error: error instanceof Error ? error.message : String(error) });
     return null;
   }
 }
@@ -630,7 +630,7 @@ export async function updateContact(id: number, contact: Partial<InsertLibraryCo
     await db.update(libraryContacts).set(contact).where(eq(libraryContacts.id, id));
     return db.select().from(libraryContacts).where(eq(libraryContacts.id, id)).limit(1).then(r => r[0] || null);
   } catch (error) {
-    console.error("Error updating contact:", error);
+    logger.error("[Database] Error updating contact:", { error: error instanceof Error ? error.message : String(error) });
     return null;
   }
 }
@@ -648,7 +648,7 @@ export async function deleteContact(id: number): Promise<boolean> {
     await db.delete(libraryContacts).where(eq(libraryContacts.id, id));
     return true;
   } catch (error) {
-    console.error("Error deleting contact:", error);
+    logger.error("[Database] Error deleting contact:", { error: error instanceof Error ? error.message : String(error) });
     return false;
   }
 }
@@ -711,7 +711,7 @@ export async function setLibraryInfo(key: string, valueEn: string, valueUk: stri
       return null;
     }
   } catch (error) {
-    console.error("Error setting library info:", error);
+    logger.error("[Database] Error setting library info:", { error: error instanceof Error ? error.message : String(error) });
     return null;
   }
 }
@@ -739,7 +739,7 @@ export async function logUserQuery(userId: number | null, conversationId: number
     
     return null;
   } catch (error) {
-    console.error("Error logging user query:", error);
+    logger.error("[Database] Error logging user query:", { error: error instanceof Error ? error.message : String(error) });
     return null;
   }
 }
@@ -759,7 +759,7 @@ export async function createDocumentChunk(chunk: InsertDocumentChunk): Promise<D
     }
     return null;
   } catch (error) {
-    console.error("Error creating document chunk:", error);
+    logger.error("[Database] Error creating document chunk:", { error: error instanceof Error ? error.message : String(error) });
     return null;
   }
 }
@@ -774,7 +774,7 @@ export async function getDocumentChunks(language?: string): Promise<DocumentChun
     }
     return await db.select().from(documentChunks);
   } catch (error) {
-    console.error("Error getting document chunks:", error);
+    logger.error("[Database] Error getting document chunks:", { error: error instanceof Error ? error.message : String(error) });
     return [];
   }
 }
@@ -786,7 +786,7 @@ export async function getDocumentChunksByDocument(documentId: string): Promise<D
   try {
     return await db.select().from(documentChunks).where(eq(documentChunks.documentId, documentId));
   } catch (error) {
-    console.error("Error getting document chunks by document:", error);
+    logger.error("[Database] Error getting document chunks by document:", { error: error instanceof Error ? error.message : String(error) });
     return [];
   }
 }
@@ -805,7 +805,7 @@ export async function createDocumentMetadata(metadata: InsertDocumentMetadata): 
     }
     return null;
   } catch (error) {
-    console.error("Error creating document metadata:", error);
+    logger.error("[Database] Error creating document metadata:", { error: error instanceof Error ? error.message : String(error) });
     return null;
   }
 }
@@ -818,7 +818,7 @@ export async function getDocumentMetadata(documentId: string): Promise<DocumentM
     const result = await db.select().from(documentMetadata).where(eq(documentMetadata.documentId, documentId)).limit(1);
     return result[0] || null;
   } catch (error) {
-    console.error("Error getting document metadata:", error);
+    logger.error("[Database] Error getting document metadata:", { error: error instanceof Error ? error.message : String(error) });
     return null;
   }
 }
@@ -831,7 +831,7 @@ export async function updateDocumentMetadata(documentId: string, updates: Partia
     await db.update(documentMetadata).set(updates).where(eq(documentMetadata.documentId, documentId));
     return getDocumentMetadata(documentId);
   } catch (error) {
-    console.error("Error updating document metadata:", error);
+    logger.error("[Database] Error updating document metadata:", { error: error instanceof Error ? error.message : String(error) });
     return null;
   }
 }
@@ -843,7 +843,7 @@ export async function getAllDocumentMetadata(): Promise<DocumentMetadata[]> {
   try {
     return await db.select().from(documentMetadata);
   } catch (error) {
-    console.error("Error getting all document metadata:", error);
+    logger.error("[Database] Error getting all document metadata:", { error: error instanceof Error ? error.message : String(error) });
     return [];
   }
 }
@@ -856,7 +856,7 @@ export async function deleteDocumentChunks(documentId: string): Promise<boolean>
     await db.delete(documentChunks).where(eq(documentChunks.documentId, documentId));
     return true;
   } catch (error) {
-    console.error("Error deleting document chunks:", error);
+    logger.error("[Database] Error deleting document chunks:", { error: error instanceof Error ? error.message : String(error) });
     return false;
   }
 }
@@ -897,7 +897,7 @@ export async function getQueryAnalytics(limit = 20): Promise<{
 
     return { topQueries, languageBreakdown, totalQueries };
   } catch (error) {
-    logger.error("Error getting query analytics", { error: String(error) });
+    logger.error("[Database] Error getting query analytics", { error: String(error) });
     return { topQueries: [], languageBreakdown: [], totalQueries: 0 };
   }
 }

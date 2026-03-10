@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { parseResourcesFromHtml, stopSyncScheduler, CATALOG_URL } from "./syncService";
+import { parseResourcesFromHtml, stopSyncScheduler, runSync, isSyncing, CATALOG_URL } from "./syncService";
 
 afterEach(() => {
   stopSyncScheduler();
@@ -77,5 +77,39 @@ describe("syncService — parseResourcesFromHtml", () => {
 describe("syncService — CATALOG_URL", () => {
   it("points to the HDAK catalog search form", () => {
     expect(CATALOG_URL).toBe("https://library-service.com.ua:8443/khkhdak/DocumentSearchForm");
+  });
+});
+
+describe("syncService — concurrency guard", () => {
+  it("isSyncing() returns false when no sync is running", () => {
+    expect(isSyncing()).toBe(false);
+  });
+
+  it("returns early with 'Sync already in progress' when called concurrently", async () => {
+    // Use a deferred promise so we can resolve it for clean test teardown
+    let resolveFetch!: (value: Response) => void;
+    const blockingFetch = new Promise<Response>(resolve => { resolveFetch = resolve; });
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockReturnValueOnce(blockingFetch);
+
+    // Start first sync (will block on the mocked fetch)
+    const firstSync = runSync();
+
+    // Give the event loop a tick so the first sync sets _isSyncing = true
+    await new Promise(resolve => setImmediate(resolve));
+
+    // Second sync should immediately return without running
+    const secondResult = await runSync();
+    expect(secondResult).toEqual({ synced: 0, errors: ["Sync already in progress"] });
+
+    // Clean up: resolve the blocked fetch so firstSync can finish
+    resolveFetch(new Response("", { status: 200 }));
+    await firstSync;
+
+    fetchSpy.mockRestore();
+  });
+
+  it("isSyncing() resets to false after stopSyncScheduler()", async () => {
+    stopSyncScheduler();
+    expect(isSyncing()).toBe(false);
   });
 });

@@ -15,7 +15,7 @@ import {
   normalizeLanguage,
   type ConversationHistoryMessage,
 } from "./services/aiPipeline";
-import { runSync } from "./services/syncService";
+import { runSync, isSyncing } from "./services/syncService";
 
 // Admin-only procedure
 const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
@@ -24,6 +24,11 @@ const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
   }
   return next({ ctx });
 });
+
+/** Maximum number of previous messages included in the AI context window. */
+const MAX_CONVERSATION_HISTORY = 10;
+/** Maximum character length allowed for a single user message. */
+const MAX_MESSAGE_LENGTH = 10_000;
 
 export const appRouter = router({
   system: systemRouter,
@@ -79,17 +84,21 @@ export const appRouter = router({
 
     sendMessage: protectedProcedure
       .input(z.object({
-        conversationId: z.number(),
-        content: z.string().min(1),
+        conversationId: z.number().int().positive(),
+        content: z.string().min(1).max(MAX_MESSAGE_LENGTH),
       }))
       .mutation(async ({ ctx, input }) => {
+        // Verify that this conversation belongs to the requesting user
+        const conversation = await db.getConversation(input.conversationId);
+        if (!conversation) throw new TRPCError({ code: "NOT_FOUND" });
+        if (conversation.userId !== ctx.user!.id) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+        }
+
         // Save user message
         const userMessage = await db.createMessage(input.conversationId, "user", input.content);
         if (!userMessage) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
-        // Get conversation for language context
-        const conversation = await db.getConversation(input.conversationId);
-        if (!conversation) throw new TRPCError({ code: "NOT_FOUND" });
         const conversationLanguage = normalizeLanguage(conversation.language as string | null);
         const detectedLanguage = detectLanguageFromText(input.content);
         const language = detectedLanguage ?? conversationLanguage;
@@ -97,7 +106,7 @@ export const appRouter = router({
         // Get conversation history for context
         const messages = await db.getMessages(input.conversationId);
         const conversationHistory: ConversationHistoryMessage[] = messages
-          .slice(-10) // Last 10 messages for context
+          .slice(-MAX_CONVERSATION_HISTORY)
           .map((m) => {
             const isSupportedRole = m.role === "assistant" || m.role === "user";
             if (!isSupportedRole) {
@@ -313,6 +322,10 @@ export const appRouter = router({
       .mutation(async () => {
         const result = await runSync();
         return result;
+      }),
+    status: adminProcedure
+      .query(() => {
+        return { isSyncing: isSyncing() };
       }),
   }),
 });
