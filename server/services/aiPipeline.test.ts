@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   AiPipelineError,
+  clearReplyCache,
   generateConversationReply,
   getLocalizedAiErrorMessage,
   normalizeLanguage,
@@ -51,6 +52,7 @@ const mockResource = {
 describe("aiPipeline helpers", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearReplyCache();
     mockedSearchResources.mockResolvedValue([mockResource]);
     mockedLogUserQuery.mockResolvedValue(null);
     mockedGetRagContext.mockResolvedValue("\nRAG");

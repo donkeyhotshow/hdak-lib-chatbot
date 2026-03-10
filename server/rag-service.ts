@@ -164,7 +164,7 @@ export async function semanticSearch(
   language: "en" | "uk" | "ru" = "uk",
   topK: number = 5,
   similarityThreshold: number = 0.5
-): Promise<DocumentChunk[]> {
+): Promise<{ chunks: DocumentChunk[]; embeddingUnavailable?: boolean }> {
   try {
     // Generate embedding for the query
     const queryEmbedding = await generateEmbedding(query);
@@ -173,7 +173,7 @@ export async function semanticSearch(
     const allChunks = await db.getDocumentChunks(language);
 
     if (!allChunks || allChunks.length === 0) {
-      return [];
+      return { chunks: [] };
     }
 
     // Calculate similarity scores
@@ -190,23 +190,35 @@ export async function semanticSearch(
       .sort((a: any, b: any) => b.score - a.score)
       .slice(0, topK);
 
-    return scoredChunks.map((item: any) => item.chunk);
+    return { chunks: scoredChunks.map((item: any) => item.chunk) };
   } catch (error) {
     logger.error("[semanticSearch] Failed", {
       error: error instanceof Error ? error.message : String(error),
     });
-    return [];
+    return { chunks: [], embeddingUnavailable: true };
   }
 }
 
 /**
- * Get RAG context for AI responses
+ * Get RAG context for AI responses.
+ * Returns a fallback message when the embedding API is unavailable.
  */
 export async function getRagContext(
   query: string,
   language: "en" | "uk" | "ru" = "uk"
 ): Promise<string> {
-  const relevantChunks = await semanticSearch(query, language, 3);
+  const result = await semanticSearch(query, language, 3);
+
+  if (result.embeddingUnavailable) {
+    const unavailableMsg: Record<string, string> = {
+      uk: "\n\n> ⚠️ Пошук по документах тимчасово недоступний.",
+      ru: "\n\n> ⚠️ Поиск по документам временно недоступен.",
+      en: "\n\n> ⚠️ Document search is temporarily unavailable.",
+    };
+    return unavailableMsg[language] ?? unavailableMsg.uk;
+  }
+
+  const relevantChunks = result.chunks;
 
   if (relevantChunks.length === 0) {
     return "";

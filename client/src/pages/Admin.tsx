@@ -14,6 +14,24 @@ type ResourceType = "electronic_library" | "repository" | "catalog" | "database"
 type ContactType = "email" | "phone" | "address" | "telegram" | "viber" | "facebook" | "instagram" | "other";
 type ActiveTab = "resources" | "contacts" | "info" | "analytics";
 
+function SyncStatusBadge({ success, timestamp }: { success: boolean; timestamp: string }) {
+  const badgeClass = success
+    ? "bg-green-100 text-green-800"
+    : "bg-red-100 text-red-800";
+  const dotClass = success ? "bg-green-500" : "bg-red-500";
+  const label = success ? "Sync OK" : "Sync Failed";
+
+  return (
+    <div className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium ${badgeClass}`}>
+      <span className={`inline-block w-2 h-2 rounded-full ${dotClass}`} />
+      {label}
+      <span className="ml-1 font-normal opacity-75">
+        {new Date(timestamp).toLocaleTimeString()}
+      </span>
+    </div>
+  );
+}
+
 export default function Admin() {
   const { user, isAuthenticated } = useAuth();
   const [location, setLocation] = useLocation();
@@ -115,7 +133,12 @@ export default function Admin() {
     onSuccess: (result) => {
       setSyncResult(result);
       trpc.useUtils().resources.getAll.invalidate();
+      trpc.useUtils().sync.lastStatus.invalidate();
     },
+  });
+
+  const { data: lastSyncStatus } = trpc.sync.lastStatus.useQuery(undefined, {
+    refetchInterval: 30_000,
   });
 
   // Check admin access
@@ -269,12 +292,18 @@ export default function Admin() {
             Analytics
           </Button>
           {/* Manual catalog sync button */}
-          <div className="ml-auto flex items-center gap-2">
-            {syncResult && (
+          <div className="ml-auto flex items-center gap-3">
+            {/* Last sync status badge */}
+            {lastSyncStatus ? (
+              <SyncStatusBadge
+                success={lastSyncStatus.success}
+                timestamp={lastSyncStatus.timestamp}
+              />
+            ) : syncResult ? (
               <span className="text-xs text-gray-500">
                 Synced: {syncResult.synced}{syncResult.errors.length > 0 ? ` | Errors: ${syncResult.errors.length}` : ""}
               </span>
-            )}
+            ) : null}
             <Button
               variant="outline"
               onClick={() => syncMutation.mutate()}

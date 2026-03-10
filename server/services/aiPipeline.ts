@@ -1,5 +1,6 @@
 import { generateText } from "ai";
 import { openai } from "@ai-sdk/openai";
+import NodeCache from "node-cache";
 import type { LibraryResource } from "../../drizzle/schema";
 import * as db from "../db";
 import { getRagContext } from "../rag-service";
@@ -18,6 +19,14 @@ export const AI_TEMPERATURE = 0.7;
 
 /** Default chat model name, centralised here so both pathways stay in sync. */
 export const AI_MODEL_NAME = "gpt-4o-mini";
+
+/** Cache for AI conversation replies: key = hash of (prompt+lang+history), TTL = 24h. */
+const replyCache = new NodeCache({ stdTTL: 24 * 60 * 60, checkperiod: 60 * 60 });
+
+/** Flush the reply cache — intended for testing only. */
+export function clearReplyCache(): void {
+  replyCache.flushAll();
+}
 
 /**
  * Patterns that indicate prompt injection attempts.
@@ -172,6 +181,16 @@ type AiPipelineParams = {
 export async function generateConversationReply(params: AiPipelineParams): Promise<string> {
   const { prompt, language, conversationId, userId, history } = params;
 
+  // Build a deterministic cache key from the user prompt, language, and recent history.
+  // Use sorted message pairs to avoid JSON property-ordering inconsistencies.
+  const historySummary = history.slice(-5).map(m => `${m.role}\x00${m.content}`).join("\x01");
+  const cacheKey = `reply:${language}:${historySummary}:${prompt}`;
+  const cached = replyCache.get<string>(cacheKey);
+  if (cached !== undefined) {
+    logger.info("[AI pipeline] Cache hit — returning cached reply", { conversationId, userId });
+    return cached;
+  }
+
   try {
     const relevantResources = await db.searchResources(prompt);
     const rawRagContext = await getRagContext(prompt, language);
@@ -216,6 +235,7 @@ export async function generateConversationReply(params: AiPipelineParams): Promi
       totalTokens: usage?.totalTokens ?? 0,
     });
 
+    replyCache.set(cacheKey, text);
     return text;
   } catch (error) {
     const cause = error instanceof Error ? error : new Error(String(error));

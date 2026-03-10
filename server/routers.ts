@@ -15,7 +15,7 @@ import {
   normalizeLanguage,
   type ConversationHistoryMessage,
 } from "./services/aiPipeline";
-import { runSync, isSyncing } from "./services/syncService";
+import { runSync, isSyncing, getLastSyncStatus } from "./services/syncService";
 
 // Admin-only procedure
 const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
@@ -326,6 +326,17 @@ export const appRouter = router({
     status: adminProcedure
       .query(() => {
         return { isSyncing: isSyncing() };
+      }),
+    lastStatus: adminProcedure
+      .query(() => {
+        const status = getLastSyncStatus();
+        if (!status) return null;
+        return {
+          success: status.success,
+          timestamp: status.timestamp.toISOString(),
+          synced: status.synced,
+          errors: status.errors,
+        };
       }),
   }),
 });

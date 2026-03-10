@@ -9,6 +9,7 @@
  * startSyncScheduler call with a proper job queue or a cloud scheduler.
  */
 
+import * as cheerio from "cheerio";
 import { logger } from "../_core/logger";
 import * as db from "../db";
 
@@ -32,46 +33,49 @@ export interface ParsedResource {
 }
 
 /**
- * Parse resource links from an HTML string.
+ * Parse resource links from an HTML string using cheerio.
  * Looks for anchor tags that reference known library resource domains,
  * then extracts the href and visible text as the resource name.
  *
- * This is intentionally simple so it works without a full DOM parser
- * dependency.  Exported for unit testing.
+ * Exported for unit testing.
  */
 export function parseResourcesFromHtml(html: string): ParsedResource[] {
   const results: ParsedResource[] = [];
 
-  // Match every <a href="…">…</a> in the page.
-  const anchorRe = /<a\s+[^>]*href=["']([^"']+)["'][^>]*>([^<]+)<\/a>/gi;
-  let match: RegExpExecArray | null;
+  try {
+    const $ = cheerio.load(html);
 
-  while ((match = anchorRe.exec(html)) !== null) {
-    const href = match[1].trim();
-    const text = match[2].replace(/\s+/g, " ").trim();
+    $("a[href]").each((_index, el) => {
+      const href = ($(el).attr("href") ?? "").trim();
+      const text = $(el).text().replace(/\s+/g, " ").trim();
 
-    if (!href.startsWith("http") || !text) continue;
+      if (!href.startsWith("http") || !text) return;
 
-    // Infer resource type from URL patterns
-    let type: ParsedResource["type"] = "other";
-    if (href.includes("DocumentSearchForm") || href.includes("catalog")) {
-      type = "catalog";
-    } else if (href.includes("repository") || href.includes("репозитор")) {
-      type = "repository";
-    } else if (href.includes("scopus") || href.includes("webofscience") || href.includes("doaj")) {
-      type = "database";
-    } else if (href.includes("elib") || href.includes("e-library")) {
-      type = "electronic_library";
-    }
+      // Infer resource type from URL patterns
+      let type: ParsedResource["type"] = "other";
+      if (href.includes("DocumentSearchForm") || href.includes("catalog")) {
+        type = "catalog";
+      } else if (href.includes("repository") || href.includes("репозитор")) {
+        type = "repository";
+      } else if (href.includes("scopus") || href.includes("webofscience") || href.includes("doaj")) {
+        type = "database";
+      } else if (href.includes("elib") || href.includes("e-library")) {
+        type = "electronic_library";
+      }
 
-    if (type === "other") continue; // skip unrelated links
+      if (type === "other") return; // skip unrelated links
 
-    results.push({
-      nameUk: text,
-      nameEn: text,
-      nameRu: text,
-      type,
-      url: href,
+      results.push({
+        nameUk: text,
+        nameEn: text,
+        nameRu: text,
+        type,
+        url: href,
+      });
+    });
+  } catch (err) {
+    logger.error("[syncService] Failed to parse catalog HTML", {
+      error: err instanceof Error ? err.message : String(err),
     });
   }
 
@@ -113,6 +117,7 @@ export async function runSync(): Promise<{ synced: number; errors: string[] }> {
     const msg = err instanceof Error ? err.message : String(err);
     logger.error("[syncService] Failed to fetch catalog HTML", { error: msg });
     _isSyncing = false;
+    _lastSyncStatus = { success: false, timestamp: new Date(), synced: 0, errors: [msg] };
     return { synced: 0, errors: [msg] };
   }
 
@@ -145,6 +150,7 @@ export async function runSync(): Promise<{ synced: number; errors: string[] }> {
 
   logger.info(`[syncService] Sync complete. synced=${synced} errors=${errors.length}`);
   _isSyncing = false;
+  _lastSyncStatus = { success: errors.length === 0, timestamp: new Date(), synced, errors };
   return { synced, errors };
 }
 
@@ -152,9 +158,27 @@ let _syncTimer: ReturnType<typeof setInterval> | null = null;
 /** True while a sync cycle is in progress; prevents concurrent runs. */
 let _isSyncing = false;
 
+/** Last sync result, for admin status display. */
+let _lastSyncStatus: {
+  success: boolean;
+  timestamp: Date;
+  synced: number;
+  errors: string[];
+} | null = null;
+
 /** Returns true if a sync is currently in progress. */
 export function isSyncing(): boolean {
   return _isSyncing;
+}
+
+/** Returns the result of the most recent completed sync, or null if never synced. */
+export function getLastSyncStatus(): {
+  success: boolean;
+  timestamp: Date;
+  synced: number;
+  errors: string[];
+} | null {
+  return _lastSyncStatus;
 }
 
 /** Start the periodic background synchronisation scheduler. */
