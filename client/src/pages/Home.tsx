@@ -9,12 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Markdown } from "@/components/Markdown";
 import { DocumentCard, type ResourceType } from "@/components/DocumentCard";
 import { trpc } from "@/lib/trpc";
+import { getLoginUrl } from "@/const";
 import { Bot, BookOpen, Database, Search, Loader2, Send, Plus, Globe, LogOut, ExternalLink, Trash2, AlertCircle } from "lucide-react";
 
 /** Maximum character length used when deriving a conversation title from a prompt. */
 const CHAT_TITLE_MAX_LENGTH = 50;
-/** Truncated length (leaves room for the ellipsis character). */
-const CHAT_TITLE_TRUNCATED_LENGTH = 47;
 
 type Language = "en" | "uk" | "ru";
 
@@ -204,9 +203,6 @@ export default function Home() {
   const {
     messages: streamMessages,
     setMessages: setStreamMessages,
-    sendMessage,
-    status,
-    error: streamError,
   } = useChat({
     onFinish: () => {
       if (currentConversationId) {
@@ -215,12 +211,12 @@ export default function Home() {
     },
   });
 
-  // Resource search / filter state
+  // Fetch site resources for the resource browser
+  const { data: siteResources = [] } = trpc.resources.getSiteResources.useQuery();
+
+  // Resource browser search / filter state
   const [resourceSearch, setResourceSearch] = useState("");
   const [resourceTypeFilter, setResourceTypeFilter] = useState<ResourceType | "all">("all");
-
-  // Fetch site resources (from hdakResources list via tRPC)
-  const { data: siteResources = [] } = trpc.resources.getSiteResources.useQuery();
 
   const filteredResources = siteResources.filter((r: any) => {
     const typeMatch = resourceTypeFilter === "all" || r.type === resourceTypeFilter;
@@ -355,7 +351,10 @@ export default function Home() {
             <h1 className="text-2xl font-bold text-gray-900">{t.title}</h1>
             <p className="text-sm text-gray-600 mt-2">{t.subtitle}</p>
           </div>
-          <Button className="w-full bg-indigo-600 hover:bg-indigo-700">
+          <Button
+            className="w-full bg-indigo-600 hover:bg-indigo-700"
+            onClick={() => { window.location.href = getLoginUrl(); }}
+          >
             {t.login}
           </Button>
         </Card>
@@ -502,6 +501,57 @@ export default function Home() {
                     <ExternalLink className="w-4 h-4" />
                   </a>
                 </div>
+
+                {/* Resource browser */}
+                {siteResources.length > 0 && (
+                  <div className="mt-10">
+                    <h3 className="font-semibold text-gray-900 mb-4">{t.resourcesTitle}</h3>
+                    <div className="flex gap-2 mb-4">
+                      <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <Input
+                          value={resourceSearch}
+                          onChange={(e) => setResourceSearch(e.target.value)}
+                          placeholder={t.searchPlaceholder}
+                          className="pl-9"
+                        />
+                      </div>
+                      <Select
+                        value={resourceTypeFilter}
+                        onValueChange={(v) => setResourceTypeFilter(v as ResourceType | "all")}
+                      >
+                        <SelectTrigger className="w-36">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">{t.filterAll}</SelectItem>
+                          <SelectItem value="catalog">{t.filterCatalog}</SelectItem>
+                          <SelectItem value="database">{t.filterDatabase}</SelectItem>
+                          <SelectItem value="electronic_library">{t.filterElectronic}</SelectItem>
+                          <SelectItem value="repository">{t.filterRepository}</SelectItem>
+                          <SelectItem value="other">{t.filterOther}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {filteredResources.length === 0 ? (
+                      <p className="text-sm text-gray-500 text-center py-4">{t.noResults}</p>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {filteredResources.map((r: any, idx: number) => (
+                          <DocumentCard
+                            key={r.url ?? idx}
+                            name={r.name}
+                            description={r.description}
+                            type={r.type as ResourceType}
+                            url={r.url}
+                            accessConditions={r.accessConditions}
+                            language={language}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           ) : (
@@ -537,6 +587,12 @@ export default function Home() {
 
               {/* Input */}
               <div className="border-t border-gray-200 bg-white p-4">
+                {sendError && (
+                  <div className="max-w-3xl mx-auto mb-3 flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    <span>{sendError}</span>
+                  </div>
+                )}
                 <div className="max-w-3xl mx-auto flex gap-3">
                   <Input
                     value={localInput}

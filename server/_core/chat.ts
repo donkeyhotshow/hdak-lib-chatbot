@@ -38,6 +38,22 @@ function findLastUserMessage(messages: IncomingMessage[] | unknown): string {
 /** Maximum time (ms) allowed for a single streaming chat request. */
 const CHAT_TIMEOUT_MS = 30_000;
 
+/** Maximum character length allowed per individual message in the /api/chat endpoint. */
+const MAX_CHAT_MESSAGE_LENGTH = 10_000;
+
+/** Zod schema for validating individual chat messages from the client. */
+const chatMessageSchema = z.object({
+  role: z.enum(["user", "assistant"]),
+  content: z.string().min(1).max(MAX_CHAT_MESSAGE_LENGTH),
+});
+
+/** Zod schema for validating the full /api/chat request body. */
+const chatRequestSchema = z.object({
+  messages: z.array(chatMessageSchema).min(1).max(100),
+  language: z.enum(["en", "uk", "ru"]).optional(),
+  conversationId: z.number().int().positive().optional(),
+});
+
 /**
  * Creates an OpenAI-compatible provider with patched fetch.
  */
@@ -174,21 +190,19 @@ export function registerChatRoutes(app: Express) {
 
   app.post("/api/chat", async (req, res) => {
     try {
-      const { messages, language, conversationId } = req.body;
-
-      if (!messages || !Array.isArray(messages)) {
-        res.status(400).json({ error: "messages array is required" });
+      const parseResult = chatRequestSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        res.status(400).json({ error: "Invalid request", details: parseResult.error.issues });
         return;
       }
 
+      const { messages, language, conversationId } = parseResult.data;
+
       const lastUserMessage = findLastUserMessage(messages);
       const detectedLanguage = lastUserMessage ? detectLanguageFromText(lastUserMessage) : null;
-      const normalizedLanguage =
-        language === "uk" || language === "ru" || language === "en" ? language : null;
-      const lang: "en" | "uk" | "ru" = normalizedLanguage ?? detectedLanguage ?? "uk";
+      const lang: "en" | "uk" | "ru" = language ?? detectedLanguage ?? "uk";
 
-      const convId: number | null =
-        typeof conversationId === "number" && Number.isFinite(conversationId) ? conversationId : null;
+      const convId: number | null = conversationId ?? null;
 
       const result = streamText({
         model: openai.chat(AI_MODEL_NAME),

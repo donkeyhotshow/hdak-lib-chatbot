@@ -70,14 +70,17 @@ async function startServer() {
   const app = express();
   const server = createServer(app);
 
+  // In production, enforce strict CSP without unsafe-inline.
+  // In development, Vite HMR injects inline scripts and styles so unsafe-inline is kept.
+  const isDev = process.env.NODE_ENV !== "production";
   // Security headers
   app.use(
     helmet({
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
-          scriptSrc: ["'self'", "'unsafe-inline'"],
-          styleSrc: ["'self'", "'unsafe-inline'"],
+          scriptSrc: isDev ? ["'self'", "'unsafe-inline'"] : ["'self'"],
+          styleSrc: isDev ? ["'self'", "'unsafe-inline'"] : ["'self'"],
           imgSrc: ["'self'", "data:", "blob:"],
           connectSrc: ["'self'"],
           fontSrc: ["'self'"],
