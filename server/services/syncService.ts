@@ -122,7 +122,7 @@ export async function runSync(): Promise<{ synced: number; errors: string[] }> {
   }
 
   const parsed = parseResourcesFromHtml(html);
-  logger.info(`[syncService] Parsed ${parsed.length} resources from catalog`);
+  logger.info(`[SYNC] Catalog parsed: ${parsed.length} resources found`);
 
   for (const resource of parsed) {
     try {

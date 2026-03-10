@@ -14,6 +14,7 @@ import {
   logAiPipelineError,
   normalizeLanguage,
   type ConversationHistoryMessage,
+  type MessageSource,
 } from "./services/aiPipeline";
 import { runSync, isSyncing, getLastSyncStatus } from "./services/syncService";
 
@@ -129,14 +130,17 @@ export const appRouter = router({
         // so that embedding or search failures produce a graceful error message
         // rather than an uncaught exception)
         let aiResponse = "";
+        let source: MessageSource = "general";
         try {
-          aiResponse = await generateConversationReply({
+          const result = await generateConversationReply({
             prompt: input.content,
             conversationId: input.conversationId,
             language,
             userId: ctx.user!.id,
             history: conversationHistory,
           });
+          aiResponse = result.text;
+          source = result.source;
         } catch (error) {
           logAiPipelineError(error, {
             conversationId: input.conversationId,
@@ -150,7 +154,7 @@ export const appRouter = router({
         const assistantMessage = await db.createMessage(input.conversationId, "assistant", aiResponse);
         if (!assistantMessage) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
-        return assistantMessage;
+        return { ...assistantMessage, source };
       }),
   }),
 

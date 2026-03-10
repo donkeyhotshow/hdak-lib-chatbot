@@ -178,14 +178,22 @@ type AiPipelineParams = {
   history: ConversationHistoryMessage[];
 };
 
-export async function generateConversationReply(params: AiPipelineParams): Promise<string> {
+/** Indicates which knowledge source primarily contributed to the AI reply. */
+export type MessageSource = "rag" | "catalog_search" | "general";
+
+export type ConversationReplyResult = {
+  text: string;
+  source: MessageSource;
+};
+
+export async function generateConversationReply(params: AiPipelineParams): Promise<ConversationReplyResult> {
   const { prompt, language, conversationId, userId, history } = params;
 
   // Build a deterministic cache key from the user prompt, language, and recent history.
   // Use sorted message pairs to avoid JSON property-ordering inconsistencies.
   const historySummary = history.slice(-5).map(m => `${m.role}\x00${m.content}`).join("\x01");
   const cacheKey = `reply:${language}:${historySummary}:${prompt}`;
-  const cached = replyCache.get<string>(cacheKey);
+  const cached = replyCache.get<ConversationReplyResult>(cacheKey);
   if (cached !== undefined) {
     logger.info("[AI pipeline] Cache hit — returning cached reply", { conversationId, userId });
     return cached;
@@ -196,6 +204,14 @@ export async function generateConversationReply(params: AiPipelineParams): Promi
     const rawRagContext = await getRagContext(prompt, language);
     // Sanitize RAG context before injecting into the model prompt
     const ragContext = rawRagContext ? sanitizeUntrustedContent(rawRagContext) : "";
+
+    // Determine the knowledge source for metadata
+    const hasRagContext = ragContext.length > 0 && !ragContext.includes("⚠️");
+    const source: MessageSource = hasRagContext
+      ? "rag"
+      : relevantResources.length > 0
+      ? "catalog_search"
+      : "general";
 
     await db.logUserQuery(
       userId,
@@ -230,13 +246,15 @@ export async function generateConversationReply(params: AiPipelineParams): Promi
       conversationId,
       userId,
       latencyMs,
+      source,
       inputTokens: usage?.inputTokens ?? 0,
       outputTokens: usage?.outputTokens ?? 0,
       totalTokens: usage?.totalTokens ?? 0,
     });
 
-    replyCache.set(cacheKey, text);
-    return text;
+    const result: ConversationReplyResult = { text, source };
+    replyCache.set(cacheKey, result);
+    return result;
   } catch (error) {
     const cause = error instanceof Error ? error : new Error(String(error));
     throw new AiPipelineError("AI pipeline failed", { cause });

@@ -2,7 +2,7 @@ import { embed } from "ai";
 import { openai } from "@ai-sdk/openai";
 import * as db from "./db";
 import { logger } from "./_core/logger";
-import { DocumentChunk, DocumentMetadata, InsertDocumentChunk, InsertDocumentMetadata } from "../drizzle/schema";
+import { DocumentChunk, InsertDocumentChunk, InsertDocumentMetadata } from "../drizzle/schema";
 
 /**
  * RAG Service - Handles PDF processing, chunking, and embedding generation
@@ -65,7 +65,11 @@ export function cosineSimilarity(a: number[], b: number[]): number {
 }
 
 /**
- * Process a document and store chunks with embeddings
+ * Process a document atomically: all chunks must succeed or the entire
+ * operation is rolled back (all created chunks are deleted) and the
+ * document status is set to 'failed'.
+ *
+ * Status lifecycle: processing → completed | failed
  */
 export async function processDocument(
   documentId: string,
@@ -77,82 +81,89 @@ export async function processDocument(
   author?: string,
   publishedDate?: Date
 ): Promise<{ success: boolean; chunksCreated: number; error?: string }> {
+  const chunks = chunkText(content);
+
+  // Store metadata with status='processing' before we begin
+  const metadata: InsertDocumentMetadata = {
+    documentId,
+    title,
+    sourceType,
+    language,
+    totalChunks: chunks.length,
+    isProcessed: 0,
+    status: "processing",
+    ...(url ? { url } : {}),
+    ...(author ? { author } : {}),
+    ...(publishedDate ? { publishedDate } : {}),
+  };
+
   try {
-    // Create document metadata
-    const chunks = chunkText(content);
-
-    // Store metadata
-    const metadata: any = {
-      documentId,
-      title,
-      sourceType,
-      language,
-      totalChunks: chunks.length,
-      isProcessed: 0,
-    };
-
-    if (url) metadata.url = url;
-    if (author) metadata.author = author;
-    if (publishedDate) metadata.publishedDate = publishedDate;
-
     await db.createDocumentMetadata(metadata);
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : "Unknown error";
+    logger.error("[RAG] Failed to create document metadata", { error: errorMsg, documentId });
+    return { success: false, chunksCreated: 0, error: errorMsg };
+  }
 
-    // Process each chunk
-    let successCount = 0;
+  // Track chunk IDs created so far for rollback
+  const createdChunkIds: number[] = [];
+
+  try {
     for (let i = 0; i < chunks.length; i++) {
-      try {
-        const chunk = chunks[i];
-        const embedding = await generateEmbedding(chunk);
+      const chunk = chunks[i];
+      // generateEmbedding throws on API error — caught below to trigger rollback
+      const embedding = await generateEmbedding(chunk);
 
-        await db.createDocumentChunk({
-          documentId,
-          documentTitle: title,
-          documentUrl: url,
-          chunkIndex: i,
-          content: chunk,
-          embedding: embedding,
-          sourceType,
-          language,
-        });
+      const created = await db.createDocumentChunk({
+        documentId,
+        documentTitle: title,
+        documentUrl: url,
+        chunkIndex: i,
+        content: chunk,
+        embedding,
+        sourceType,
+        language,
+      });
 
-        successCount++;
-      } catch (error) {
-        logger.warn(`[processDocument] Failed to process chunk ${i}`, {
-          error: error instanceof Error ? error.message : String(error),
-          documentId,
-          chunkIndex: i,
-        });
+      if (created?.id !== undefined && created.id !== null) {
+        createdChunkIds.push(created.id as number);
       }
     }
 
-    // Update metadata with processing status
+    // All chunks succeeded — mark as completed
     await db.updateDocumentMetadata(documentId, {
-      isProcessed: successCount === chunks.length ? 1 : 0,
-      processingError: successCount < chunks.length ? "Partial processing completed" : null,
+      isProcessed: 1,
+      status: "completed",
+      processingError: null,
     });
 
-    return {
-      success: successCount === chunks.length,
-      chunksCreated: successCount,
-    };
-  } catch (error) {
-    logger.error("[processDocument] Failed to process document", {
-      error: error instanceof Error ? error.message : String(error),
+    logger.info(`[RAG] Document processed successfully`, {
       documentId,
+      title,
+      chunks: chunks.length,
     });
+
+    return { success: true, chunksCreated: chunks.length };
+  } catch (error) {
     const errorMsg = error instanceof Error ? error.message : "Unknown error";
 
-    // Update metadata with error
+    logger.warn("[RAG] Atomic rollback triggered — removing partial chunks", {
+      documentId,
+      chunksCreated: createdChunkIds.length,
+      error: errorMsg,
+    });
+
+    // Rollback: delete every chunk we managed to insert
+    await db.deleteDocumentChunks(documentId);
+
+    // Mark metadata as failed
     await db.updateDocumentMetadata(documentId, {
       isProcessed: 0,
+      status: "failed",
       processingError: errorMsg,
     });
 
-    return {
-      success: false,
-      chunksCreated: 0,
-      error: errorMsg,
-    };
+    return { success: false, chunksCreated: 0, error: errorMsg };
   }
 }
 
@@ -169,7 +180,7 @@ export async function semanticSearch(
     // Generate embedding for the query
     const queryEmbedding = await generateEmbedding(query);
 
-    // Get all chunks from the database
+    // Get all chunks from the database (capped at 100 by db layer)
     const allChunks = await db.getDocumentChunks(language);
 
     if (!allChunks || allChunks.length === 0) {
@@ -192,7 +203,7 @@ export async function semanticSearch(
 
     return { chunks: scoredChunks.map((item: any) => item.chunk) };
   } catch (error) {
-    logger.error("[semanticSearch] Failed", {
+    logger.error("[RAG] Semantic search failed — embedding API unavailable", {
       error: error instanceof Error ? error.message : String(error),
     });
     return { chunks: [], embeddingUnavailable: true };
@@ -201,7 +212,8 @@ export async function semanticSearch(
 
 /**
  * Get RAG context for AI responses.
- * Returns a fallback message when the embedding API is unavailable.
+ * Returns a localized fallback message when the embedding API is unavailable,
+ * or an empty string when no relevant chunks are found.
  */
 export async function getRagContext(
   query: string,
@@ -221,8 +233,14 @@ export async function getRagContext(
   const relevantChunks = result.chunks;
 
   if (relevantChunks.length === 0) {
+    logger.info("[RAG] No relevant context found", { query: query.slice(0, 80) });
     return "";
   }
+
+  logger.info(`[RAG] Context found (${relevantChunks.length} chunks)`, {
+    query: query.slice(0, 80),
+    sources: relevantChunks.map(c => c.documentTitle).filter(Boolean),
+  });
 
   const context = relevantChunks
     .map((chunk) => {

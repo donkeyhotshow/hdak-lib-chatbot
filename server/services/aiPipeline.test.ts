@@ -79,7 +79,7 @@ describe("aiPipeline helpers", () => {
   });
 
   it("generates AI replies using the pipeline and logs queries", async () => {
-    const text = await generateConversationReply({
+    const result = await generateConversationReply({
       prompt: "hello",
       conversationId: 1,
       language: "en",
@@ -87,7 +87,9 @@ describe("aiPipeline helpers", () => {
       history: [{ role: "user", content: "hi" }],
     });
 
-    expect(text).toBe("mock reply");
+    expect(result.text).toBe("mock reply");
+    // With no RAG context and one catalog resource, source should be 'catalog_search'
+    expect(result.source).toBe("catalog_search");
     expect(mockedSearchResources).toHaveBeenCalledWith("hello");
     expect(mockedGetRagContext).toHaveBeenCalledWith("hello", "en");
     expect(mockedLogUserQuery).toHaveBeenCalledWith(2, 1, "hello", "en", [1]);
