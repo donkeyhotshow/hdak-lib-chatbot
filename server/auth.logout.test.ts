@@ -10,7 +10,10 @@ type CookieCall = {
 
 type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
 
-function createAuthContext(protocol: "https" | "http" = "https"): { ctx: TrpcContext; clearedCookies: CookieCall[] } {
+function createAuthContext(protocol: "https" | "http" = "https"): {
+  ctx: TrpcContext;
+  clearedCookies: CookieCall[];
+} {
   const clearedCookies: CookieCall[] = [];
 
   const user: AuthenticatedUser = {

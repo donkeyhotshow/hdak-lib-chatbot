@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { parseResourcesFromHtml, stopSyncScheduler, runSync, isSyncing, CATALOG_URL } from "./syncService";
+import {
+  parseResourcesFromHtml,
+  stopSyncScheduler,
+  runSync,
+  isSyncing,
+  CATALOG_URL,
+} from "./syncService";
 import type { LibraryResource } from "../../drizzle/schema";
 import * as db from "../db";
 
@@ -19,7 +25,9 @@ describe("syncService — parseResourcesFromHtml", () => {
     const results = parseResourcesFromHtml(html);
     expect(results).toHaveLength(1);
     expect(results[0].type).toBe("catalog");
-    expect(results[0].url).toBe("https://library-service.com.ua:8443/khkhdak/DocumentSearchForm");
+    expect(results[0].url).toBe(
+      "https://library-service.com.ua:8443/khkhdak/DocumentSearchForm"
+    );
     expect(results[0].nameUk).toBe("Електронний каталог");
   });
 
@@ -79,7 +87,9 @@ describe("syncService — parseResourcesFromHtml", () => {
 
 describe("syncService — CATALOG_URL", () => {
   it("points to the HDAK catalog search form", () => {
-    expect(CATALOG_URL).toBe("https://library-service.com.ua:8443/khkhdak/DocumentSearchForm");
+    expect(CATALOG_URL).toBe(
+      "https://library-service.com.ua:8443/khkhdak/DocumentSearchForm"
+    );
   });
 });
 
@@ -91,8 +101,12 @@ describe("syncService — concurrency guard", () => {
   it("returns early with 'Sync already in progress' when called concurrently", async () => {
     // Use a deferred promise so we can resolve it for clean test teardown
     let resolveFetch!: (value: Response) => void;
-    const blockingFetch = new Promise<Response>(resolve => { resolveFetch = resolve; });
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockReturnValueOnce(blockingFetch);
+    const blockingFetch = new Promise<Response>(resolve => {
+      resolveFetch = resolve;
+    });
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockReturnValueOnce(blockingFetch);
 
     // Start first sync (will block on the mocked fetch)
     const firstSync = runSync();
@@ -102,7 +116,10 @@ describe("syncService — concurrency guard", () => {
 
     // Second sync should immediately return without running
     const secondResult = await runSync();
-    expect(secondResult).toEqual({ synced: 0, errors: ["Sync already in progress"] });
+    expect(secondResult).toEqual({
+      synced: 0,
+      errors: ["Sync already in progress"],
+    });
 
     // Clean up: resolve the blocked fetch so firstSync can finish
     resolveFetch(new Response("", { status: 200 }));
@@ -121,14 +138,33 @@ describe("syncService — sanity check", () => {
   it("returns an error and does not update sync status when 0 resources parsed but DB has resources", async () => {
     // Simulate the catalog page returning empty HTML (no known links)
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response("<html><body><p>Under maintenance</p></body></html>", { status: 200 })
+      new Response("<html><body><p>Under maintenance</p></body></html>", {
+        status: 200,
+      })
     );
     // Mock DB returning pre-existing resources
-    const mockResources: Pick<LibraryResource, "id" | "nameEn" | "nameUk" | "nameRu" | "type">[] = [
-      { id: 1, nameEn: "Catalog", nameUk: "Каталог", nameRu: "Каталог", type: "catalog" },
-      { id: 2, nameEn: "Repo", nameUk: "Репозитарій", nameRu: "Репозитарий", type: "repository" },
+    const mockResources: Pick<
+      LibraryResource,
+      "id" | "nameEn" | "nameUk" | "nameRu" | "type"
+    >[] = [
+      {
+        id: 1,
+        nameEn: "Catalog",
+        nameUk: "Каталог",
+        nameRu: "Каталог",
+        type: "catalog",
+      },
+      {
+        id: 2,
+        nameEn: "Repo",
+        nameUk: "Репозитарій",
+        nameRu: "Репозитарий",
+        type: "repository",
+      },
     ];
-    vi.spyOn(db, "getAllResources").mockResolvedValueOnce(mockResources as LibraryResource[]);
+    vi.spyOn(db, "getAllResources").mockResolvedValueOnce(
+      mockResources as LibraryResource[]
+    );
 
     const result = await runSync();
 
@@ -160,7 +196,9 @@ describe("syncService — _isSyncing always resets (try/finally)", () => {
       new Response("<html><body></body></html>", { status: 200 })
     );
     // Make getAllResources throw to exercise the previously-broken code path
-    vi.spyOn(db, "getAllResources").mockRejectedValueOnce(new Error("DB connection lost"));
+    vi.spyOn(db, "getAllResources").mockRejectedValueOnce(
+      new Error("DB connection lost")
+    );
 
     await expect(runSync()).rejects.toThrow("DB connection lost");
 

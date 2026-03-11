@@ -5,6 +5,7 @@
  * - getRagContext: empty chunks, chunk formatting, embeddingUnavailable fallback
  * - semanticSearch: threshold filtering, topK limiting, missing embedding handling
  * - generateEmbedding: success and error paths
+ * - processDocument: success path, empty content, truncation, embedding failure (rollback)
  */
 
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -12,6 +13,7 @@ import {
   getRagContext,
   semanticSearch,
   generateEmbedding,
+  processDocument,
 } from "./rag-service";
 import * as db from "./db";
 import { embed } from "ai";
@@ -244,5 +246,152 @@ describe("generateEmbedding", () => {
   it("includes the original error message in the thrown error", async () => {
     vi.mocked(embed).mockRejectedValueOnce(new Error("timeout 30s"));
     await expect(generateEmbedding("fail")).rejects.toThrow("timeout 30s");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// processDocument
+// ---------------------------------------------------------------------------
+
+describe("processDocument — empty and whitespace content", () => {
+  it("returns success=false and an error message for empty content", async () => {
+    const result = await processDocument("doc-1", "Title", "", "other", "uk");
+    expect(result.success).toBe(false);
+    expect(result.chunksCreated).toBe(0);
+    expect(result.error).toBeDefined();
+  });
+
+  it("returns success=false for whitespace-only content", async () => {
+    const result = await processDocument(
+      "doc-2",
+      "Title",
+      "   \n   ",
+      "other",
+      "uk"
+    );
+    expect(result.success).toBe(false);
+    expect(result.chunksCreated).toBe(0);
+  });
+});
+
+describe("processDocument — createDocumentMetadata failure", () => {
+  it("returns success=false when createDocumentMetadata throws", async () => {
+    vi.spyOn(db, "createDocumentMetadata").mockRejectedValueOnce(
+      new Error("DB connection lost")
+    );
+    const result = await processDocument(
+      "doc-3",
+      "Title",
+      "Some content here.",
+      "other",
+      "uk"
+    );
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("DB connection lost");
+  });
+});
+
+describe("processDocument — embedding failure triggers rollback", () => {
+  it("rolls back and returns success=false when embedding API fails", async () => {
+    vi.spyOn(db, "createDocumentMetadata").mockResolvedValueOnce(null);
+    vi.mocked(embed).mockRejectedValueOnce(new Error("embedding API down"));
+    vi.spyOn(db, "deleteDocumentChunks").mockResolvedValueOnce(true);
+    vi.spyOn(db, "updateDocumentMetadata").mockResolvedValueOnce(null);
+
+    const result = await processDocument(
+      "doc-4",
+      "Title",
+      "Enough content to produce at least one chunk.",
+      "other",
+      "uk"
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.chunksCreated).toBe(0);
+    expect(result.error).toContain("embedding API down");
+    expect(db.deleteDocumentChunks).toHaveBeenCalledWith("doc-4");
+    expect(db.updateDocumentMetadata).toHaveBeenCalledWith(
+      "doc-4",
+      expect.objectContaining({ status: "failed" })
+    );
+  });
+});
+
+describe("processDocument — success path", () => {
+  it("returns success=true and the number of chunks created", async () => {
+    vi.spyOn(db, "createDocumentMetadata").mockResolvedValueOnce(null);
+    // Succeed for every embedding call
+    vi.mocked(embed).mockResolvedValue({
+      embedding: [0.1, 0.2, 0.3],
+      usage: { tokens: 3 },
+    } as any);
+    vi.spyOn(db, "createDocumentChunk").mockResolvedValue(null);
+    vi.spyOn(db, "updateDocumentMetadata").mockResolvedValue(null);
+
+    const content = "Word ".repeat(100); // ~500 chars — fits in one chunk
+    const result = await processDocument(
+      "doc-5",
+      "My Document",
+      content,
+      "catalog",
+      "en"
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.chunksCreated).toBeGreaterThan(0);
+    expect(result.error).toBeUndefined();
+  });
+
+  it("truncates content that exceeds MAX_DOCUMENT_SIZE", async () => {
+    vi.spyOn(db, "createDocumentMetadata").mockResolvedValueOnce(null);
+    vi.mocked(embed).mockResolvedValue({
+      embedding: [0.1],
+      usage: { tokens: 1 },
+    } as any);
+    vi.spyOn(db, "createDocumentChunk").mockResolvedValue(null);
+    vi.spyOn(db, "updateDocumentMetadata").mockResolvedValue(null);
+
+    // 600 000 chars > MAX_DOCUMENT_SIZE (500 000)
+    const hugeContent = "A".repeat(600_000);
+    const result = await processDocument(
+      "doc-6",
+      "Big Doc",
+      hugeContent,
+      "other",
+      "uk"
+    );
+
+    // Should still succeed (truncated to max size)
+    expect(result.success).toBe(true);
+    expect(result.chunksCreated).toBeGreaterThan(0);
+  });
+
+  it("stores optional url, author, and publishedDate", async () => {
+    vi.spyOn(db, "createDocumentMetadata").mockResolvedValueOnce(null);
+    vi.mocked(embed).mockResolvedValue({
+      embedding: [0.5],
+      usage: { tokens: 1 },
+    } as any);
+    vi.spyOn(db, "createDocumentChunk").mockResolvedValue(null);
+    vi.spyOn(db, "updateDocumentMetadata").mockResolvedValue(null);
+
+    const result = await processDocument(
+      "doc-7",
+      "Paper Title",
+      "Abstract content for the paper.",
+      "repository",
+      "en",
+      "https://example.com/paper",
+      "Jane Doe",
+      new Date("2025-01-01")
+    );
+
+    expect(result.success).toBe(true);
+    expect(db.createDocumentMetadata).toHaveBeenCalledWith(
+      expect.objectContaining({
+        url: "https://example.com/paper",
+        author: "Jane Doe",
+      })
+    );
   });
 });
