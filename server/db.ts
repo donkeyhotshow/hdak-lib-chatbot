@@ -919,8 +919,15 @@ export async function getQueryAnalytics(limit = 20): Promise<{
     return { topQueries: [], languageBreakdown: [], totalQueries: 0 };
   }
 
+  /** Cap the rows pulled into memory to prevent OOM on large deployments. */
+  const ANALYTICS_ROW_LIMIT = 10_000;
+
   try {
-    const rows = await db.select().from(userQueries);
+    const rows = await db
+      .select()
+      .from(userQueries)
+      .orderBy(desc(userQueries.createdAt))
+      .limit(ANALYTICS_ROW_LIMIT);
     const totalQueries = rows.length;
 
     // Compute top queries by frequency

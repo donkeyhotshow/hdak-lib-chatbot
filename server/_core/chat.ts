@@ -13,6 +13,7 @@ import { z } from "zod/v4";
 import { ENV } from "./env";
 import { createPatchedFetch } from "./patchedFetch";
 import { logger } from "./logger";
+import { sdk } from "./sdk";
 import * as db from "../db";
 import { getSystemPrompt, officialLibraryInfo, officialLibraryResources, hdakResources } from "../system-prompts-official";
 import { detectLanguageFromText, sanitizeUntrustedContent, AI_TEMPERATURE, AI_MODEL_NAME } from "../services/aiPipeline";
@@ -202,7 +203,30 @@ export function registerChatRoutes(app: Express) {
       const detectedLanguage = lastUserMessage ? detectLanguageFromText(lastUserMessage) : null;
       const lang: "en" | "uk" | "ru" = language ?? detectedLanguage ?? "uk";
 
-      const convId: number | null = conversationId ?? null;
+      // When a conversationId is supplied, verify the caller is authenticated
+      // and owns that conversation before allowing messages to be persisted.
+      let convId: number | null = null;
+      if (conversationId !== undefined) {
+        let requestUser = null;
+        try {
+          requestUser = await sdk.authenticateRequest(req);
+        } catch (authErr) {
+          logger.warn("[/api/chat] Authentication error while checking conversationId ownership", {
+            conversationId,
+            error: authErr instanceof Error ? authErr.message : String(authErr),
+          });
+        }
+        if (!requestUser) {
+          res.status(401).json({ error: "Authentication required to save to a conversation" });
+          return;
+        }
+        const conv = await db.getConversation(conversationId);
+        if (!conv || conv.userId !== requestUser.id) {
+          res.status(403).json({ error: "Access denied" });
+          return;
+        }
+        convId = conversationId;
+      }
 
       const result = streamText({
         model: openai.chat(AI_MODEL_NAME),

@@ -126,73 +126,76 @@ export async function runSync(): Promise<{ synced: number; errors: string[] }> {
 
   logger.info("[syncService] Starting catalog sync");
 
-  let html: string;
   try {
-    html = await fetchCatalogHtml();
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    logger.error("[syncService] Failed to fetch catalog HTML", { error: msg });
-    _isSyncing = false;
-    _lastSyncStatus = { success: false, timestamp: new Date(), synced: 0, errors: [msg] };
-    return { synced: 0, errors: [msg] };
-  }
-
-  const parsed = parseResourcesFromHtml(html);
-  logger.info(`[SYNC] Catalog parsed: ${parsed.length} resources found`);
-
-  // Sanity check: if the parser found nothing but the DB already has resources,
-  // treat this as a parsing/network error rather than a legitimate empty catalog.
-  // This prevents stale-cache evictions and misleading "sync succeeded" statuses
-  // caused by temporary site outages or HTML-structure changes.
-  if (parsed.length === 0) {
-    const existing = await db.getAllResources();
-    if (existing.length > 0) {
-      const msg = `[SYNC] Sanity check failed: catalog page returned 0 resources but DB has ${existing.length}. Possible parse error or site outage. Skipping sync.`;
-      logger.warn(msg);
-      _isSyncing = false;
+    let html: string;
+    try {
+      html = await fetchCatalogHtml();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.error("[syncService] Failed to fetch catalog HTML", { error: msg });
       _lastSyncStatus = { success: false, timestamp: new Date(), synced: 0, errors: [msg] };
       return { synced: 0, errors: [msg] };
     }
-  }
 
-  for (const resource of parsed) {
-    try {
-      // Check if a resource with this URL already exists to avoid duplicates.
-      const alreadyExists = !!(await db.getResourceByUrl(resource.url));
+    const parsed = parseResourcesFromHtml(html);
+    logger.info(`[SYNC] Catalog parsed: ${parsed.length} resources found`);
 
-      if (!alreadyExists) {
-        await db.createResource({
-          nameEn: resource.nameEn,
-          nameUk: resource.nameUk,
-          nameRu: resource.nameRu,
-          descriptionUk: resource.descriptionUk,
-          type: resource.type,
-          url: resource.url,
-        });
-        synced++;
-        logger.info(`[syncService] Synced resource: ${resource.nameUk}`, { url: resource.url });
+    // Sanity check: if the parser found nothing but the DB already has resources,
+    // treat this as a parsing/network error rather than a legitimate empty catalog.
+    // This prevents stale-cache evictions and misleading "sync succeeded" statuses
+    // caused by temporary site outages or HTML-structure changes.
+    if (parsed.length === 0) {
+      const existing = await db.getAllResources();
+      if (existing.length > 0) {
+        const msg = `[SYNC] Sanity check failed: catalog page returned 0 resources but DB has ${existing.length}. Possible parse error or site outage. Skipping sync.`;
+        logger.warn(msg);
+        _lastSyncStatus = { success: false, timestamp: new Date(), synced: 0, errors: [msg] };
+        return { synced: 0, errors: [msg] };
       }
-    } catch (err) {
-      const msg = `Failed to sync "${resource.nameUk}": ${err instanceof Error ? err.message : String(err)}`;
-      logger.warn("[syncService] " + msg);
-      errors.push(msg);
     }
+
+    for (const resource of parsed) {
+      try {
+        // Check if a resource with this URL already exists to avoid duplicates.
+        const alreadyExists = !!(await db.getResourceByUrl(resource.url));
+
+        if (!alreadyExists) {
+          await db.createResource({
+            nameEn: resource.nameEn,
+            nameUk: resource.nameUk,
+            nameRu: resource.nameRu,
+            descriptionUk: resource.descriptionUk,
+            type: resource.type,
+            url: resource.url,
+          });
+          synced++;
+          logger.info(`[syncService] Synced resource: ${resource.nameUk}`, { url: resource.url });
+        }
+      } catch (err) {
+        const msg = `Failed to sync "${resource.nameUk}": ${err instanceof Error ? err.message : String(err)}`;
+        logger.warn("[syncService] " + msg);
+        errors.push(msg);
+      }
+    }
+
+    const success = errors.length === 0;
+    _lastSyncStatus = { success, timestamp: new Date(), synced, errors };
+
+    if (success && synced > 0) {
+      // New data was added — invalidate the AI reply cache so responses reflect
+      // the updated catalog rather than returning stale cached answers.
+      clearReplyCache();
+      logger.milestone(`[SYNC] Catalog sync complete: ${synced} new resources added — reply cache cleared`);
+    } else {
+      logger.info(`[SYNC] Catalog sync complete. synced=${synced} errors=${errors.length}`);
+    }
+
+    return { synced, errors };
+  } finally {
+    // Always clear the flag, even on unexpected errors, so the scheduler
+    // can attempt the next sync rather than being permanently locked.
+    _isSyncing = false;
   }
-
-  const success = errors.length === 0;
-  _isSyncing = false;
-  _lastSyncStatus = { success, timestamp: new Date(), synced, errors };
-
-  if (success && synced > 0) {
-    // New data was added — invalidate the AI reply cache so responses reflect
-    // the updated catalog rather than returning stale cached answers.
-    clearReplyCache();
-    logger.milestone(`[SYNC] Catalog sync complete: ${synced} new resources added — reply cache cleared`);
-  } else {
-    logger.info(`[SYNC] Catalog sync complete. synced=${synced} errors=${errors.length}`);
-  }
-
-  return { synced, errors };
 }
 
 let _syncTimer: ReturnType<typeof setInterval> | null = null;

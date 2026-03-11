@@ -65,19 +65,34 @@ export const appRouter = router({
 
     get: protectedProcedure
       .input(z.object({ id: z.number() }))
-      .query(async ({ input }) => {
-        return await db.getConversation(input.id);
+      .query(async ({ ctx, input }) => {
+        const conversation = await db.getConversation(input.id);
+        if (!conversation) return null;
+        if (conversation.userId !== ctx.user!.id) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+        }
+        return conversation;
       }),
 
     getMessages: protectedProcedure
       .input(z.object({ conversationId: z.number() }))
-      .query(async ({ input }) => {
+      .query(async ({ ctx, input }) => {
+        const conversation = await db.getConversation(input.conversationId);
+        if (!conversation) throw new TRPCError({ code: "NOT_FOUND" });
+        if (conversation.userId !== ctx.user!.id) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+        }
         return await db.getMessages(input.conversationId);
       }),
 
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
+        const conversation = await db.getConversation(input.id);
+        if (!conversation) throw new TRPCError({ code: "NOT_FOUND" });
+        if (conversation.userId !== ctx.user!.id) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
+        }
         const success = await db.deleteConversation(input.id);
         if (!success) throw new TRPCError({ code: "NOT_FOUND" });
         return { success: true };
@@ -166,7 +181,7 @@ export const appRouter = router({
       }),
 
     search: publicProcedure
-      .input(z.object({ query: z.string() }))
+      .input(z.object({ query: z.string().max(500) }))
       .query(async ({ input }) => {
         return await db.searchResources(input.query);
       }),
