@@ -192,3 +192,84 @@ describe("conversations.sendMessage — history deduplication", () => {
     expect(callArgs.prompt).toBe("new msg");
   });
 });
+
+describe("conversations.create — input validation", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("rejects a conversation title that exceeds 500 characters", async () => {
+    const ctx = createUserContext(1);
+    const caller = appRouter.createCaller(ctx);
+
+    await expect(
+      caller.conversations.create({ title: "a".repeat(501) })
+    ).rejects.toThrow();
+  });
+
+  it("accepts a conversation title of exactly 500 characters", async () => {
+    const conv = { id: 1, userId: 1, title: "a".repeat(500), language: "uk" as const, createdAt: new Date(), updatedAt: new Date() };
+    vi.spyOn(db, "createConversation").mockResolvedValueOnce(conv);
+
+    const ctx = createUserContext(1);
+    const caller = appRouter.createCaller(ctx);
+
+    const result = await caller.conversations.create({ title: "a".repeat(500) });
+    expect(result).toEqual(conv);
+  });
+});
+
+describe("contacts.create — input validation", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("rejects an empty contact value", async () => {
+    const ctx = createUserContext(1, "admin");
+    const caller = appRouter.createCaller(ctx);
+
+    await expect(
+      caller.contacts.create({ type: "email", value: "" })
+    ).rejects.toThrow();
+  });
+
+  it("rejects a contact value that exceeds 1000 characters", async () => {
+    const ctx = createUserContext(1, "admin");
+    const caller = appRouter.createCaller(ctx);
+
+    await expect(
+      caller.contacts.create({ type: "email", value: "a".repeat(1001) })
+    ).rejects.toThrow();
+  });
+});
+
+describe("contacts.update — input validation", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("rejects an empty string when updating contact value", async () => {
+    const ctx = createUserContext(1, "admin");
+    const caller = appRouter.createCaller(ctx);
+
+    await expect(
+      caller.contacts.update({ id: 1, value: "" })
+    ).rejects.toThrow();
+  });
+});
+
+describe("libraryInfo.set — input validation", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("rejects an empty key", async () => {
+    const ctx = createUserContext(1, "admin");
+    const caller = appRouter.createCaller(ctx);
+
+    await expect(
+      caller.libraryInfo.set({ key: "", valueEn: "v", valueUk: "v", valueRu: "v" })
+    ).rejects.toThrow();
+  });
+
+  it("rejects a key that exceeds 200 characters", async () => {
+    const ctx = createUserContext(1, "admin");
+    const caller = appRouter.createCaller(ctx);
+
+    await expect(
+      caller.libraryInfo.set({ key: "k".repeat(201), valueEn: "v", valueUk: "v", valueRu: "v" })
+    ).rejects.toThrow();
+  });
+});

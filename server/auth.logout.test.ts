@@ -10,7 +10,7 @@ type CookieCall = {
 
 type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
 
-function createAuthContext(): { ctx: TrpcContext; clearedCookies: CookieCall[] } {
+function createAuthContext(protocol: "https" | "http" = "https"): { ctx: TrpcContext; clearedCookies: CookieCall[] } {
   const clearedCookies: CookieCall[] = [];
 
   const user: AuthenticatedUser = {
@@ -28,7 +28,7 @@ function createAuthContext(): { ctx: TrpcContext; clearedCookies: CookieCall[] }
   const ctx: TrpcContext = {
     user,
     req: {
-      protocol: "https",
+      protocol,
       headers: {},
     } as TrpcContext["req"],
     res: {
@@ -58,5 +58,21 @@ describe("auth.logout", () => {
       httpOnly: true,
       path: "/",
     });
+  });
+
+  it("uses sameSite=lax (not none) when the request is over plain HTTP", async () => {
+    // SameSite=None without Secure is rejected by modern browsers (Chrome 80+, Firefox 79+).
+    // For HTTP (dev/local), we must fall back to "lax" so the session cookie is accepted.
+    const { ctx, clearedCookies } = createAuthContext("http");
+    const caller = appRouter.createCaller(ctx);
+
+    await caller.auth.logout();
+
+    expect(clearedCookies[0]?.options).toMatchObject({
+      secure: false,
+      sameSite: "lax",
+    });
+    // Confirm "none" is NOT used on plain HTTP
+    expect(clearedCookies[0]?.options.sameSite).not.toBe("none");
   });
 });

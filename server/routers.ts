@@ -50,7 +50,7 @@ export const appRouter = router({
   conversations: router({
     create: protectedProcedure
       .input(z.object({
-        title: z.string().min(1),
+        title: z.string().min(1).max(500),
         language: z.enum(["en", "uk", "ru"]).default("uk"),
       }))
       .mutation(async ({ ctx, input }) => {
@@ -266,10 +266,10 @@ export const appRouter = router({
     create: adminProcedure
       .input(z.object({
         type: z.enum(["email", "phone", "address", "telegram", "viber", "facebook", "instagram", "other"]),
-        value: z.string(),
-        labelEn: z.string().optional(),
-        labelUk: z.string().optional(),
-        labelRu: z.string().optional(),
+        value: z.string().min(1).max(1000),
+        labelEn: z.string().max(200).optional(),
+        labelUk: z.string().max(200).optional(),
+        labelRu: z.string().max(200).optional(),
       }))
       .mutation(async ({ input }) => {
         const contact = await db.createContact(input);
@@ -281,10 +281,10 @@ export const appRouter = router({
       .input(z.object({
         id: z.number(),
         type: z.enum(["email", "phone", "address", "telegram", "viber", "facebook", "instagram", "other"]).optional(),
-        value: z.string().optional(),
-        labelEn: z.string().optional(),
-        labelUk: z.string().optional(),
-        labelRu: z.string().optional(),
+        value: z.string().min(1).max(1000).optional(),
+        labelEn: z.string().max(200).optional(),
+        labelUk: z.string().max(200).optional(),
+        labelRu: z.string().max(200).optional(),
       }))
       .mutation(async ({ input }) => {
         const { id, ...updateData } = input;
@@ -305,7 +305,7 @@ export const appRouter = router({
   // Library info management
   libraryInfo: router({
     get: publicProcedure
-      .input(z.object({ key: z.string() }))
+      .input(z.object({ key: z.string().max(200) }))
       .query(async ({ input }) => {
         return await db.getLibraryInfo(input.key);
       }),
@@ -317,10 +317,10 @@ export const appRouter = router({
 
     set: adminProcedure
       .input(z.object({
-        key: z.string(),
-        valueEn: z.string(),
-        valueUk: z.string(),
-        valueRu: z.string(),
+        key: z.string().min(1).max(200),
+        valueEn: z.string().max(10_000),
+        valueUk: z.string().max(10_000),
+        valueRu: z.string().max(10_000),
       }))
       .mutation(async ({ input }) => {
         const info = await db.setLibraryInfo(input.key, input.valueEn, input.valueUk, input.valueRu);

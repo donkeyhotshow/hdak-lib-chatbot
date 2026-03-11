@@ -42,7 +42,13 @@ export function getSessionCookieOptions(
   return {
     httpOnly: true,
     path: "/",
-    sameSite: isSecureRequest(req) ? "strict" : "none",
+    // SameSite=None requires Secure=true — browsers (Chrome 80+, Firefox 79+) reject
+    // SameSite=None cookies that are not also Secure, making authentication completely
+    // broken over plain HTTP (e.g. local development).
+    // Use "lax" for non-HTTPS requests: it allows the session cookie to be sent on
+    // top-level same-site navigations (OAuth redirect → app) while still providing
+    // basic CSRF protection.
+    sameSite: isSecureRequest(req) ? "strict" : "lax",
     secure: isSecureRequest(req),
   };
 }
