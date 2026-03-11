@@ -313,3 +313,87 @@ describe("contacts.delete — NOT_FOUND when contact does not exist", () => {
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 });
+
+describe("resources.getByType — rejects invalid type strings", () => {
+  it("throws on an unknown resource type", async () => {
+    // getByType now uses z.enum; arbitrary strings should be rejected by tRPC input validation
+    const ctx = createUserContext(1, "user");
+    const caller = appRouter.createCaller(ctx);
+
+    await expect(
+      (caller.resources.getByType as any)({ type: "'; DROP TABLE library_resources; --" })
+    ).rejects.toThrow();
+  });
+
+  it("accepts a valid resource type", async () => {
+    vi.spyOn(db, "getResourcesByType").mockResolvedValueOnce([]);
+    const ctx = createUserContext(1, "user");
+    const caller = appRouter.createCaller(ctx);
+
+    const result = await caller.resources.getByType({ type: "catalog" });
+    expect(result).toEqual([]);
+  });
+});
+
+describe("resources.create — rejects unbounded name/description/url inputs", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("rejects a nameEn longer than 500 characters", async () => {
+    const ctx = createUserContext(1, "admin");
+    const caller = appRouter.createCaller(ctx);
+
+    await expect(
+      caller.resources.create({
+        nameEn: "a".repeat(501),
+        nameUk: "назва",
+        nameRu: "название",
+        type: "catalog",
+      })
+    ).rejects.toThrow();
+  });
+
+  it("rejects a descriptionUk longer than 10 000 characters", async () => {
+    const ctx = createUserContext(1, "admin");
+    const caller = appRouter.createCaller(ctx);
+
+    await expect(
+      caller.resources.create({
+        nameEn: "Resource",
+        nameUk: "Ресурс",
+        nameRu: "Ресурс",
+        type: "database",
+        descriptionUk: "d".repeat(10_001),
+      })
+    ).rejects.toThrow();
+  });
+
+  it("rejects a url longer than 2048 characters", async () => {
+    const ctx = createUserContext(1, "admin");
+    const caller = appRouter.createCaller(ctx);
+
+    await expect(
+      caller.resources.create({
+        nameEn: "Resource",
+        nameUk: "Ресурс",
+        nameRu: "Ресурс",
+        type: "database",
+        url: "https://example.com/" + "x".repeat(2040),
+      })
+    ).rejects.toThrow();
+  });
+
+  it("rejects a keywords array with more than 100 items", async () => {
+    const ctx = createUserContext(1, "admin");
+    const caller = appRouter.createCaller(ctx);
+
+    await expect(
+      caller.resources.create({
+        nameEn: "Resource",
+        nameUk: "Ресурс",
+        nameRu: "Ресурс",
+        type: "database",
+        keywords: Array.from({ length: 101 }, (_, i) => `keyword${i}`),
+      })
+    ).rejects.toThrow();
+  });
+});

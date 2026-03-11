@@ -193,22 +193,22 @@ export const appRouter = router({
       }),
 
     getByType: publicProcedure
-      .input(z.object({ type: z.string() }))
+      .input(z.object({ type: z.enum(["electronic_library", "repository", "catalog", "database", "other"]) }))
       .query(async ({ input }) => {
         return await db.getResourcesByType(input.type);
       }),
 
     create: adminProcedure
       .input(z.object({
-        nameEn: z.string(),
-        nameUk: z.string(),
-        nameRu: z.string(),
-        descriptionEn: z.string().optional(),
-        descriptionUk: z.string().optional(),
-        descriptionRu: z.string().optional(),
+        nameEn: z.string().min(1).max(500),
+        nameUk: z.string().min(1).max(500),
+        nameRu: z.string().min(1).max(500),
+        descriptionEn: z.string().max(10_000).optional(),
+        descriptionUk: z.string().max(10_000).optional(),
+        descriptionRu: z.string().max(10_000).optional(),
         type: z.enum(["electronic_library", "repository", "catalog", "database", "other"]),
-        url: z.string().optional(),
-        keywords: z.array(z.string()).optional(),
+        url: z.string().max(2048).optional(),
+        keywords: z.array(z.string().max(200)).max(100).optional(),
       }))
       .mutation(async ({ input }) => {
         const resource = await db.createResource({
@@ -222,15 +222,15 @@ export const appRouter = router({
     update: adminProcedure
       .input(z.object({
         id: z.number(),
-        nameEn: z.string().optional(),
-        nameUk: z.string().optional(),
-        nameRu: z.string().optional(),
-        descriptionEn: z.string().optional(),
-        descriptionUk: z.string().optional(),
-        descriptionRu: z.string().optional(),
+        nameEn: z.string().min(1).max(500).optional(),
+        nameUk: z.string().min(1).max(500).optional(),
+        nameRu: z.string().min(1).max(500).optional(),
+        descriptionEn: z.string().max(10_000).optional(),
+        descriptionUk: z.string().max(10_000).optional(),
+        descriptionRu: z.string().max(10_000).optional(),
         type: z.enum(["electronic_library", "repository", "catalog", "database", "other"]).optional(),
-        url: z.string().optional(),
-        keywords: z.array(z.string()).optional(),
+        url: z.string().max(2048).optional(),
+        keywords: z.array(z.string().max(200)).max(100).optional(),
       }))
       .mutation(async ({ input }) => {
         const { id, ...updateData } = input;
