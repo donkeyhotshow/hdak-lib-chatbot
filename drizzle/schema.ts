@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, decimal } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, decimal, index } from "drizzle-orm/mysql-core";
 import { relations } from "drizzle-orm";
 
 /**
@@ -129,20 +129,30 @@ export type InsertUserQuery = typeof userQueries.$inferInsert;
 /**
  * Document Chunks table - stores PDF document chunks for RAG
  */
-export const documentChunks = mysqlTable("documentChunks", {
-  id: int("id").autoincrement().primaryKey(),
-  documentId: varchar("documentId", { length: 255 }).notNull(),
-  documentTitle: varchar("documentTitle", { length: 500 }).notNull(),
-  documentUrl: varchar("documentUrl", { length: 1000 }),
-  chunkIndex: int("chunkIndex").notNull(),
-  content: text("content").notNull(),
-  // Store embedding as JSON array of floats (MySQL doesn't have native vector type)
-  embedding: json("embedding"),
-  sourceType: mysqlEnum("sourceType", ["catalog", "repository", "database", "other"]).notNull(),
-  language: mysqlEnum("language", ["en", "uk", "ru"]).default("uk").notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
+export const documentChunks = mysqlTable(
+  "documentChunks",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    documentId: varchar("documentId", { length: 255 }).notNull(),
+    documentTitle: varchar("documentTitle", { length: 500 }).notNull(),
+    documentUrl: varchar("documentUrl", { length: 1000 }),
+    chunkIndex: int("chunkIndex").notNull(),
+    content: text("content").notNull(),
+    // Store embedding as JSON array of floats (MySQL doesn't have native vector type)
+    embedding: json("embedding"),
+    sourceType: mysqlEnum("sourceType", ["catalog", "repository", "database", "other"]).notNull(),
+    language: mysqlEnum("language", ["en", "uk", "ru"]).default("uk").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({
+    // Supports fast language-filtered fetch ordered by recency (used by getDocumentChunks).
+    languageCreatedAtIdx: index("documentChunks_language_createdAt_idx").on(
+      table.language,
+      table.createdAt
+    ),
+  })
+);
 
 export type DocumentChunk = typeof documentChunks.$inferSelect;
 export type InsertDocumentChunk = typeof documentChunks.$inferInsert;

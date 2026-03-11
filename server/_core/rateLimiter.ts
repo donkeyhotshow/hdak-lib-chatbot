@@ -51,3 +51,15 @@ export const oauthRateLimiter = rateLimit({
   legacyHeaders: false,
   handler,
 });
+
+/**
+ * Rate limiter for the admin PDF processing endpoint.
+ * 10 requests per minute per IP — document processing is resource-intensive.
+ */
+export const adminRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 10,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  handler,
+});

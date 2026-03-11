@@ -22,6 +22,13 @@
       "when": 1771326591816,
       "tag": "0002_easy_cardiac",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1773223400000,
+      "tag": "0003_document_chunks_language_idx",
+      "breakpoints": true
     }
   ]
 }

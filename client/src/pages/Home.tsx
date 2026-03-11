@@ -14,7 +14,7 @@ import { DocumentCard, type ResourceType } from "@/components/DocumentCard";
 import { trpc } from "@/lib/trpc";
 import type { AppRouter } from "../../../server/routers";
 import { getLoginUrl } from "@/const";
-import { Bot, BookOpen, Database, Search, Loader2, Send, Plus, Globe, LogOut, ExternalLink, Trash2, AlertCircle, RefreshCw } from "lucide-react";
+import { Bot, BookOpen, Database, Search, Loader2, Send, Plus, Globe, LogOut, ExternalLink, Trash2, AlertCircle, RefreshCw, BookMarked, Mail, Share2 } from "lucide-react";
 
 type RouterOutput = inferRouterOutputs<AppRouter>;
 type Conversation = RouterOutput["conversations"]["list"][number];
@@ -80,6 +80,10 @@ const translations: Record<Language, Record<string, string>> = {
     filterOther: "Other",
     noResults: "No resources match your filters.",
     sendFailed: "Failed to send. Please try again.",
+    // Quick actions after AI response
+    actionFindCatalog: "Find in Catalog",
+    actionWriteLetter: "Write to Librarian",
+    actionShare: "Share",
   },
   uk: {
     title: "Помічник бібліотеки ХДАК",
@@ -127,6 +131,10 @@ const translations: Record<Language, Record<string, string>> = {
     filterOther: "Інше",
     noResults: "Ресурсів за вашими фільтрами не знайдено.",
     sendFailed: "Помилка надсилання. Спробуйте ще раз.",
+    // Quick actions after AI response
+    actionFindCatalog: "Знайти в каталозі",
+    actionWriteLetter: "Написати листа",
+    actionShare: "Поділитися",
   },
   ru: {
     title: "Помощник библиотеки ХДАК",
@@ -174,6 +182,10 @@ const translations: Record<Language, Record<string, string>> = {
     filterOther: "Прочее",
     noResults: "Ресурсов по вашим фильтрам не найдено.",
     sendFailed: "Ошибка отправки. Попробуйте ещё раз.",
+    // Quick actions after AI response
+    actionFindCatalog: "Найти в каталоге",
+    actionWriteLetter: "Написать письмо",
+    actionShare: "Поделиться",
   },
 };
 
@@ -648,28 +660,88 @@ export default function Home() {
               {/* Chat Messages */}
               <ScrollArea className="flex-1 w-full">
                 <div className="max-w-3xl mx-auto p-4 space-y-4">
-                  {allMessages.map((msg, idx) => (
-                    <div
-                      key={idx}
-                      className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                    >
+                  {allMessages.map((msg, idx) => {
+                    const isLastAssistant =
+                      msg.role === "assistant" &&
+                      idx === allMessages.length - 1 &&
+                      !isStreaming;
+                    return (
                       <div
-                        className={`max-w-xl px-4 py-2 rounded-lg ${
-                          msg.role === "user"
-                            ? "bg-indigo-600 text-white rounded-br-none"
-                            : "bg-gray-200 text-gray-900 rounded-bl-none"
-                        }`}
+                        key={idx}
+                        className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                       >
-                        {msg.role === "user" ? (
-                          <p className="text-sm whitespace-pre-wrap">{getMessageText(msg)}</p>
-                        ) : (
-                          <div className="text-sm prose prose-sm max-w-none prose-a:text-indigo-700 prose-a:underline">
-                            <Markdown>{getMessageText(msg)}</Markdown>
+                        <div className="flex flex-col gap-2 max-w-xl">
+                          <div
+                            className={`px-4 py-2 rounded-lg ${
+                              msg.role === "user"
+                                ? "bg-indigo-600 text-white rounded-br-none"
+                                : "bg-gray-200 text-gray-900 rounded-bl-none"
+                            }`}
+                          >
+                            {msg.role === "user" ? (
+                              <p className="text-sm whitespace-pre-wrap">{getMessageText(msg)}</p>
+                            ) : (
+                              <div className="text-sm prose prose-sm max-w-none prose-a:text-indigo-700 prose-a:underline">
+                                <Markdown>{getMessageText(msg)}</Markdown>
+                              </div>
+                            )}
                           </div>
-                        )}
+
+                          {/* Quick-action buttons shown below the last assistant message */}
+                          {isLastAssistant && (
+                            <div className="flex flex-wrap gap-2">
+                              <a
+                                href="https://lib-hdak.in.ua/e-catalog.html"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-xs gap-1 text-indigo-700 border-indigo-200 hover:bg-indigo-50"
+                                >
+                                  <BookMarked className="w-3 h-3" />
+                                  {t.actionFindCatalog}
+                                </Button>
+                              </a>
+                              <a
+                                href="mailto:library@hdak.edu.ua"
+                                rel="noopener noreferrer"
+                              >
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-xs gap-1 text-indigo-700 border-indigo-200 hover:bg-indigo-50"
+                                >
+                                  <Mail className="w-3 h-3" />
+                                  {t.actionWriteLetter}
+                                </Button>
+                              </a>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-xs gap-1 text-indigo-700 border-indigo-200 hover:bg-indigo-50"
+                                onClick={() => {
+                                  const text = getMessageText(msg);
+                                  if (navigator.share) {
+                                    navigator.share({ title: "HDAK Library", text, url: window.location.href }).catch(() => {
+                                      // Share was cancelled or failed — fall back to clipboard
+                                      navigator.clipboard.writeText(text).catch(() => {/* clipboard unavailable */});
+                                    });
+                                  } else {
+                                    navigator.clipboard.writeText(text).catch(() => {/* clipboard unavailable */});
+                                  }
+                                }}
+                              >
+                                <Share2 className="w-3 h-3" />
+                                {t.actionShare}
+                              </Button>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                   <div ref={scrollRef} />
                 </div>
               </ScrollArea>

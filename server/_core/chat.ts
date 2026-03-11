@@ -162,6 +162,79 @@ export const tools = {
       };
     },
   }),
+
+  /**
+   * Search upcoming or recent HDAK library events, exhibitions, and announcements
+   * by date range or keyword.  When the user asks "what events does the library
+   * have?", "are there any exhibitions this month?", or "I'm looking for events
+   * about [topic]" — call this tool.
+   */
+  findUpcomingLibraryEvents: tool({
+    description:
+      "Find upcoming or recent events, exhibitions, lectures, and announcements " +
+      "at the HDAK library. Use when the user asks about library events, what's " +
+      "happening at the library, exhibitions, or cultural activities.",
+    inputSchema: z.object({
+      keyword: z
+        .string()
+        .optional()
+        .describe("Optional keyword or topic to filter events, e.g. 'виставка', 'лекція', 'презентація'"),
+      dateFrom: z
+        .string()
+        .optional()
+        .describe("Optional ISO date (YYYY-MM-DD) — filter events on or after this date"),
+      dateTo: z
+        .string()
+        .optional()
+        .describe("Optional ISO date (YYYY-MM-DD) — filter events up to and including this date"),
+    }),
+    execute: async ({ keyword, dateFrom, dateTo }) => {
+      // Search library info entries whose key starts with "event" or contains the keyword.
+      // This provides a lightweight events registry without a dedicated DB table.
+      const allInfo = await db.getAllLibraryInfo();
+      const kw = keyword?.toLowerCase() ?? "";
+      const from = dateFrom ? new Date(dateFrom) : null;
+      const to = dateTo ? new Date(dateTo) : null;
+
+      const events = allInfo.filter((entry) => {
+        const isEvent =
+          entry.key.toLowerCase().startsWith("event") ||
+          entry.key.toLowerCase().includes("announcement") ||
+          entry.key.toLowerCase().includes("exhibition") ||
+          (kw && (
+            (entry.valueUk ?? "").toLowerCase().includes(kw) ||
+            (entry.valueEn ?? "").toLowerCase().includes(kw) ||
+            (entry.valueRu ?? "").toLowerCase().includes(kw)
+          ));
+        if (!isEvent) return false;
+        // Date filtering: parse date embedded in the key (e.g. "event_2024-12-15_exhibition")
+        if (from || to) {
+          const dateMatch = entry.key.match(/(\d{4}-\d{2}-\d{2})/);
+          if (dateMatch) {
+            const d = new Date(dateMatch[1]);
+            if (from && d < from) return false;
+            if (to && d > to) return false;
+          }
+        }
+        return true;
+      });
+
+      return {
+        found: events.length,
+        eventsPageUrl: "https://lib-hdak.in.ua/news.html",
+        events: events.slice(0, 8).map((e) => ({
+          key: e.key,
+          uk: e.valueUk,
+          en: e.valueEn,
+          ru: e.valueRu,
+        })),
+        note:
+          events.length === 0
+            ? "No matching events found in the library info registry. Check the library news page: https://lib-hdak.in.ua/news.html"
+            : undefined,
+      };
+    },
+  }),
 };
 
 /**
@@ -241,6 +314,9 @@ export function registerChatRoutes(app: Express) {
        *
        * We cap at MAX_CHAT_HISTORY messages to avoid bloated prompts.
        */
+      // 14 messages (7 user + 7 assistant) sits comfortably within the model's
+      // context window while providing enough history for coherent multi-turn
+      // conversations without incurring unnecessary token costs.
       const MAX_CHAT_HISTORY = 14;
       let dbHistory: { role: "user" | "assistant"; content: string }[] = [];
       if (convId !== null) {
