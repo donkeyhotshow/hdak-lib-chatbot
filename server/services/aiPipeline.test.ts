@@ -232,3 +232,53 @@ describe("generateConversationReply — cache key collision resistance", () => {
     expect(resultB.text).toBe("reply-B");
   });
 });
+
+describe("generateConversationReply — cache skips embedding API call", () => {
+  let mockedSearchResources: ReturnType<typeof vi.fn>;
+  let mockedLogUserQuery: ReturnType<typeof vi.fn>;
+  let mockedGetRagContext: ReturnType<typeof vi.fn>;
+  let mockedGenerateText: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    clearReplyCache();
+    mockedSearchResources = vi.mocked(searchResources);
+    mockedLogUserQuery = vi.mocked(logUserQuery);
+    mockedGetRagContext = vi.mocked(getRagContext);
+    mockedGenerateText = vi.mocked(generateText);
+
+    mockedSearchResources.mockResolvedValue([]);
+    mockedLogUserQuery.mockResolvedValue(null);
+    mockedGetRagContext.mockResolvedValue("");
+    mockedGenerateText.mockResolvedValue({ text: "first reply", usage: {} });
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("does not call getRagContext on a cache hit", async () => {
+    const params = {
+      prompt: "cache hit test",
+      language: "uk" as const,
+      conversationId: 99,
+      userId: 99,
+      history: [],
+    };
+
+    // First call — populates the cache
+    await generateConversationReply(params);
+    expect(mockedGetRagContext).toHaveBeenCalledTimes(1);
+
+    // Reset call counts
+    mockedGetRagContext.mockClear();
+    mockedGenerateText.mockClear();
+
+    // Second identical call — should hit the cache
+    const result = await generateConversationReply(params);
+    expect(result.text).toBe("first reply");
+    // The expensive embedding API call must NOT have been made
+    expect(mockedGetRagContext).toHaveBeenCalledTimes(0);
+    // The LLM call must NOT have been made
+    expect(mockedGenerateText).toHaveBeenCalledTimes(0);
+  });
+});

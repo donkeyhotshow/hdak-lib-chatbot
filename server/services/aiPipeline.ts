@@ -203,8 +203,12 @@ export type ConversationReplyResult = {
  *
  * The pipeline executes the following steps in order:
  * 1. Checks the in-memory reply cache (24 h TTL) for an identical request.
+ *    On a cache hit the LLM call and the expensive embedding API call are both
+ *    skipped; only the cheap DB catalog search runs so source attribution stays
+ *    accurate and analytics are recorded.
  * 2. Runs a catalog resource search to find relevant library links.
- * 3. Calls `getRagContext` to retrieve semantically similar document chunks.
+ * 3. Calls `getRagContext` to retrieve semantically similar document chunks
+ *    (requires an OpenAI embedding API call — skipped on cache hit).
  * 4. Sanitises RAG content to prevent prompt-injection attacks.
  * 5. Builds a composite system prompt and calls the LLM.
  * 6. Caches the raw LLM text for subsequent identical requests.
@@ -231,7 +235,32 @@ export async function generateConversationReply(params: AiPipelineParams): Promi
   const cacheKey = `reply:${language}:${JSON.stringify(historyForKey)}:${JSON.stringify(prompt)}`;
 
   try {
+    // Run the cheap catalog DB search first so source attribution is always
+    // accurate (computed from live data, not stored in cache).
     const relevantResources = await db.searchResources(prompt);
+
+    // Determine the source based on catalog hits alone — RAG context is
+    // checked below, but source is recalculated after getRagContext on a miss.
+    const catalogSource: MessageSource = relevantResources.length > 0 ? "catalog_search" : "general";
+
+    await db.logUserQuery(
+      userId,
+      conversationId,
+      prompt,
+      language,
+      relevantResources.map((r) => r.id)
+    );
+
+    // Check the cache BEFORE calling getRagContext (which makes an OpenAI
+    // embedding API call).  On a cache hit the LLM + embedding calls are both
+    // skipped; source is derived from the live catalog search above so UI
+    // attribution labels remain accurate.
+    const cachedText = replyCache.get<string>(cacheKey);
+    if (cachedText !== undefined) {
+      logger.info("[AI pipeline] Cache hit — returning cached reply", { conversationId, userId, source: catalogSource });
+      return { text: cachedText, source: catalogSource };
+    }
+
     const rawRagContext = await getRagContext(prompt, language);
     // Sanitize RAG context before injecting into the model prompt
     const ragContext = rawRagContext ? sanitizeUntrustedContent(rawRagContext) : "";
@@ -244,21 +273,6 @@ export async function generateConversationReply(params: AiPipelineParams): Promi
       : relevantResources.length > 0
       ? "catalog_search"
       : "general";
-
-    await db.logUserQuery(
-      userId,
-      conversationId,
-      prompt,
-      language,
-      relevantResources.map((r) => r.id)
-    );
-
-    // Only the expensive LLM call is cached; source is computed from live context above.
-    const cachedText = replyCache.get<string>(cacheKey);
-    if (cachedText !== undefined) {
-      logger.info("[AI pipeline] Cache hit — returning cached reply", { conversationId, userId, source });
-      return { text: cachedText, source };
-    }
 
     const systemPrompt = [
       getOfficialSystemPrompt(language),

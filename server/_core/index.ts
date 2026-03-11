@@ -158,8 +158,20 @@ async function startServer() {
       res.status(400).json({ error: "title must be a non-empty string" });
       return;
     }
+    if (title.length > 500) {
+      res.status(400).json({ error: "title must be at most 500 characters" });
+      return;
+    }
     if (typeof content !== "string" || !content.trim()) {
       res.status(400).json({ error: "content must be a non-empty string" });
+      return;
+    }
+    if (typeof url === "string" && url.length > 2048) {
+      res.status(400).json({ error: "url must be at most 2048 characters" });
+      return;
+    }
+    if (typeof author === "string" && author.length > 500) {
+      res.status(400).json({ error: "author must be at most 500 characters" });
       return;
     }
     const validLangs = ["en", "uk", "ru"] as const;

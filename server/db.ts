@@ -1,4 +1,4 @@
-import { eq, like, or, and, lt, desc, inArray } from "drizzle-orm";
+import { eq, like, or, and, lt, asc, desc, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { 
   InsertUser, users, 
@@ -353,7 +353,7 @@ export async function getConversations(userId: number): Promise<Conversation[]> 
   const db = await getDb();
   if (!db) return [];
   
-  return db.select().from(conversations).where(eq(conversations.userId, userId));
+  return db.select().from(conversations).where(eq(conversations.userId, userId)).orderBy(desc(conversations.createdAt));
 }
 
 export async function getConversation(conversationId: number): Promise<Conversation | null> {
@@ -444,7 +444,7 @@ export async function getMessages(conversationId: number): Promise<Message[]> {
   const db = await getDb();
   if (!db) return [];
   
-  return db.select().from(messages).where(eq(messages.conversationId, conversationId));
+  return db.select().from(messages).where(eq(messages.conversationId, conversationId)).orderBy(asc(messages.id));
 }
 
 // Library Resource helpers
