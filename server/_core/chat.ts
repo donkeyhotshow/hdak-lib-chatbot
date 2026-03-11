@@ -181,10 +181,12 @@ export const tools = {
         .describe("Optional keyword or topic to filter events, e.g. 'виставка', 'лекція', 'презентація'"),
       dateFrom: z
         .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/, "dateFrom must be a valid date in YYYY-MM-DD format")
         .optional()
         .describe("Optional ISO date (YYYY-MM-DD) — filter events on or after this date"),
       dateTo: z
         .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/, "dateTo must be a valid date in YYYY-MM-DD format")
         .optional()
         .describe("Optional ISO date (YYYY-MM-DD) — filter events up to and including this date"),
     }),

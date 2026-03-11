@@ -1,4 +1,4 @@
-import { eq, like, or, and, lt, desc, inArray } from "drizzle-orm";
+import { eq, like, or, and, lt, asc, desc, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { 
   InsertUser, users, 
@@ -353,7 +353,7 @@ export async function getConversations(userId: number): Promise<Conversation[]> 
   const db = await getDb();
   if (!db) return [];
   
-  return db.select().from(conversations).where(eq(conversations.userId, userId));
+  return db.select().from(conversations).where(eq(conversations.userId, userId)).orderBy(desc(conversations.createdAt));
 }
 
 export async function getConversation(conversationId: number): Promise<Conversation | null> {
@@ -444,7 +444,7 @@ export async function getMessages(conversationId: number): Promise<Message[]> {
   const db = await getDb();
   if (!db) return [];
   
-  return db.select().from(messages).where(eq(messages.conversationId, conversationId));
+  return db.select().from(messages).where(eq(messages.conversationId, conversationId)).orderBy(asc(messages.id));
 }
 
 // Library Resource helpers
@@ -493,15 +493,19 @@ export async function searchResources(query: string): Promise<LibraryResource[]>
       return normalizedFields.some(field => field.includes(q));
     });
   }
-  
+
+  // Escape LIKE wildcard characters so that user input like "%" or "_" is
+  // matched literally rather than acting as a SQL wildcard pattern.
+  const escapedQuery = query.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
+
   return db.select().from(libraryResources).where(
     or(
-      like(libraryResources.nameEn, `%${query}%`),
-      like(libraryResources.nameUk, `%${query}%`),
-      like(libraryResources.nameRu, `%${query}%`),
-      like(libraryResources.descriptionEn, `%${query}%`),
-      like(libraryResources.descriptionUk, `%${query}%`),
-      like(libraryResources.descriptionRu, `%${query}%`)
+      like(libraryResources.nameEn, `%${escapedQuery}%`),
+      like(libraryResources.nameUk, `%${escapedQuery}%`),
+      like(libraryResources.nameRu, `%${escapedQuery}%`),
+      like(libraryResources.descriptionEn, `%${escapedQuery}%`),
+      like(libraryResources.descriptionUk, `%${escapedQuery}%`),
+      like(libraryResources.descriptionRu, `%${escapedQuery}%`)
     )
   );
 }
@@ -590,8 +594,8 @@ export async function deleteResource(id: number): Promise<boolean> {
   }
   
   try {
-    await db.delete(libraryResources).where(eq(libraryResources.id, id));
-    return true;
+    const result = await db.delete(libraryResources).where(eq(libraryResources.id, id));
+    return (result as any).affectedRows > 0;
   } catch (error) {
     logger.error("[Database] Error deleting resource:", { error: error instanceof Error ? error.message : String(error) });
     return false;
@@ -680,8 +684,8 @@ export async function deleteContact(id: number): Promise<boolean> {
   }
   
   try {
-    await db.delete(libraryContacts).where(eq(libraryContacts.id, id));
-    return true;
+    const result = await db.delete(libraryContacts).where(eq(libraryContacts.id, id));
+    return (result as any).affectedRows > 0;
   } catch (error) {
     logger.error("[Database] Error deleting contact:", { error: error instanceof Error ? error.message : String(error) });
     return false;

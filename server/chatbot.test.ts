@@ -35,6 +35,24 @@ describe("Chatbot Database Functions", () => {
       expect(Array.isArray(resources)).toBe(true);
     });
 
+    it("should not return all resources when query is the % wildcard character", async () => {
+      const allResources = await db.getAllResources();
+      const wildResults = await db.searchResources("%");
+
+      // A bare "%" must NOT match every row — it should return an empty list
+      // (since none of the mock resource names/descriptions literally contain "%").
+      expect(wildResults.length).toBeLessThan(allResources.length);
+    });
+
+    it("should not return all resources when query is the _ wildcard character", async () => {
+      const allResources = await db.getAllResources();
+      const wildResults = await db.searchResources("_");
+
+      // Same reasoning: "_" must be treated as a literal underscore, not a
+      // single-character SQL wildcard.
+      expect(wildResults.length).toBeLessThan(allResources.length);
+    });
+
     it("should filter resources by type database", async () => {
       const resources = await db.getResourcesByType("database");
       

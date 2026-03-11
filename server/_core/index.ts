@@ -72,6 +72,11 @@ async function startServer() {
   const app = express();
   const server = createServer(app);
 
+  // Trust the first hop from a reverse proxy (nginx, load balancer) so that
+  // express-rate-limit and req.ip resolve to the real client IP via the
+  // X-Forwarded-For header rather than the proxy's IP.
+  app.set("trust proxy", 1);
+
   // In production, enforce strict CSP without unsafe-inline.
   // In development, Vite HMR injects inline scripts and styles so unsafe-inline is kept.
   const isDev = process.env.NODE_ENV !== "production";
@@ -128,7 +133,7 @@ async function startServer() {
       res.status(401).json({ error: "Authentication required" });
       return;
     }
-    if (user.openId !== ENV.ownerOpenId) {
+    if (user.role !== "admin") {
       res.status(403).json({ error: "Admin access required" });
       return;
     }
@@ -153,8 +158,20 @@ async function startServer() {
       res.status(400).json({ error: "title must be a non-empty string" });
       return;
     }
+    if (title.length > 500) {
+      res.status(400).json({ error: "title must be at most 500 characters" });
+      return;
+    }
     if (typeof content !== "string" || !content.trim()) {
       res.status(400).json({ error: "content must be a non-empty string" });
+      return;
+    }
+    if (typeof url === "string" && url.length > 2048) {
+      res.status(400).json({ error: "url must be at most 2048 characters" });
+      return;
+    }
+    if (typeof author === "string" && author.length > 500) {
+      res.status(400).json({ error: "author must be at most 500 characters" });
       return;
     }
     const validLangs = ["en", "uk", "ru"] as const;
