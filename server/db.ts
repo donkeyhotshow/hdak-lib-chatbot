@@ -594,8 +594,8 @@ export async function deleteResource(id: number): Promise<boolean> {
   }
   
   try {
-    await db.delete(libraryResources).where(eq(libraryResources.id, id));
-    return true;
+    const result = await db.delete(libraryResources).where(eq(libraryResources.id, id));
+    return (result as any).affectedRows > 0;
   } catch (error) {
     logger.error("[Database] Error deleting resource:", { error: error instanceof Error ? error.message : String(error) });
     return false;
@@ -684,8 +684,8 @@ export async function deleteContact(id: number): Promise<boolean> {
   }
   
   try {
-    await db.delete(libraryContacts).where(eq(libraryContacts.id, id));
-    return true;
+    const result = await db.delete(libraryContacts).where(eq(libraryContacts.id, id));
+    return (result as any).affectedRows > 0;
   } catch (error) {
     logger.error("[Database] Error deleting contact:", { error: error instanceof Error ? error.message : String(error) });
     return false;

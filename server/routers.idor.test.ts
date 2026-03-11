@@ -273,3 +273,43 @@ describe("libraryInfo.set — input validation", () => {
     ).rejects.toThrow();
   });
 });
+
+describe("resources.delete — NOT_FOUND when resource does not exist", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("throws NOT_FOUND when deleteResource returns false (non-existent ID)", async () => {
+    vi.spyOn(db, "deleteResource").mockResolvedValueOnce(false);
+
+    const ctx = createUserContext(1, "admin");
+    const caller = appRouter.createCaller(ctx);
+
+    await expect(
+      caller.resources.delete({ id: 9999 })
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+
+  it("returns { success: true } when deleteResource returns true", async () => {
+    vi.spyOn(db, "deleteResource").mockResolvedValueOnce(true);
+
+    const ctx = createUserContext(1, "admin");
+    const caller = appRouter.createCaller(ctx);
+
+    const result = await caller.resources.delete({ id: 1 });
+    expect(result).toEqual({ success: true });
+  });
+});
+
+describe("contacts.delete — NOT_FOUND when contact does not exist", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("throws NOT_FOUND when deleteContact returns false (non-existent ID)", async () => {
+    vi.spyOn(db, "deleteContact").mockResolvedValueOnce(false);
+
+    const ctx = createUserContext(1, "admin");
+    const caller = appRouter.createCaller(ctx);
+
+    await expect(
+      caller.contacts.delete({ id: 9999 })
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+});

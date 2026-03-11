@@ -225,9 +225,10 @@ export async function generateConversationReply(params: AiPipelineParams): Promi
   const { prompt, language, conversationId, userId, history } = params;
 
   // Build a deterministic cache key from the user prompt, language, and recent history.
-  // Use sorted message pairs to avoid JSON property-ordering inconsistencies.
-  const historySummary = history.slice(-5).map(m => `${m.role}\x00${m.content}`).join("\x01");
-  const cacheKey = `reply:${language}:${historySummary}:${prompt}`;
+  // JSON.stringify is used so that any special characters inside role/content/prompt
+  // strings are escaped, preventing different inputs from producing the same key.
+  const historyForKey = history.slice(-5).map(m => [m.role, m.content]);
+  const cacheKey = `reply:${language}:${JSON.stringify(historyForKey)}:${JSON.stringify(prompt)}`;
 
   try {
     const relevantResources = await db.searchResources(prompt);

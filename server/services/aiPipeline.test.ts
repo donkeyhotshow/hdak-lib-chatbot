@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   AiPipelineError,
   clearReplyCache,
@@ -172,5 +172,63 @@ describe("sanitizeUntrustedContent", () => {
     const result = sanitizeUntrustedContent(input);
     expect(result).not.toContain("[SYSTEM]");
     expect(result).toContain("Normal text");
+  });
+});
+
+describe("generateConversationReply — cache key collision resistance", () => {
+  beforeEach(() => {
+    clearReplyCache();
+    // Set up required dependency mocks (same pattern as the outer describe block)
+    mockedSearchResources.mockResolvedValue([]);
+    mockedLogUserQuery.mockResolvedValue(null);
+    mockedGetRagContext.mockResolvedValue("");
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("does not collide when user content contains \x00/\x01 separator bytes", async () => {
+    // Collision scenario with the old \x00/\x01 separator scheme:
+    //
+    // Pair A: history=[{role:"user", content:"a"}, {role:"assistant", content:"b"}], prompt="c"
+    //   historySummary = "user\x00a\x01assistant\x00b"
+    //   old key = "reply:uk:user\x00a\x01assistant\x00b:c"
+    //
+    // Pair B: history=[{role:"user", content:"a\x01assistant\x00b"}], prompt="c"
+    //   historySummary = "user\x00a\x01assistant\x00b"  ← identical!
+    //   old key = "reply:uk:user\x00a\x01assistant\x00b:c"  ← identical!
+    //
+    // With JSON.stringify, each pair gets a distinct key.
+
+    // First call — pair A → should return "reply-A"
+    mockedGenerateText.mockResolvedValueOnce({ text: "reply-A" });
+
+    const resultA = await generateConversationReply({
+      prompt: "c",
+      language: "uk",
+      conversationId: 1,
+      userId: 1,
+      history: [
+        { role: "user", content: "a" },
+        { role: "assistant", content: "b" },
+      ],
+    });
+    expect(resultA.text).toBe("reply-A");
+
+    // Second call — pair B shares the same OLD key but a different JSON key
+    mockedGenerateText.mockResolvedValueOnce({ text: "reply-B" });
+
+    const resultB = await generateConversationReply({
+      prompt: "c",
+      language: "uk",
+      conversationId: 2,
+      userId: 1,
+      history: [{ role: "user", content: "a\x01assistant\x00b" }],
+    });
+
+    // With old \x00/\x01 separators pair B would get pair A's cached reply ("reply-A").
+    // With JSON.stringify keys, each pair gets its own cache slot → "reply-B".
+    expect(resultB.text).toBe("reply-B");
   });
 });
