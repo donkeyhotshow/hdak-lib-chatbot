@@ -7,12 +7,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { trpc } from "@/lib/trpc";
-import { Loader2, Plus, Edit2, Trash2, ArrowLeft, RefreshCw, BarChart2, Info } from "lucide-react";
+import { Loader2, Plus, Edit2, Trash2, ArrowLeft, RefreshCw, BarChart2, Info, FileText, AlertCircle, CheckCircle2 } from "lucide-react";
 import { useLocation } from "wouter";
 
 type ResourceType = "electronic_library" | "repository" | "catalog" | "database" | "other";
 type ContactType = "email" | "phone" | "address" | "telegram" | "viber" | "facebook" | "instagram" | "other";
-type ActiveTab = "resources" | "contacts" | "info" | "analytics";
+type ActiveTab = "resources" | "contacts" | "info" | "analytics" | "documents";
 
 function SyncStatusBadge({
   success,
@@ -86,14 +86,32 @@ export default function Admin() {
     valueRu: "",
   });
 
+  // PDF document upload state
+  const [pdfForm, setPdfForm] = useState({
+    title: "",
+    content: "",
+    language: "uk" as "en" | "uk" | "ru",
+    sourceType: "other" as "catalog" | "repository" | "database" | "other",
+    url: "",
+    author: "",
+  });
+  const [pdfStatus, setPdfStatus] = useState<
+    | { type: "idle" }
+    | { type: "loading" }
+    | { type: "success"; chunksCreated: number; documentId: string }
+    | { type: "error"; message: string }
+  >({ type: "idle" });
+
   // Fetch resources
   const { data: resources = [], isLoading: resourcesLoading } = trpc.resources.getAll.useQuery();
 
   // Fetch contacts
   const { data: contacts = [], isLoading: contactsLoading } = trpc.contacts.getAll.useQuery();
 
-  // Fetch library info entries
-  const { data: infoEntries = [], isLoading: infoLoading, refetch: refetchInfo } = trpc.libraryInfo.getAll.useQuery();
+  // Fetch library info entries (cached 5 min; mutations invalidate it)
+  const { data: infoEntries = [], isLoading: infoLoading, refetch: refetchInfo } = trpc.libraryInfo.getAll.useQuery(undefined, {
+    staleTime: 5 * 60 * 1000,
+  });
 
   // Fetch analytics
   const { data: analytics, isLoading: analyticsLoading } = trpc.analytics.getQueryStats.useQuery(undefined, {
@@ -308,6 +326,14 @@ export default function Admin() {
           >
             <BarChart2 className="w-4 h-4 mr-2" />
             Analytics
+          </Button>
+          <Button
+            variant={activeTab === "documents" ? "default" : "outline"}
+            onClick={() => setActiveTab("documents")}
+            className={activeTab === "documents" ? "bg-indigo-600 hover:bg-indigo-700" : ""}
+          >
+            <FileText className="w-4 h-4 mr-2" />
+            Documents
           </Button>
           {/* Manual catalog sync button */}
           <div className="ml-auto flex items-center gap-3">
@@ -763,6 +789,203 @@ export default function Admin() {
             ) : (
               <p className="text-gray-500 text-center py-12">Failed to load analytics</p>
             )}
+          </div>
+        )}
+
+        {/* Documents Tab — upload text/PDF content to the RAG vector store */}
+        {activeTab === "documents" && (
+          <div className="max-w-2xl space-y-6">
+            <Card className="p-6">
+              <h2 className="text-lg font-bold mb-1">Upload Document to RAG</h2>
+              <p className="text-sm text-gray-500 mb-5">
+                Paste the text content of a PDF or other document. The system will chunk it,
+                generate embeddings, and add it to the knowledge base for AI search.
+              </p>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Title <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    value={pdfForm.title}
+                    onChange={(e) => setPdfForm({ ...pdfForm, title: e.target.value })}
+                    placeholder="Document title"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Content <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    value={pdfForm.content}
+                    onChange={(e) => setPdfForm({ ...pdfForm, content: e.target.value })}
+                    placeholder="Paste document text here…"
+                    rows={10}
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Language</label>
+                    <Select
+                      value={pdfForm.language}
+                      onValueChange={(v) => setPdfForm({ ...pdfForm, language: v as "en" | "uk" | "ru" })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="uk">Ukrainian</SelectItem>
+                        <SelectItem value="en">English</SelectItem>
+                        <SelectItem value="ru">Russian</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Source type</label>
+                    <Select
+                      value={pdfForm.sourceType}
+                      onValueChange={(v) =>
+                        setPdfForm({
+                          ...pdfForm,
+                          sourceType: v as "catalog" | "repository" | "database" | "other",
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="catalog">Catalog</SelectItem>
+                        <SelectItem value="repository">Repository</SelectItem>
+                        <SelectItem value="database">Database</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">URL (optional)</label>
+                  <Input
+                    value={pdfForm.url}
+                    onChange={(e) => setPdfForm({ ...pdfForm, url: e.target.value })}
+                    placeholder="https://…"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Author (optional)</label>
+                  <Input
+                    value={pdfForm.author}
+                    onChange={(e) => setPdfForm({ ...pdfForm, author: e.target.value })}
+                    placeholder="Author name"
+                  />
+                </div>
+
+                {/* Status feedback */}
+                {pdfStatus.type === "success" && (
+                  <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                    <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                    <span>
+                      Processed successfully — <strong>{pdfStatus.chunksCreated}</strong> chunks added
+                      (document ID: <code className="text-xs">{pdfStatus.documentId}</code>)
+                    </span>
+                  </div>
+                )}
+                {pdfStatus.type === "error" && (
+                  <div className="flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    <span>{pdfStatus.message}</span>
+                  </div>
+                )}
+
+                <Button
+                  onClick={async () => {
+                    if (!pdfForm.title.trim() || !pdfForm.content.trim()) return;
+                    setPdfStatus({ type: "loading" });
+                    try {
+                      const res = await fetch("/api/admin/process-pdf", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        credentials: "include",
+                        body: JSON.stringify({
+                          title: pdfForm.title,
+                          content: pdfForm.content,
+                          language: pdfForm.language,
+                          sourceType: pdfForm.sourceType,
+                          url: pdfForm.url || undefined,
+                          author: pdfForm.author || undefined,
+                        }),
+                      });
+                      const data: unknown = await res.json();
+                      if (
+                        res.ok &&
+                        data !== null &&
+                        typeof data === "object" &&
+                        "success" in data &&
+                        (data as { success: boolean }).success
+                      ) {
+                        const d = data as {
+                          success: boolean;
+                          chunksCreated: number;
+                          documentId: string;
+                        };
+                        setPdfStatus({
+                          type: "success",
+                          chunksCreated: d.chunksCreated,
+                          documentId: d.documentId,
+                        });
+                        setPdfForm({
+                          title: "",
+                          content: "",
+                          language: "uk",
+                          sourceType: "other",
+                          url: "",
+                          author: "",
+                        });
+                      } else {
+                        const msg =
+                          data !== null &&
+                          typeof data === "object" &&
+                          "error" in data &&
+                          typeof (data as { error: unknown }).error === "string"
+                            ? (data as { error: string }).error
+                            : "Upload failed";
+                        setPdfStatus({ type: "error", message: msg });
+                      }
+                    } catch (err) {
+                      setPdfStatus({
+                        type: "error",
+                        message: err instanceof Error ? err.message : "Network error",
+                      });
+                    }
+                  }}
+                  disabled={
+                    pdfStatus.type === "loading" ||
+                    !pdfForm.title.trim() ||
+                    !pdfForm.content.trim()
+                  }
+                  className="w-full bg-indigo-600 hover:bg-indigo-700"
+                >
+                  {pdfStatus.type === "loading" ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Processing…
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="w-4 h-4 mr-2" />
+                      Process &amp; Add to Knowledge Base
+                    </>
+                  )}
+                </Button>
+              </div>
+            </Card>
           </div>
         )}
       </div>

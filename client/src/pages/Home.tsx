@@ -1,5 +1,8 @@
-import { useState, useEffect, useRef, type ReactNode } from "react";
-import { useChat, type UIMessage } from "@ai-sdk/react";
+import { useState, useEffect, useRef, useMemo, type ReactNode } from "react";
+import { useChat } from "@ai-sdk/react";
+import type { UIMessage } from "ai";
+import { DefaultChatTransport } from "ai";
+import type { inferRouterOutputs } from "@trpc/server";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,11 +12,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Markdown } from "@/components/Markdown";
 import { DocumentCard, type ResourceType } from "@/components/DocumentCard";
 import { trpc } from "@/lib/trpc";
+import type { AppRouter } from "../../../server/routers";
 import { getLoginUrl } from "@/const";
-import { Bot, BookOpen, Database, Search, Loader2, Send, Plus, Globe, LogOut, ExternalLink, Trash2, AlertCircle } from "lucide-react";
+import { Bot, BookOpen, Database, Search, Loader2, Send, Plus, Globe, LogOut, ExternalLink, Trash2, AlertCircle, RefreshCw, BookMarked, Mail, Share2 } from "lucide-react";
+
+type RouterOutput = inferRouterOutputs<AppRouter>;
+type Conversation = RouterOutput["conversations"]["list"][number];
+type DbMessage = RouterOutput["conversations"]["getMessages"][number];
+/** Union of persisted DB messages and live streaming UIMessages. */
+type DisplayMessage = DbMessage | UIMessage;
 
 /** Maximum character length used when deriving a conversation title from a prompt. */
 const CHAT_TITLE_MAX_LENGTH = 50;
+
+/**
+ * Minimum milliseconds between successive Enter-key sends to prevent accidental
+ * double-sends from rapid repeated key presses.
+ */
+const SEND_DEBOUNCE_MS = 350;
 
 type Language = "en" | "uk" | "ru";
 
@@ -63,6 +79,13 @@ const translations: Record<Language, Record<string, string>> = {
     filterRepository: "Repository",
     filterOther: "Other",
     noResults: "No resources match your filters.",
+    sendFailed: "Failed to send. Please try again.",
+    streamError: "Streaming failed. Please try again.",
+    streamErrorTooLarge: "Message is too long (max 10,000 characters).",
+    // Quick actions after AI response
+    actionFindCatalog: "Find in Catalog",
+    actionWriteLetter: "Write to Librarian",
+    actionShare: "Share",
   },
   uk: {
     title: "Помічник бібліотеки ХДАК",
@@ -109,6 +132,13 @@ const translations: Record<Language, Record<string, string>> = {
     filterRepository: "Репозитарій",
     filterOther: "Інше",
     noResults: "Ресурсів за вашими фільтрами не знайдено.",
+    sendFailed: "Помилка надсилання. Спробуйте ще раз.",
+    streamError: "Помилка стрімінгу. Спробуйте ще раз.",
+    streamErrorTooLarge: "Повідомлення занадто довге (максимум 10 000 символів).",
+    // Quick actions after AI response
+    actionFindCatalog: "Знайти в каталозі",
+    actionWriteLetter: "Написати листа",
+    actionShare: "Поділитися",
   },
   ru: {
     title: "Помощник библиотеки ХДАК",
@@ -155,6 +185,13 @@ const translations: Record<Language, Record<string, string>> = {
     filterRepository: "Репозиторий",
     filterOther: "Прочее",
     noResults: "Ресурсов по вашим фильтрам не найдено.",
+    sendFailed: "Ошибка отправки. Попробуйте ещё раз.",
+    streamError: "Ошибка стриминга. Попробуйте ещё раз.",
+    streamErrorTooLarge: "Сообщение слишком длинное (максимум 10 000 символов).",
+    // Quick actions after AI response
+    actionFindCatalog: "Найти в каталоге",
+    actionWriteLetter: "Написать письмо",
+    actionShare: "Поделиться",
   },
 };
 
@@ -171,15 +208,18 @@ function FeatureCard({ icon, title, description }: { icon: ReactNode; title: str
   );
 }
 
-/** Extract a displayable string from a message content field (handles useChat parts array). */
-function getMessageText(msg: UIMessage | any): string {
-  // Handle both UIMessage and database message formats
-  if (typeof msg === 'string') return msg;
-  if (typeof msg?.content === 'string') return msg.content;
-  if (Array.isArray(msg?.content)) {
-    return msg.content
-      .filter((part: any): part is { type: "text"; text: string } => part?.type === "text")
-      .map((part: any) => part.text)
+/** Extract a displayable string from a DB message or a streaming UIMessage. */
+function getMessageText(msg: DisplayMessage): string {
+  // DB message format: content is a plain string
+  if ("content" in msg && typeof msg.content === "string") return msg.content;
+  // UIMessage format (ai SDK v6): text is in the parts array
+  if ("parts" in msg && Array.isArray(msg.parts)) {
+    return msg.parts
+      .filter(
+        (p): p is { type: "text"; text: string } =>
+          p !== null && typeof p === "object" && (p as { type?: string }).type === "text"
+      )
+      .map((p) => p.text)
       .join("");
   }
   return "";
@@ -188,97 +228,147 @@ function getMessageText(msg: UIMessage | any): string {
 export default function Home() {
   const { user, isAuthenticated, logout } = useAuth();
   const [language, setLanguage] = useState<Language>("uk");
-  const [conversations, setConversations] = useState<any[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<number | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
+  const [localInput, setLocalInput] = useState("");
   const userHasDeselected = useRef(false);
   const pendingPromptRef = useRef<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const prevMessageCountRef = useRef(0);
+  const lastSendTimeRef = useRef(0);
   const utils = trpc.useUtils();
 
-  // Local state for input management (useChat doesn't provide this)
-  const [localInput, setLocalInput] = useState("");
-  const [isLocalLoading, setIsLocalLoading] = useState(false);
+  // Refs that give the transport function access to the latest React state without
+  // capturing stale closures (the transport is created only once via useMemo).
+  const conversationIdRef = useRef<number | null>(null);
+  const languageRef = useRef<Language>("uk");
+  conversationIdRef.current = currentConversationId;
+  languageRef.current = language;
+
+  /**
+   * Transport for useChat: sends only the latest user message to /api/chat.
+   * The server loads persisted history from DB (when conversationId is provided)
+   * so the AI always has full context without the client duplicating history.
+   */
+  const chatTransport = useMemo(
+    () =>
+      new DefaultChatTransport({
+        api: "/api/chat",
+        // body is a function so it is evaluated at request time, picking up
+        // the latest language and conversationId from their refs.
+        body: () => ({
+          language: languageRef.current,
+          conversationId: conversationIdRef.current,
+        }),
+        prepareSendMessagesRequest: ({ messages, body }) => {
+          // Extract the text from the last user UIMessage (parts array format).
+          const lastUser = [...messages].reverse().find((m) => m.role === "user");
+          const lastUserText = lastUser ? getMessageText(lastUser) : "";
+          return {
+            body: {
+              ...body,
+              // Only send the new user message; the server appends DB history.
+              messages: lastUserText ? [{ role: "user", content: lastUserText }] : [],
+            },
+          };
+        },
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- refs are intentionally stable
+    []
+  );
 
   const {
-    messages: streamMessages,
-    setMessages: setStreamMessages,
+    messages: streamedMessages,
+    sendMessage,
+    status,
+    error: streamError,
+    setMessages: setStreamedMessages,
+    regenerate,
   } = useChat({
+    transport: chatTransport,
     onFinish: () => {
-      if (currentConversationId) {
-        utils.conversations.getMessages.invalidate({ conversationId: currentConversationId });
+      const convId = conversationIdRef.current;
+      if (convId !== null) {
+        utils.conversations.getMessages.invalidate({ conversationId: convId });
       }
     },
   });
 
-  // Fetch site resources for the resource browser
-  const { data: siteResources = [] } = trpc.resources.getSiteResources.useQuery();
+  // Fetch site resources for the resource browser (cached 5 min)
+  const { data: siteResources = [] } = trpc.resources.getSiteResources.useQuery(undefined, {
+    staleTime: 5 * 60 * 1000,
+  });
 
   // Resource browser search / filter state
   const [resourceSearch, setResourceSearch] = useState("");
   const [resourceTypeFilter, setResourceTypeFilter] = useState<ResourceType | "all">("all");
 
-  const filteredResources = siteResources.filter((r: any) => {
-    const typeMatch = resourceTypeFilter === "all" || r.type === resourceTypeFilter;
-    const q = resourceSearch.trim().toLowerCase();
-    const textMatch =
-      !q ||
-      r.name.toLowerCase().includes(q) ||
-      (r.description ?? "").toLowerCase().includes(q);
-    return typeMatch && textMatch;
-  });
+  const filteredResources = useMemo(
+    () =>
+      (siteResources ?? []).filter((r) => {
+        const typeMatch = resourceTypeFilter === "all" || r.type === resourceTypeFilter;
+        const q = resourceSearch.trim().toLowerCase();
+        const textMatch =
+          !q ||
+          r.name.toLowerCase().includes(q) ||
+          (r.description ?? "").toLowerCase().includes(q);
+        return typeMatch && textMatch;
+      }),
+    [siteResources, resourceSearch, resourceTypeFilter]
+  );
 
   const t = translations[language];
 
-  // Fetch conversations
+  const exampleQuestions = useMemo(
+    () => [t.ex1, t.ex2, t.ex3, t.ex4, t.ex5],
+    [t]
+  );
+
+  // Fetch conversations (cached 5 min; invalidated on create/delete)
   const { data: conversationsData } = trpc.conversations.list.useQuery(undefined, {
     enabled: isAuthenticated,
+    staleTime: 5 * 60 * 1000,
   });
 
   // Fetch messages for current conversation
   const { data: messagesData } = trpc.conversations.getMessages.useQuery(
     { conversationId: currentConversationId! },
-    { enabled: isAuthenticated && currentConversationId !== null }
+    { enabled: isAuthenticated && currentConversationId !== null, staleTime: 30_000 }
   );
 
   // Create conversation mutation
   const createConversationMutation = trpc.conversations.create.useMutation({
     onSuccess: (data) => {
       setCurrentConversationId(data.id);
-      setStreamMessages([]);
+      // Update the ref immediately so the transport body function picks up the new id
+      // before the next sendMessage call (React state update is asynchronous).
+      conversationIdRef.current = data.id;
+      setStreamedMessages([]);
+      setLocalInput(""); // Clear input only after conversation is confirmed
       utils.conversations.list.invalidate();
-      // If there's a pending prompt from a quick-start click, send it now
       const pendingPrompt = pendingPromptRef.current;
       pendingPromptRef.current = null;
       if (pendingPrompt) {
-        setLocalInput(pendingPrompt);
-        // Trigger send after state update
-        setTimeout(() => {
-          handleSendMessage(pendingPrompt);
-        }, 0);
+        void sendMessage({ text: pendingPrompt });
       }
+    },
+    onError: () => {
+      // On creation failure: restore pending prompt to input so user can retry
+      const restored = pendingPromptRef.current ?? "";
+      pendingPromptRef.current = null;
+      setLocalInput(restored);
+      setSendError(t.sendFailed);
     },
   });
 
   // Delete conversation mutation
   const deleteConversationMutation = trpc.conversations.delete.useMutation({
     onSuccess: () => {
+      userHasDeselected.current = true;
       setCurrentConversationId(null);
-      setStreamMessages([]);
+      setStreamedMessages([]);
       utils.conversations.list.invalidate();
-    },
-  });
-
-  // Send message mutation
-  const sendMessageMutation = trpc.conversations.sendMessage.useMutation({
-    onSuccess: () => {
-      setLocalInput("");
-      setIsLocalLoading(false);
-      utils.conversations.getMessages.invalidate({ conversationId: currentConversationId! });
-    },
-    onError: (error) => {
-      setSendError(error.message);
-      setIsLocalLoading(false);
     },
   });
 
@@ -289,53 +379,76 @@ export default function Home() {
     }
   }, [conversationsData]);
 
-  // Auto-scroll to bottom when new messages arrive
+  // Whether streaming/waiting for server response
+  const isStreaming = status === "submitted" || status === "streaming";
+
+  // Combined message list for display.
+  // • While streaming: show persisted DB messages + live stream messages
+  // • When idle:       show persisted DB messages only (avoids duplicates after refresh)
+  const allMessages: DisplayMessage[] = useMemo(() => {
+    const dbMsgs: DisplayMessage[] = messagesData ?? [];
+    if (!isStreaming && streamedMessages.length === 0) return dbMsgs;
+    return [...dbMsgs, ...streamedMessages];
+  }, [messagesData, streamedMessages, isStreaming]);
+
+  // Once the DB query refreshes after streaming completes, clear the local stream
+  // messages to avoid showing duplicates alongside the freshly persisted records.
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollIntoView({ behavior: "smooth" });
+    if (status === "ready" && streamedMessages.length > 0 && messagesData) {
+      const lastStream = streamedMessages[streamedMessages.length - 1];
+      const lastStreamText = getMessageText(lastStream);
+      const lastDb = messagesData[messagesData.length - 1];
+      if (lastDb?.content === lastStreamText) {
+        setStreamedMessages([]);
+      }
     }
-  }, [streamMessages, messagesData]);
+  }, [status, messagesData, streamedMessages, setStreamedMessages]);
 
-  // Combine stream messages and database messages
-  const allMessages = [
-    ...(messagesData || []),
-    ...streamMessages,
-  ];
+  // Auto-scroll to bottom only when the number of messages increases
+  useEffect(() => {
+    const count = allMessages.length;
+    if (count > prevMessageCountRef.current) {
+      scrollRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+    prevMessageCountRef.current = count;
+  }, [allMessages]);
 
-  const handleSendMessage = async (messageText?: string) => {
-    const textToSend = messageText || localInput;
-    if (!textToSend.trim()) return;
+  const handleSendMessage = (messageText?: string) => {
+    const textToSend = messageText ?? localInput;
+    if (!textToSend.trim() || isStreaming) return;
 
     setSendError(null);
-    setIsLocalLoading(true);
 
     if (currentConversationId) {
-      // Send via tRPC for persistence
-      sendMessageMutation.mutate({
-        conversationId: currentConversationId,
-        content: textToSend,
-      });
+      setLocalInput(""); // Clear input immediately when conversation exists
+      void sendMessage({ text: textToSend });
     } else {
-      // Create new conversation first
+      // Store the prompt and create a new conversation first.
+      // localInput is cleared in createConversationMutation.onSuccess.
+      pendingPromptRef.current = textToSend;
       createConversationMutation.mutate({
         title: textToSend.slice(0, CHAT_TITLE_MAX_LENGTH),
         language,
       });
-      pendingPromptRef.current = textToSend;
     }
   };
+
+  /** Handle a quick-start prompt click from the overview panel. */
+  const handleQuickStart = (prompt: string) => handleSendMessage(prompt);
 
   const handleNewChat = () => {
     userHasDeselected.current = true;
     setCurrentConversationId(null);
-    setStreamMessages([]);
+    setStreamedMessages([]);
     setLocalInput("");
+    setSendError(null);
   };
 
   const handleSelectConversation = (conversationId: number) => {
     userHasDeselected.current = false;
     setCurrentConversationId(conversationId);
-    setStreamMessages([]);
+    setStreamedMessages([]);
+    setSendError(null);
   };
 
   const handleDeleteConversation = (conversationId: number) => {
@@ -472,16 +585,10 @@ export default function Home() {
                 <Card className="p-6 bg-indigo-50 border-indigo-200 mb-8">
                   <h3 className="font-semibold text-gray-900 mb-3">{t.examplesTitle}</h3>
                   <div className="space-y-2">
-                    {[t.ex1, t.ex2, t.ex3, t.ex4, t.ex5].map((example, idx) => (
+                    {exampleQuestions.map((example, idx) => (
                       <button
                         key={idx}
-                        onClick={() => {
-                          createConversationMutation.mutate({
-                            title: example.slice(0, CHAT_TITLE_MAX_LENGTH),
-                            language,
-                          });
-                          pendingPromptRef.current = example;
-                        }}
+                        onClick={() => handleQuickStart(example)}
                         className="block w-full text-left p-2 rounded hover:bg-indigo-100 transition-colors text-sm text-indigo-900"
                       >
                         • {example}
@@ -537,7 +644,7 @@ export default function Home() {
                       <p className="text-sm text-gray-500 text-center py-4">{t.noResults}</p>
                     ) : (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {filteredResources.map((r: any, idx: number) => (
+                        {filteredResources.map((r, idx) => (
                           <DocumentCard
                             key={r.url ?? idx}
                             name={r.name}
@@ -559,38 +666,117 @@ export default function Home() {
               {/* Chat Messages */}
               <ScrollArea className="flex-1 w-full">
                 <div className="max-w-3xl mx-auto p-4 space-y-4">
-                  {allMessages.map((msg, idx) => (
-                    <div
-                      key={idx}
-                      className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                    >
+                  {allMessages.map((msg, idx) => {
+                    const isLastAssistant =
+                      msg.role === "assistant" &&
+                      idx === allMessages.length - 1 &&
+                      !isStreaming;
+                    return (
                       <div
-                        className={`max-w-xl px-4 py-2 rounded-lg ${
-                          msg.role === "user"
-                            ? "bg-indigo-600 text-white rounded-br-none"
-                            : "bg-gray-200 text-gray-900 rounded-bl-none"
-                        }`}
+                        key={idx}
+                        className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                       >
-                        {msg.role === "user" ? (
-                          <p className="text-sm whitespace-pre-wrap">{getMessageText(msg)}</p>
-                        ) : (
-                          <div className="text-sm prose prose-sm max-w-none prose-a:text-indigo-700 prose-a:underline">
-                            <Markdown>{getMessageText(msg)}</Markdown>
+                        <div className="flex flex-col gap-2 max-w-xl">
+                          <div
+                            className={`px-4 py-2 rounded-lg ${
+                              msg.role === "user"
+                                ? "bg-indigo-600 text-white rounded-br-none"
+                                : "bg-gray-200 text-gray-900 rounded-bl-none"
+                            }`}
+                          >
+                            {msg.role === "user" ? (
+                              <p className="text-sm whitespace-pre-wrap">{getMessageText(msg)}</p>
+                            ) : (
+                              <div className="text-sm prose prose-sm max-w-none prose-a:text-indigo-700 prose-a:underline">
+                                <Markdown>{getMessageText(msg)}</Markdown>
+                              </div>
+                            )}
                           </div>
-                        )}
+
+                          {/* Quick-action buttons shown below the last assistant message */}
+                          {isLastAssistant && (
+                            <div className="flex flex-wrap gap-2">
+                              <a
+                                href="https://lib-hdak.in.ua/e-catalog.html"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-xs gap-1 text-indigo-700 border-indigo-200 hover:bg-indigo-50"
+                                >
+                                  <BookMarked className="w-3 h-3" />
+                                  {t.actionFindCatalog}
+                                </Button>
+                              </a>
+                              <a
+                                href="mailto:library@hdak.edu.ua"
+                                rel="noopener noreferrer"
+                              >
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-xs gap-1 text-indigo-700 border-indigo-200 hover:bg-indigo-50"
+                                >
+                                  <Mail className="w-3 h-3" />
+                                  {t.actionWriteLetter}
+                                </Button>
+                              </a>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-xs gap-1 text-indigo-700 border-indigo-200 hover:bg-indigo-50"
+                                onClick={() => {
+                                  const text = getMessageText(msg);
+                                  if (navigator.share) {
+                                    navigator.share({ title: "HDAK Library", text, url: window.location.href }).catch(() => {
+                                      // Share was cancelled or failed — fall back to clipboard
+                                      navigator.clipboard.writeText(text).catch(() => {/* clipboard unavailable */});
+                                    });
+                                  } else {
+                                    navigator.clipboard.writeText(text).catch(() => {/* clipboard unavailable */});
+                                  }
+                                }}
+                              >
+                                <Share2 className="w-3 h-3" />
+                                {t.actionShare}
+                              </Button>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                   <div ref={scrollRef} />
                 </div>
               </ScrollArea>
 
               {/* Input */}
               <div className="border-t border-gray-200 bg-white p-4">
-                {sendError && (
+                {/* Error banner — shows tRPC create-conversation errors AND streaming errors */}
+                {(sendError || streamError) && (
                   <div className="max-w-3xl mx-auto mb-3 flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
                     <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                    <span>{sendError}</span>
+                    <span className="flex-1">{
+                      streamError
+                        ? (streamError.message?.includes("413") || streamError.message?.includes("too large")
+                          ? t.streamErrorTooLarge
+                          : t.streamError)
+                        : sendError
+                    }</span>
+                    {/* Retry button — only for streaming errors; replays the last user message */}
+                    {streamError && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 px-2 text-red-600 hover:text-red-700 hover:bg-red-100 gap-1"
+                        onClick={() => { void regenerate(); }}
+                      >
+                        <RefreshCw className="w-3 h-3" />
+                        {language === "uk" ? "Повторити" : language === "ru" ? "Повторить" : "Retry"}
+                      </Button>
+                    )}
                   </div>
                 )}
                 <div className="max-w-3xl mx-auto flex gap-3">
@@ -600,19 +786,23 @@ export default function Home() {
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();
+                        // Debounce: ignore rapid repeated Enter presses within SEND_DEBOUNCE_MS
+                        const now = Date.now();
+                        if (now - lastSendTimeRef.current < SEND_DEBOUNCE_MS) return;
+                        lastSendTimeRef.current = now;
                         handleSendMessage();
                       }
                     }}
                     placeholder={t.typeMessage}
-                    disabled={isLocalLoading}
+                    disabled={isStreaming}
                     className="flex-1"
                   />
                   <Button
                     onClick={() => handleSendMessage()}
-                    disabled={isLocalLoading || !localInput.trim()}
+                    disabled={isStreaming || !localInput.trim()}
                     className="bg-indigo-600 hover:bg-indigo-700"
                   >
-                    {isLocalLoading ? (
+                    {isStreaming ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
                       <Send className="w-4 h-4" />

@@ -751,6 +751,15 @@ export async function setLibraryInfo(key: string, valueEn: string, valueUk: stri
   }
 }
 
+export async function getAllLibraryInfo(): Promise<LibraryInfo[]> {
+  const db = await getDb();
+  if (!db) {
+    ensureMockState();
+    return [...mockState.info];
+  }
+  return await db.select().from(libraryInfo);
+}
+
 // User Query logging
 export async function logUserQuery(userId: number | null, conversationId: number | null, query: string, language: string, resourcesReturned: any = null): Promise<UserQuery | null> {
   const db = await getDb();
@@ -803,8 +812,10 @@ export async function getDocumentChunks(language?: string): Promise<DocumentChun
   const db = await getDb();
   if (!db) return [];
 
-  /** Cap in-memory vector search at 100 most-recent chunks to protect RAM. */
-  const CHUNK_LIMIT = 100;
+  /** Cap in-memory vector search at 600 most-recent chunks per language.
+   * When language is provided the query filters first, then limits; when omitted the
+   * limit is applied across all languages. */
+  const CHUNK_LIMIT = 600;
 
   try {
     if (language) {

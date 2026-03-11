@@ -40,7 +40,7 @@ function findLastUserMessage(messages: IncomingMessage[] | unknown): string {
 const CHAT_TIMEOUT_MS = 30_000;
 
 /** Maximum character length allowed per individual message in the /api/chat endpoint. */
-const MAX_CHAT_MESSAGE_LENGTH = 10_000;
+export const MAX_CHAT_MESSAGE_LENGTH = 10_000;
 
 /** Zod schema for validating individual chat messages from the client. */
 const chatMessageSchema = z.object({
@@ -49,7 +49,7 @@ const chatMessageSchema = z.object({
 });
 
 /** Zod schema for validating the full /api/chat request body. */
-const chatRequestSchema = z.object({
+export const chatRequestSchema = z.object({
   messages: z.array(chatMessageSchema).min(1).max(100),
   language: z.enum(["en", "uk", "ru"]).optional(),
   conversationId: z.number().int().positive().optional(),
@@ -162,6 +162,79 @@ export const tools = {
       };
     },
   }),
+
+  /**
+   * Search upcoming or recent HDAK library events, exhibitions, and announcements
+   * by date range or keyword.  When the user asks "what events does the library
+   * have?", "are there any exhibitions this month?", or "I'm looking for events
+   * about [topic]" — call this tool.
+   */
+  findUpcomingLibraryEvents: tool({
+    description:
+      "Find upcoming or recent events, exhibitions, lectures, and announcements " +
+      "at the HDAK library. Use when the user asks about library events, what's " +
+      "happening at the library, exhibitions, or cultural activities.",
+    inputSchema: z.object({
+      keyword: z
+        .string()
+        .optional()
+        .describe("Optional keyword or topic to filter events, e.g. 'виставка', 'лекція', 'презентація'"),
+      dateFrom: z
+        .string()
+        .optional()
+        .describe("Optional ISO date (YYYY-MM-DD) — filter events on or after this date"),
+      dateTo: z
+        .string()
+        .optional()
+        .describe("Optional ISO date (YYYY-MM-DD) — filter events up to and including this date"),
+    }),
+    execute: async ({ keyword, dateFrom, dateTo }) => {
+      // Search library info entries whose key starts with "event" or contains the keyword.
+      // This provides a lightweight events registry without a dedicated DB table.
+      const allInfo = await db.getAllLibraryInfo();
+      const kw = keyword?.toLowerCase() ?? "";
+      const from = dateFrom ? new Date(dateFrom) : null;
+      const to = dateTo ? new Date(dateTo) : null;
+
+      const events = allInfo.filter((entry) => {
+        const isEvent =
+          entry.key.toLowerCase().startsWith("event") ||
+          entry.key.toLowerCase().includes("announcement") ||
+          entry.key.toLowerCase().includes("exhibition") ||
+          (kw && (
+            (entry.valueUk ?? "").toLowerCase().includes(kw) ||
+            (entry.valueEn ?? "").toLowerCase().includes(kw) ||
+            (entry.valueRu ?? "").toLowerCase().includes(kw)
+          ));
+        if (!isEvent) return false;
+        // Date filtering: parse date embedded in the key (e.g. "event_2024-12-15_exhibition")
+        if (from || to) {
+          const dateMatch = entry.key.match(/(\d{4}-\d{2}-\d{2})/);
+          if (dateMatch) {
+            const d = new Date(dateMatch[1]);
+            if (from && d < from) return false;
+            if (to && d > to) return false;
+          }
+        }
+        return true;
+      });
+
+      return {
+        found: events.length,
+        eventsPageUrl: "https://lib-hdak.in.ua/news.html",
+        events: events.slice(0, 8).map((e) => ({
+          key: e.key,
+          uk: e.valueUk,
+          en: e.valueEn,
+          ru: e.valueRu,
+        })),
+        note:
+          events.length === 0
+            ? "No matching events found in the library info registry. Check the library news page: https://lib-hdak.in.ua/news.html"
+            : undefined,
+      };
+    },
+  }),
 };
 
 /**
@@ -193,13 +266,30 @@ export function registerChatRoutes(app: Express) {
     try {
       const parseResult = chatRequestSchema.safeParse(req.body);
       if (!parseResult.success) {
+        // Return 413 when any message content exceeds the per-message size limit;
+        // return 400 for all other validation failures (wrong role, empty content, etc.).
+        const hasTooLarge = parseResult.error.issues.some(
+          (issue) => issue.code === "too_big" && issue.path.includes("content")
+        );
+        if (hasTooLarge) {
+          res
+            .status(413)
+            .json({ error: "Message too large", details: `Each message must be at most ${MAX_CHAT_MESSAGE_LENGTH} characters.` });
+          return;
+        }
         res.status(400).json({ error: "Invalid request", details: parseResult.error.issues });
         return;
       }
 
       const { messages, language, conversationId } = parseResult.data;
 
-      const lastUserMessage = findLastUserMessage(messages);
+      // Sanitize message content (strip HTML and injection patterns) before passing to AI
+      const sanitizedMessages = messages.map((m) => ({
+        role: m.role,
+        content: sanitizeUntrustedContent(m.content),
+      }));
+
+      const lastUserMessage = findLastUserMessage(sanitizedMessages);
       const detectedLanguage = lastUserMessage ? detectLanguageFromText(lastUserMessage) : null;
       const lang: "en" | "uk" | "ru" = language ?? detectedLanguage ?? "uk";
 
@@ -228,10 +318,43 @@ export function registerChatRoutes(app: Express) {
         convId = conversationId;
       }
 
+      /**
+       * When a conversationId is provided the client (new useChat API) sends only the
+       * latest user message. Load the persisted history from DB so the AI has full context,
+       * then append the new sanitized message(s) from the client.
+       *
+       * We cap at MAX_CHAT_HISTORY messages to avoid bloated prompts.
+       */
+      // 14 messages (7 user + 7 assistant) sits comfortably within the model's
+      // context window while providing enough history for coherent multi-turn
+      // conversations without incurring unnecessary token costs.
+      const MAX_CHAT_HISTORY = 14;
+      let dbHistory: { role: "user" | "assistant"; content: string }[] = [];
+      if (convId !== null) {
+        try {
+          const history = await db.getMessages(convId);
+          dbHistory = history
+            .slice(-MAX_CHAT_HISTORY)
+            // Only include roles the AI understands; system messages are handled
+            // via the system prompt, so they are intentionally excluded here.
+            .filter((m) => m.role === "user" || m.role === "assistant")
+            .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
+        } catch (err) {
+          logger.warn("[/api/chat] Failed to load conversation history", {
+            conversationId: convId,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }
+
+      // Build the full message array for the AI: persisted history + new client message(s)
+      const messagesForAI: { role: "user" | "assistant"; content: string }[] =
+        dbHistory.length > 0 ? [...dbHistory, ...sanitizedMessages] : sanitizedMessages;
+
       const result = streamText({
         model: openai.chat(AI_MODEL_NAME),
         system: buildSystemPrompt(lang),
-        messages,
+        messages: messagesForAI,
         tools,
         temperature: AI_TEMPERATURE,
         stopWhen: stepCountIs(5),
@@ -239,6 +362,8 @@ export function registerChatRoutes(app: Express) {
         onFinish: async ({ text }) => {
           if (convId !== null) {
             try {
+              // Save the original (pre-sanitization) user message so the user
+              // sees exactly what they typed. The AI received the sanitized version.
               const lastUserMsg = findLastUserMessage(messages);
               if (lastUserMsg) {
                 await db.createMessage(convId, "user", lastUserMsg);
@@ -248,6 +373,11 @@ export function registerChatRoutes(app: Express) {
               logger.error("[/api/chat] Failed to save messages", { err });
             }
           }
+        },
+        onError: ({ error }) => {
+          logger.error("[/api/chat] streamText error", {
+            error: error instanceof Error ? error.message : String(error),
+          });
         },
       });
 

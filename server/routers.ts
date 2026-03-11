@@ -13,6 +13,7 @@ import {
   getLocalizedAiErrorMessage,
   logAiPipelineError,
   normalizeLanguage,
+  sanitizeUntrustedContent,
   type ConversationHistoryMessage,
   type MessageSource,
 } from "./services/aiPipeline";
@@ -144,11 +145,13 @@ export const appRouter = router({
         // Generate AI response (resource search and RAG are inside the try/catch
         // so that embedding or search failures produce a graceful error message
         // rather than an uncaught exception)
+        // Sanitize the prompt before passing to AI to prevent prompt injection attacks.
+        const sanitizedPrompt = sanitizeUntrustedContent(input.content);
         let aiResponse = "";
         let source: MessageSource = "general";
         try {
           const result = await generateConversationReply({
-            prompt: input.content,
+            prompt: sanitizedPrompt,
             conversationId: input.conversationId,
             language,
             userId: ctx.user!.id,
@@ -306,10 +309,7 @@ export const appRouter = router({
 
     getAll: adminProcedure
       .query(async () => {
-        // Return the three standard keys used throughout the app
-        const keys = ["about", "hours", "address"];
-        const entries = await Promise.all(keys.map(k => db.getLibraryInfo(k)));
-        return entries.filter(Boolean);
+        return await db.getAllLibraryInfo();
       }),
 
     set: adminProcedure

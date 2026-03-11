@@ -11,8 +11,10 @@ import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { logger } from "./logger";
 import { startSyncScheduler } from "../services/syncService";
-import { chatRateLimiter, trpcRateLimiter, oauthRateLimiter } from "./rateLimiter";
+import { chatRateLimiter, trpcRateLimiter, oauthRateLimiter, adminRateLimiter } from "./rateLimiter";
 import { ENV } from "./env";
+import { sdk } from "./sdk";
+import { processDocument } from "../rag-service";
 
 /** Maximum time (ms) to wait for in-flight requests before forcing shutdown. */
 const SHUTDOWN_TIMEOUT_MS = 10_000;
@@ -104,6 +106,103 @@ async function startServer() {
   // Chat API with streaming and tool calling
   app.use("/api/chat", chatRateLimiter);
   registerChatRoutes(app);
+
+  /**
+   * POST /api/admin/process-pdf
+   * Admin-only endpoint: accepts a text body (extracted PDF content) and
+   * processes it into the RAG vector store.
+   *
+   * Body JSON:
+   *   { title, content, language?, sourceType?, url?, author? }
+   *
+   * Returns:
+   *   { success, chunksCreated, documentId }  (200)
+   *   { error }  (400 / 401 / 403 / 500)
+   */
+  app.post("/api/admin/process-pdf", adminRateLimiter, async (req, res) => {
+    // Authenticate + authorise (admin only)
+    let user;
+    try {
+      user = await sdk.authenticateRequest(req);
+    } catch {
+      res.status(401).json({ error: "Authentication required" });
+      return;
+    }
+    if (user.openId !== ENV.ownerOpenId) {
+      res.status(403).json({ error: "Admin access required" });
+      return;
+    }
+
+    const {
+      title,
+      content,
+      language = "uk",
+      sourceType = "other",
+      url,
+      author,
+    } = req.body as {
+      title?: unknown;
+      content?: unknown;
+      language?: unknown;
+      sourceType?: unknown;
+      url?: unknown;
+      author?: unknown;
+    };
+
+    if (typeof title !== "string" || !title.trim()) {
+      res.status(400).json({ error: "title must be a non-empty string" });
+      return;
+    }
+    if (typeof content !== "string" || !content.trim()) {
+      res.status(400).json({ error: "content must be a non-empty string" });
+      return;
+    }
+    const validLangs = ["en", "uk", "ru"] as const;
+    const validSources = ["catalog", "repository", "database", "other"] as const;
+    const lang = validLangs.includes(language as (typeof validLangs)[number])
+      ? (language as (typeof validLangs)[number])
+      : "uk";
+    const src = validSources.includes(sourceType as (typeof validSources)[number])
+      ? (sourceType as (typeof validSources)[number])
+      : "other";
+
+    const documentId = `manual_${Date.now()}_${title.slice(0, 40).replace(/\s+/g, "_")}`;
+
+    logger.info("[/api/admin/process-pdf] Processing document", {
+      documentId,
+      title,
+      lang,
+      src,
+      contentLength: content.length,
+    });
+
+    try {
+      const result = await processDocument(
+        documentId,
+        title,
+        content,
+        src,
+        lang,
+        typeof url === "string" ? url : undefined,
+        typeof author === "string" ? author : undefined
+      );
+
+      if (result.success) {
+        logger.info("[/api/admin/process-pdf] Document processed successfully", {
+          documentId,
+          chunksCreated: result.chunksCreated,
+        });
+        res.json({ success: true, chunksCreated: result.chunksCreated, documentId });
+      } else {
+        res.status(422).json({ success: false, error: result.error ?? "Processing failed" });
+      }
+    } catch (err) {
+      logger.error("[/api/admin/process-pdf] Unexpected error", {
+        error: err instanceof Error ? err.message : String(err),
+      });
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
   // tRPC API
   app.use(
     "/api/trpc",
