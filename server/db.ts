@@ -812,8 +812,10 @@ export async function getDocumentChunks(language?: string): Promise<DocumentChun
   const db = await getDb();
   if (!db) return [];
 
-  /** Cap in-memory vector search at 500 most-recent chunks (filtered by language when provided). */
-  const CHUNK_LIMIT = 500;
+  /** Cap in-memory vector search at 600 most-recent chunks per language.
+   * When language is provided the query filters first, then limits; when omitted the
+   * limit is applied across all languages. */
+  const CHUNK_LIMIT = 600;
 
   try {
     if (language) {

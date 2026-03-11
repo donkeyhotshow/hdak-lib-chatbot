@@ -234,10 +234,40 @@ export function registerChatRoutes(app: Express) {
         convId = conversationId;
       }
 
+      /**
+       * When a conversationId is provided the client (new useChat API) sends only the
+       * latest user message. Load the persisted history from DB so the AI has full context,
+       * then append the new sanitized message(s) from the client.
+       *
+       * We cap at MAX_CHAT_HISTORY messages to avoid bloated prompts.
+       */
+      const MAX_CHAT_HISTORY = 14;
+      let dbHistory: { role: "user" | "assistant"; content: string }[] = [];
+      if (convId !== null) {
+        try {
+          const history = await db.getMessages(convId);
+          dbHistory = history
+            .slice(-MAX_CHAT_HISTORY)
+            // Only include roles the AI understands; system messages are handled
+            // via the system prompt, so they are intentionally excluded here.
+            .filter((m) => m.role === "user" || m.role === "assistant")
+            .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
+        } catch (err) {
+          logger.warn("[/api/chat] Failed to load conversation history", {
+            conversationId: convId,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }
+
+      // Build the full message array for the AI: persisted history + new client message(s)
+      const messagesForAI: { role: "user" | "assistant"; content: string }[] =
+        dbHistory.length > 0 ? [...dbHistory, ...sanitizedMessages] : sanitizedMessages;
+
       const result = streamText({
         model: openai.chat(AI_MODEL_NAME),
         system: buildSystemPrompt(lang),
-        messages: sanitizedMessages,
+        messages: messagesForAI,
         tools,
         temperature: AI_TEMPERATURE,
         stopWhen: stepCountIs(5),

@@ -74,7 +74,19 @@ export function sanitizeUntrustedContent(text: string): string {
     return !hasInjection;
   });
 
-  return filtered.join("\n").trim();
+  const result = filtered.join("\n").trim();
+
+  // Log a summary warning whenever the output differs from the input so that
+  // any HTML stripping or injection-line removal is surfaced in monitoring.
+  if (result !== text.trim()) {
+    logger.warn("[sanitizeUntrustedContent] Content was modified — possible injection attempt", {
+      originalLength: text.length,
+      sanitizedLength: result.length,
+      hadHtml: /<[^>]*>/.test(text),
+    });
+  }
+
+  return result;
 }
 
 export type SupportedLanguage = "en" | "uk" | "ru";

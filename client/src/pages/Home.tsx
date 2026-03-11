@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useMemo, type ReactNode } from "react";
-import { useChat, type UIMessage } from "@ai-sdk/react";
+import { useChat } from "@ai-sdk/react";
+import type { UIMessage } from "ai";
+import { DefaultChatTransport } from "ai";
 import type { inferRouterOutputs } from "@trpc/server";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -12,16 +14,22 @@ import { DocumentCard, type ResourceType } from "@/components/DocumentCard";
 import { trpc } from "@/lib/trpc";
 import type { AppRouter } from "../../../server/routers";
 import { getLoginUrl } from "@/const";
-import { Bot, BookOpen, Database, Search, Loader2, Send, Plus, Globe, LogOut, ExternalLink, Trash2, AlertCircle } from "lucide-react";
+import { Bot, BookOpen, Database, Search, Loader2, Send, Plus, Globe, LogOut, ExternalLink, Trash2, AlertCircle, RefreshCw } from "lucide-react";
 
 type RouterOutput = inferRouterOutputs<AppRouter>;
 type Conversation = RouterOutput["conversations"]["list"][number];
-
-/** Prefix for temporary IDs assigned to optimistic (not-yet-persisted) messages. */
-const OPTIMISTIC_PREFIX = "optimistic_";
+type DbMessage = RouterOutput["conversations"]["getMessages"][number];
+/** Union of persisted DB messages and live streaming UIMessages. */
+type DisplayMessage = DbMessage | UIMessage;
 
 /** Maximum character length used when deriving a conversation title from a prompt. */
 const CHAT_TITLE_MAX_LENGTH = 50;
+
+/**
+ * Minimum milliseconds between successive Enter-key sends to prevent accidental
+ * double-sends from rapid repeated key presses.
+ */
+const SEND_DEBOUNCE_MS = 350;
 
 type Language = "en" | "uk" | "ru";
 
@@ -182,15 +190,18 @@ function FeatureCard({ icon, title, description }: { icon: ReactNode; title: str
   );
 }
 
-/** Extract a displayable string from a message content field (handles useChat parts array). */
-function getMessageText(msg: UIMessage | any): string {
-  // Handle both UIMessage and database message formats
-  if (typeof msg === 'string') return msg;
-  if (typeof msg?.content === 'string') return msg.content;
-  if (Array.isArray(msg?.content)) {
-    return msg.content
-      .filter((part: any): part is { type: "text"; text: string } => part?.type === "text")
-      .map((part: any) => part.text)
+/** Extract a displayable string from a DB message or a streaming UIMessage. */
+function getMessageText(msg: DisplayMessage): string {
+  // DB message format: content is a plain string
+  if ("content" in msg && typeof msg.content === "string") return msg.content;
+  // UIMessage format (ai SDK v6): text is in the parts array
+  if ("parts" in msg && Array.isArray(msg.parts)) {
+    return msg.parts
+      .filter(
+        (p): p is { type: "text"; text: string } =>
+          p !== null && typeof p === "object" && (p as { type?: string }).type === "text"
+      )
+      .map((p) => p.text)
       .join("");
   }
   return "";
@@ -202,30 +213,74 @@ export default function Home() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<number | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
+  const [localInput, setLocalInput] = useState("");
   const userHasDeselected = useRef(false);
   const pendingPromptRef = useRef<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const prevMessageCountRef = useRef(0);
+  const lastSendTimeRef = useRef(0);
   const utils = trpc.useUtils();
 
-  // Local state for input management (useChat doesn't provide this)
-  const [localInput, setLocalInput] = useState("");
-  const [isLocalLoading, setIsLocalLoading] = useState(false);
-  const [optimisticMessages, setOptimisticMessages] = useState<{ id: string; role: "user"; content: string; createdAt: Date }[]>([]);
+  // Refs that give the transport function access to the latest React state without
+  // capturing stale closures (the transport is created only once via useMemo).
+  const conversationIdRef = useRef<number | null>(null);
+  const languageRef = useRef<Language>("uk");
+  conversationIdRef.current = currentConversationId;
+  languageRef.current = language;
+
+  /**
+   * Transport for useChat: sends only the latest user message to /api/chat.
+   * The server loads persisted history from DB (when conversationId is provided)
+   * so the AI always has full context without the client duplicating history.
+   */
+  const chatTransport = useMemo(
+    () =>
+      new DefaultChatTransport({
+        api: "/api/chat",
+        // body is a function so it is evaluated at request time, picking up
+        // the latest language and conversationId from their refs.
+        body: () => ({
+          language: languageRef.current,
+          conversationId: conversationIdRef.current,
+        }),
+        prepareSendMessagesRequest: ({ messages, body }) => {
+          // Extract the text from the last user UIMessage (parts array format).
+          const lastUser = [...messages].reverse().find((m) => m.role === "user");
+          const lastUserText = lastUser ? getMessageText(lastUser) : "";
+          return {
+            body: {
+              ...body,
+              // Only send the new user message; the server appends DB history.
+              messages: lastUserText ? [{ role: "user", content: lastUserText }] : [],
+            },
+          };
+        },
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- refs are intentionally stable
+    []
+  );
 
   const {
-    messages: streamMessages,
-    setMessages: setStreamMessages,
+    messages: streamedMessages,
+    sendMessage,
+    status,
+    error: streamError,
+    setMessages: setStreamedMessages,
+    regenerate,
   } = useChat({
+    transport: chatTransport,
     onFinish: () => {
-      if (currentConversationId) {
-        utils.conversations.getMessages.invalidate({ conversationId: currentConversationId });
+      const convId = conversationIdRef.current;
+      if (convId !== null) {
+        utils.conversations.getMessages.invalidate({ conversationId: convId });
       }
     },
   });
 
-  // Fetch site resources for the resource browser
-  const { data: siteResources = [] } = trpc.resources.getSiteResources.useQuery();
+  // Fetch site resources for the resource browser (cached 5 min)
+  const { data: siteResources = [] } = trpc.resources.getSiteResources.useQuery(undefined, {
+    staleTime: 5 * 60 * 1000,
+  });
 
   // Resource browser search / filter state
   const [resourceSearch, setResourceSearch] = useState("");
@@ -252,9 +307,10 @@ export default function Home() {
     [t]
   );
 
-  // Fetch conversations
+  // Fetch conversations (cached 5 min; invalidated on create/delete)
   const { data: conversationsData } = trpc.conversations.list.useQuery(undefined, {
     enabled: isAuthenticated,
+    staleTime: 5 * 60 * 1000,
   });
 
   // Fetch messages for current conversation
@@ -267,17 +323,24 @@ export default function Home() {
   const createConversationMutation = trpc.conversations.create.useMutation({
     onSuccess: (data) => {
       setCurrentConversationId(data.id);
-      setStreamMessages([]);
+      // Update the ref immediately so the transport body function picks up the new id
+      // before the next sendMessage call (React state update is asynchronous).
+      conversationIdRef.current = data.id;
+      setStreamedMessages([]);
+      setLocalInput(""); // Clear input only after conversation is confirmed
       utils.conversations.list.invalidate();
-      // If there's a pending prompt, send it directly using the new conversation id
       const pendingPrompt = pendingPromptRef.current;
       pendingPromptRef.current = null;
       if (pendingPrompt) {
-        sendMessageMutation.mutate({
-          conversationId: data.id,
-          content: pendingPrompt,
-        });
+        void sendMessage({ text: pendingPrompt });
       }
+    },
+    onError: () => {
+      // On creation failure: restore pending prompt to input so user can retry
+      const restored = pendingPromptRef.current ?? "";
+      pendingPromptRef.current = null;
+      setLocalInput(restored);
+      setSendError(t.sendFailed);
     },
   });
 
@@ -286,24 +349,8 @@ export default function Home() {
     onSuccess: () => {
       userHasDeselected.current = true;
       setCurrentConversationId(null);
-      setStreamMessages([]);
+      setStreamedMessages([]);
       utils.conversations.list.invalidate();
-    },
-  });
-
-  // Send message mutation
-  const sendMessageMutation = trpc.conversations.sendMessage.useMutation({
-    onSuccess: () => {
-      setOptimisticMessages((prev) => prev.filter((m) => !m.id.startsWith(OPTIMISTIC_PREFIX)));
-      setIsLocalLoading(false);
-      setSendError(null);
-      utils.conversations.getMessages.invalidate({ conversationId: currentConversationId! });
-    },
-    onError: (_error, variables) => {
-      setIsLocalLoading(false);
-      setLocalInput(variables.content);
-      setOptimisticMessages((prev) => prev.filter((m) => !m.id.startsWith(OPTIMISTIC_PREFIX)));
-      setSendError(t.sendFailed);
     },
   });
 
@@ -314,12 +361,30 @@ export default function Home() {
     }
   }, [conversationsData]);
 
-  // Combine stream messages and database messages
-  const allMessages = [
-    ...(messagesData || []),
-    ...optimisticMessages,
-    ...streamMessages,
-  ];
+  // Whether streaming/waiting for server response
+  const isStreaming = status === "submitted" || status === "streaming";
+
+  // Combined message list for display.
+  // • While streaming: show persisted DB messages + live stream messages
+  // • When idle:       show persisted DB messages only (avoids duplicates after refresh)
+  const allMessages: DisplayMessage[] = useMemo(() => {
+    const dbMsgs: DisplayMessage[] = messagesData ?? [];
+    if (!isStreaming && streamedMessages.length === 0) return dbMsgs;
+    return [...dbMsgs, ...streamedMessages];
+  }, [messagesData, streamedMessages, isStreaming]);
+
+  // Once the DB query refreshes after streaming completes, clear the local stream
+  // messages to avoid showing duplicates alongside the freshly persisted records.
+  useEffect(() => {
+    if (status === "ready" && streamedMessages.length > 0 && messagesData) {
+      const lastStream = streamedMessages[streamedMessages.length - 1];
+      const lastStreamText = getMessageText(lastStream);
+      const lastDb = messagesData[messagesData.length - 1];
+      if (lastDb?.content === lastStreamText) {
+        setStreamedMessages([]);
+      }
+    }
+  }, [status, messagesData, streamedMessages, setStreamedMessages]);
 
   // Auto-scroll to bottom only when the number of messages increases
   useEffect(() => {
@@ -330,29 +395,18 @@ export default function Home() {
     prevMessageCountRef.current = count;
   }, [allMessages]);
 
-  const handleSendMessage = async (messageText?: string) => {
-    const textToSend = messageText || localInput;
-    if (!textToSend.trim()) return;
+  const handleSendMessage = (messageText?: string) => {
+    const textToSend = messageText ?? localInput;
+    if (!textToSend.trim() || isStreaming) return;
 
     setSendError(null);
-    setIsLocalLoading(true);
-
-    // Show optimistic message immediately so the user sees their text right away
-    const optimisticId = `${OPTIMISTIC_PREFIX}${crypto.randomUUID()}`;
-    setOptimisticMessages((prev) => [
-      ...prev,
-      { id: optimisticId, role: "user" as const, content: textToSend, createdAt: new Date() },
-    ]);
-    setLocalInput("");
 
     if (currentConversationId) {
-      // Send via tRPC for persistence
-      sendMessageMutation.mutate({
-        conversationId: currentConversationId,
-        content: textToSend,
-      });
+      setLocalInput(""); // Clear input immediately when conversation exists
+      void sendMessage({ text: textToSend });
     } else {
-      // Create new conversation first, then send from onSuccess
+      // Store the prompt and create a new conversation first.
+      // localInput is cleared in createConversationMutation.onSuccess.
       pendingPromptRef.current = textToSend;
       createConversationMutation.mutate({
         title: textToSend.slice(0, CHAT_TITLE_MAX_LENGTH),
@@ -367,16 +421,16 @@ export default function Home() {
   const handleNewChat = () => {
     userHasDeselected.current = true;
     setCurrentConversationId(null);
-    setStreamMessages([]);
-    setOptimisticMessages([]);
+    setStreamedMessages([]);
     setLocalInput("");
+    setSendError(null);
   };
 
   const handleSelectConversation = (conversationId: number) => {
     userHasDeselected.current = false;
     setCurrentConversationId(conversationId);
-    setStreamMessages([]);
-    setOptimisticMessages([]);
+    setStreamedMessages([]);
+    setSendError(null);
   };
 
   const handleDeleteConversation = (conversationId: number) => {
@@ -622,10 +676,23 @@ export default function Home() {
 
               {/* Input */}
               <div className="border-t border-gray-200 bg-white p-4">
-                {sendError && (
+                {/* Error banner — shows tRPC create-conversation errors AND streaming errors */}
+                {(sendError || streamError) && (
                   <div className="max-w-3xl mx-auto mb-3 flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
                     <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                    <span>{sendError}</span>
+                    <span className="flex-1">{streamError?.message ?? sendError}</span>
+                    {/* Retry button — only for streaming errors; replays the last user message */}
+                    {streamError && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 px-2 text-red-600 hover:text-red-700 hover:bg-red-100 gap-1"
+                        onClick={() => { void regenerate(); }}
+                      >
+                        <RefreshCw className="w-3 h-3" />
+                        {language === "uk" ? "Повторити" : language === "ru" ? "Повторить" : "Retry"}
+                      </Button>
+                    )}
                   </div>
                 )}
                 <div className="max-w-3xl mx-auto flex gap-3">
@@ -635,19 +702,23 @@ export default function Home() {
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();
+                        // Debounce: ignore rapid repeated Enter presses within SEND_DEBOUNCE_MS
+                        const now = Date.now();
+                        if (now - lastSendTimeRef.current < SEND_DEBOUNCE_MS) return;
+                        lastSendTimeRef.current = now;
                         handleSendMessage();
                       }
                     }}
                     placeholder={t.typeMessage}
-                    disabled={isLocalLoading}
+                    disabled={isStreaming}
                     className="flex-1"
                   />
                   <Button
                     onClick={() => handleSendMessage()}
-                    disabled={isLocalLoading || !localInput.trim()}
+                    disabled={isStreaming || !localInput.trim()}
                     className="bg-indigo-600 hover:bg-indigo-700"
                   >
-                    {isLocalLoading ? (
+                    {isStreaming ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
                       <Send className="w-4 h-4" />
