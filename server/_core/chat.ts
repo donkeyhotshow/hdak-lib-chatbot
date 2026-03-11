@@ -199,7 +199,13 @@ export function registerChatRoutes(app: Express) {
 
       const { messages, language, conversationId } = parseResult.data;
 
-      const lastUserMessage = findLastUserMessage(messages);
+      // Sanitize message content (strip HTML and injection patterns) before passing to AI
+      const sanitizedMessages = messages.map((m) => ({
+        role: m.role,
+        content: sanitizeUntrustedContent(m.content),
+      }));
+
+      const lastUserMessage = findLastUserMessage(sanitizedMessages);
       const detectedLanguage = lastUserMessage ? detectLanguageFromText(lastUserMessage) : null;
       const lang: "en" | "uk" | "ru" = language ?? detectedLanguage ?? "uk";
 
@@ -231,7 +237,7 @@ export function registerChatRoutes(app: Express) {
       const result = streamText({
         model: openai.chat(AI_MODEL_NAME),
         system: buildSystemPrompt(lang),
-        messages,
+        messages: sanitizedMessages,
         tools,
         temperature: AI_TEMPERATURE,
         stopWhen: stepCountIs(5),
@@ -239,6 +245,8 @@ export function registerChatRoutes(app: Express) {
         onFinish: async ({ text }) => {
           if (convId !== null) {
             try {
+              // Save the original (pre-sanitization) user message so the user
+              // sees exactly what they typed. The AI received the sanitized version.
               const lastUserMsg = findLastUserMessage(messages);
               if (lastUserMsg) {
                 await db.createMessage(convId, "user", lastUserMsg);
