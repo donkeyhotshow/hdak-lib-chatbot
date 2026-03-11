@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef, type ReactNode } from "react";
+import { useState, useEffect, useRef, useMemo, type ReactNode } from "react";
 import { useChat, type UIMessage } from "@ai-sdk/react";
+import type { inferRouterOutputs } from "@trpc/server";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,8 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Markdown } from "@/components/Markdown";
 import { DocumentCard, type ResourceType } from "@/components/DocumentCard";
 import { trpc } from "@/lib/trpc";
+import type { AppRouter } from "../../../server/routers";
 import { getLoginUrl } from "@/const";
 import { Bot, BookOpen, Database, Search, Loader2, Send, Plus, Globe, LogOut, ExternalLink, Trash2, AlertCircle } from "lucide-react";
+
+type RouterOutput = inferRouterOutputs<AppRouter>;
+type Conversation = RouterOutput["conversations"]["list"][number];
 
 /** Prefix for temporary IDs assigned to optimistic (not-yet-persisted) messages. */
 const OPTIMISTIC_PREFIX = "optimistic_";
@@ -194,12 +199,13 @@ function getMessageText(msg: UIMessage | any): string {
 export default function Home() {
   const { user, isAuthenticated, logout } = useAuth();
   const [language, setLanguage] = useState<Language>("uk");
-  const [conversations, setConversations] = useState<any[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<number | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
   const userHasDeselected = useRef(false);
   const pendingPromptRef = useRef<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const prevMessageCountRef = useRef(0);
   const utils = trpc.useUtils();
 
   // Local state for input management (useChat doesn't provide this)
@@ -225,17 +231,26 @@ export default function Home() {
   const [resourceSearch, setResourceSearch] = useState("");
   const [resourceTypeFilter, setResourceTypeFilter] = useState<ResourceType | "all">("all");
 
-  const filteredResources = siteResources.filter((r: any) => {
-    const typeMatch = resourceTypeFilter === "all" || r.type === resourceTypeFilter;
-    const q = resourceSearch.trim().toLowerCase();
-    const textMatch =
-      !q ||
-      r.name.toLowerCase().includes(q) ||
-      (r.description ?? "").toLowerCase().includes(q);
-    return typeMatch && textMatch;
-  });
+  const filteredResources = useMemo(
+    () =>
+      (siteResources ?? []).filter((r) => {
+        const typeMatch = resourceTypeFilter === "all" || r.type === resourceTypeFilter;
+        const q = resourceSearch.trim().toLowerCase();
+        const textMatch =
+          !q ||
+          r.name.toLowerCase().includes(q) ||
+          (r.description ?? "").toLowerCase().includes(q);
+        return typeMatch && textMatch;
+      }),
+    [siteResources, resourceSearch, resourceTypeFilter]
+  );
 
   const t = translations[language];
+
+  const exampleQuestions = useMemo(
+    () => [t.ex1, t.ex2, t.ex3, t.ex4, t.ex5],
+    [t]
+  );
 
   // Fetch conversations
   const { data: conversationsData } = trpc.conversations.list.useQuery(undefined, {
@@ -299,19 +314,21 @@ export default function Home() {
     }
   }, [conversationsData]);
 
-  // Auto-scroll to bottom when new messages arrive
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [streamMessages, messagesData]);
-
   // Combine stream messages and database messages
   const allMessages = [
     ...(messagesData || []),
     ...optimisticMessages,
     ...streamMessages,
   ];
+
+  // Auto-scroll to bottom only when the number of messages increases
+  useEffect(() => {
+    const count = allMessages.length;
+    if (count > prevMessageCountRef.current) {
+      scrollRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+    prevMessageCountRef.current = count;
+  }, [allMessages]);
 
   const handleSendMessage = async (messageText?: string) => {
     const textToSend = messageText || localInput;
@@ -321,7 +338,7 @@ export default function Home() {
     setIsLocalLoading(true);
 
     // Show optimistic message immediately so the user sees their text right away
-    const optimisticId = `${OPTIMISTIC_PREFIX}${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const optimisticId = `${OPTIMISTIC_PREFIX}${crypto.randomUUID()}`;
     setOptimisticMessages((prev) => [
       ...prev,
       { id: optimisticId, role: "user" as const, content: textToSend, createdAt: new Date() },
@@ -496,7 +513,7 @@ export default function Home() {
                 <Card className="p-6 bg-indigo-50 border-indigo-200 mb-8">
                   <h3 className="font-semibold text-gray-900 mb-3">{t.examplesTitle}</h3>
                   <div className="space-y-2">
-                    {[t.ex1, t.ex2, t.ex3, t.ex4, t.ex5].map((example, idx) => (
+                    {exampleQuestions.map((example, idx) => (
                       <button
                         key={idx}
                         onClick={() => handleQuickStart(example)}
@@ -555,7 +572,7 @@ export default function Home() {
                       <p className="text-sm text-gray-500 text-center py-4">{t.noResults}</p>
                     ) : (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {filteredResources.map((r: any, idx: number) => (
+                        {filteredResources.map((r, idx) => (
                           <DocumentCard
                             key={r.url ?? idx}
                             name={r.name}
