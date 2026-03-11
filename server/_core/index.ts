@@ -108,6 +108,17 @@ async function startServer() {
   app.get("/api/health", (_req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
   });
+  // Readiness probe — succeeds only when critical env vars are present
+  app.get("/api/ready", (_req, res) => {
+    const missing: string[] = [];
+    if (!process.env.OPENAI_API_KEY) missing.push("OPENAI_API_KEY");
+    if (!ENV.databaseUrl) missing.push("DATABASE_URL");
+    if (missing.length > 0) {
+      res.status(503).json({ ready: false, missing });
+      return;
+    }
+    res.json({ ready: true });
+  });
   // OAuth callback under /api/oauth/callback
   app.use("/api/oauth", oauthRateLimiter);
   registerOAuthRoutes(app);
