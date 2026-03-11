@@ -15,5 +15,35 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["server/**/*.test.ts", "server/**/*.spec.ts"],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "lcov", "html"],
+      include: ["server/**/*.ts"],
+      exclude: [
+        // Test files themselves
+        "server/**/*.test.ts",
+        "server/**/*.spec.ts",
+        // Server entry-point — only exercises at integration level
+        "server/_core/index.ts",
+        "server/_core/vite.ts",
+        // External-dependency glue that requires live services to test
+        "server/_core/oauth.ts",
+        "server/_core/dataApi.ts",
+        "server/_core/imageGeneration.ts",
+        "server/_core/map.ts",
+        "server/_core/notification.ts",
+        "server/_core/patchedFetch.ts",
+        "server/_core/voiceTranscription.ts",
+        "server/storage.ts",
+        // Pure type / declaration files
+        "server/_core/types/**",
+      ],
+      thresholds: {
+        lines: 55,
+        functions: 50,
+        branches: 65,
+        statements: 55,
+      },
+    },
   },
 });
