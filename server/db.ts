@@ -751,6 +751,15 @@ export async function setLibraryInfo(key: string, valueEn: string, valueUk: stri
   }
 }
 
+export async function getAllLibraryInfo(): Promise<LibraryInfo[]> {
+  const db = await getDb();
+  if (!db) {
+    ensureMockState();
+    return [...mockState.info];
+  }
+  return await db.select().from(libraryInfo);
+}
+
 // User Query logging
 export async function logUserQuery(userId: number | null, conversationId: number | null, query: string, language: string, resourcesReturned: any = null): Promise<UserQuery | null> {
   const db = await getDb();

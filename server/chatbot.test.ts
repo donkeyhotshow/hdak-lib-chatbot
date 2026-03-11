@@ -200,6 +200,26 @@ describe("Chatbot Database Functions", () => {
       
       expect(updated).toBeDefined();
     });
+
+    it("should return all library info entries via getAllLibraryInfo", async () => {
+      const timestamp = Date.now();
+      const customKey = `custom_info_${timestamp}`;
+
+      // Add a custom key (not one of the three hardcoded keys)
+      await db.setLibraryInfo(customKey, "Custom EN", "Custom UK", "Custom RU");
+
+      const all = await db.getAllLibraryInfo();
+      expect(Array.isArray(all)).toBe(true);
+
+      // The seeded "about" key should be present
+      const aboutEntry = all.find((e) => e.key === "about");
+      expect(aboutEntry).toBeDefined();
+
+      // The dynamically-added custom key should also be present
+      const customEntry = all.find((e) => e.key === customKey);
+      expect(customEntry).toBeDefined();
+      expect(customEntry?.valueEn).toBe("Custom EN");
+    });
   });
 
   describe("User Query Logging", () => {

@@ -12,6 +12,9 @@ import { trpc } from "@/lib/trpc";
 import { getLoginUrl } from "@/const";
 import { Bot, BookOpen, Database, Search, Loader2, Send, Plus, Globe, LogOut, ExternalLink, Trash2, AlertCircle } from "lucide-react";
 
+/** Prefix for temporary IDs assigned to optimistic (not-yet-persisted) messages. */
+const OPTIMISTIC_PREFIX = "optimistic_";
+
 /** Maximum character length used when deriving a conversation title from a prompt. */
 const CHAT_TITLE_MAX_LENGTH = 50;
 
@@ -63,6 +66,7 @@ const translations: Record<Language, Record<string, string>> = {
     filterRepository: "Repository",
     filterOther: "Other",
     noResults: "No resources match your filters.",
+    sendFailed: "Failed to send. Please try again.",
   },
   uk: {
     title: "Помічник бібліотеки ХДАК",
@@ -109,6 +113,7 @@ const translations: Record<Language, Record<string, string>> = {
     filterRepository: "Репозитарій",
     filterOther: "Інше",
     noResults: "Ресурсів за вашими фільтрами не знайдено.",
+    sendFailed: "Помилка надсилання. Спробуйте ще раз.",
   },
   ru: {
     title: "Помощник библиотеки ХДАК",
@@ -155,6 +160,7 @@ const translations: Record<Language, Record<string, string>> = {
     filterRepository: "Репозиторий",
     filterOther: "Прочее",
     noResults: "Ресурсов по вашим фильтрам не найдено.",
+    sendFailed: "Ошибка отправки. Попробуйте ещё раз.",
   },
 };
 
@@ -199,6 +205,7 @@ export default function Home() {
   // Local state for input management (useChat doesn't provide this)
   const [localInput, setLocalInput] = useState("");
   const [isLocalLoading, setIsLocalLoading] = useState(false);
+  const [optimisticMessages, setOptimisticMessages] = useState<{ id: string; role: "user"; content: string; createdAt: Date }[]>([]);
 
   const {
     messages: streamMessages,
@@ -247,15 +254,14 @@ export default function Home() {
       setCurrentConversationId(data.id);
       setStreamMessages([]);
       utils.conversations.list.invalidate();
-      // If there's a pending prompt from a quick-start click, send it now
+      // If there's a pending prompt, send it directly using the new conversation id
       const pendingPrompt = pendingPromptRef.current;
       pendingPromptRef.current = null;
       if (pendingPrompt) {
-        setLocalInput(pendingPrompt);
-        // Trigger send after state update
-        setTimeout(() => {
-          handleSendMessage(pendingPrompt);
-        }, 0);
+        sendMessageMutation.mutate({
+          conversationId: data.id,
+          content: pendingPrompt,
+        });
       }
     },
   });
@@ -263,6 +269,7 @@ export default function Home() {
   // Delete conversation mutation
   const deleteConversationMutation = trpc.conversations.delete.useMutation({
     onSuccess: () => {
+      userHasDeselected.current = true;
       setCurrentConversationId(null);
       setStreamMessages([]);
       utils.conversations.list.invalidate();
@@ -272,13 +279,16 @@ export default function Home() {
   // Send message mutation
   const sendMessageMutation = trpc.conversations.sendMessage.useMutation({
     onSuccess: () => {
-      setLocalInput("");
+      setOptimisticMessages((prev) => prev.filter((m) => !m.id.startsWith(OPTIMISTIC_PREFIX)));
       setIsLocalLoading(false);
+      setSendError(null);
       utils.conversations.getMessages.invalidate({ conversationId: currentConversationId! });
     },
-    onError: (error) => {
-      setSendError(error.message);
+    onError: (_error, variables) => {
       setIsLocalLoading(false);
+      setLocalInput(variables.content);
+      setOptimisticMessages((prev) => prev.filter((m) => !m.id.startsWith(OPTIMISTIC_PREFIX)));
+      setSendError(t.sendFailed);
     },
   });
 
@@ -299,6 +309,7 @@ export default function Home() {
   // Combine stream messages and database messages
   const allMessages = [
     ...(messagesData || []),
+    ...optimisticMessages,
     ...streamMessages,
   ];
 
@@ -309,6 +320,14 @@ export default function Home() {
     setSendError(null);
     setIsLocalLoading(true);
 
+    // Show optimistic message immediately so the user sees their text right away
+    const optimisticId = `${OPTIMISTIC_PREFIX}${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    setOptimisticMessages((prev) => [
+      ...prev,
+      { id: optimisticId, role: "user" as const, content: textToSend, createdAt: new Date() },
+    ]);
+    setLocalInput("");
+
     if (currentConversationId) {
       // Send via tRPC for persistence
       sendMessageMutation.mutate({
@@ -316,19 +335,23 @@ export default function Home() {
         content: textToSend,
       });
     } else {
-      // Create new conversation first
+      // Create new conversation first, then send from onSuccess
+      pendingPromptRef.current = textToSend;
       createConversationMutation.mutate({
         title: textToSend.slice(0, CHAT_TITLE_MAX_LENGTH),
         language,
       });
-      pendingPromptRef.current = textToSend;
     }
   };
+
+  /** Handle a quick-start prompt click from the overview panel. */
+  const handleQuickStart = (prompt: string) => handleSendMessage(prompt);
 
   const handleNewChat = () => {
     userHasDeselected.current = true;
     setCurrentConversationId(null);
     setStreamMessages([]);
+    setOptimisticMessages([]);
     setLocalInput("");
   };
 
@@ -336,6 +359,7 @@ export default function Home() {
     userHasDeselected.current = false;
     setCurrentConversationId(conversationId);
     setStreamMessages([]);
+    setOptimisticMessages([]);
   };
 
   const handleDeleteConversation = (conversationId: number) => {
@@ -475,13 +499,7 @@ export default function Home() {
                     {[t.ex1, t.ex2, t.ex3, t.ex4, t.ex5].map((example, idx) => (
                       <button
                         key={idx}
-                        onClick={() => {
-                          createConversationMutation.mutate({
-                            title: example.slice(0, CHAT_TITLE_MAX_LENGTH),
-                            language,
-                          });
-                          pendingPromptRef.current = example;
-                        }}
+                        onClick={() => handleQuickStart(example)}
                         className="block w-full text-left p-2 rounded hover:bg-indigo-100 transition-colors text-sm text-indigo-900"
                       >
                         • {example}

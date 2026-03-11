@@ -306,10 +306,7 @@ export const appRouter = router({
 
     getAll: adminProcedure
       .query(async () => {
-        // Return the three standard keys used throughout the app
-        const keys = ["about", "hours", "address"];
-        const entries = await Promise.all(keys.map(k => db.getLibraryInfo(k)));
-        return entries.filter(Boolean);
+        return await db.getAllLibraryInfo();
       }),
 
     set: adminProcedure
