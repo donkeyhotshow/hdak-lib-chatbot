@@ -493,15 +493,19 @@ export async function searchResources(query: string): Promise<LibraryResource[]>
       return normalizedFields.some(field => field.includes(q));
     });
   }
-  
+
+  // Escape LIKE wildcard characters so that user input like "%" or "_" is
+  // matched literally rather than acting as a SQL wildcard pattern.
+  const escapedQuery = query.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
+
   return db.select().from(libraryResources).where(
     or(
-      like(libraryResources.nameEn, `%${query}%`),
-      like(libraryResources.nameUk, `%${query}%`),
-      like(libraryResources.nameRu, `%${query}%`),
-      like(libraryResources.descriptionEn, `%${query}%`),
-      like(libraryResources.descriptionUk, `%${query}%`),
-      like(libraryResources.descriptionRu, `%${query}%`)
+      like(libraryResources.nameEn, `%${escapedQuery}%`),
+      like(libraryResources.nameUk, `%${escapedQuery}%`),
+      like(libraryResources.nameRu, `%${escapedQuery}%`),
+      like(libraryResources.descriptionEn, `%${escapedQuery}%`),
+      like(libraryResources.descriptionUk, `%${escapedQuery}%`),
+      like(libraryResources.descriptionRu, `%${escapedQuery}%`)
     )
   );
 }

@@ -72,6 +72,11 @@ async function startServer() {
   const app = express();
   const server = createServer(app);
 
+  // Trust the first hop from a reverse proxy (nginx, load balancer) so that
+  // express-rate-limit and req.ip resolve to the real client IP via the
+  // X-Forwarded-For header rather than the proxy's IP.
+  app.set("trust proxy", 1);
+
   // In production, enforce strict CSP without unsafe-inline.
   // In development, Vite HMR injects inline scripts and styles so unsafe-inline is kept.
   const isDev = process.env.NODE_ENV !== "production";

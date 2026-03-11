@@ -112,15 +112,13 @@ export const appRouter = router({
           throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
         }
 
-        // Save user message
-        const userMessage = await db.createMessage(input.conversationId, "user", input.content);
-        if (!userMessage) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-
         const conversationLanguage = normalizeLanguage(conversation.language as string | null);
         const detectedLanguage = detectLanguageFromText(input.content);
         const language = detectedLanguage ?? conversationLanguage;
 
-        // Get conversation history for context
+        // Fetch conversation history BEFORE saving the new user message so that
+        // generateConversationReply (which appends the prompt itself) does not
+        // receive the current user turn twice.
         const messages = await db.getMessages(input.conversationId);
         const conversationHistory: ConversationHistoryMessage[] = messages
           .slice(-MAX_CONVERSATION_HISTORY)
@@ -141,6 +139,11 @@ export const appRouter = router({
               : "user";
             return { role, content: m.content };
           });
+
+        // Save user message after history has been read so the current turn
+        // is not included in the history snapshot passed to the AI.
+        const userMessage = await db.createMessage(input.conversationId, "user", input.content);
+        if (!userMessage) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
         // Generate AI response (resource search and RAG are inside the try/catch
         // so that embedding or search failures produce a graceful error message

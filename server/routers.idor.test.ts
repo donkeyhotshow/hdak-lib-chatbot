@@ -2,9 +2,15 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
 import * as db from "./db";
+import * as aiPipeline from "./services/aiPipeline";
 
 vi.mock("./db", async (importOriginal) => {
   const actual = await importOriginal<typeof import("./db")>();
+  return { ...actual };
+});
+
+vi.mock("./services/aiPipeline", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./services/aiPipeline")>();
   return { ...actual };
 });
 
@@ -142,5 +148,47 @@ describe("conversations.delete — IDOR protection", () => {
     await expect(caller.conversations.delete({ id: 999 })).rejects.toMatchObject({
       code: "NOT_FOUND",
     });
+  });
+});
+
+describe("conversations.sendMessage — history deduplication", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("does not include the current user message in the history passed to the AI", async () => {
+    const conv = mockConversation(1, 10);
+    const existingMessages = [
+      { id: 1, conversationId: 10, role: "user" as const, content: "hi", createdAt: new Date() },
+      { id: 2, conversationId: 10, role: "assistant" as const, content: "hello", createdAt: new Date() },
+    ];
+
+    vi.spyOn(db, "getConversation").mockResolvedValueOnce(conv);
+    // getMessages is called BEFORE createMessage — returns only prior messages
+    vi.spyOn(db, "getMessages").mockResolvedValueOnce(existingMessages);
+    vi.spyOn(db, "createMessage")
+      .mockResolvedValueOnce({ id: 3, conversationId: 10, role: "user", content: "new msg", createdAt: new Date() })
+      .mockResolvedValueOnce({ id: 4, conversationId: 10, role: "assistant", content: "reply", createdAt: new Date() });
+
+    // Spy on generateConversationReply so we can inspect what history it received
+    const replySpy = vi.spyOn(aiPipeline, "generateConversationReply").mockResolvedValueOnce({
+      text: "reply",
+      source: "general",
+    });
+
+    const ctx = createUserContext(1);
+    const caller = appRouter.createCaller(ctx);
+    await caller.conversations.sendMessage({ conversationId: 10, content: "new msg" });
+
+    expect(replySpy).toHaveBeenCalledOnce();
+    const callArgs = replySpy.mock.calls[0]![0];
+
+    // history must NOT contain the current user message ("new msg")
+    const historyContainsCurrentMsg = callArgs.history.some(
+      (m: { role: string; content: string }) => m.content === "new msg"
+    );
+    expect(historyContainsCurrentMsg).toBe(false);
+
+    // history must contain only the prior messages
+    expect(callArgs.history).toHaveLength(2);
+    expect(callArgs.prompt).toBe("new msg");
   });
 });
