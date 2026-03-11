@@ -16,6 +16,7 @@ import { chatRateLimiter, trpcRateLimiter, oauthRateLimiter, adminRateLimiter } 
 import { ENV } from "./env";
 import { sdk } from "./sdk";
 import { processDocument } from "../rag-service";
+import { getMetrics, startMemoryMonitoring } from "./metrics";
 
 /** Maximum time (ms) to wait for in-flight requests before forcing shutdown. */
 const SHUTDOWN_TIMEOUT_MS = 10_000;
@@ -118,6 +119,21 @@ async function startServer() {
       return;
     }
     res.json({ ready: true });
+  });
+  // Metrics endpoint (admin-only) — exposes latency, memory and streaming stats
+  app.get("/api/metrics", adminRateLimiter, async (req, res) => {
+    let user;
+    try {
+      user = await sdk.authenticateRequest(req);
+    } catch {
+      res.status(401).json({ error: "Authentication required" });
+      return;
+    }
+    if (user.role !== "admin") {
+      res.status(403).json({ error: "Admin access required" });
+      return;
+    }
+    res.json(getMetrics());
   });
   // OAuth callback under /api/oauth/callback
   app.use("/api/oauth", oauthRateLimiter);
@@ -259,6 +275,8 @@ async function startServer() {
 
   server.listen(port, () => {
     logger.milestone(`Server started on http://localhost:${port}/`, { env: process.env.NODE_ENV ?? "development" });
+    // Start periodic memory monitoring for the /api/metrics endpoint
+    startMemoryMonitoring();
     // Start periodic catalog sync (only outside test environments)
     if (process.env.NODE_ENV !== "test") {
       startSyncScheduler();
