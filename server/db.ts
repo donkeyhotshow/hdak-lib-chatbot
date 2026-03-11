@@ -369,8 +369,9 @@ export async function deleteConversation(conversationId: number): Promise<boolea
   if (!db) return false;
 
   try {
-    // Wrap in a transaction so messages and conversation are deleted atomically.
-    // Without this, a failure between the two deletes would leave orphaned messages.
+    // Wrap in a transaction to ensure both deletes succeed or both fail,
+    // preventing orphaned messages if the conversation delete were to fail
+    // after messages were already removed.
     const result = await db.transaction(async (tx) => {
       await tx.delete(messages).where(eq(messages.conversationId, conversationId));
       return tx.delete(conversations).where(eq(conversations.id, conversationId));

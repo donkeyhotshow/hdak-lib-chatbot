@@ -20,7 +20,7 @@ ENV NODE_ENV=production
 
 # Run as a non-root user to reduce attack surface.
 # addgroup/adduser flags (-S, -g, -u) are BusyBox/Alpine syntax — intentional
-# because all three stages use node:20-alpine as the base image.
+# because the Alpine-based stages use node:20-alpine as the base image.
 RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
 
 # Only copy the built artefacts and production node_modules
