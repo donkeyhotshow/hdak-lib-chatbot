@@ -80,6 +80,8 @@ const translations: Record<Language, Record<string, string>> = {
     filterOther: "Other",
     noResults: "No resources match your filters.",
     sendFailed: "Failed to send. Please try again.",
+    streamError: "Streaming failed. Please try again.",
+    streamErrorTooLarge: "Message is too long (max 10,000 characters).",
     // Quick actions after AI response
     actionFindCatalog: "Find in Catalog",
     actionWriteLetter: "Write to Librarian",
@@ -131,6 +133,8 @@ const translations: Record<Language, Record<string, string>> = {
     filterOther: "Інше",
     noResults: "Ресурсів за вашими фільтрами не знайдено.",
     sendFailed: "Помилка надсилання. Спробуйте ще раз.",
+    streamError: "Помилка стрімінгу. Спробуйте ще раз.",
+    streamErrorTooLarge: "Повідомлення занадто довге (максимум 10 000 символів).",
     // Quick actions after AI response
     actionFindCatalog: "Знайти в каталозі",
     actionWriteLetter: "Написати листа",
@@ -182,6 +186,8 @@ const translations: Record<Language, Record<string, string>> = {
     filterOther: "Прочее",
     noResults: "Ресурсов по вашим фильтрам не найдено.",
     sendFailed: "Ошибка отправки. Попробуйте ещё раз.",
+    streamError: "Ошибка стриминга. Попробуйте ещё раз.",
+    streamErrorTooLarge: "Сообщение слишком длинное (максимум 10 000 символов).",
     // Quick actions after AI response
     actionFindCatalog: "Найти в каталоге",
     actionWriteLetter: "Написать письмо",
@@ -328,7 +334,7 @@ export default function Home() {
   // Fetch messages for current conversation
   const { data: messagesData } = trpc.conversations.getMessages.useQuery(
     { conversationId: currentConversationId! },
-    { enabled: isAuthenticated && currentConversationId !== null }
+    { enabled: isAuthenticated && currentConversationId !== null, staleTime: 30_000 }
   );
 
   // Create conversation mutation
@@ -752,7 +758,13 @@ export default function Home() {
                 {(sendError || streamError) && (
                   <div className="max-w-3xl mx-auto mb-3 flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
                     <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                    <span className="flex-1">{streamError?.message ?? sendError}</span>
+                    <span className="flex-1">{
+                      streamError
+                        ? (streamError.message?.includes("413") || streamError.message?.includes("too large")
+                          ? t.streamErrorTooLarge
+                          : t.streamError)
+                        : sendError
+                    }</span>
                     {/* Retry button — only for streaming errors; replays the last user message */}
                     {streamError && (
                       <Button

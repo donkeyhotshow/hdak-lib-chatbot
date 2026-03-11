@@ -40,7 +40,7 @@ function findLastUserMessage(messages: IncomingMessage[] | unknown): string {
 const CHAT_TIMEOUT_MS = 30_000;
 
 /** Maximum character length allowed per individual message in the /api/chat endpoint. */
-const MAX_CHAT_MESSAGE_LENGTH = 10_000;
+export const MAX_CHAT_MESSAGE_LENGTH = 10_000;
 
 /** Zod schema for validating individual chat messages from the client. */
 const chatMessageSchema = z.object({
@@ -49,7 +49,7 @@ const chatMessageSchema = z.object({
 });
 
 /** Zod schema for validating the full /api/chat request body. */
-const chatRequestSchema = z.object({
+export const chatRequestSchema = z.object({
   messages: z.array(chatMessageSchema).min(1).max(100),
   language: z.enum(["en", "uk", "ru"]).optional(),
   conversationId: z.number().int().positive().optional(),
@@ -266,6 +266,17 @@ export function registerChatRoutes(app: Express) {
     try {
       const parseResult = chatRequestSchema.safeParse(req.body);
       if (!parseResult.success) {
+        // Return 413 when any message content exceeds the per-message size limit;
+        // return 400 for all other validation failures (wrong role, empty content, etc.).
+        const hasTooLarge = parseResult.error.issues.some(
+          (issue) => issue.code === "too_big" && issue.path.includes("content")
+        );
+        if (hasTooLarge) {
+          res
+            .status(413)
+            .json({ error: "Message too large", details: `Each message must be at most ${MAX_CHAT_MESSAGE_LENGTH} characters.` });
+          return;
+        }
         res.status(400).json({ error: "Invalid request", details: parseResult.error.issues });
         return;
       }
@@ -362,6 +373,11 @@ export function registerChatRoutes(app: Express) {
               logger.error("[/api/chat] Failed to save messages", { err });
             }
           }
+        },
+        onError: ({ error }) => {
+          logger.error("[/api/chat] streamText error", {
+            error: error instanceof Error ? error.message : String(error),
+          });
         },
       });
 

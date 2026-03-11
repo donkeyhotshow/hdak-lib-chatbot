@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import * as db from "./db";
 import { hdakResources } from "./system-prompts-official";
-import { tools } from "./_core/chat";
+import { tools, chatRequestSchema, MAX_CHAT_MESSAGE_LENGTH } from "./_core/chat";
 
 describe("Chatbot Database Functions", () => {
   describe("Library Resource Management", () => {
@@ -347,5 +347,70 @@ describe("Chatbot Database Functions", () => {
       );
       expect(result.searchFieldLabel).toContain("Назва");
     });
+  });
+});
+
+describe("Chat API — request validation", () => {
+  const validMessage = { role: "user" as const, content: "Hello" };
+
+  it("accepts a valid single-message request", () => {
+    const result = chatRequestSchema.safeParse({ messages: [validMessage] });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts requests with language and conversationId", () => {
+    const result = chatRequestSchema.safeParse({
+      messages: [validMessage],
+      language: "uk",
+      conversationId: 42,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects messages array when empty", () => {
+    const result = chatRequestSchema.safeParse({ messages: [] });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects unknown language values", () => {
+    const result = chatRequestSchema.safeParse({
+      messages: [validMessage],
+      language: "de",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it(`rejects a message whose content exceeds ${MAX_CHAT_MESSAGE_LENGTH} chars`, () => {
+    const oversized = { role: "user" as const, content: "A".repeat(MAX_CHAT_MESSAGE_LENGTH + 1) };
+    const result = chatRequestSchema.safeParse({ messages: [oversized] });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      // Verify that the failure is a too_big issue on the content field
+      // — the handler uses this to distinguish 413 from generic 400.
+      const hasTooLargeContent = result.error.issues.some(
+        (issue) => issue.code === "too_big" && issue.path.includes("content")
+      );
+      expect(hasTooLargeContent).toBe(true);
+    }
+  });
+
+  it(`accepts a message whose content is exactly ${MAX_CHAT_MESSAGE_LENGTH} chars`, () => {
+    const exact = { role: "user" as const, content: "A".repeat(MAX_CHAT_MESSAGE_LENGTH) };
+    const result = chatRequestSchema.safeParse({ messages: [exact] });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects messages with empty content", () => {
+    const result = chatRequestSchema.safeParse({
+      messages: [{ role: "user", content: "" }],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an invalid role", () => {
+    const result = chatRequestSchema.safeParse({
+      messages: [{ role: "system", content: "Hello" }],
+    });
+    expect(result.success).toBe(false);
   });
 });
