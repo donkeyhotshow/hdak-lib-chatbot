@@ -152,3 +152,20 @@ describe("syncService — sanity check", () => {
     expect(result.errors).toHaveLength(0);
   });
 });
+
+describe("syncService — _isSyncing always resets (try/finally)", () => {
+  it("resets isSyncing to false even when getAllResources throws unexpectedly", async () => {
+    // Simulate a successful catalog fetch returning empty HTML
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response("<html><body></body></html>", { status: 200 })
+    );
+    // Make getAllResources throw to exercise the previously-broken code path
+    vi.spyOn(db, "getAllResources").mockRejectedValueOnce(new Error("DB connection lost"));
+
+    await expect(runSync()).rejects.toThrow("DB connection lost");
+
+    // The flag must be reset by the finally block — without the fix it would
+    // stay true forever and block all future sync attempts.
+    expect(isSyncing()).toBe(false);
+  });
+});

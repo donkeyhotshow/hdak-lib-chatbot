@@ -24,6 +24,10 @@ export function chunkText(text: string, chunkSize: number = CHUNK_SIZE, overlap:
   while (start < text.length) {
     const end = Math.min(start + chunkSize, text.length);
     chunks.push(text.slice(start, end));
+    // When the chunk reached the end of the text, stop immediately.
+    // Without this guard, start = end - overlap keeps start < text.length
+    // forever, producing infinitely repeated trailing chunks.
+    if (end >= text.length) break;
     start = end - overlap;
   }
 
@@ -63,6 +67,8 @@ export function cosineSimilarity(a: number[], b: number[]): number {
     normB += b[i] * b[i];
   }
 
+  // Guard against zero-magnitude vectors (all-zero embeddings) to avoid NaN.
+  if (normA === 0 || normB === 0) return 0;
   return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
