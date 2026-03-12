@@ -13,12 +13,12 @@ services:
         value: production
       # ── AI / LLM ─────────────────────────────────────────────────────────
       - key: BUILT_IN_FORGE_API_URL
-        sync: false          # fill in the Render dashboard
+        sync: false # fill in the Render dashboard
       - key: BUILT_IN_FORGE_API_KEY
-        sync: false          # fill in the Render dashboard (mark as secret)
+        sync: false # fill in the Render dashboard (mark as secret)
       # ── Auth ─────────────────────────────────────────────────────────────
       - key: JWT_SECRET
-        generateValue: true  # Render generates a secure random value
+        generateValue: true # Render generates a secure random value
       - key: VITE_APP_ID
         sync: false
       - key: OAUTH_SERVER_URL
@@ -40,4 +40,4 @@ databases:
   - name: hdak-chatbot-db
     databaseName: hdak_chatbot
     user: hdak
-    plan: free               # upgrade to paid for production workloads
+    plan: free # upgrade to paid for production workloads
