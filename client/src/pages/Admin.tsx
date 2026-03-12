@@ -59,6 +59,9 @@ type ActiveTab =
   | "documents"
   | "metrics";
 
+/** Auto-refresh interval (ms) for the Performance metrics tab. */
+const METRICS_REFRESH_INTERVAL_MS = 5_000;
+
 function formatUptime(seconds: number): string {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
@@ -200,7 +203,8 @@ export default function Admin() {
       return res.json();
     },
     enabled: activeTab === "metrics",
-    refetchInterval: activeTab === "metrics" ? 30_000 : false,
+    refetchInterval:
+      activeTab === "metrics" ? METRICS_REFRESH_INTERVAL_MS : false,
   });
 
   // Mutations
@@ -1493,7 +1497,7 @@ export default function Admin() {
                 <p className="text-xs text-gray-400 text-right">
                   Collected at{" "}
                   {new Date(perfMetrics.collectedAt).toLocaleTimeString()} ·
-                  auto-refreshes every 30 s
+                  auto-refreshes every 5 s
                 </p>
               </>
             ) : null}

@@ -34,6 +34,13 @@ The bot helps readers navigate the library website, search for resources, find a
 - [Testing](#testing)
 - [Build & Deployment](#build--deployment)
 - [Web Interface](#web-interface)
+  - [Run locally (development)](#run-locally-development)
+  - [Chat interface (`/`)](#chat-interface-)
+  - [Admin panel (`/admin`)](#admin-panel-admin)
+  - [Document Upload](#document-upload)
+  - [Metrics Dashboard](#metrics-dashboard)
+  - [Build the frontend](#build-the-frontend)
+  - [Deploy the full stack](#deploy-the-full-stack)
 - [Library Resources Reference](#library-resources-reference)
 - [Known Limitations](#known-limitations)
 
@@ -862,8 +869,47 @@ Accessible only to users with `role === "admin"`.
 | **Documents**    | Upload PDFs / text to the RAG vector store                                                                                |
 | **Performance**  | Live metrics from `GET /api/metrics` — latency percentiles (p50/p95/p99), streaming success/error/timeout, Node.js memory |
 
-> The **Performance** tab polls `/api/metrics` every 30 seconds and requires an
+> The **Performance** tab polls `/api/metrics` every **5 seconds** and requires an
 > admin session cookie (acquired after OAuth login).
+
+### Document Upload
+
+The **Documents** tab in the admin panel lets you add knowledge to the RAG
+(Retrieval-Augmented Generation) vector store:
+
+1. Log in as admin and navigate to `/admin` → **Documents** tab.
+2. Enter the document title and paste or type the full text (or extracted PDF
+   content).
+3. Select the language, source type (`catalog` / `repository` / `database` /
+   `other`), and optional URL / author.
+4. Click **Process & Add to Knowledge Base** — the backend calls
+   `POST /api/admin/process-pdf` (50 MB body limit), chunks the content,
+   generates embeddings, and stores vectors in the database.
+5. Future `/api/chat` requests with relevant questions will automatically
+   retrieve the most similar document chunks and include them in the AI
+   system prompt.
+
+> **Note:** Embeddings require a model that supports the embeddings API at
+> `BUILT_IN_FORGE_API_URL`. If the embeddings API is unavailable, the chat
+> endpoint still works without RAG context — it degrades gracefully.
+
+### Metrics Dashboard
+
+The **Performance** tab (admin-only) provides a live server health view:
+
+| Metric                    | Description                                              |
+| ------------------------- | -------------------------------------------------------- |
+| Uptime                    | How long the server process has been running (h m)       |
+| Total Streams             | Cumulative count of `/api/chat` streaming requests       |
+| Error Rate                | Fraction of streams that ended in error (red when > 10%) |
+| Latency p50/p95/p99       | Percentile response times across recent samples          |
+| Success / Error / Timeout | Individual streaming outcome counts                      |
+| Heap Used / Total         | Current Node.js heap memory usage                        |
+| RSS                       | Resident Set Size (total process memory)                 |
+
+Metrics auto-refresh every **5 seconds** while the tab is open. Click
+**Refresh** to fetch immediately. All data is kept in-process — no external
+monitoring service is required.
 
 ### Build the frontend
 
