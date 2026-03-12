@@ -7,6 +7,7 @@ platforms — Railway, Render, and Fly.io — using the included Docker setup.
 
 - [Prerequisites](#prerequisites)
 - [Environment Variables](#environment-variables)
+- [Local Docker Run](#local-docker-run)
 - [CI/CD Pipeline](#cicd-pipeline)
 - [Platform Deployments](#platform-deployments)
   - [Railway](#railway)
@@ -53,6 +54,44 @@ platforms — Railway, Render, and Fly.io — using the included Docker setup.
 
 ---
 
+## Local Docker Run
+
+Run the full stack locally using Docker Compose (includes MySQL):
+
+```bash
+# 1. Copy the example env file and fill in your values
+cp .env.example .env
+# Edit .env — at minimum set:
+#   BUILT_IN_FORGE_API_URL, BUILT_IN_FORGE_API_KEY, JWT_SECRET
+
+# 2. Start the app + MySQL
+docker compose up --build
+
+# 3. The app is available at http://localhost:3000
+#    MySQL is exposed on 127.0.0.1:3306
+```
+
+To run the container standalone (external MySQL):
+
+```bash
+docker build -t hdak-lib-chatbot .
+
+docker run --rm -p 3000:3000 \
+  -e NODE_ENV=production \
+  -e PORT=3000 \
+  -e BUILT_IN_FORGE_API_URL="https://your-llm.example.com/v1" \
+  -e BUILT_IN_FORGE_API_KEY="your-api-key" \
+  -e JWT_SECRET="$(openssl rand -hex 32)" \
+  -e DATABASE_URL="mysql://user:pass@host:3306/hdak_chatbot" \
+  -e OWNER_OPEN_ID="your-owner-openid" \
+  hdak-lib-chatbot
+```
+
+The `docker-entrypoint.sh` runs `drizzle-kit push` (idempotent schema migration)
+before starting the Node.js server, so the database schema is always up to date.
+
+---
+
 ## CI/CD Pipeline
 
 The pipeline in `.github/workflows/ci.yml` runs on every push and pull request
@@ -80,7 +119,8 @@ issue. This prevents insecure or broken artefacts from reaching production.
 
 ### Railway
 
-Railway auto-detects `Dockerfile` and sets `PORT` automatically.
+Railway auto-detects `Dockerfile` and `railway.json`, and sets `PORT`
+automatically.
 
 #### 1. Install CLI and link repo
 
@@ -114,8 +154,9 @@ railway variables set VITE_OAUTH_PORTAL_URL="https://oauth.example.com"
 railway up
 ```
 
-Railway builds the `Dockerfile`, runs `docker-entrypoint.sh` (which runs
-`drizzle-kit push` before starting the server), and serves the app.
+Railway uses `railway.json` to find the `Dockerfile`, builds it, runs
+`docker-entrypoint.sh` (which runs `drizzle-kit push` before starting the
+server), and serves the app on the port injected by Railway.
 
 ---
 
@@ -253,7 +294,26 @@ The metrics endpoint confirms:
 - Role-based authorization is enforcing admin-only access
 - `adminRateLimiter` is protecting the route
 
-### 5. Frontend
+### 5. Admin PDF processing endpoint
+
+```bash
+# Without auth — should fail:
+curl -i https://your-app.example.com/api/admin/process-pdf
+# Expected: 401 (authentication required)
+
+# With an admin session cookie:
+curl -i https://your-app.example.com/api/admin/process-pdf \
+  -H "Cookie: session=<your-admin-session-cookie>" \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Test Document","content":"Sample PDF text content here..."}'
+# Expected: 200 {"success":true,"chunksCreated":...}
+```
+
+> **Note:** The `/api/admin/process-pdf` route accepts up to 50 MB of JSON.
+> If a reverse proxy (Cloudflare, nginx) is in front, ensure it allows at least
+> 50 MB request bodies on this path.
+
+### 6. Frontend
 
 Navigate to `https://your-app.example.com` in a browser.  
 The React frontend is served by the same Express process from `dist/public/`.  
