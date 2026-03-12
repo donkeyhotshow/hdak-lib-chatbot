@@ -1040,6 +1040,10 @@ export async function getAllLibraryInfo(): Promise<LibraryInfo[]> {
   return await db.select().from(libraryInfo);
 }
 
+/** Deduplication window for user query analytics: identical queries from the
+ *  same user within this interval (ms) are not inserted again. */
+const QUERY_DEDUP_WINDOW_MS = 60_000;
+
 // User Query logging
 export async function logUserQuery(
   userId: number | null,
@@ -1053,9 +1057,8 @@ export async function logUserQuery(
 
   try {
     // Deduplication: skip insert when the same user submitted an identical query
-    // within the last 60 seconds to avoid analytics noise from rapid retries.
-    const dedupeWindowMs = 60_000;
-    const since = new Date(Date.now() - dedupeWindowMs);
+    // within the last QUERY_DEDUP_WINDOW_MS to avoid analytics noise from rapid retries.
+    const since = new Date(Date.now() - QUERY_DEDUP_WINDOW_MS);
     const duplicateConditions = [
       eq(userQueries.query, query),
       eq(userQueries.language, language as any),

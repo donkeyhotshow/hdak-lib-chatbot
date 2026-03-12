@@ -20,16 +20,21 @@ const CHUNK_OVERLAP = 200; // overlap between chunks
 /** Maximum document size accepted for RAG processing. Larger inputs are truncated. */
 const MAX_DOCUMENT_SIZE = 500_000; // characters
 
+/** TTL for query-embedding cache entries (seconds). */
+const EMBEDDING_CACHE_TTL_SECONDS = 60 * 60; // 1 hour
+/** How often the cache evicts expired entries (seconds). */
+const EMBEDDING_CACHE_CHECK_PERIOD_SECONDS = 5 * 60; // 5 minutes
+
 /**
- * Short-lived in-memory cache for query embeddings (TTL = 1 hour).
+ * Short-lived in-memory cache for query embeddings.
  * Repeated identical queries (e.g. the same question asked twice in quick
  * succession) skip the embedding API call and reuse the cached vector.
  * This is the primary RAG-scaling mitigation until a proper vector-index
  * (e.g. pgvector) is available.
  */
 const embeddingCache = new NodeCache({
-  stdTTL: 60 * 60,
-  checkperiod: 5 * 60,
+  stdTTL: EMBEDDING_CACHE_TTL_SECONDS,
+  checkperiod: EMBEDDING_CACHE_CHECK_PERIOD_SECONDS,
 });
 
 /**

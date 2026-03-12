@@ -34,10 +34,16 @@ const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
   return next({ ctx });
 });
 
-/** Maximum number of previous messages included in the AI context window. */
-const MAX_CONVERSATION_HISTORY = 14;
+/**
+ * Number of most-recent messages to pass directly to the AI without
+ * summarisation. Older messages (when history is longer) are condensed into a
+ * brief summary prefix so context is never silently dropped.
+ */
+const CONVERSATION_HISTORY_WINDOW = 14;
 /** Maximum character length allowed for a single user message. */
 const MAX_MESSAGE_LENGTH = 10_000;
+/** Maximum tokens produced by the history-summarisation sub-call. */
+const SUMMARY_MAX_TOKENS = 200;
 
 /**
  * When a conversation exceeds MAX_CONVERSATION_HISTORY messages, summarise the
@@ -52,12 +58,12 @@ async function buildHistoryWithSummary(
   allMessages: ConversationHistoryMessage[],
   language: SupportedLanguage
 ): Promise<ConversationHistoryMessage[]> {
-  if (allMessages.length <= MAX_CONVERSATION_HISTORY) {
+  if (allMessages.length <= CONVERSATION_HISTORY_WINDOW) {
     return allMessages;
   }
 
-  const oldMessages = allMessages.slice(0, -MAX_CONVERSATION_HISTORY);
-  const recentMessages = allMessages.slice(-MAX_CONVERSATION_HISTORY);
+  const oldMessages = allMessages.slice(0, -CONVERSATION_HISTORY_WINDOW);
+  const recentMessages = allMessages.slice(-CONVERSATION_HISTORY_WINDOW);
 
   const summaryPrompts: Record<SupportedLanguage, string> = {
     uk: "Стисло підсумуй наступний фрагмент розмови в 2–3 речення, зберігаючи ключові факти та запити:",
@@ -79,7 +85,7 @@ async function buildHistoryWithSummary(
         },
       ],
       temperature: AI_TEMPERATURE,
-      maxOutputTokens: 200,
+      maxOutputTokens: SUMMARY_MAX_TOKENS,
     });
 
     const summaryMessage: ConversationHistoryMessage = {
