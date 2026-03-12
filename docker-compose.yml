@@ -9,7 +9,9 @@ services:
       - NODE_ENV=production
       - PORT=3000
       # ── Database ────────────────────────────────────────────────────────────
-      - DATABASE_URL=mysql://hdak:hdakpassword@db:3306/hdak_chatbot
+      # Uses the credentials defined on the db service below.
+      # Override DATABASE_URL in .env to point at an external MySQL instance.
+      - DATABASE_URL=mysql://${MYSQL_USER:-hdak}:${MYSQL_PASSWORD:-hdakpassword}@db:3306/${MYSQL_DATABASE:-hdak_chatbot}
       # ── AI / LLM ────────────────────────────────────────────────────────────
       # Base URL of the OpenAI-compatible API endpoint (must end with /v1)
       - BUILT_IN_FORGE_API_URL=${BUILT_IN_FORGE_API_URL}
@@ -39,10 +41,10 @@ services:
   db:
     image: mysql:8.0
     environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: hdak_chatbot
-      MYSQL_USER: hdak
-      MYSQL_PASSWORD: hdakpassword
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-hdak_chatbot}
+      MYSQL_USER: ${MYSQL_USER:-hdak}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-hdakpassword}
     volumes:
       - mysql_data:/var/lib/mysql
     ports:
