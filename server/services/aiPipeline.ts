@@ -1,11 +1,10 @@
-import { generateText } from "ai";
-import { openai } from "@ai-sdk/openai";
 import NodeCache from "node-cache";
 import type { LibraryResource } from "../../drizzle/schema";
 import * as db from "../db";
 import { getRagContext } from "../rag-service";
 import { logger } from "../_core/logger";
 import { ENV } from "../_core/env";
+import { generateWithFallback } from "../ai-providers";
 import {
   getSystemPrompt,
   officialLibraryInfo,
@@ -318,8 +317,7 @@ export async function generateConversationReply(
     ];
 
     const startMs = Date.now();
-    const { text, usage } = await generateText({
-      model: openai(AI_MODEL_NAME),
+    const { text, usage } = await generateWithFallback({
       system: systemPrompt,
       messages: allMessages,
       temperature: AI_TEMPERATURE,

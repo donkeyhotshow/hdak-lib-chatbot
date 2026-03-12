@@ -322,3 +322,114 @@ describe("Issue 11 — soft-delete in mock mode", () => {
     expect(searchResult.find(r => r.id === first.id)).toBeUndefined();
   });
 });
+
+// ---------------------------------------------------------------------------
+// Fallback AI provider system (ai-providers.ts)
+// ---------------------------------------------------------------------------
+
+describe("Fallback AI provider — streamWithFallback / generateWithFallback", () => {
+  // Each test works with fresh module state so env changes don't bleed across
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("primary success — calls streamText once and returns the result", async () => {
+    const mockResult = { pipeUIMessageStreamToResponse: vi.fn() };
+    vi.doMock("ai", () => ({
+      streamText: vi.fn().mockReturnValue(mockResult),
+      generateText: vi.fn(),
+    }));
+    vi.doMock("@ai-sdk/openai", () => ({
+      createOpenAI: vi.fn(() => ({
+        chat: vi.fn(() => "mock-model"),
+      })),
+    }));
+
+    process.env.BUILT_IN_FORGE_API_URL = "https://primary.example.com/v1";
+    process.env.BUILT_IN_FORGE_API_KEY = "primary-key";
+    process.env.LLM_MODEL = "gpt-4o-mini";
+    delete process.env.FALLBACK_API_KEY;
+
+    const { streamWithFallback } = await import("./ai-providers");
+    const { streamText } = await import("ai");
+
+    const result = await streamWithFallback({
+      messages: [{ role: "user", content: "Hello" }],
+    });
+
+    expect(result).toBe(mockResult);
+    expect(streamText).toHaveBeenCalledTimes(1);
+  });
+
+  it("primary fails + fallback succeeds — returns fallback result", async () => {
+    const mockResult = { pipeUIMessageStreamToResponse: vi.fn() };
+    let callCount = 0;
+    vi.doMock("ai", () => ({
+      streamText: vi.fn().mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) throw new Error("Primary rate limited (429)");
+        return mockResult;
+      }),
+      generateText: vi.fn(),
+    }));
+    vi.doMock("@ai-sdk/openai", () => ({
+      createOpenAI: vi.fn(() => ({
+        chat: vi.fn(() => "mock-model"),
+      })),
+    }));
+
+    process.env.BUILT_IN_FORGE_API_URL = "https://primary.example.com/v1";
+    process.env.BUILT_IN_FORGE_API_KEY = "primary-key";
+    process.env.LLM_MODEL = "gpt-4o-mini";
+    process.env.FALLBACK_API_URL = "https://groq.example.com/v1";
+    process.env.FALLBACK_API_KEY = "fallback-key";
+    process.env.FALLBACK_MODEL = "llama-3.1-8b-instant";
+
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { streamWithFallback } = await import("./ai-providers");
+    const { streamText } = await import("ai");
+
+    const result = await streamWithFallback({
+      messages: [{ role: "user", content: "Hello" }],
+    });
+
+    expect(result).toBe(mockResult);
+    expect(streamText).toHaveBeenCalledTimes(2);
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining("Provider 1 failed"),
+      expect.stringContaining("429")
+    );
+  });
+
+  it("both providers fail — throws 'All AI providers unavailable'", async () => {
+    vi.doMock("ai", () => ({
+      streamText: vi.fn().mockImplementation(() => {
+        throw new Error("Service unavailable");
+      }),
+      generateText: vi.fn(),
+    }));
+    vi.doMock("@ai-sdk/openai", () => ({
+      createOpenAI: vi.fn(() => ({
+        chat: vi.fn(() => "mock-model"),
+      })),
+    }));
+
+    process.env.BUILT_IN_FORGE_API_URL = "https://primary.example.com/v1";
+    process.env.BUILT_IN_FORGE_API_KEY = "primary-key";
+    process.env.LLM_MODEL = "gpt-4o-mini";
+    process.env.FALLBACK_API_URL = "https://groq.example.com/v1";
+    process.env.FALLBACK_API_KEY = "fallback-key";
+    process.env.FALLBACK_MODEL = "llama-3.1-8b-instant";
+
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { streamWithFallback } = await import("./ai-providers");
+
+    await expect(
+      streamWithFallback({ messages: [{ role: "user", content: "Hello" }] })
+    ).rejects.toThrow("All AI providers unavailable");
+  });
+});

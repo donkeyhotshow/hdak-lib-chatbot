@@ -14,14 +14,13 @@ import {
   logAiPipelineError,
   normalizeLanguage,
   sanitizeUntrustedContent,
+  AI_TEMPERATURE,
   type ConversationHistoryMessage,
   type MessageSource,
   type SupportedLanguage,
 } from "./services/aiPipeline";
-import { generateText } from "ai";
-import { openai } from "@ai-sdk/openai";
-import { AI_MODEL_NAME, AI_TEMPERATURE } from "./services/aiPipeline";
 import { runSync, isSyncing, getLastSyncStatus } from "./services/syncService";
+import { generateWithFallback } from "./ai-providers";
 
 // Admin-only procedure
 const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
@@ -76,8 +75,7 @@ async function buildHistoryWithSummary(
     .join("\n");
 
   try {
-    const { text: summary } = await generateText({
-      model: openai(AI_MODEL_NAME),
+    const { text: summary } = await generateWithFallback({
       messages: [
         {
           role: "user",

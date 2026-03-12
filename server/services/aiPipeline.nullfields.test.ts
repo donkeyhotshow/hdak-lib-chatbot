@@ -11,7 +11,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { generateConversationReply, clearReplyCache } from "./aiPipeline";
 import * as db from "../db";
 import * as ragService from "../rag-service";
-import { generateText } from "ai";
+import { generateWithFallback } from "../ai-providers";
 
 // ---------------------------------------------------------------------------
 // Module mocks
@@ -31,13 +31,14 @@ vi.mock("ai", async importOriginal => {
   const actual = await importOriginal<typeof import("ai")>();
   return {
     ...actual,
-    generateText: vi.fn(),
     embed: vi.fn(),
   };
 });
 
-vi.mock("@ai-sdk/openai", () => ({
-  openai: vi.fn(() => "mock-model"),
+// aiPipeline.ts now uses generateWithFallback from "../ai-providers".
+// Mock that module instead of the low-level AI SDK.
+vi.mock("../ai-providers", () => ({
+  generateWithFallback: vi.fn(),
 }));
 
 // ---------------------------------------------------------------------------
@@ -70,7 +71,7 @@ describe("buildResourceContext — null-name and null-description fallbacks", ()
       resourceNullUk as any,
     ]);
     vi.spyOn(ragService, "getRagContext").mockResolvedValueOnce("");
-    vi.mocked(generateText).mockResolvedValueOnce({
+    vi.mocked(generateWithFallback).mockResolvedValueOnce({
       text: "ok",
       usage: { promptTokens: 0, completionTokens: 0 },
     } as any);
@@ -108,7 +109,7 @@ describe("buildResourceContext — null-name and null-description fallbacks", ()
       resourceNullRu as any,
     ]);
     vi.spyOn(ragService, "getRagContext").mockResolvedValueOnce("");
-    vi.mocked(generateText).mockResolvedValueOnce({
+    vi.mocked(generateWithFallback).mockResolvedValueOnce({
       text: "russian ok",
       usage: { promptTokens: 0, completionTokens: 0 },
     } as any);
@@ -146,7 +147,7 @@ describe("buildResourceContext — null-name and null-description fallbacks", ()
       resourceAllNull as any,
     ]);
     vi.spyOn(ragService, "getRagContext").mockResolvedValueOnce("");
-    vi.mocked(generateText).mockResolvedValueOnce({
+    vi.mocked(generateWithFallback).mockResolvedValueOnce({
       text: "fallback ok",
       usage: { promptTokens: 0, completionTokens: 0 },
     } as any);

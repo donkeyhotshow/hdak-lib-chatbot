@@ -323,7 +323,13 @@ async function startServer() {
       res.status(503).json({ ready: false, missing });
       return;
     }
-    res.json({ ready: true });
+    res.json({
+      ready: true,
+      providers: {
+        primary: ENV.forgeApiKey ? "configured" : "not configured",
+        fallback: ENV.fallbackApiKey ? "configured" : "not configured",
+      },
+    });
   });
   // Metrics endpoint (admin-only) — exposes latency, memory and streaming stats
   app.get("/api/metrics", adminRateLimiter, async (req, res) => {

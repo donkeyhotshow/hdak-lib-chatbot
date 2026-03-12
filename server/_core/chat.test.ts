@@ -7,10 +7,10 @@
  * no real network calls.
  *
  * Covered previously-uncovered functions in chat.ts:
- *   - createLLMProvider (lines 61-69)
+ *   - streamWithFallback (fallback provider chain)
  *   - buildSystemPrompt (lines 245-263)
- *   - registerChatRoutes + the POST handler (lines 264-394)
- *   - findLastUserMessage (lines 26-42)
+ *   - registerChatRoutes + the POST handler
+ *   - findLastUserMessage
  */
 
 import {
@@ -30,9 +30,13 @@ import { registerChatRoutes } from "./chat";
 // Module mocks — must be declared before any module imports are consumed
 // ---------------------------------------------------------------------------
 
-vi.mock("@ai-sdk/openai", () => ({
-  createOpenAI: vi.fn(() => ({
-    chat: vi.fn(() => "mock-model"),
+vi.mock("../ai-providers", () => ({
+  streamWithFallback: vi.fn(async () => ({
+    pipeUIMessageStreamToResponse: vi.fn(
+      (res: import("express").Response) => {
+        res.status(200).end("data: done\n\n");
+      }
+    ),
   })),
 }));
 
@@ -55,14 +59,6 @@ vi.mock("ai", async importOriginal => {
   const actual = await importOriginal<typeof import("ai")>();
   return {
     ...actual,
-    // Replace streamText so we don't make real LLM calls
-    streamText: vi.fn(() => ({
-      pipeUIMessageStreamToResponse: vi.fn(
-        (res: import("express").Response) => {
-          res.status(200).end("data: done\n\n");
-        }
-      ),
-    })),
     // tool() must return its first arg for the tools object to be defined correctly
     tool: vi.fn((config: unknown) => config),
     stepCountIs: vi.fn(() => () => false),

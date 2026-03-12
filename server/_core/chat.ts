@@ -5,13 +5,10 @@
  * Uses patched fetch to fix OpenAI-compatible proxy issues.
  */
 
-import { streamText, stepCountIs } from "ai";
+import { stepCountIs } from "ai";
 import { tool } from "ai";
-import { createOpenAI } from "@ai-sdk/openai";
 import type { Express } from "express";
 import { z } from "zod/v4";
-import { ENV } from "./env";
-import { createPatchedFetch } from "./patchedFetch";
 import { logger } from "./logger";
 import { sdk } from "./sdk";
 import * as db from "../db";
@@ -25,7 +22,6 @@ import {
   detectLanguageFromText,
   sanitizeUntrustedContent,
   AI_TEMPERATURE,
-  AI_MODEL_NAME,
 } from "../services/aiPipeline";
 import { recordLatency, recordStreamOutcome } from "./metrics";
 import {
@@ -33,6 +29,7 @@ import {
   CATALOG_PAGE_URL,
   REPOSITORY_URL,
 } from "../constants";
+import { streamWithFallback } from "../ai-providers";
 
 /** Maximum number of recent messages to scan when detecting the last user language. */
 const MAX_LANGUAGE_LOOKBACK = 20;
@@ -74,21 +71,6 @@ export const chatRequestSchema = z.object({
   language: z.enum(["en", "uk", "ru"]).optional(),
   conversationId: z.number().int().positive().optional(),
 });
-
-/**
- * Creates an OpenAI-compatible provider with patched fetch.
- */
-function createLLMProvider() {
-  const baseURL = ENV.forgeApiUrl.endsWith("/v1")
-    ? ENV.forgeApiUrl
-    : `${ENV.forgeApiUrl}/v1`;
-
-  return createOpenAI({
-    baseURL,
-    apiKey: ENV.forgeApiKey,
-    fetch: createPatchedFetch(fetch),
-  });
-}
 
 /**
  * HDAK Library tool registry.
@@ -296,8 +278,6 @@ function buildSystemPrompt(language: "en" | "uk" | "ru"): string {
  * ```
  */
 export function registerChatRoutes(app: Express) {
-  const openai = createLLMProvider();
-
   app.post("/api/chat", async (req, res) => {
     const requestStartMs = Date.now();
     try {
@@ -405,8 +385,7 @@ export function registerChatRoutes(app: Express) {
           ? [...dbHistory, ...sanitizedMessages]
           : sanitizedMessages;
 
-      const result = streamText({
-        model: openai.chat(AI_MODEL_NAME),
+      const result = await streamWithFallback({
         system: buildSystemPrompt(lang),
         messages: messagesForAI,
         tools,

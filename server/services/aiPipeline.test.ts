@@ -10,7 +10,7 @@ import {
 } from "./aiPipeline";
 import { searchResources, logUserQuery } from "../db";
 import { getRagContext } from "../rag-service";
-import { generateText } from "ai";
+import { generateWithFallback } from "../ai-providers";
 
 vi.mock("../db", () => ({
   searchResources: vi.fn(),
@@ -25,14 +25,16 @@ vi.mock("ai", () => ({
   generateText: vi.fn(),
 }));
 
-vi.mock("@ai-sdk/openai", () => ({
-  openai: vi.fn(() => "mock-model"),
+// aiPipeline.ts now calls generateWithFallback (not generateText directly).
+// Mock the provider module so tests don't need real API credentials.
+vi.mock("../ai-providers", () => ({
+  generateWithFallback: vi.fn(),
 }));
 
 const mockedSearchResources = searchResources as unknown as vi.Mock;
 const mockedLogUserQuery = logUserQuery as unknown as vi.Mock;
 const mockedGetRagContext = getRagContext as unknown as vi.Mock;
-const mockedGenerateText = generateText as unknown as vi.Mock;
+const mockedGenerateWithFallback = generateWithFallback as unknown as vi.Mock;
 
 const mockResource = {
   id: 1,
@@ -56,7 +58,7 @@ describe("aiPipeline helpers", () => {
     mockedSearchResources.mockResolvedValue([mockResource]);
     mockedLogUserQuery.mockResolvedValue(null);
     mockedGetRagContext.mockResolvedValue("\nRAG");
-    mockedGenerateText.mockResolvedValue({ text: "mock reply" });
+    mockedGenerateWithFallback.mockResolvedValue({ text: "mock reply" });
   });
 
   it("returns localized error messages for supported languages", () => {
@@ -93,9 +95,9 @@ describe("aiPipeline helpers", () => {
     expect(mockedSearchResources).toHaveBeenCalledWith("hello");
     expect(mockedGetRagContext).toHaveBeenCalledWith("hello", "en");
     expect(mockedLogUserQuery).toHaveBeenCalledWith(2, 1, "hello", "en", [1]);
-    expect(mockedGenerateText).toHaveBeenCalledWith(
+    expect(mockedGenerateWithFallback).toHaveBeenCalledWith(
       expect.objectContaining({
-        model: "mock-model",
+        messages: expect.any(Array),
       })
     );
   });
@@ -126,7 +128,7 @@ describe("aiPipeline helpers", () => {
   });
 
   it("wraps failures in AiPipelineError", async () => {
-    mockedGenerateText.mockRejectedValueOnce(new Error("boom"));
+    mockedGenerateWithFallback.mockRejectedValueOnce(new Error("boom"));
 
     await expect(
       generateConversationReply({
@@ -206,7 +208,7 @@ describe("generateConversationReply — cache key collision resistance", () => {
     // With JSON.stringify, each pair gets a distinct key.
 
     // First call — pair A → should return "reply-A"
-    mockedGenerateText.mockResolvedValueOnce({ text: "reply-A" });
+    mockedGenerateWithFallback.mockResolvedValueOnce({ text: "reply-A" });
 
     const resultA = await generateConversationReply({
       prompt: "c",
@@ -221,7 +223,7 @@ describe("generateConversationReply — cache key collision resistance", () => {
     expect(resultA.text).toBe("reply-A");
 
     // Second call — pair B shares the same OLD key but a different JSON key
-    mockedGenerateText.mockResolvedValueOnce({ text: "reply-B" });
+    mockedGenerateWithFallback.mockResolvedValueOnce({ text: "reply-B" });
 
     const resultB = await generateConversationReply({
       prompt: "c",
@@ -241,19 +243,20 @@ describe("generateConversationReply — cache skips embedding API call", () => {
   let mockedSearchResources: ReturnType<typeof vi.fn>;
   let mockedLogUserQuery: ReturnType<typeof vi.fn>;
   let mockedGetRagContext: ReturnType<typeof vi.fn>;
-  let mockedGenerateText: ReturnType<typeof vi.fn>;
+  let mockedGenerateWithFallbackLocal: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     clearReplyCache();
     mockedSearchResources = vi.mocked(searchResources);
     mockedLogUserQuery = vi.mocked(logUserQuery);
     mockedGetRagContext = vi.mocked(getRagContext);
-    mockedGenerateText = vi.mocked(generateText);
+    mockedGenerateWithFallbackLocal = vi.mocked(generateWithFallback);
 
     mockedSearchResources.mockResolvedValue([]);
     mockedLogUserQuery.mockResolvedValue(null);
     mockedGetRagContext.mockResolvedValue("");
-    mockedGenerateText.mockResolvedValue({ text: "first reply", usage: {} });
+    mockedGenerateWithFallbackLocal = vi.mocked(generateWithFallback);
+    mockedGenerateWithFallbackLocal.mockResolvedValue({ text: "first reply", usage: {} });
   });
 
   afterEach(() => {
@@ -275,7 +278,7 @@ describe("generateConversationReply — cache skips embedding API call", () => {
 
     // Reset call counts
     mockedGetRagContext.mockClear();
-    mockedGenerateText.mockClear();
+    mockedGenerateWithFallback.mockClear();
 
     // Second identical call — should hit the cache
     const result = await generateConversationReply(params);
@@ -283,6 +286,6 @@ describe("generateConversationReply — cache skips embedding API call", () => {
     // The expensive embedding API call must NOT have been made
     expect(mockedGetRagContext).toHaveBeenCalledTimes(0);
     // The LLM call must NOT have been made
-    expect(mockedGenerateText).toHaveBeenCalledTimes(0);
+    expect(mockedGenerateWithFallbackLocal).toHaveBeenCalledTimes(0);
   });
 });
