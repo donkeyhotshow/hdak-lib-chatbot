@@ -1,37 +1,43 @@
 import { describe, it, expect } from "vitest";
 import * as db from "./db";
 import { hdakResources } from "./system-prompts-official";
-import { tools, chatRequestSchema, MAX_CHAT_MESSAGE_LENGTH } from "./_core/chat";
+import {
+  tools,
+  chatRequestSchema,
+  MAX_CHAT_MESSAGE_LENGTH,
+} from "./_core/chat";
 
 describe("Chatbot Database Functions", () => {
   describe("Library Resource Management", () => {
     it("should retrieve all resources from database", async () => {
       const resources = await db.getAllResources();
-      
+
       expect(Array.isArray(resources)).toBe(true);
       expect(resources.length).toBeGreaterThan(0);
-      
+
       // Verify seeded resources exist
-      const hasElectronicCatalog = resources.some(r => r.nameEn === "Electronic Catalog");
+      const hasElectronicCatalog = resources.some(
+        r => r.nameEn === "Electronic Catalog"
+      );
       expect(hasElectronicCatalog).toBe(true);
     });
 
     it("should search resources by English keywords", async () => {
       const resources = await db.searchResources("library");
-      
+
       expect(Array.isArray(resources)).toBe(true);
       expect(resources.length).toBeGreaterThan(0);
     });
 
     it("should search resources by Ukrainian keywords", async () => {
       const resources = await db.searchResources("бібліотека");
-      
+
       expect(Array.isArray(resources)).toBe(true);
     });
 
     it("should search resources by Russian keywords", async () => {
       const resources = await db.searchResources("база");
-      
+
       expect(Array.isArray(resources)).toBe(true);
     });
 
@@ -55,10 +61,10 @@ describe("Chatbot Database Functions", () => {
 
     it("should filter resources by type database", async () => {
       const resources = await db.getResourcesByType("database");
-      
+
       expect(Array.isArray(resources)).toBe(true);
       expect(resources.length).toBeGreaterThan(0);
-      
+
       // Verify all returned resources are of type database
       resources.forEach(r => {
         expect(r.type).toBe("database");
@@ -67,7 +73,7 @@ describe("Chatbot Database Functions", () => {
 
     it("should filter resources by type electronic_library", async () => {
       const resources = await db.getResourcesByType("electronic_library");
-      
+
       expect(Array.isArray(resources)).toBe(true);
       expect(resources.length).toBeGreaterThan(0);
     });
@@ -81,7 +87,7 @@ describe("Chatbot Database Functions", () => {
         type: "other",
         url: "https://test.example.com",
       });
-      
+
       expect(resource).toBeDefined();
       expect(resource?.url).toBe("https://test.example.com");
     });
@@ -97,7 +103,7 @@ describe("Chatbot Database Functions", () => {
         const updated = await db.updateResource(created.id, {
           nameEn: `Updated ${timestamp}`,
         });
-        
+
         expect(updated).toBeDefined();
         expect(updated?.id).toBe(created.id);
       }
@@ -120,10 +126,10 @@ describe("Chatbot Database Functions", () => {
   describe("Library Contact Management", () => {
     it("should retrieve all contacts from database", async () => {
       const contacts = await db.getAllContacts();
-      
+
       expect(Array.isArray(contacts)).toBe(true);
       expect(contacts.length).toBeGreaterThan(0);
-      
+
       // Verify seeded contacts exist
       const hasEmailContact = contacts.some(c => c.type === "email");
       expect(hasEmailContact).toBe(true);
@@ -136,7 +142,7 @@ describe("Chatbot Database Functions", () => {
         value: `test${timestamp}@example.com`,
         labelEn: `Test Email ${timestamp}`,
       });
-      
+
       expect(contact).toBeDefined();
     });
 
@@ -152,7 +158,7 @@ describe("Chatbot Database Functions", () => {
         const updated = await db.updateContact(created.id, {
           value: "+0987654321",
         });
-        
+
         expect(updated).toBeDefined();
         expect(updated?.value).toBe("+0987654321");
       }
@@ -176,7 +182,7 @@ describe("Chatbot Database Functions", () => {
   describe("Library Info Management", () => {
     it("should retrieve existing library info", async () => {
       const info = await db.getLibraryInfo("about");
-      
+
       expect(info).toBeDefined();
       expect(info?.key).toBe("about");
       expect(info?.valueEn).toBeDefined();
@@ -185,21 +191,21 @@ describe("Chatbot Database Functions", () => {
     it("should set new library info", async () => {
       const timestamp = Date.now();
       const testKey = `test_info_${timestamp}`;
-      
+
       const info = await db.setLibraryInfo(
         testKey,
         "Test English Value",
         "Тест українське значення",
         "Тест русское значение"
       );
-      
+
       expect(info).toBeDefined();
     });
 
     it("should update existing library info", async () => {
       const timestamp = Date.now();
       const testKey = `update_info_${timestamp}`;
-      
+
       // Create first
       await db.setLibraryInfo(
         testKey,
@@ -215,7 +221,7 @@ describe("Chatbot Database Functions", () => {
         "Оновлене значення",
         "Обновленное значение"
       );
-      
+
       expect(updated).toBeDefined();
     });
 
@@ -230,11 +236,11 @@ describe("Chatbot Database Functions", () => {
       expect(Array.isArray(all)).toBe(true);
 
       // The seeded "about" key should be present
-      const aboutEntry = all.find((e) => e.key === "about");
+      const aboutEntry = all.find(e => e.key === "about");
       expect(aboutEntry).toBeDefined();
 
       // The dynamically-added custom key should also be present
-      const customEntry = all.find((e) => e.key === customKey);
+      const customEntry = all.find(e => e.key === customKey);
       expect(customEntry).toBeDefined();
       expect(customEntry?.valueEn).toBe("Custom EN");
     });
@@ -249,7 +255,7 @@ describe("Chatbot Database Functions", () => {
         "en",
         [1, 2]
       );
-      
+
       expect(query).toBeDefined();
     });
 
@@ -261,7 +267,7 @@ describe("Chatbot Database Functions", () => {
         "uk",
         null
       );
-      
+
       expect(query).toBeDefined();
     });
   });
@@ -269,14 +275,14 @@ describe("Chatbot Database Functions", () => {
   describe("Conversation and Message Management", () => {
     it("should retrieve conversations list", async () => {
       const conversations = await db.getConversations(1);
-      
+
       expect(Array.isArray(conversations)).toBe(true);
     });
 
     it("should retrieve messages from conversation", async () => {
       // Get first conversation if any exist
       const conversations = await db.getConversations(1);
-      
+
       if (conversations.length > 0) {
         const messages = await db.getMessages(conversations[0].id);
         expect(Array.isArray(messages)).toBe(true);
@@ -293,7 +299,9 @@ describe("Chatbot Database Functions", () => {
     it("should include the Electronic Catalog with correct URL", () => {
       const catalog = hdakResources.find(r => r.name === "Електронний каталог");
       expect(catalog).toBeDefined();
-      expect(catalog?.url).toBe("https://library-service.com.ua:8443/khkhdak/DocumentSearchForm");
+      expect(catalog?.url).toBe(
+        "https://library-service.com.ua:8443/khkhdak/DocumentSearchForm"
+      );
     });
 
     it("should include the HDAK Repository with open access", () => {
@@ -303,7 +311,9 @@ describe("Chatbot Database Functions", () => {
     });
 
     it("should mark corporate-access databases correctly", () => {
-      const corporateResources = hdakResources.filter(r => r.accessConditions?.includes("корпоративний доступ"));
+      const corporateResources = hdakResources.filter(r =>
+        r.accessConditions?.includes("корпоративний доступ")
+      );
       expect(corporateResources.length).toBeGreaterThan(0);
       const names = corporateResources.map(r => r.name);
       expect(names).toContain("Scopus");
@@ -313,7 +323,10 @@ describe("Chatbot Database Functions", () => {
 
   describe("Chat tools — library integration", () => {
     it("searchLibraryResources tool: finds resources by English keyword", async () => {
-      const result = await tools.searchLibraryResources.execute({ query: "catalog" }, {} as any);
+      const result = await tools.searchLibraryResources.execute(
+        { query: "catalog" },
+        {} as any
+      );
       expect(result.query).toBe("catalog");
       expect(Array.isArray(result.dbResources)).toBe(true);
       expect(Array.isArray(result.siteResources)).toBe(true);
@@ -321,18 +334,28 @@ describe("Chatbot Database Functions", () => {
     });
 
     it("searchLibraryResources tool: finds resources by Ukrainian keyword", async () => {
-      const result = await tools.searchLibraryResources.execute({ query: "каталог" }, {} as any);
+      const result = await tools.searchLibraryResources.execute(
+        { query: "каталог" },
+        {} as any
+      );
       expect(result.found).toBeGreaterThan(0);
       const allNames = [
         ...result.dbResources.map((r: any) => r.name),
         ...result.siteResources.map((r: any) => r.name),
       ];
-      expect(allNames.some((n: string) => n.toLowerCase().includes("каталог"))).toBe(true);
+      expect(
+        allNames.some((n: string) => n.toLowerCase().includes("каталог"))
+      ).toBe(true);
     });
 
     it("searchLibraryResources tool: returns siteResources for Scopus", async () => {
-      const result = await tools.searchLibraryResources.execute({ query: "Scopus" }, {} as any);
-      const scopusEntry = result.siteResources.find((r: any) => r.name === "Scopus");
+      const result = await tools.searchLibraryResources.execute(
+        { query: "Scopus" },
+        {} as any
+      );
+      const scopusEntry = result.siteResources.find(
+        (r: any) => r.name === "Scopus"
+      );
       expect(scopusEntry).toBeDefined();
       expect(scopusEntry.url).toBe("https://www.scopus.com/");
     });
@@ -342,12 +365,16 @@ describe("Chatbot Database Functions", () => {
         { searchTerm: "Шевченко", searchType: "author" },
         {} as any
       );
-      expect(result.catalogUrl).toBe("https://library-service.com.ua:8443/khkhdak/DocumentSearchForm");
+      expect(result.catalogUrl).toBe(
+        "https://library-service.com.ua:8443/khkhdak/DocumentSearchForm"
+      );
       expect(result.searchTerm).toBe("Шевченко");
       expect(result.searchType).toBe("author");
       expect(Array.isArray(result.steps)).toBe(true);
       expect(result.steps.length).toBeGreaterThan(0);
-      expect(result.repositoryUrl).toBe("https://repository.ac.kharkov.ua/home");
+      expect(result.repositoryUrl).toBe(
+        "https://repository.ac.kharkov.ua/home"
+      );
     });
 
     it("getCatalogSearchLink tool: defaults to author search type", async () => {
@@ -399,21 +426,27 @@ describe("Chat API — request validation", () => {
   });
 
   it(`rejects a message whose content exceeds ${MAX_CHAT_MESSAGE_LENGTH} chars`, () => {
-    const oversized = { role: "user" as const, content: "A".repeat(MAX_CHAT_MESSAGE_LENGTH + 1) };
+    const oversized = {
+      role: "user" as const,
+      content: "A".repeat(MAX_CHAT_MESSAGE_LENGTH + 1),
+    };
     const result = chatRequestSchema.safeParse({ messages: [oversized] });
     expect(result.success).toBe(false);
     if (!result.success) {
       // Verify that the failure is a too_big issue on the content field
       // — the handler uses this to distinguish 413 from generic 400.
       const hasTooLargeContent = result.error.issues.some(
-        (issue) => issue.code === "too_big" && issue.path.includes("content")
+        issue => issue.code === "too_big" && issue.path.includes("content")
       );
       expect(hasTooLargeContent).toBe(true);
     }
   });
 
   it(`accepts a message whose content is exactly ${MAX_CHAT_MESSAGE_LENGTH} chars`, () => {
-    const exact = { role: "user" as const, content: "A".repeat(MAX_CHAT_MESSAGE_LENGTH) };
+    const exact = {
+      role: "user" as const,
+      content: "A".repeat(MAX_CHAT_MESSAGE_LENGTH),
+    };
     const result = chatRequestSchema.safeParse({ messages: [exact] });
     expect(result.success).toBe(true);
   });

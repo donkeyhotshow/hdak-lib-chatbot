@@ -17,6 +17,7 @@ import { sdk } from "./sdk";
 import * as db from "../db";
 import { getSystemPrompt, officialLibraryInfo, officialLibraryResources, hdakResources } from "../system-prompts-official";
 import { detectLanguageFromText, sanitizeUntrustedContent, AI_TEMPERATURE, AI_MODEL_NAME } from "../services/aiPipeline";
+import { recordLatency, recordStreamOutcome } from "./metrics";
 
 /** Maximum number of recent messages to scan when detecting the last user language. */
 const MAX_LANGUAGE_LOOKBACK = 20;
@@ -265,6 +266,7 @@ export function registerChatRoutes(app: Express) {
   const openai = createLLMProvider();
 
   app.post("/api/chat", async (req, res) => {
+    const requestStartMs = Date.now();
     try {
       const parseResult = chatRequestSchema.safeParse(req.body);
       if (!parseResult.success) {
@@ -362,6 +364,8 @@ export function registerChatRoutes(app: Express) {
         stopWhen: stepCountIs(5),
         timeout: CHAT_TIMEOUT_MS,
         onFinish: async ({ text }) => {
+          recordLatency(Date.now() - requestStartMs);
+          recordStreamOutcome("success");
           if (convId !== null) {
             try {
               // Save the original (pre-sanitization) user message so the user
@@ -377,6 +381,13 @@ export function registerChatRoutes(app: Express) {
           }
         },
         onError: ({ error }) => {
+          const latencyMs = Date.now() - requestStartMs;
+          const isTimeout =
+            error instanceof Error &&
+            (error.message.toLowerCase().includes("timeout") ||
+              error.message.toLowerCase().includes("timed out"));
+          recordLatency(latencyMs);
+          recordStreamOutcome(isTimeout ? "timeout" : "error");
           logger.error("[/api/chat] streamText error", {
             error: error instanceof Error ? error.message : String(error),
           });

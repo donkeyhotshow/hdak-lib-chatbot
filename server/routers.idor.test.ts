@@ -4,19 +4,22 @@ import type { TrpcContext } from "./_core/context";
 import * as db from "./db";
 import * as aiPipeline from "./services/aiPipeline";
 
-vi.mock("./db", async (importOriginal) => {
+vi.mock("./db", async importOriginal => {
   const actual = await importOriginal<typeof import("./db")>();
   return { ...actual };
 });
 
-vi.mock("./services/aiPipeline", async (importOriginal) => {
+vi.mock("./services/aiPipeline", async importOriginal => {
   const actual = await importOriginal<typeof import("./services/aiPipeline")>();
   return { ...actual };
 });
 
 type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
 
-function createUserContext(userId: number, role: "user" | "admin" = "user"): TrpcContext {
+function createUserContext(
+  userId: number,
+  role: "user" | "admin" = "user"
+): TrpcContext {
   const user: AuthenticatedUser = {
     id: userId,
     openId: `user-${userId}`,
@@ -89,7 +92,9 @@ describe("conversations.getMessages — IDOR protection", () => {
 
     const ctx = createUserContext(1);
     const caller = appRouter.createCaller(ctx);
-    const result = await caller.conversations.getMessages({ conversationId: 42 });
+    const result = await caller.conversations.getMessages({
+      conversationId: 42,
+    });
     expect(Array.isArray(result)).toBe(true);
   });
 
@@ -135,9 +140,11 @@ describe("conversations.delete — IDOR protection", () => {
 
     const ctx = createUserContext(2); // caller is user 2
     const caller = appRouter.createCaller(ctx);
-    await expect(caller.conversations.delete({ id: 42 })).rejects.toMatchObject({
-      code: "FORBIDDEN",
-    });
+    await expect(caller.conversations.delete({ id: 42 })).rejects.toMatchObject(
+      {
+        code: "FORBIDDEN",
+      }
+    );
   });
 
   it("throws NOT_FOUND when the conversation does not exist", async () => {
@@ -145,7 +152,9 @@ describe("conversations.delete — IDOR protection", () => {
 
     const ctx = createUserContext(1);
     const caller = appRouter.createCaller(ctx);
-    await expect(caller.conversations.delete({ id: 999 })).rejects.toMatchObject({
+    await expect(
+      caller.conversations.delete({ id: 999 })
+    ).rejects.toMatchObject({
       code: "NOT_FOUND",
     });
   });
@@ -157,26 +166,55 @@ describe("conversations.sendMessage — history deduplication", () => {
   it("does not include the current user message in the history passed to the AI", async () => {
     const conv = mockConversation(1, 10);
     const existingMessages = [
-      { id: 1, conversationId: 10, role: "user" as const, content: "hi", createdAt: new Date() },
-      { id: 2, conversationId: 10, role: "assistant" as const, content: "hello", createdAt: new Date() },
+      {
+        id: 1,
+        conversationId: 10,
+        role: "user" as const,
+        content: "hi",
+        createdAt: new Date(),
+      },
+      {
+        id: 2,
+        conversationId: 10,
+        role: "assistant" as const,
+        content: "hello",
+        createdAt: new Date(),
+      },
     ];
 
     vi.spyOn(db, "getConversation").mockResolvedValueOnce(conv);
     // getMessages is called BEFORE createMessage — returns only prior messages
     vi.spyOn(db, "getMessages").mockResolvedValueOnce(existingMessages);
     vi.spyOn(db, "createMessage")
-      .mockResolvedValueOnce({ id: 3, conversationId: 10, role: "user", content: "new msg", createdAt: new Date() })
-      .mockResolvedValueOnce({ id: 4, conversationId: 10, role: "assistant", content: "reply", createdAt: new Date() });
+      .mockResolvedValueOnce({
+        id: 3,
+        conversationId: 10,
+        role: "user",
+        content: "new msg",
+        createdAt: new Date(),
+      })
+      .mockResolvedValueOnce({
+        id: 4,
+        conversationId: 10,
+        role: "assistant",
+        content: "reply",
+        createdAt: new Date(),
+      });
 
     // Spy on generateConversationReply so we can inspect what history it received
-    const replySpy = vi.spyOn(aiPipeline, "generateConversationReply").mockResolvedValueOnce({
-      text: "reply",
-      source: "general",
-    });
+    const replySpy = vi
+      .spyOn(aiPipeline, "generateConversationReply")
+      .mockResolvedValueOnce({
+        text: "reply",
+        source: "general",
+      });
 
     const ctx = createUserContext(1);
     const caller = appRouter.createCaller(ctx);
-    await caller.conversations.sendMessage({ conversationId: 10, content: "new msg" });
+    await caller.conversations.sendMessage({
+      conversationId: 10,
+      content: "new msg",
+    });
 
     expect(replySpy).toHaveBeenCalledOnce();
     const callArgs = replySpy.mock.calls[0]![0];
@@ -206,13 +244,22 @@ describe("conversations.create — input validation", () => {
   });
 
   it("accepts a conversation title of exactly 500 characters", async () => {
-    const conv = { id: 1, userId: 1, title: "a".repeat(500), language: "uk" as const, createdAt: new Date(), updatedAt: new Date() };
+    const conv = {
+      id: 1,
+      userId: 1,
+      title: "a".repeat(500),
+      language: "uk" as const,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
     vi.spyOn(db, "createConversation").mockResolvedValueOnce(conv);
 
     const ctx = createUserContext(1);
     const caller = appRouter.createCaller(ctx);
 
-    const result = await caller.conversations.create({ title: "a".repeat(500) });
+    const result = await caller.conversations.create({
+      title: "a".repeat(500),
+    });
     expect(result).toEqual(conv);
   });
 });
@@ -260,7 +307,12 @@ describe("libraryInfo.set — input validation", () => {
     const caller = appRouter.createCaller(ctx);
 
     await expect(
-      caller.libraryInfo.set({ key: "", valueEn: "v", valueUk: "v", valueRu: "v" })
+      caller.libraryInfo.set({
+        key: "",
+        valueEn: "v",
+        valueUk: "v",
+        valueRu: "v",
+      })
     ).rejects.toThrow();
   });
 
@@ -269,7 +321,12 @@ describe("libraryInfo.set — input validation", () => {
     const caller = appRouter.createCaller(ctx);
 
     await expect(
-      caller.libraryInfo.set({ key: "k".repeat(201), valueEn: "v", valueUk: "v", valueRu: "v" })
+      caller.libraryInfo.set({
+        key: "k".repeat(201),
+        valueEn: "v",
+        valueUk: "v",
+        valueRu: "v",
+      })
     ).rejects.toThrow();
   });
 });
@@ -283,9 +340,9 @@ describe("resources.delete — NOT_FOUND when resource does not exist", () => {
     const ctx = createUserContext(1, "admin");
     const caller = appRouter.createCaller(ctx);
 
-    await expect(
-      caller.resources.delete({ id: 9999 })
-    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    await expect(caller.resources.delete({ id: 9999 })).rejects.toMatchObject({
+      code: "NOT_FOUND",
+    });
   });
 
   it("returns { success: true } when deleteResource returns true", async () => {
@@ -308,9 +365,9 @@ describe("contacts.delete — NOT_FOUND when contact does not exist", () => {
     const ctx = createUserContext(1, "admin");
     const caller = appRouter.createCaller(ctx);
 
-    await expect(
-      caller.contacts.delete({ id: 9999 })
-    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    await expect(caller.contacts.delete({ id: 9999 })).rejects.toMatchObject({
+      code: "NOT_FOUND",
+    });
   });
 });
 
@@ -321,7 +378,9 @@ describe("resources.getByType — rejects invalid type strings", () => {
     const caller = appRouter.createCaller(ctx);
 
     await expect(
-      (caller.resources.getByType as any)({ type: "'; DROP TABLE library_resources; --" })
+      (caller.resources.getByType as any)({
+        type: "'; DROP TABLE library_resources; --",
+      })
     ).rejects.toThrow();
   });
 

@@ -258,15 +258,23 @@ DATABASE_URL=mysql://... node seed-db.mjs
 
 ### REST Endpoints
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| `GET` | `/api/oauth/callback` | — | OAuth 2.0 callback; exchanges code for token, upserts user, sets session cookie |
-| `POST` | `/api/chat` | — | Streaming AI chat (SSE / UI message stream) |
-| `*` | `/api/trpc/*` | varies | tRPC batch endpoint |
+| Method | Path | Auth | Rate limit | Body limit | Description |
+|--------|------|------|------------|------------|-------------|
+| `GET` | `/api/health` | — | — | — | Always returns `{ "status": "ok" }` |
+| `GET` | `/api/ready` | — | — | — | Returns `{ "ready": true }` when `BUILT_IN_FORGE_API_KEY` and `DATABASE_URL` are set; otherwise `503 { "ready": false, "missing": [...] }` |
+| `GET` | `/api/metrics` | 🔑 admin JWT | 10/min | — | Returns latency percentiles, streaming counters, and memory snapshots |
+| `GET` | `/api/oauth/callback` | — | 10/min | — | OAuth 2.0 callback; exchanges code for token, upserts user, sets session cookie |
+| `POST` | `/api/chat` | — | 5/min | **1 MB** | Streaming AI chat (SSE / UI message stream) |
+| `POST` | `/api/admin/process-pdf` | 🔑 admin JWT | 10/min | **50 MB** | Ingests extracted PDF text into the RAG vector store |
+| `*` | `/api/trpc/*` | varies | 60/min | 1 MB | tRPC batch endpoint |
+
+> **Body size limits:** The global limit for all endpoints is **1 MB** to protect the server from oversized requests. The admin PDF endpoint is exempt and accepts up to **50 MB** of extracted text content; it is protected by JWT authentication and the admin role.
 
 #### `POST /api/chat`
 
 Streams an AI response using the HDAK library context and tools.
+
+> **Rate limit:** 5 requests/min per IP.  **Body limit:** 1 MB.
 
 **Request body:**
 ```json
@@ -287,6 +295,65 @@ Streams an AI response using the HDAK library context and tools.
 The AI may call tools before generating the final text response.
 
 ---
+
+#### `GET /api/health`
+
+Always returns `200 { "status": "ok", "timestamp": "..." }`. Use for uptime monitoring.
+
+---
+
+#### `GET /api/ready`
+
+Readiness probe. Returns `200 { "ready": true }` when both `BUILT_IN_FORGE_API_KEY` and `DATABASE_URL` are present in the environment. If either is missing returns `503 { "ready": false, "missing": ["BUILT_IN_FORGE_API_KEY"] }`.
+
+---
+
+#### `GET /api/metrics`
+
+Returns server performance data. Requires a valid admin JWT (passed as `Authorization: Bearer <token>`).
+
+**Response example:**
+```json
+{
+  "latency": { "samples": 42, "p50Ms": 120, "p95Ms": 380, "p99Ms": 710 },
+  "streaming": { "success": 40, "error": 1, "timeout": 1, "errorRate": 0.048 },
+  "memory": [{ "timestamp": "...", "heapUsedMb": 78 }]
+}
+```
+
+---
+
+#### `POST /api/admin/process-pdf`
+
+Ingests extracted PDF text into the RAG vector store. Admin-only.
+
+> **Rate limit:** 10 requests/min per IP.  **Body limit:** 50 MB.
+
+**Request body:**
+```json
+{
+  "title": "Назва документу",
+  "content": "<extracted text, up to ~50 MB>",
+  "language": "uk",
+  "sourceType": "catalog",
+  "url": "https://example.com/doc.pdf",
+  "author": "Іванов І.І."
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `title` | `string` | ✅ | Document title (max 500 chars) |
+| `content` | `string` | ✅ | Full extracted text |
+| `language` | `"uk" \| "ru" \| "en"` | ❌ | Document language (default `"uk"`) |
+| `sourceType` | `"catalog" \| "repository" \| "database" \| "other"` | ❌ | Source classification (default `"other"`) |
+| `url` | `string` | ❌ | Source URL (max 2048 chars) |
+| `author` | `string` | ❌ | Author(s) (max 500 chars) |
+
+**Success response (`200`):**
+```json
+{ "success": true, "chunksCreated": 12, "documentId": "manual_1710000000_Назва_документу" }
+```
 
 ### tRPC Procedures
 
@@ -349,7 +416,7 @@ All procedures use the **SuperJSON** transformer. Auth-protected procedures requ
 ### Streaming Chat Endpoint
 
 `/api/chat` uses `streamText` from the Vercel AI SDK with:
-- **Model:** `gpt-4o` via an OpenAI-compatible proxy (`BUILT_IN_FORGE_API_URL`)
+- **Model:** `gpt-4o-mini` via an OpenAI-compatible proxy (`BUILT_IN_FORGE_API_URL`)
 - **Stop condition:** `stepCountIs(5)` — maximum 5 tool-call + generation cycles
 - **Patched fetch:** `createPatchedFetch` strips empty `"type": ""` fields from the SSE stream (proxy compatibility fix)
 

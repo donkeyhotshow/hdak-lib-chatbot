@@ -369,9 +369,13 @@ export async function deleteConversation(conversationId: number): Promise<boolea
   if (!db) return false;
 
   try {
-    // Delete messages first (no ON DELETE CASCADE in MySQL without FK constraints)
-    await db.delete(messages).where(eq(messages.conversationId, conversationId));
-    const result = await db.delete(conversations).where(eq(conversations.id, conversationId));
+    // Wrap in a transaction to ensure both deletes succeed or both fail,
+    // preventing orphaned messages if the conversation delete were to fail
+    // after messages were already removed.
+    const result = await db.transaction(async (tx) => {
+      await tx.delete(messages).where(eq(messages.conversationId, conversationId));
+      return tx.delete(conversations).where(eq(conversations.id, conversationId));
+    });
     return (result as any).affectedRows > 0;
   } catch (error) {
     logger.error("[Database] Error deleting conversation:", { error: error instanceof Error ? error.message : String(error) });
@@ -401,9 +405,11 @@ export async function clearOldConversations(days: number = 30): Promise<number> 
 
     const ids = old.map(r => r.id);
 
-    // Batch-delete messages and conversations in two queries instead of N+1 loops.
-    await db.delete(messages).where(inArray(messages.conversationId, ids));
-    const result = await db.delete(conversations).where(inArray(conversations.id, ids));
+    // Batch-delete messages and conversations atomically inside a transaction.
+    const result = await db.transaction(async (tx) => {
+      await tx.delete(messages).where(inArray(messages.conversationId, ids));
+      return tx.delete(conversations).where(inArray(conversations.id, ids));
+    });
     const deleted = (result as any).affectedRows ?? ids.length;
 
     logger.info("[Database] clearOldConversations: removed old conversations", { days, removed: deleted });
