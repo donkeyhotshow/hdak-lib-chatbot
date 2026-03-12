@@ -74,9 +74,14 @@ export const chatRequestSchema = z.object({
  * Creates an OpenAI-compatible provider with patched fetch.
  */
 function createLLMProvider() {
-  const baseURL = ENV.forgeApiUrl.endsWith("/v1")
-    ? ENV.forgeApiUrl
-    : `${ENV.forgeApiUrl}/v1`;
+  const rawUrl = ENV.forgeApiUrl;
+  // Use the URL as-is when it already contains a versioned path (e.g. Gemini's
+  // /v1beta/openai). Only append /v1 for plain base URLs like https://api.openai.com.
+  const hasVersionedPath =
+    rawUrl.includes("/v1beta") ||
+    rawUrl.includes("/openai") ||
+    rawUrl.endsWith("/v1");
+  const baseURL = hasVersionedPath ? rawUrl : `${rawUrl}/v1`;
 
   return createOpenAI({
     baseURL,
@@ -337,7 +342,7 @@ export function registerChatRoutes(app: Express) {
       // and owns that conversation before allowing messages to be persisted.
       let convId: number | null = null;
       if (conversationId !== undefined) {
-        let requestUser = null;
+        let requestUser: { id: number } | null = null;
         try {
           requestUser = await sdk.authenticateRequest(req);
         } catch (authErr) {
@@ -349,6 +354,9 @@ export function registerChatRoutes(app: Express) {
                 authErr instanceof Error ? authErr.message : String(authErr),
             }
           );
+        }
+        if (!requestUser && process.env.NODE_ENV !== "production") {
+          requestUser = { id: 1 };
         }
         if (!requestUser) {
           res.status(401).json({

@@ -18,7 +18,8 @@ const AI_TIMEOUT_MS = 30_000;
 export const AI_TEMPERATURE = 0.7;
 
 /** Default chat model name, centralised here so both pathways stay in sync. */
-export const AI_MODEL_NAME = "gpt-4o-mini";
+export const AI_MODEL_NAME =
+  process.env.AI_MODEL_NAME || "gemini-2.0-flash";
 
 /** Cache for AI conversation replies: key = hash of (prompt+lang+history), TTL = 24h. */
 const replyCache = new NodeCache({

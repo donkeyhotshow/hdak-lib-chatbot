@@ -38,9 +38,13 @@ type MockState = {
   resources: LibraryResource[];
   contacts: LibraryContact[];
   info: LibraryInfo[];
+  conversations: Conversation[];
+  messages: Message[];
   resourceId: number;
   contactId: number;
   infoId: number;
+  conversationId: number;
+  messageId: number;
 };
 
 const mockState: MockState = {
@@ -48,15 +52,21 @@ const mockState: MockState = {
   resources: [],
   contacts: [],
   info: [],
+  conversations: [],
+  messages: [],
   resourceId: 1,
   contactId: 1,
   infoId: 1,
+  conversationId: 1,
+  messageId: 1,
 };
 
 // Mock state is only used in single-process test runs, so simple counters are sufficient.
 const nextResourceId = () => mockState.resourceId++;
 const nextContactId = () => mockState.contactId++;
 const nextInfoId = () => mockState.infoId++;
+const nextConversationId = () => mockState.conversationId++;
+const nextMessageId = () => mockState.messageId++;
 // Extract only mutable fields to avoid overwriting immutable identifiers or timestamps during mock updates.
 const getMutableFields = <
   T extends { id?: unknown; createdAt?: unknown; type?: unknown },
@@ -313,8 +323,16 @@ function ensureMockState() {
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
+    const url = process.env.DATABASE_URL;
+    if (!url.startsWith("mysql://") && !url.startsWith("mysql2://")) {
+      logger.warn(
+        "[Database] DATABASE_URL is not a MySQL URL — running without database",
+        { url: url.replace(/:\/\/[^@]+@/, "://<credentials>@") }
+      );
+      return null;
+    }
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      _db = drizzle(url);
     } catch (error) {
       logger.warn("[Database] Failed to connect", {
         error: error instanceof Error ? error.message : String(error),
@@ -409,7 +427,19 @@ export async function createConversation(
   language: string
 ): Promise<Conversation | null> {
   const db = await getDb();
-  if (!db) return null;
+  if (!db) {
+    const now = new Date();
+    const conv: Conversation = {
+      id: nextConversationId(),
+      userId,
+      title,
+      language: language as Conversation["language"],
+      createdAt: now,
+      updatedAt: now,
+    };
+    mockState.conversations.push(conv);
+    return conv;
+  }
 
   try {
     const result = await db.insert(conversations).values({
@@ -442,7 +472,11 @@ export async function getConversations(
   userId: number
 ): Promise<Conversation[]> {
   const db = await getDb();
-  if (!db) return [];
+  if (!db) {
+    return mockState.conversations
+      .filter(c => c.userId === userId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
 
   return db
     .select()
@@ -455,7 +489,9 @@ export async function getConversation(
   conversationId: number
 ): Promise<Conversation | null> {
   const db = await getDb();
-  if (!db) return null;
+  if (!db) {
+    return mockState.conversations.find(c => c.id === conversationId) ?? null;
+  }
 
   const result = await db
     .select()
@@ -469,7 +505,15 @@ export async function deleteConversation(
   conversationId: number
 ): Promise<boolean> {
   const db = await getDb();
-  if (!db) return false;
+  if (!db) {
+    const idx = mockState.conversations.findIndex(c => c.id === conversationId);
+    if (idx === -1) return false;
+    mockState.conversations.splice(idx, 1);
+    mockState.messages = mockState.messages.filter(
+      m => m.conversationId !== conversationId
+    );
+    return true;
+  }
 
   try {
     // Wrap in a transaction to ensure both deletes succeed or both fail,
@@ -543,7 +587,17 @@ export async function createMessage(
   content: string
 ): Promise<Message | null> {
   const db = await getDb();
-  if (!db) return null;
+  if (!db) {
+    const msg: Message = {
+      id: nextMessageId(),
+      conversationId,
+      role,
+      content,
+      createdAt: new Date(),
+    };
+    mockState.messages.push(msg);
+    return msg;
+  }
 
   try {
     const result = await db.insert(messages).values({
@@ -574,7 +628,11 @@ export async function createMessage(
 
 export async function getMessages(conversationId: number): Promise<Message[]> {
   const db = await getDb();
-  if (!db) return [];
+  if (!db) {
+    return mockState.messages
+      .filter(m => m.conversationId === conversationId)
+      .sort((a, b) => a.id - b.id);
+  }
 
   return db
     .select()
