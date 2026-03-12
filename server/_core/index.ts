@@ -55,11 +55,18 @@ async function startServer() {
   ];
   const alwaysMissing = alwaysRequired.filter(([, v]) => !v).map(([k]) => k);
   if (alwaysMissing.length > 0) {
-    logger.error(
-      `Missing required environment variable(s): ${alwaysMissing.join(", ")}. ` +
-        "Set them in your .env file or deployment environment and restart the server."
-    );
-    process.exit(1);
+    if (ENV.isProduction) {
+      logger.error(
+        `Missing required environment variable(s): ${alwaysMissing.join(", ")}. ` +
+          "Set them in your .env file or deployment environment and restart the server."
+      );
+      process.exit(1);
+    } else {
+      logger.warn(
+        `Missing environment variable(s): ${alwaysMissing.join(", ")}. ` +
+          "Running in development mode with mock data. Set these in your .env file for full functionality."
+      );
+    }
   }
 
   if (ENV.isProduction) {
