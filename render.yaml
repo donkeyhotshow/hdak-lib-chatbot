@@ -27,6 +27,9 @@ services:
         sync: false
       - key: VITE_OAUTH_PORTAL_URL
         sync: false
+      # ── LLM Model ────────────────────────────────────────────────────────
+      - key: LLM_MODEL
+        value: gpt-4o-mini # override in the dashboard to switch models
       # ── Database ─────────────────────────────────────────────────────────
       - key: DATABASE_URL
         fromDatabase:

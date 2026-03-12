@@ -1,5 +1,6 @@
 import { eq, like, or, and, lt, asc, desc, inArray, isNull, gte } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
+import postgres from "postgres";
+import { drizzle } from "drizzle-orm/postgres-js";
 import {
   InsertUser,
   users,
@@ -322,7 +323,23 @@ function ensureMockState() {
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      const client = postgres(process.env.DATABASE_URL, {
+        // Enable SSL in production (required by Render).
+        // Certificate verification is on by default; set
+        // DATABASE_SSL_NO_VERIFY=true only when connecting to a PostgreSQL
+        // instance that uses a self-signed certificate and cert verification
+        // is not possible.
+        ssl:
+          process.env.NODE_ENV === "production"
+            ? process.env.DATABASE_SSL_NO_VERIFY === "true"
+              ? { rejectUnauthorized: false }
+              : true
+            : false,
+        max: 10,
+        idle_timeout: 30,
+        connect_timeout: 10,
+      });
+      _db = drizzle(client);
     } catch (error) {
       logger.warn("[Database] Failed to connect", {
         error: error instanceof Error ? error.message : String(error),
@@ -383,7 +400,8 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       updateSet.lastSignedIn = new Date();
     }
 
-    await db.insert(users).values(values).onDuplicateKeyUpdate({
+    await db.insert(users).values(values).onConflictDoUpdate({
+      target: users.openId,
       set: updateSet,
     });
   } catch (error) {
@@ -420,24 +438,15 @@ export async function createConversation(
   if (!db) return null;
 
   try {
-    const result = await db.insert(conversations).values({
-      userId,
-      title,
-      language: language as any,
-    });
-
-    // Get the last inserted ID
-    const lastId = (result as any).insertId;
-    if (lastId) {
-      const created = await db
-        .select()
-        .from(conversations)
-        .where(eq(conversations.id, lastId))
-        .limit(1);
-      return created[0] || null;
-    }
-
-    return null;
+    const rows = await db
+      .insert(conversations)
+      .values({
+        userId,
+        title,
+        language: language as any,
+      })
+      .returning();
+    return rows[0] || null;
   } catch (error) {
     logger.error("[Database] Error creating conversation:", {
       error: error instanceof Error ? error.message : String(error),
@@ -490,7 +499,7 @@ export async function deleteConversation(
     // Soft-delete by setting deletedAt. Messages are intentionally left in place
     // so they can be restored if needed; they become inaccessible once the parent
     // conversation is filtered out by isNull(conversations.deletedAt) queries.
-    const result = await db
+    const rows = await db
       .update(conversations)
       .set({ deletedAt: new Date() })
       .where(
@@ -498,8 +507,9 @@ export async function deleteConversation(
           eq(conversations.id, conversationId),
           isNull(conversations.deletedAt)
         )
-      );
-    return (result as any).affectedRows > 0;
+      )
+      .returning({ id: conversations.id });
+    return rows.length > 0;
   } catch (error) {
     logger.error("[Database] Error soft-deleting conversation:", {
       error: error instanceof Error ? error.message : String(error),
@@ -533,11 +543,14 @@ export async function clearOldConversations(
     const ids = old.map(r => r.id);
 
     // Batch-delete messages and conversations atomically inside a transaction.
-    const result = await db.transaction(async tx => {
+    const deleted = await db.transaction(async tx => {
       await tx.delete(messages).where(inArray(messages.conversationId, ids));
-      return tx.delete(conversations).where(inArray(conversations.id, ids));
+      const rows = await tx
+        .delete(conversations)
+        .where(inArray(conversations.id, ids))
+        .returning({ id: conversations.id });
+      return rows.length;
     });
-    const deleted = (result as any).affectedRows ?? ids.length;
 
     logger.info("[Database] clearOldConversations: removed old conversations", {
       days,
@@ -562,24 +575,15 @@ export async function createMessage(
   if (!db) return null;
 
   try {
-    const result = await db.insert(messages).values({
-      conversationId,
-      role,
-      content,
-    });
-
-    // Get the last inserted ID
-    const lastId = (result as any).insertId;
-    if (lastId) {
-      const created = await db
-        .select()
-        .from(messages)
-        .where(eq(messages.id, lastId))
-        .limit(1);
-      return created[0] || null;
-    }
-
-    return null;
+    const rows = await db
+      .insert(messages)
+      .values({
+        conversationId,
+        role,
+        content,
+      })
+      .returning();
+    return rows[0] || null;
   } catch (error) {
     logger.error("[Database] Error creating message:", {
       error: error instanceof Error ? error.message : String(error),
@@ -736,20 +740,8 @@ export async function createResource(
   }
 
   try {
-    const result = await db.insert(libraryResources).values(resource);
-
-    // Get the last inserted ID
-    const lastId = (result as any).insertId;
-    if (lastId) {
-      const created = await db
-        .select()
-        .from(libraryResources)
-        .where(eq(libraryResources.id, lastId))
-        .limit(1);
-      return created[0] || null;
-    }
-
-    return null;
+    const rows = await db.insert(libraryResources).values(resource).returning();
+    return rows[0] || null;
   } catch (error) {
     logger.error("[Database] Error creating resource:", {
       error: error instanceof Error ? error.message : String(error),
@@ -809,13 +801,14 @@ export async function deleteResource(id: number): Promise<boolean> {
   }
 
   try {
-    const result = await db
+    const rows = await db
       .update(libraryResources)
       .set({ deletedAt: new Date() })
       .where(
         and(eq(libraryResources.id, id), isNull(libraryResources.deletedAt))
-      );
-    return (result as any).affectedRows > 0;
+      )
+      .returning({ id: libraryResources.id });
+    return rows.length > 0;
   } catch (error) {
     logger.error("[Database] Error soft-deleting resource:", {
       error: error instanceof Error ? error.message : String(error),
@@ -857,20 +850,8 @@ export async function createContact(
   }
 
   try {
-    const result = await db.insert(libraryContacts).values(contact);
-
-    // Get the last inserted ID
-    const lastId = (result as any).insertId;
-    if (lastId) {
-      const created = await db
-        .select()
-        .from(libraryContacts)
-        .where(eq(libraryContacts.id, lastId))
-        .limit(1);
-      return created[0] || null;
-    }
-
-    return null;
+    const rows = await db.insert(libraryContacts).values(contact).returning();
+    return rows[0] || null;
   } catch (error) {
     logger.error("[Database] Error creating contact:", {
       error: error instanceof Error ? error.message : String(error),
@@ -929,10 +910,11 @@ export async function deleteContact(id: number): Promise<boolean> {
   }
 
   try {
-    const result = await db
+    const rows = await db
       .delete(libraryContacts)
-      .where(eq(libraryContacts.id, id));
-    return (result as any).affectedRows > 0;
+      .where(eq(libraryContacts.id, id))
+      .returning({ id: libraryContacts.id });
+    return rows.length > 0;
   } catch (error) {
     logger.error("[Database] Error deleting contact:", {
       error: error instanceof Error ? error.message : String(error),
@@ -1009,19 +991,11 @@ export async function setLibraryInfo(
         .limit(1)
         .then(r => r[0] || null);
     } else {
-      const result = await db
+      const rows = await db
         .insert(libraryInfo)
-        .values({ key, valueEn, valueUk, valueRu });
-      const lastId = (result as any).insertId;
-      if (lastId) {
-        const created = await db
-          .select()
-          .from(libraryInfo)
-          .where(eq(libraryInfo.id, lastId))
-          .limit(1);
-        return created[0] || null;
-      }
-      return null;
+        .values({ key, valueEn, valueUk, valueRu })
+        .returning();
+      return rows[0] || null;
     }
   } catch (error) {
     logger.error("[Database] Error setting library info:", {
@@ -1080,28 +1054,19 @@ export async function logUserQuery(
       return null;
     }
 
-    const result = await db.insert(userQueries).values({
-      userId,
-      conversationId,
-      query,
-      language: language as any,
-      resourcesReturned: resourcesReturned
-        ? JSON.stringify(resourcesReturned)
-        : null,
-    });
-
-    // Get the last inserted ID
-    const lastId = (result as any).insertId;
-    if (lastId) {
-      const created = await db
-        .select()
-        .from(userQueries)
-        .where(eq(userQueries.id, lastId))
-        .limit(1);
-      return created[0] || null;
-    }
-
-    return null;
+    const rows = await db
+      .insert(userQueries)
+      .values({
+        userId,
+        conversationId,
+        query,
+        language: language as any,
+        resourcesReturned: resourcesReturned
+          ? JSON.stringify(resourcesReturned)
+          : null,
+      })
+      .returning();
+    return rows[0] || null;
   } catch (error) {
     logger.error("[Database] Error logging user query:", {
       error: error instanceof Error ? error.message : String(error),
@@ -1118,17 +1083,8 @@ export async function createDocumentChunk(
   if (!db) return null;
 
   try {
-    const result = await db.insert(documentChunks).values(chunk);
-    const lastId = (result as any).insertId;
-    if (lastId) {
-      const created = await db
-        .select()
-        .from(documentChunks)
-        .where(eq(documentChunks.id, lastId))
-        .limit(1);
-      return created[0] || null;
-    }
-    return null;
+    const rows = await db.insert(documentChunks).values(chunk).returning();
+    return rows[0] || null;
   } catch (error) {
     logger.error("[Database] Error creating document chunk:", {
       error: error instanceof Error ? error.message : String(error),
@@ -1197,17 +1153,11 @@ export async function createDocumentMetadata(
   if (!db) return null;
 
   try {
-    const result = await db.insert(documentMetadata).values(metadata);
-    const lastId = (result as any).insertId;
-    if (lastId) {
-      const created = await db
-        .select()
-        .from(documentMetadata)
-        .where(eq(documentMetadata.id, lastId))
-        .limit(1);
-      return created[0] || null;
-    }
-    return null;
+    const rows = await db
+      .insert(documentMetadata)
+      .values(metadata)
+      .returning();
+    return rows[0] || null;
   } catch (error) {
     logger.error("[Database] Error creating document metadata:", {
       error: error instanceof Error ? error.message : String(error),

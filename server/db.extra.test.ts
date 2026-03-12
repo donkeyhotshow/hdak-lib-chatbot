@@ -7,7 +7,7 @@
  *    is available (DATABASE_URL not set). These are all currently uncovered
  *    because the functions were never called in the test suite at all.
  *
- * B) Mock-DB paths: by mocking drizzle-orm/mysql2 to return a fake DB
+ * B) Mock-DB paths: by mocking drizzle-orm/postgres-js to return a fake DB
  *    instance we can cover the actual SQL logic without a live database.
  */
 
@@ -17,18 +17,25 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // 1. Mock drizzle BEFORE importing db.ts (vi.mock is hoisted)
 // ---------------------------------------------------------------------------
 
+// Prevent getDb() from opening a real TCP connection to PostgreSQL.
+vi.mock("postgres", () => ({ default: vi.fn(() => ({})) }));
+
 const mockChainState = vi.hoisted(() => {
   return {
     selectResult: [] as unknown[],
     /** Optional queue: each entry is returned for a successive select() call.
      *  When the queue is non-null it takes precedence over selectResult. */
     selectQueue: null as unknown[][] | null,
-    insertResult: { insertId: 1 } as Record<string, unknown>,
-    mutateResult: { affectedRows: 1 } as Record<string, unknown>,
+    /**
+     * PostgreSQL uses .returning() which returns an array of rows.
+     * Default: single-element array so functions that check `rows[0]` get a hit.
+     */
+    insertResult: [{ id: 1 }] as unknown[],
+    mutateResult: [{ id: 1 }] as unknown[],
   };
 });
 
-vi.mock("drizzle-orm/mysql2", () => {
+vi.mock("drizzle-orm/postgres-js", () => {
   /** Minimal fluent drizzle chain that is also awaitable. */
   const makeChain = (resolve: () => unknown): unknown => {
     const chain: Record<string, unknown> = {
@@ -37,7 +44,10 @@ vi.mock("drizzle-orm/mysql2", () => {
       limit: () => chain,
       orderBy: () => chain,
       set: () => chain,
-      values: () => Promise.resolve(resolve()),
+      // values() returns the chain so callers can continue with .returning()
+      values: () => chain,
+      // returning() is the PostgreSQL terminal for insert/update/delete
+      returning: () => Promise.resolve(resolve()),
       then: (
         onFulfilled: (v: unknown) => unknown,
         onRejected?: (e: unknown) => unknown
@@ -55,9 +65,9 @@ vi.mock("drizzle-orm/mysql2", () => {
         }
         return [...mockChainState.selectResult];
       }),
-    insert: () => makeChain(() => ({ ...mockChainState.insertResult })),
-    update: () => makeChain(() => ({ ...mockChainState.mutateResult })),
-    delete: () => makeChain(() => ({ ...mockChainState.mutateResult })),
+    insert: () => makeChain(() => [...mockChainState.insertResult]),
+    update: () => makeChain(() => [...mockChainState.mutateResult]),
+    delete: () => makeChain(() => [...mockChainState.mutateResult]),
     transaction: (cb: (tx: unknown) => Promise<unknown>) => cb(mockDb),
   };
 
@@ -80,11 +90,13 @@ function setSelectResult(rows: unknown[]): void {
   mockChainState.selectResult = rows;
   mockChainState.selectQueue = null;
 }
-function setInsertResult(result: Record<string, unknown>): void {
-  mockChainState.insertResult = result;
+/** Set the array returned by .insert(...).values(...).returning() */
+function setInsertResult(rows: unknown[]): void {
+  mockChainState.insertResult = rows;
 }
-function setMutateResult(result: Record<string, unknown>): void {
-  mockChainState.mutateResult = result;
+/** Set the array returned by .update/delete.returning() */
+function setMutateResult(rows: unknown[]): void {
+  mockChainState.mutateResult = rows;
 }
 /** Queue per-call select results: first call returns queue[0], second returns queue[1], etc. */
 function setSelectQueue(queue: unknown[][]): void {
@@ -94,7 +106,7 @@ function setSelectQueue(queue: unknown[][]): void {
 /** Activate the mock DB by setting a non-empty DATABASE_URL. */
 const ORIG_DB_URL = process.env.DATABASE_URL;
 function enableMockDb(): void {
-  process.env.DATABASE_URL = "mysql://mock:mock@localhost/mock";
+  process.env.DATABASE_URL = "postgresql://mock:mock@localhost/mock";
 }
 function disableMockDb(): void {
   if (ORIG_DB_URL !== undefined) {
@@ -222,8 +234,8 @@ describe("db mock-DB paths — with mocked drizzle instance", () => {
     enableMockDb();
     // Reset chain state to sensible defaults
     setSelectResult([]);
-    setInsertResult({ insertId: 1 });
-    setMutateResult({ affectedRows: 1 });
+    setInsertResult([{ id: 1 }]);
+    setMutateResult([{ id: 1 }]);
   });
   afterEach(() => {
     disableMockDb();
@@ -336,8 +348,7 @@ describe("db mock-DB paths — with mocked drizzle instance", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    setInsertResult({ insertId: 5 });
-    setSelectResult([mockCreated]);
+    setInsertResult([mockCreated]);
     const result = await db.createResource({
       nameEn: "New",
       nameUk: "Нове",
@@ -347,8 +358,8 @@ describe("db mock-DB paths — with mocked drizzle instance", () => {
     expect(result?.nameEn).toBe("New");
   });
 
-  it("createResource with DB returns null when insertId is 0", async () => {
-    setInsertResult({ insertId: 0 });
+  it("createResource with DB returns null when no row returned", async () => {
+    setInsertResult([]);
     const result = await db.createResource({
       nameEn: "X",
       nameUk: "X",
@@ -384,14 +395,14 @@ describe("db mock-DB paths — with mocked drizzle instance", () => {
     expect(result).toBeNull();
   });
 
-  it("deleteResource with DB returns true when affectedRows > 0", async () => {
-    setMutateResult({ affectedRows: 1 });
+  it("deleteResource with DB returns true when row was soft-deleted", async () => {
+    setMutateResult([{ id: 1 }]);
     const result = await db.deleteResource(1);
     expect(result).toBe(true);
   });
 
-  it("deleteResource with DB returns false when affectedRows is 0", async () => {
-    setMutateResult({ affectedRows: 0 });
+  it("deleteResource with DB returns false when no rows matched", async () => {
+    setMutateResult([]);
     const result = await db.deleteResource(999);
     expect(result).toBe(false);
   });
@@ -425,8 +436,7 @@ describe("db mock-DB paths — with mocked drizzle instance", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    setInsertResult({ insertId: 1 });
-    setSelectResult([mockCreated]);
+    setInsertResult([mockCreated]);
     const result = await db.createContact({
       type: "email",
       value: "new@example.com",
@@ -434,8 +444,8 @@ describe("db mock-DB paths — with mocked drizzle instance", () => {
     expect(result?.value).toBe("new@example.com");
   });
 
-  it("createContact with DB returns null when insertId is 0", async () => {
-    setInsertResult({ insertId: 0 });
+  it("createContact with DB returns null when no row returned", async () => {
+    setInsertResult([]);
     const result = await db.createContact({ type: "email", value: "x" });
     expect(result).toBeNull();
   });
@@ -456,13 +466,13 @@ describe("db mock-DB paths — with mocked drizzle instance", () => {
     expect(result?.value).toBe("updated@example.com");
   });
 
-  it("deleteContact with DB returns true when affectedRows > 0", async () => {
-    setMutateResult({ affectedRows: 1 });
+  it("deleteContact with DB returns true when contact was deleted", async () => {
+    setMutateResult([{ id: 1 }]);
     expect(await db.deleteContact(1)).toBe(true);
   });
 
-  it("deleteContact with DB returns false when affectedRows is 0", async () => {
-    setMutateResult({ affectedRows: 0 });
+  it("deleteContact with DB returns false when no rows matched", async () => {
+    setMutateResult([]);
     expect(await db.deleteContact(999)).toBe(false);
   });
 
@@ -527,7 +537,7 @@ describe("db mock-DB paths — with mocked drizzle instance", () => {
     // then after the first call change it (but we can't easily intercept mid-function)
     // Instead, just test the "existing key" path (which we can control)
     setSelectResult([newInfo]);
-    setInsertResult({ insertId: 2 });
+    // setInsertResult not needed for existing-key path (update, not insert)
     // With selectResult = [newInfo], getLibraryInfo returns newInfo → existing key path
     const result = await db.setLibraryInfo("new_key", "EN", "UK", "RU");
     expect(result).toBeDefined();
@@ -545,14 +555,13 @@ describe("db mock-DB paths — with mocked drizzle instance", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    setInsertResult({ insertId: 1 });
-    setSelectResult([mockConv]);
+    setInsertResult([mockConv]);
     const result = await db.createConversation(1, "Test", "uk");
     expect(result?.title).toBe("Test");
   });
 
-  it("createConversation with DB returns null when insertId is 0", async () => {
-    setInsertResult({ insertId: 0 });
+  it("createConversation with DB returns null when no row returned", async () => {
+    setInsertResult([]);
     const result = await db.createConversation(1, "Test", "uk");
     expect(result).toBeNull();
   });
@@ -593,13 +602,13 @@ describe("db mock-DB paths — with mocked drizzle instance", () => {
     expect(result).toHaveLength(1);
   });
 
-  it("deleteConversation with DB returns true when affectedRows > 0", async () => {
-    setMutateResult({ affectedRows: 1 });
+  it("deleteConversation with DB returns true when soft-deleted", async () => {
+    setMutateResult([{ id: 1 }]);
     expect(await db.deleteConversation(1)).toBe(true);
   });
 
-  it("deleteConversation with DB returns false when affectedRows is 0", async () => {
-    setMutateResult({ affectedRows: 0 });
+  it("deleteConversation with DB returns false when no rows matched", async () => {
+    setMutateResult([]);
     expect(await db.deleteConversation(999)).toBe(false);
   });
 
@@ -611,14 +620,13 @@ describe("db mock-DB paths — with mocked drizzle instance", () => {
       content: "Hello",
       createdAt: new Date(),
     };
-    setInsertResult({ insertId: 1 });
-    setSelectResult([mockMsg]);
+    setInsertResult([mockMsg]);
     const result = await db.createMessage(1, "user", "Hello");
     expect(result?.content).toBe("Hello");
   });
 
-  it("createMessage with DB returns null when insertId is 0", async () => {
-    setInsertResult({ insertId: 0 });
+  it("createMessage with DB returns null when no row returned", async () => {
+    setInsertResult([]);
     const result = await db.createMessage(1, "user", "Hello");
     expect(result).toBeNull();
   });
@@ -735,8 +743,7 @@ describe("db mock-DB paths — with mocked drizzle instance", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    setInsertResult({ insertId: 1 });
-    setSelectResult([mockMeta]);
+    setInsertResult([mockMeta]);
     const result = await db.createDocumentMetadata({
       documentId: "doc-2",
       title: "Test",
@@ -844,8 +851,7 @@ describe("db mock-DB paths — with mocked drizzle instance", () => {
       language: "uk",
       createdAt: new Date(),
     };
-    setInsertResult({ insertId: 1 });
-    setSelectResult([mockChunk]);
+    setInsertResult([mockChunk]);
     const result = await db.createDocumentChunk({
       documentId: "doc-1",
       documentTitle: "Test",
@@ -868,18 +874,17 @@ describe("db mock-DB paths — with mocked drizzle instance", () => {
       resourcesReturned: null,
       createdAt: new Date(),
     };
-    setInsertResult({ insertId: 1 });
-    // First select: dedup check returns [] (no duplicate found).
-    // Second select: post-insert lookup returns [mockLog].
-    setSelectQueue([[], [mockLog]]);
+    // Dedup check returns [] (no duplicate). INSERT RETURNING gives back [mockLog].
+    setSelectQueue([[]]);
+    setInsertResult([mockLog]);
     const result = await db.logUserQuery(1, null, "test", "uk", null);
     expect(result?.query).toBe("test");
   });
 
-  it("logUserQuery with DB returns null when insertId is 0", async () => {
-    setInsertResult({ insertId: 0 });
-    // Dedup check returns [] (no duplicate).
-    setSelectQueue([[], []]);
+  it("logUserQuery with DB returns null when insert returns empty", async () => {
+    // Dedup check returns [] (no duplicate). INSERT RETURNING gives [] → null.
+    setSelectQueue([[]]);
+    setInsertResult([]);
     const result = await db.logUserQuery(null, null, "test", "uk", null);
     expect(result).toBeNull();
   });

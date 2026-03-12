@@ -1,0 +1,41 @@
+# Keep the Render free-tier web service awake by sending a lightweight health
+# check every 14 minutes.  Render's free plan hibernates a service after 15
+# minutes of inactivity; pinging it before that threshold keeps it warm at
+# zero additional cost (GitHub Actions free minutes cover this easily).
+#
+# Prerequisites:
+#   1. Add the repository secret RENDER_APP_URL with the value of your
+#      deployed URL, e.g. https://hdak-lib-chatbot.onrender.com
+#   2. The /api/health endpoint must return HTTP 200 (it already does).
+#
+# To disable keep-alive, simply remove or comment out this file.
+
+name: Keep Alive
+
+on:
+  schedule:
+    # Ping every 14 minutes — just under Render's 15-minute sleep threshold.
+    - cron: "*/14 * * * *"
+  # Allow a manual trigger from the Actions UI for testing.
+  workflow_dispatch:
+
+jobs:
+  ping:
+    name: Ping health endpoint
+    runs-on: ubuntu-latest
+    # This job only calls an external URL; it needs no GitHub API access.
+    permissions: {}
+    # Only ping when the secret is configured; avoids noisy failures on forks.
+    if: ${{ vars.RENDER_APP_URL != '' || secrets.RENDER_APP_URL != '' }}
+    steps:
+      - name: Health check
+        env:
+          APP_URL: ${{ secrets.RENDER_APP_URL || vars.RENDER_APP_URL }}
+        run: |
+          echo "Pinging ${APP_URL}/api/health"
+          curl --fail --silent --show-error \
+            --max-time 30 \
+            --retry 2 \
+            --retry-delay 5 \
+            "${APP_URL}/api/health"
+          echo "Service is alive."

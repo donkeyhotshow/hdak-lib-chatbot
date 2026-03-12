@@ -72,7 +72,12 @@ describe("Issue 12 — shared catalog URL constants", () => {
 // Issue 7: logUserQuery deduplication
 // ---------------------------------------------------------------------------
 
-vi.mock("drizzle-orm/mysql2", () => {
+// Issue 7: logUserQuery deduplication
+// ---------------------------------------------------------------------------
+
+vi.mock("postgres", () => ({ default: vi.fn(() => ({})) }));
+
+vi.mock("drizzle-orm/postgres-js", () => {
   const makeChain = (resolve: () => unknown) => {
     const chain: Record<string, unknown> = {
       from: () => chain,
@@ -80,7 +85,8 @@ vi.mock("drizzle-orm/mysql2", () => {
       limit: () => chain,
       orderBy: () => chain,
       set: () => chain,
-      values: () => Promise.resolve(resolve()),
+      values: () => chain,
+      returning: () => Promise.resolve(resolve()),
       then: (f: (v: unknown) => unknown, r?: (e: unknown) => unknown) =>
         Promise.resolve(resolve()).then(f, r),
     };
@@ -89,7 +95,7 @@ vi.mock("drizzle-orm/mysql2", () => {
 
   const state = {
     selectQueue: [] as unknown[][],
-    insertResult: { insertId: 1 } as Record<string, unknown>,
+    insertResult: [{ id: 1 }] as unknown[],
   };
 
   const mockDb: Record<string, unknown> = {
@@ -98,9 +104,9 @@ vi.mock("drizzle-orm/mysql2", () => {
         const next = state.selectQueue.shift() ?? [];
         return [...next];
       }),
-    insert: () => makeChain(() => ({ ...state.insertResult })),
-    update: () => makeChain(() => ({ affectedRows: 1 })),
-    delete: () => makeChain(() => ({ affectedRows: 1 })),
+    insert: () => makeChain(() => [...state.insertResult]),
+    update: () => makeChain(() => [{ id: 1 }]),
+    delete: () => makeChain(() => [{ id: 1 }]),
     transaction: (cb: (tx: unknown) => Promise<unknown>) => cb(mockDb),
     _state: state,
   };
@@ -111,9 +117,9 @@ vi.mock("drizzle-orm/mysql2", () => {
 // Helper: access the mock state via the internal _state property
 async function getMockState(): Promise<{
   selectQueue: unknown[][];
-  insertResult: Record<string, unknown>;
+  insertResult: unknown[];
 }> {
-  const { drizzle } = await import("drizzle-orm/mysql2");
+  const { drizzle } = await import("drizzle-orm/postgres-js");
   const db = (drizzle as any)();
   return db._state;
 }
@@ -121,7 +127,7 @@ async function getMockState(): Promise<{
 const ORIG_DB_URL = process.env.DATABASE_URL;
 
 beforeEach(() => {
-  process.env.DATABASE_URL = "mysql://mock";
+  process.env.DATABASE_URL = "postgresql://mock";
 });
 
 afterEach(() => {
@@ -151,9 +157,9 @@ describe("Issue 7 — logUserQuery deduplication", () => {
       createdAt: new Date(),
     };
     const state = await getMockState();
-    // Dedup select returns [] (no duplicate), post-insert select returns [mockLog]
-    state.selectQueue = [[], [mockLog]];
-    state.insertResult = { insertId: 1 };
+    // Dedup check returns [] (no duplicate). INSERT RETURNING gives [mockLog].
+    state.selectQueue = [[]];
+    state.insertResult = [mockLog];
 
     const db = await import("./db");
     const result = await db.logUserQuery(1, null, "unique query", "uk", null);
