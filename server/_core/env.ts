@@ -9,6 +9,8 @@ const envSchema = z.object({
   NODE_ENV: z.string().default("development"),
   BUILT_IN_FORGE_API_URL: z.string().default(""),
   BUILT_IN_FORGE_API_KEY: z.string().default(""),
+  /** Chat/completion model name. Falls back to gpt-4o-mini when not set. */
+  LLM_MODEL: z.string().default("gpt-4o-mini"),
 });
 
 const parsed = envSchema.parse({
@@ -20,6 +22,7 @@ const parsed = envSchema.parse({
   NODE_ENV: process.env.NODE_ENV,
   BUILT_IN_FORGE_API_URL: process.env.BUILT_IN_FORGE_API_URL,
   BUILT_IN_FORGE_API_KEY: process.env.BUILT_IN_FORGE_API_KEY,
+  LLM_MODEL: process.env.LLM_MODEL,
 });
 
 export const ENV = {
@@ -31,4 +34,6 @@ export const ENV = {
   isProduction: parsed.NODE_ENV === "production",
   forgeApiUrl: parsed.BUILT_IN_FORGE_API_URL,
   forgeApiKey: parsed.BUILT_IN_FORGE_API_KEY,
+  /** LLM model name used for all chat completions. Configurable via LLM_MODEL env var. */
+  llmModel: parsed.LLM_MODEL,
 };

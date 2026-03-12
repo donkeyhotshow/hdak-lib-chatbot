@@ -13,10 +13,10 @@ import * as cheerio from "cheerio";
 import { logger } from "../_core/logger";
 import * as db from "../db";
 import { clearReplyCache } from "./aiPipeline";
+import { CATALOG_SEARCH_URL } from "../constants";
 
 /** Public catalog/resource endpoint. Exported for testing. */
-export const CATALOG_URL =
-  "https://library-service.com.ua:8443/khkhdak/DocumentSearchForm";
+export const CATALOG_URL = CATALOG_SEARCH_URL;
 
 /** How often (ms) to re-sync.  Default: every 6 hours. */
 const DEFAULT_INTERVAL_MS = 6 * 60 * 60 * 1000;

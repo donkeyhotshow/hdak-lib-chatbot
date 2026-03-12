@@ -28,6 +28,11 @@ import {
   AI_MODEL_NAME,
 } from "../services/aiPipeline";
 import { recordLatency, recordStreamOutcome } from "./metrics";
+import {
+  CATALOG_SEARCH_URL,
+  CATALOG_PAGE_URL,
+  REPOSITORY_URL,
+} from "../constants";
 
 /** Maximum number of recent messages to scan when detecting the last user language. */
 const MAX_LANGUAGE_LOOKBACK = 20;
@@ -164,21 +169,19 @@ export const tools = {
         keyword: "Ключові слова / Keywords",
       };
       return {
-        catalogUrl:
-          "https://library-service.com.ua:8443/khkhdak/DocumentSearchForm",
-        catalogPageUrl: "https://lib-hdak.in.ua/e-catalog.html",
-        repositoryUrl: "https://repository.ac.kharkov.ua/home",
+        catalogUrl: CATALOG_SEARCH_URL,
+        catalogPageUrl: CATALOG_PAGE_URL,
+        repositoryUrl: REPOSITORY_URL,
         searchTerm,
         searchType,
         searchFieldLabel: fieldLabel[searchType] ?? fieldLabel.author,
         steps: [
-          `Відкрийте електронний каталог ХДАК: https://lib-hdak.in.ua/e-catalog.html`,
-          `Натисніть кнопку "Пошук" або перейдіть за посиланням: https://library-service.com.ua:8443/khkhdak/DocumentSearchForm`,
+          `Відкрийте електронний каталог ХДАК: ${CATALOG_PAGE_URL}`,
+          `Натисніть кнопку "Пошук" або перейдіть за посиланням: ${CATALOG_SEARCH_URL}`,
           `У полі "${fieldLabel[searchType]}" введіть: ${searchTerm}`,
           `Натисніть кнопку пошуку та перегляньте результати.`,
         ],
-        repositoryNote:
-          "Якщо шукаєте публікації вчених ХДАК — скористайтесь репозитарієм: https://repository.ac.kharkov.ua/home",
+        repositoryNote: `Якщо шукаєте публікації вчених ХДАК — скористайтесь репозитарієм: ${REPOSITORY_URL}`,
       };
     },
   }),

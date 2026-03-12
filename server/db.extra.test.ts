@@ -20,6 +20,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mockChainState = vi.hoisted(() => {
   return {
     selectResult: [] as unknown[],
+    /** Optional queue: each entry is returned for a successive select() call.
+     *  When the queue is non-null it takes precedence over selectResult. */
+    selectQueue: null as unknown[][] | null,
     insertResult: { insertId: 1 } as Record<string, unknown>,
     mutateResult: { affectedRows: 1 } as Record<string, unknown>,
   };
@@ -44,7 +47,14 @@ vi.mock("drizzle-orm/mysql2", () => {
   };
 
   const mockDb: Record<string, unknown> = {
-    select: () => makeChain(() => [...mockChainState.selectResult]),
+    select: () =>
+      makeChain(() => {
+        if (mockChainState.selectQueue) {
+          const next = mockChainState.selectQueue.shift() ?? [];
+          return [...next];
+        }
+        return [...mockChainState.selectResult];
+      }),
     insert: () => makeChain(() => ({ ...mockChainState.insertResult })),
     update: () => makeChain(() => ({ ...mockChainState.mutateResult })),
     delete: () => makeChain(() => ({ ...mockChainState.mutateResult })),
@@ -68,12 +78,17 @@ import * as db from "./db";
 
 function setSelectResult(rows: unknown[]): void {
   mockChainState.selectResult = rows;
+  mockChainState.selectQueue = null;
 }
 function setInsertResult(result: Record<string, unknown>): void {
   mockChainState.insertResult = result;
 }
 function setMutateResult(result: Record<string, unknown>): void {
   mockChainState.mutateResult = result;
+}
+/** Queue per-call select results: first call returns queue[0], second returns queue[1], etc. */
+function setSelectQueue(queue: unknown[][]): void {
+  mockChainState.selectQueue = [...queue];
 }
 
 /** Activate the mock DB by setting a non-empty DATABASE_URL. */
@@ -854,13 +869,17 @@ describe("db mock-DB paths — with mocked drizzle instance", () => {
       createdAt: new Date(),
     };
     setInsertResult({ insertId: 1 });
-    setSelectResult([mockLog]);
+    // First select: dedup check returns [] (no duplicate found).
+    // Second select: post-insert lookup returns [mockLog].
+    setSelectQueue([[], [mockLog]]);
     const result = await db.logUserQuery(1, null, "test", "uk", null);
     expect(result?.query).toBe("test");
   });
 
   it("logUserQuery with DB returns null when insertId is 0", async () => {
     setInsertResult({ insertId: 0 });
+    // Dedup check returns [] (no duplicate).
+    setSelectQueue([[], []]);
     const result = await db.logUserQuery(null, null, "test", "uk", null);
     expect(result).toBeNull();
   });

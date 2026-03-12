@@ -1,5 +1,7 @@
 import { embed } from "ai";
 import { openai } from "@ai-sdk/openai";
+import { createHash } from "crypto";
+import NodeCache from "node-cache";
 import * as db from "./db";
 import { logger } from "./_core/logger";
 import {
@@ -17,6 +19,18 @@ const CHUNK_SIZE = 1000; // characters per chunk
 const CHUNK_OVERLAP = 200; // overlap between chunks
 /** Maximum document size accepted for RAG processing. Larger inputs are truncated. */
 const MAX_DOCUMENT_SIZE = 500_000; // characters
+
+/**
+ * Short-lived in-memory cache for query embeddings (TTL = 1 hour).
+ * Repeated identical queries (e.g. the same question asked twice in quick
+ * succession) skip the embedding API call and reuse the cached vector.
+ * This is the primary RAG-scaling mitigation until a proper vector-index
+ * (e.g. pgvector) is available.
+ */
+const embeddingCache = new NodeCache({
+  stdTTL: 60 * 60,
+  checkperiod: 5 * 60,
+});
 
 /**
  * Split text into chunks with overlap
@@ -43,14 +57,22 @@ export function chunkText(
 }
 
 /**
- * Generate embedding for a text chunk using OpenAI
+ * Generate embedding for a text chunk using OpenAI.
+ * Results are cached for 1 hour so that repeated identical queries (e.g. the
+ * same user question appearing in multiple chat sessions) skip the API call.
  */
 export async function generateEmbedding(text: string): Promise<number[]> {
+  const cached = embeddingCache.get<number[]>(text);
+  if (cached !== undefined) {
+    return cached;
+  }
+
   try {
     const { embedding } = await embed({
       model: openai.embedding("text-embedding-3-small"),
       value: text,
     });
+    embeddingCache.set(text, embedding);
     return embedding;
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
@@ -59,6 +81,20 @@ export async function generateEmbedding(text: string): Promise<number[]> {
     });
     throw new Error(`Failed to generate embedding: ${msg}`);
   }
+}
+
+/** Flush the query-embedding cache — intended for testing only. */
+export function clearEmbeddingCache(): void {
+  embeddingCache.flushAll();
+}
+
+/**
+ * Compute a SHA-256 hex digest of a document's raw text content.
+ * Used as a deduplication key: if a document with the same hash is already
+ * stored with status='completed', the upload is skipped.
+ */
+export function computeContentHash(content: string): string {
+  return createHash("sha256").update(content, "utf8").digest("hex");
 }
 
 /**
@@ -89,6 +125,11 @@ export function cosineSimilarity(a: number[], b: number[]): number {
  *
  * Status lifecycle: processing → completed | failed
  *
+ * **Deduplication**: before processing, the content is hashed (SHA-256) and
+ * compared against existing completed documents. If a match is found the
+ * existing `documentId` is returned and no new chunks are created, preventing
+ * wasted embedding API calls and duplicate RAG context.
+ *
  * @param documentId  Unique identifier for the document (e.g. a URL or UUID).
  * @param title       Human-readable document title stored with each chunk.
  * @param content     Raw text content to split and embed. Truncated at
@@ -98,8 +139,9 @@ export function cosineSimilarity(a: number[], b: number[]): number {
  * @param url         Optional canonical URL of the source document.
  * @param author      Optional author name.
  * @param publishedDate  Optional publication date.
- * @returns `{ success, chunksCreated, error? }` — `success` is `false` and
- *   `chunksCreated` is `0` if any embedding call fails (atomic rollback applied).
+ * @returns `{ success, chunksCreated, error?, duplicate?, existingDocumentId? }` —
+ *   `duplicate` is `true` when an identical document (same content hash) already
+ *   exists, in which case `chunksCreated` is `0` and `existingDocumentId` is set.
  */
 export async function processDocument(
   documentId: string,
@@ -110,7 +152,13 @@ export async function processDocument(
   url?: string,
   author?: string,
   publishedDate?: Date
-): Promise<{ success: boolean; chunksCreated: number; error?: string }> {
+): Promise<{
+  success: boolean;
+  chunksCreated: number;
+  error?: string;
+  duplicate?: boolean;
+  existingDocumentId?: string;
+}> {
   // Enforce the maximum document size to avoid RAM exhaustion during chunking.
   if (content.length > MAX_DOCUMENT_SIZE) {
     logger.warn("[RAG] Document exceeds max size — truncating", {
@@ -126,6 +174,26 @@ export async function processDocument(
     const errorMsg = "Document content is empty or contains only whitespace";
     logger.warn("[RAG] Skipping empty document", { documentId });
     return { success: false, chunksCreated: 0, error: errorMsg };
+  }
+
+  // Deduplication: compute SHA-256 hash and check for an existing document.
+  const contentHash = computeContentHash(content);
+  const existingDoc = await db.getDocumentMetadataByContentHash(contentHash);
+  if (existingDoc) {
+    logger.info(
+      "[RAG] Duplicate document detected — skipping (same content hash)",
+      {
+        documentId,
+        existingDocumentId: existingDoc.documentId,
+        contentHash,
+      }
+    );
+    return {
+      success: true,
+      chunksCreated: 0,
+      duplicate: true,
+      existingDocumentId: existingDoc.documentId,
+    };
   }
 
   const rawChunks = chunkText(content);
@@ -147,6 +215,7 @@ export async function processDocument(
     totalChunks: chunks.length,
     isProcessed: 0,
     status: "processing",
+    contentHash,
     ...(url ? { url } : {}),
     ...(author ? { author } : {}),
     ...(publishedDate ? { publishedDate } : {}),

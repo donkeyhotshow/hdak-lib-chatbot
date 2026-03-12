@@ -14,6 +14,7 @@ import {
   semanticSearch,
   generateEmbedding,
   processDocument,
+  clearEmbeddingCache,
 } from "./rag-service";
 import * as db from "./db";
 import { embed } from "ai";
@@ -37,7 +38,10 @@ vi.mock("@ai-sdk/openai", () => ({
   },
 }));
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+  clearEmbeddingCache();
+});
 
 // ---------------------------------------------------------------------------
 // Helper factories

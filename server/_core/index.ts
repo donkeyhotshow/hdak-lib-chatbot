@@ -22,6 +22,15 @@ import { ENV } from "./env";
 import { sdk } from "./sdk";
 import { processDocument } from "../rag-service";
 import { getMetrics, startMemoryMonitoring } from "./metrics";
+// pdf-parse ships both CJS and ESM builds; the createRequire shim ensures the
+// correct CommonJS entry-point is used regardless of the project's module mode.
+import { createRequire } from "module";
+const _require = createRequire(import.meta.url);
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const pdfParse = _require("pdf-parse") as (
+  data: Buffer,
+  options?: Record<string, unknown>
+) => Promise<{ text: string; numpages: number }>;
 
 /** Maximum time (ms) to wait for in-flight requests before forcing shutdown. */
 const SHUTDOWN_TIMEOUT_MS = 10_000;
@@ -143,6 +152,7 @@ async function startServer() {
       const {
         title,
         content,
+        pdfBase64,
         language = "uk",
         sourceType = "other",
         url,
@@ -150,6 +160,9 @@ async function startServer() {
       } = req.body as {
         title?: unknown;
         content?: unknown;
+        /** Base64-encoded PDF binary. When provided, the server extracts text
+         *  from the PDF server-side and ignores `content`. */
+        pdfBase64?: unknown;
         language?: unknown;
         sourceType?: unknown;
         url?: unknown;
@@ -164,8 +177,14 @@ async function startServer() {
         res.status(400).json({ error: "title must be at most 500 characters" });
         return;
       }
-      if (typeof content !== "string" || !content.trim()) {
-        res.status(400).json({ error: "content must be a non-empty string" });
+      // Either `pdfBase64` (PDF upload) or `content` (plain text) must be supplied.
+      if (
+        (typeof pdfBase64 !== "string" || !pdfBase64.trim()) &&
+        (typeof content !== "string" || !content.trim())
+      ) {
+        res
+          .status(400)
+          .json({ error: "Either content or pdfBase64 must be provided" });
         return;
       }
       if (typeof url === "string" && url.length > 2048) {
@@ -194,6 +213,30 @@ async function startServer() {
         ? (sourceType as (typeof validSources)[number])
         : "other";
 
+      // Extract text: parse PDF when pdfBase64 is supplied, otherwise use content.
+      let extractedContent: string;
+      if (typeof pdfBase64 === "string" && pdfBase64.trim()) {
+        try {
+          const pdfBuffer = Buffer.from(pdfBase64, "base64");
+          const parsed = await pdfParse(pdfBuffer);
+          extractedContent = parsed.text;
+          logger.info("[/api/admin/process-pdf] PDF parsed", {
+            title,
+            pages: parsed.numpages,
+            textLength: extractedContent.length,
+          });
+        } catch (parseErr) {
+          logger.error("[/api/admin/process-pdf] PDF parsing failed", {
+            error:
+              parseErr instanceof Error ? parseErr.message : String(parseErr),
+          });
+          res.status(422).json({ error: "Failed to parse PDF content" });
+          return;
+        }
+      } else {
+        extractedContent = content as string;
+      }
+
       const documentId = `manual_${Date.now()}_${title.slice(0, 40).replace(/\s+/g, "_")}`;
 
       logger.info("[/api/admin/process-pdf] Processing document", {
@@ -201,14 +244,14 @@ async function startServer() {
         title,
         lang,
         src,
-        contentLength: content.length,
+        contentLength: extractedContent.length,
       });
 
       try {
         const result = await processDocument(
           documentId,
           title,
-          content,
+          extractedContent,
           src,
           lang,
           typeof url === "string" ? url : undefined,
@@ -216,18 +259,34 @@ async function startServer() {
         );
 
         if (result.success) {
-          logger.info(
-            "[/api/admin/process-pdf] Document processed successfully",
-            {
-              documentId,
+          if (result.duplicate) {
+            logger.info(
+              "[/api/admin/process-pdf] Duplicate document skipped",
+              {
+                documentId,
+                existingDocumentId: result.existingDocumentId,
+              }
+            );
+            res.json({
+              success: true,
+              chunksCreated: 0,
+              documentId: result.existingDocumentId ?? documentId,
+              duplicate: true,
+            });
+          } else {
+            logger.info(
+              "[/api/admin/process-pdf] Document processed successfully",
+              {
+                documentId,
+                chunksCreated: result.chunksCreated,
+              }
+            );
+            res.json({
+              success: true,
               chunksCreated: result.chunksCreated,
-            }
-          );
-          res.json({
-            success: true,
-            chunksCreated: result.chunksCreated,
-            documentId,
-          });
+              documentId,
+            });
+          }
         } else {
           res.status(422).json({
             success: false,

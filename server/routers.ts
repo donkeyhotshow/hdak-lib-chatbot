@@ -16,7 +16,11 @@ import {
   sanitizeUntrustedContent,
   type ConversationHistoryMessage,
   type MessageSource,
+  type SupportedLanguage,
 } from "./services/aiPipeline";
+import { generateText } from "ai";
+import { openai } from "@ai-sdk/openai";
+import { AI_MODEL_NAME, AI_TEMPERATURE } from "./services/aiPipeline";
 import { runSync, isSyncing, getLastSyncStatus } from "./services/syncService";
 
 // Admin-only procedure
@@ -31,9 +35,74 @@ const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
 });
 
 /** Maximum number of previous messages included in the AI context window. */
-const MAX_CONVERSATION_HISTORY = 10;
+const MAX_CONVERSATION_HISTORY = 14;
 /** Maximum character length allowed for a single user message. */
 const MAX_MESSAGE_LENGTH = 10_000;
+
+/**
+ * When a conversation exceeds MAX_CONVERSATION_HISTORY messages, summarise the
+ * oldest turns into a compact paragraph so the AI retains long-term context
+ * without incurring the full token cost of all previous messages.
+ *
+ * Returns a new history array whose first element is the summary (as a
+ * synthetic "user" turn) followed by the most recent messages.
+ * Falls back to the simple slice if the summary LLM call fails.
+ */
+async function buildHistoryWithSummary(
+  allMessages: ConversationHistoryMessage[],
+  language: SupportedLanguage
+): Promise<ConversationHistoryMessage[]> {
+  if (allMessages.length <= MAX_CONVERSATION_HISTORY) {
+    return allMessages;
+  }
+
+  const oldMessages = allMessages.slice(0, -MAX_CONVERSATION_HISTORY);
+  const recentMessages = allMessages.slice(-MAX_CONVERSATION_HISTORY);
+
+  const summaryPrompts: Record<SupportedLanguage, string> = {
+    uk: "Стисло підсумуй наступний фрагмент розмови в 2–3 речення, зберігаючи ключові факти та запити:",
+    ru: "Кратко подведи итог следующего фрагмента разговора в 2–3 предложения, сохраняя ключевые факты и запросы:",
+    en: "Briefly summarise the following conversation fragment in 2–3 sentences, preserving key facts and requests:",
+  };
+
+  const conversationText = oldMessages
+    .map(m => `${m.role === "user" ? "User" : "Assistant"}: ${m.content}`)
+    .join("\n");
+
+  try {
+    const { text: summary } = await generateText({
+      model: openai(AI_MODEL_NAME),
+      messages: [
+        {
+          role: "user",
+          content: `${summaryPrompts[language]}\n\n${conversationText}`,
+        },
+      ],
+      temperature: AI_TEMPERATURE,
+      maxOutputTokens: 200,
+    });
+
+    const summaryMessage: ConversationHistoryMessage = {
+      role: "user",
+      content: `[Earlier conversation summary: ${summary}]`,
+    };
+
+    logger.info(
+      "[sendMessage] Summarised older turns to stay within context window",
+      {
+        originalTurns: oldMessages.length,
+        summaryLength: summary.length,
+      }
+    );
+
+    return [summaryMessage, ...recentMessages];
+  } catch (err) {
+    logger.warn("[sendMessage] Summarisation failed — falling back to slice", {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return recentMessages;
+  }
+}
 
 export const appRouter = router({
   system: systemRouter,
@@ -133,22 +202,27 @@ export const appRouter = router({
         // generateConversationReply (which appends the prompt itself) does not
         // receive the current user turn twice.
         const messages = await db.getMessages(input.conversationId);
-        const conversationHistory: ConversationHistoryMessage[] = messages
-          .slice(-MAX_CONVERSATION_HISTORY)
-          .map(m => {
-            const isSupportedRole = m.role === "assistant" || m.role === "user";
-            if (!isSupportedRole) {
-              logger.warn(`[sendMessage] Unexpected role in conversation`, {
-                role: m.role,
-                conversationId: input.conversationId,
-                messageId: m.id ?? "unknown",
-              });
-            }
-            const role: ConversationHistoryMessage["role"] = isSupportedRole
-              ? (m.role as ConversationHistoryMessage["role"])
-              : "user";
-            return { role, content: m.content };
-          });
+        const allHistory: ConversationHistoryMessage[] = messages.map(m => {
+          const isSupportedRole = m.role === "assistant" || m.role === "user";
+          if (!isSupportedRole) {
+            logger.warn(`[sendMessage] Unexpected role in conversation`, {
+              role: m.role,
+              conversationId: input.conversationId,
+              messageId: m.id ?? "unknown",
+            });
+          }
+          const role: ConversationHistoryMessage["role"] = isSupportedRole
+            ? (m.role as ConversationHistoryMessage["role"])
+            : "user";
+          return { role, content: m.content };
+        });
+
+        // Summarise older turns when the history exceeds the context window to
+        // avoid silently dropping messages while retaining long-term context.
+        const conversationHistory = await buildHistoryWithSummary(
+          allHistory,
+          language
+        );
 
         // Save user message after history has been read so the current turn
         // is not included in the history snapshot passed to the AI.

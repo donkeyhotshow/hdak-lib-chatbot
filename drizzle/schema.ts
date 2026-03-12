@@ -47,6 +47,8 @@ export const conversations = mysqlTable("conversations", {
   language: mysqlEnum("language", ["en", "uk", "ru"]).default("en").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  /** Soft-delete timestamp. NULL means the conversation is active. */
+  deletedAt: timestamp("deletedAt"),
 });
 
 export type Conversation = typeof conversations.$inferSelect;
@@ -88,6 +90,8 @@ export const libraryResources = mysqlTable("libraryResources", {
   keywords: json("keywords"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  /** Soft-delete timestamp. NULL means the resource is active. */
+  deletedAt: timestamp("deletedAt"),
 });
 
 export type LibraryResource = typeof libraryResources.$inferSelect;
@@ -211,6 +215,12 @@ export const documentMetadata = mysqlTable("documentMetadata", {
     .default("processing")
     .notNull(),
   processingError: text("processingError"),
+  /**
+   * SHA-256 hex digest of the raw document content.
+   * Used to detect duplicate uploads: if a document with the same hash already
+   * exists the upload is skipped and the existing documentId is returned.
+   */
+  contentHash: varchar("contentHash", { length: 64 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

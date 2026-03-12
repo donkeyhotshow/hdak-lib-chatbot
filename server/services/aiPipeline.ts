@@ -5,6 +5,7 @@ import type { LibraryResource } from "../../drizzle/schema";
 import * as db from "../db";
 import { getRagContext } from "../rag-service";
 import { logger } from "../_core/logger";
+import { ENV } from "../_core/env";
 import {
   getSystemPrompt,
   officialLibraryInfo,
@@ -17,8 +18,13 @@ const AI_TIMEOUT_MS = 30_000;
 /** Sampling temperature for AI responses. Balanced between consistency and creativity. */
 export const AI_TEMPERATURE = 0.7;
 
-/** Default chat model name, centralised here so both pathways stay in sync. */
-export const AI_MODEL_NAME = "gpt-4o-mini";
+/**
+ * Chat model name — reads from the `LLM_MODEL` environment variable.
+ * Falls back to `"gpt-4o-mini"` when the variable is absent.
+ * Both the streaming `/api/chat` endpoint and the tRPC `sendMessage` pathway
+ * use this value so all completions stay in sync with a single env change.
+ */
+export const AI_MODEL_NAME = ENV.llmModel;
 
 /** Cache for AI conversation replies: key = hash of (prompt+lang+history), TTL = 24h. */
 const replyCache = new NodeCache({

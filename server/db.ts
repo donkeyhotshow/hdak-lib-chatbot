@@ -1,4 +1,4 @@
-import { eq, like, or, and, lt, asc, desc, inArray } from "drizzle-orm";
+import { eq, like, or, and, lt, asc, desc, inArray, isNull, gte } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   InsertUser,
@@ -98,6 +98,7 @@ function ensureMockState() {
       keywords: ["catalog", "books", "journals", "search", "каталог", "книги"],
       createdAt: now,
       updatedAt: now,
+      deletedAt: null,
     },
     {
       id: nextResourceId(),
@@ -121,6 +122,7 @@ function ensureMockState() {
       ],
       createdAt: now,
       updatedAt: now,
+      deletedAt: null,
     },
     {
       id: nextResourceId(),
@@ -144,6 +146,7 @@ function ensureMockState() {
       ],
       createdAt: now,
       updatedAt: now,
+      deletedAt: null,
     },
     {
       id: nextResourceId(),
@@ -167,6 +170,7 @@ function ensureMockState() {
       ],
       createdAt: now,
       updatedAt: now,
+      deletedAt: null,
     },
     {
       id: nextResourceId(),
@@ -184,6 +188,7 @@ function ensureMockState() {
       keywords: ["Web of Science", "citations", "international", "VPN"],
       createdAt: now,
       updatedAt: now,
+      deletedAt: null,
     },
     {
       id: nextResourceId(),
@@ -201,6 +206,7 @@ function ensureMockState() {
       keywords: ["Elsevier", "ScienceDirect", "journals", "VPN"],
       createdAt: now,
       updatedAt: now,
+      deletedAt: null,
     },
     {
       id: nextResourceId(),
@@ -218,6 +224,7 @@ function ensureMockState() {
       keywords: ["Springer", "journals", "books", "VPN"],
       createdAt: now,
       updatedAt: now,
+      deletedAt: null,
     },
     {
       id: nextResourceId(),
@@ -235,6 +242,7 @@ function ensureMockState() {
       keywords: ["Research 4 Life", "medical", "scientific literature"],
       createdAt: now,
       updatedAt: now,
+      deletedAt: null,
     },
   ];
 
@@ -447,7 +455,9 @@ export async function getConversations(
   return db
     .select()
     .from(conversations)
-    .where(eq(conversations.userId, userId))
+    .where(
+      and(eq(conversations.userId, userId), isNull(conversations.deletedAt))
+    )
     .orderBy(desc(conversations.createdAt));
 }
 
@@ -460,7 +470,12 @@ export async function getConversation(
   const result = await db
     .select()
     .from(conversations)
-    .where(eq(conversations.id, conversationId))
+    .where(
+      and(
+        eq(conversations.id, conversationId),
+        isNull(conversations.deletedAt)
+      )
+    )
     .limit(1);
   return result[0] || null;
 }
@@ -472,20 +487,21 @@ export async function deleteConversation(
   if (!db) return false;
 
   try {
-    // Wrap in a transaction to ensure both deletes succeed or both fail,
-    // preventing orphaned messages if the conversation delete were to fail
-    // after messages were already removed.
-    const result = await db.transaction(async tx => {
-      await tx
-        .delete(messages)
-        .where(eq(messages.conversationId, conversationId));
-      return tx
-        .delete(conversations)
-        .where(eq(conversations.id, conversationId));
-    });
+    // Soft-delete by setting deletedAt. Messages are intentionally left in place
+    // so they can be restored if needed; they become inaccessible once the parent
+    // conversation is filtered out by isNull(conversations.deletedAt) queries.
+    const result = await db
+      .update(conversations)
+      .set({ deletedAt: new Date() })
+      .where(
+        and(
+          eq(conversations.id, conversationId),
+          isNull(conversations.deletedAt)
+        )
+      );
     return (result as any).affectedRows > 0;
   } catch (error) {
-    logger.error("[Database] Error deleting conversation:", {
+    logger.error("[Database] Error soft-deleting conversation:", {
       error: error instanceof Error ? error.message : String(error),
     });
     return false;
@@ -588,10 +604,13 @@ export async function getAllResources(): Promise<LibraryResource[]> {
   const db = await getDb();
   if (!db) {
     ensureMockState();
-    return mockState.resources;
+    return mockState.resources.filter(r => !r.deletedAt);
   }
 
-  return db.select().from(libraryResources);
+  return db
+    .select()
+    .from(libraryResources)
+    .where(isNull(libraryResources.deletedAt));
 }
 
 export async function getResourceByUrl(
@@ -600,14 +619,16 @@ export async function getResourceByUrl(
   const db = await getDb();
   if (!db) {
     ensureMockState();
-    return mockState.resources.find(r => r.url === url) ?? null;
+    return mockState.resources.find(r => r.url === url && !r.deletedAt) ?? null;
   }
 
   try {
     const result = await db
       .select()
       .from(libraryResources)
-      .where(eq(libraryResources.url, url))
+      .where(
+        and(eq(libraryResources.url, url), isNull(libraryResources.deletedAt))
+      )
       .limit(1);
     return result[0] ?? null;
   } catch (error) {
@@ -627,6 +648,7 @@ export async function searchResources(
     ensureMockState();
     const q = query.toLowerCase();
     return mockState.resources.filter(resource => {
+      if (resource.deletedAt) return false;
       const fields = [
         resource.nameEn,
         resource.nameUk,
@@ -652,13 +674,16 @@ export async function searchResources(
     .select()
     .from(libraryResources)
     .where(
-      or(
-        like(libraryResources.nameEn, `%${escapedQuery}%`),
-        like(libraryResources.nameUk, `%${escapedQuery}%`),
-        like(libraryResources.nameRu, `%${escapedQuery}%`),
-        like(libraryResources.descriptionEn, `%${escapedQuery}%`),
-        like(libraryResources.descriptionUk, `%${escapedQuery}%`),
-        like(libraryResources.descriptionRu, `%${escapedQuery}%`)
+      and(
+        isNull(libraryResources.deletedAt),
+        or(
+          like(libraryResources.nameEn, `%${escapedQuery}%`),
+          like(libraryResources.nameUk, `%${escapedQuery}%`),
+          like(libraryResources.nameRu, `%${escapedQuery}%`),
+          like(libraryResources.descriptionEn, `%${escapedQuery}%`),
+          like(libraryResources.descriptionUk, `%${escapedQuery}%`),
+          like(libraryResources.descriptionRu, `%${escapedQuery}%`)
+        )
       )
     );
 }
@@ -669,13 +694,20 @@ export async function getResourcesByType(
   const db = await getDb();
   if (!db) {
     ensureMockState();
-    return mockState.resources.filter(resource => resource.type === type);
+    return mockState.resources.filter(
+      resource => resource.type === type && !resource.deletedAt
+    );
   }
 
   return db
     .select()
     .from(libraryResources)
-    .where(eq(libraryResources.type, type as any));
+    .where(
+      and(
+        eq(libraryResources.type, type as any),
+        isNull(libraryResources.deletedAt)
+      )
+    );
 }
 
 export async function createResource(
@@ -697,6 +729,7 @@ export async function createResource(
       keywords: resource.keywords ?? null,
       createdAt: now,
       updatedAt: now,
+      deletedAt: null,
     };
     mockState.resources.push(created);
     return created;
@@ -769,18 +802,22 @@ export async function deleteResource(id: number): Promise<boolean> {
   const db = await getDb();
   if (!db) {
     ensureMockState();
-    const before = mockState.resources.length;
-    mockState.resources = mockState.resources.filter(r => r.id !== id);
-    return mockState.resources.length < before;
+    const resource = mockState.resources.find(r => r.id === id && !r.deletedAt);
+    if (!resource) return false;
+    resource.deletedAt = new Date();
+    return true;
   }
 
   try {
     const result = await db
-      .delete(libraryResources)
-      .where(eq(libraryResources.id, id));
+      .update(libraryResources)
+      .set({ deletedAt: new Date() })
+      .where(
+        and(eq(libraryResources.id, id), isNull(libraryResources.deletedAt))
+      );
     return (result as any).affectedRows > 0;
   } catch (error) {
-    logger.error("[Database] Error deleting resource:", {
+    logger.error("[Database] Error soft-deleting resource:", {
       error: error instanceof Error ? error.message : String(error),
     });
     return false;
@@ -1015,6 +1052,31 @@ export async function logUserQuery(
   if (!db) return null;
 
   try {
+    // Deduplication: skip insert when the same user submitted an identical query
+    // within the last 60 seconds to avoid analytics noise from rapid retries.
+    const dedupeWindowMs = 60_000;
+    const since = new Date(Date.now() - dedupeWindowMs);
+    const duplicateConditions = [
+      eq(userQueries.query, query),
+      eq(userQueries.language, language as any),
+      gte(userQueries.createdAt, since),
+    ];
+    if (userId !== null) {
+      duplicateConditions.push(eq(userQueries.userId, userId) as any);
+    }
+    const existing = await db
+      .select({ id: userQueries.id })
+      .from(userQueries)
+      .where(and(...(duplicateConditions as [any, ...any[]])))
+      .limit(1);
+    if (existing.length > 0) {
+      logger.info("[Database] logUserQuery: skipping duplicate query", {
+        userId,
+        query: query.slice(0, 80),
+      });
+      return null;
+    }
+
     const result = await db.insert(userQueries).values({
       userId,
       conversationId,
@@ -1166,6 +1228,37 @@ export async function getDocumentMetadata(
     return result[0] || null;
   } catch (error) {
     logger.error("[Database] Error getting document metadata:", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return null;
+  }
+}
+
+/**
+ * Look up an already-processed document by its content hash.
+ * Returns `null` when no matching completed document exists (mock mode or not found).
+ * Used by {@link processDocument} to skip duplicate uploads.
+ */
+export async function getDocumentMetadataByContentHash(
+  contentHash: string
+): Promise<DocumentMetadata | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  try {
+    const result = await db
+      .select()
+      .from(documentMetadata)
+      .where(
+        and(
+          eq(documentMetadata.contentHash, contentHash),
+          eq(documentMetadata.status, "completed")
+        )
+      )
+      .limit(1);
+    return result[0] || null;
+  } catch (error) {
+    logger.error("[Database] Error looking up document by content hash:", {
       error: error instanceof Error ? error.message : String(error),
     });
     return null;
