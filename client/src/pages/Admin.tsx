@@ -1,18 +1,69 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { trpc } from "@/lib/trpc";
-import { Loader2, Plus, Edit2, Trash2, ArrowLeft, RefreshCw, BarChart2, Info, FileText, AlertCircle, CheckCircle2 } from "lucide-react";
+import {
+  Loader2,
+  Plus,
+  Edit2,
+  Trash2,
+  ArrowLeft,
+  RefreshCw,
+  BarChart2,
+  Info,
+  FileText,
+  AlertCircle,
+  CheckCircle2,
+  Activity,
+} from "lucide-react";
 import { useLocation } from "wouter";
 
-type ResourceType = "electronic_library" | "repository" | "catalog" | "database" | "other";
-type ContactType = "email" | "phone" | "address" | "telegram" | "viber" | "facebook" | "instagram" | "other";
-type ActiveTab = "resources" | "contacts" | "info" | "analytics" | "documents";
+type ResourceType =
+  | "electronic_library"
+  | "repository"
+  | "catalog"
+  | "database"
+  | "other";
+type ContactType =
+  | "email"
+  | "phone"
+  | "address"
+  | "telegram"
+  | "viber"
+  | "facebook"
+  | "instagram"
+  | "other";
+type ActiveTab =
+  | "resources"
+  | "contacts"
+  | "info"
+  | "analytics"
+  | "documents"
+  | "metrics";
+
+function formatUptime(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  return `${h}h ${m}m`;
+}
 
 function SyncStatusBadge({
   success,
@@ -33,8 +84,8 @@ function SyncStatusBadge({
     errors && errors.length > 0
       ? `Last error:\n${errors[errors.length - 1]}`
       : success
-      ? "All resources synced successfully"
-      : "Sync failed with no error details";
+        ? "All resources synced successfully"
+        : "Sync failed with no error details";
 
   return (
     <div
@@ -55,7 +106,10 @@ export default function Admin() {
   const [location, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState<ActiveTab>("resources");
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [syncResult, setSyncResult] = useState<{ synced: number; errors: string[] } | null>(null);
+  const [syncResult, setSyncResult] = useState<{
+    synced: number;
+    errors: string[];
+  } | null>(null);
 
   // Resource form state
   const [resourceForm, setResourceForm] = useState({
@@ -103,19 +157,50 @@ export default function Admin() {
   >({ type: "idle" });
 
   // Fetch resources
-  const { data: resources = [], isLoading: resourcesLoading } = trpc.resources.getAll.useQuery();
+  const { data: resources = [], isLoading: resourcesLoading } =
+    trpc.resources.getAll.useQuery();
 
   // Fetch contacts
-  const { data: contacts = [], isLoading: contactsLoading } = trpc.contacts.getAll.useQuery();
+  const { data: contacts = [], isLoading: contactsLoading } =
+    trpc.contacts.getAll.useQuery();
 
   // Fetch library info entries (cached 5 min; mutations invalidate it)
-  const { data: infoEntries = [], isLoading: infoLoading, refetch: refetchInfo } = trpc.libraryInfo.getAll.useQuery(undefined, {
+  const {
+    data: infoEntries = [],
+    isLoading: infoLoading,
+    refetch: refetchInfo,
+  } = trpc.libraryInfo.getAll.useQuery(undefined, {
     staleTime: 5 * 60 * 1000,
   });
 
   // Fetch analytics
-  const { data: analytics, isLoading: analyticsLoading } = trpc.analytics.getQueryStats.useQuery(undefined, {
-    enabled: activeTab === "analytics",
+  const { data: analytics, isLoading: analyticsLoading } =
+    trpc.analytics.getQueryStats.useQuery(undefined, {
+      enabled: activeTab === "analytics",
+    });
+
+  // Fetch performance metrics from /api/metrics (REST endpoint, cookie auth)
+  const {
+    data: perfMetrics,
+    isLoading: metricsLoading,
+    refetch: refetchMetrics,
+    error: metricsError,
+  } = useQuery({
+    queryKey: ["perfMetrics"],
+    queryFn: async () => {
+      const res = await fetch("/api/metrics", { credentials: "include" });
+      if (!res.ok) {
+        if (res.status === 401) throw new Error("Authentication required");
+        if (res.status === 403) throw new Error("Admin access required");
+        const body = await res.json().catch(() => ({}));
+        throw new Error(
+          (body as { error?: string }).error ?? `Request failed (${res.status})`
+        );
+      }
+      return res.json();
+    },
+    enabled: activeTab === "metrics",
+    refetchInterval: activeTab === "metrics" ? 30_000 : false,
   });
 
   // Mutations
@@ -166,7 +251,7 @@ export default function Admin() {
   });
 
   const syncMutation = trpc.sync.runNow.useMutation({
-    onSuccess: (result) => {
+    onSuccess: result => {
       setSyncResult(result);
       trpc.useUtils().resources.getAll.invalidate();
       trpc.useUtils().sync.lastStatus.invalidate();
@@ -182,8 +267,12 @@ export default function Admin() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <Card className="w-full max-w-md p-8 text-center">
-          <h1 className="text-2xl font-bold mb-4 text-gray-900">Access Denied</h1>
-          <p className="text-gray-600 mb-6">You do not have permission to access the admin panel.</p>
+          <h1 className="text-2xl font-bold mb-4 text-gray-900">
+            Access Denied
+          </h1>
+          <p className="text-gray-600 mb-6">
+            You do not have permission to access the admin panel.
+          </p>
           <Button onClick={() => setLocation("/")} className="w-full">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Chat
@@ -285,7 +374,9 @@ export default function Admin() {
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Admin Panel</h1>
-            <p className="text-sm text-gray-600">Manage library resources and contacts</p>
+            <p className="text-sm text-gray-600">
+              Manage library resources and contacts
+            </p>
           </div>
           <Button variant="outline" onClick={() => setLocation("/")}>
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -300,21 +391,31 @@ export default function Admin() {
           <Button
             variant={activeTab === "resources" ? "default" : "outline"}
             onClick={() => setActiveTab("resources")}
-            className={activeTab === "resources" ? "bg-indigo-600 hover:bg-indigo-700" : ""}
+            className={
+              activeTab === "resources"
+                ? "bg-indigo-600 hover:bg-indigo-700"
+                : ""
+            }
           >
             Resources
           </Button>
           <Button
             variant={activeTab === "contacts" ? "default" : "outline"}
             onClick={() => setActiveTab("contacts")}
-            className={activeTab === "contacts" ? "bg-indigo-600 hover:bg-indigo-700" : ""}
+            className={
+              activeTab === "contacts"
+                ? "bg-indigo-600 hover:bg-indigo-700"
+                : ""
+            }
           >
             Contacts
           </Button>
           <Button
             variant={activeTab === "info" ? "default" : "outline"}
             onClick={() => setActiveTab("info")}
-            className={activeTab === "info" ? "bg-indigo-600 hover:bg-indigo-700" : ""}
+            className={
+              activeTab === "info" ? "bg-indigo-600 hover:bg-indigo-700" : ""
+            }
           >
             <Info className="w-4 h-4 mr-2" />
             Library Info
@@ -322,7 +423,11 @@ export default function Admin() {
           <Button
             variant={activeTab === "analytics" ? "default" : "outline"}
             onClick={() => setActiveTab("analytics")}
-            className={activeTab === "analytics" ? "bg-indigo-600 hover:bg-indigo-700" : ""}
+            className={
+              activeTab === "analytics"
+                ? "bg-indigo-600 hover:bg-indigo-700"
+                : ""
+            }
           >
             <BarChart2 className="w-4 h-4 mr-2" />
             Analytics
@@ -330,10 +435,24 @@ export default function Admin() {
           <Button
             variant={activeTab === "documents" ? "default" : "outline"}
             onClick={() => setActiveTab("documents")}
-            className={activeTab === "documents" ? "bg-indigo-600 hover:bg-indigo-700" : ""}
+            className={
+              activeTab === "documents"
+                ? "bg-indigo-600 hover:bg-indigo-700"
+                : ""
+            }
           >
             <FileText className="w-4 h-4 mr-2" />
             Documents
+          </Button>
+          <Button
+            variant={activeTab === "metrics" ? "default" : "outline"}
+            onClick={() => setActiveTab("metrics")}
+            className={
+              activeTab === "metrics" ? "bg-indigo-600 hover:bg-indigo-700" : ""
+            }
+          >
+            <Activity className="w-4 h-4 mr-2" />
+            Performance
           </Button>
           {/* Manual catalog sync button */}
           <div className="ml-auto flex items-center gap-3">
@@ -346,7 +465,10 @@ export default function Admin() {
               />
             ) : syncResult ? (
               <span className="text-xs text-gray-500">
-                Synced: {syncResult.synced}{syncResult.errors.length > 0 ? ` | Errors: ${syncResult.errors.length}` : ""}
+                Synced: {syncResult.synced}
+                {syncResult.errors.length > 0
+                  ? ` | Errors: ${syncResult.errors.length}`
+                  : ""}
               </span>
             ) : null}
             {/* Download sync error log */}
@@ -364,7 +486,9 @@ export default function Admin() {
                     "Errors:",
                     ...lastSyncStatus.errors.map((e, i) => `${i + 1}. ${e}`),
                   ];
-                  const blob = new Blob([lines.join("\n")], { type: "text/plain" });
+                  const blob = new Blob([lines.join("\n")], {
+                    type: "text/plain",
+                  });
                   const url = URL.createObjectURL(blob);
                   const a = document.createElement("a");
                   a.href = url;
@@ -398,40 +522,75 @@ export default function Admin() {
           <div className="space-y-6">
             {/* Add/Edit Resource Form */}
             <Card className="p-6">
-              <h2 className="text-lg font-bold mb-4">{editingId ? "Edit Resource" : "Add New Resource"}</h2>
+              <h2 className="text-lg font-bold mb-4">
+                {editingId ? "Edit Resource" : "Add New Resource"}
+              </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Name (English)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Name (English)
+                  </label>
                   <Input
                     value={resourceForm.nameEn}
-                    onChange={(e) => setResourceForm({ ...resourceForm, nameEn: e.target.value })}
+                    onChange={e =>
+                      setResourceForm({
+                        ...resourceForm,
+                        nameEn: e.target.value,
+                      })
+                    }
                     placeholder="Resource name in English"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Name (Ukrainian)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Name (Ukrainian)
+                  </label>
                   <Input
                     value={resourceForm.nameUk}
-                    onChange={(e) => setResourceForm({ ...resourceForm, nameUk: e.target.value })}
+                    onChange={e =>
+                      setResourceForm({
+                        ...resourceForm,
+                        nameUk: e.target.value,
+                      })
+                    }
                     placeholder="Resource name in Ukrainian"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Name (Russian)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Name (Russian)
+                  </label>
                   <Input
                     value={resourceForm.nameRu}
-                    onChange={(e) => setResourceForm({ ...resourceForm, nameRu: e.target.value })}
+                    onChange={e =>
+                      setResourceForm({
+                        ...resourceForm,
+                        nameRu: e.target.value,
+                      })
+                    }
                     placeholder="Resource name in Russian"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                  <Select value={resourceForm.type} onValueChange={(val) => setResourceForm({ ...resourceForm, type: val as ResourceType })}>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Type
+                  </label>
+                  <Select
+                    value={resourceForm.type}
+                    onValueChange={val =>
+                      setResourceForm({
+                        ...resourceForm,
+                        type: val as ResourceType,
+                      })
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="electronic_library">Electronic Library</SelectItem>
+                      <SelectItem value="electronic_library">
+                        Electronic Library
+                      </SelectItem>
                       <SelectItem value="repository">Repository</SelectItem>
                       <SelectItem value="catalog">Catalog</SelectItem>
                       <SelectItem value="database">Database</SelectItem>
@@ -440,41 +599,74 @@ export default function Admin() {
                   </Select>
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">URL</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    URL
+                  </label>
                   <Input
                     value={resourceForm.url}
-                    onChange={(e) => setResourceForm({ ...resourceForm, url: e.target.value })}
+                    onChange={e =>
+                      setResourceForm({ ...resourceForm, url: e.target.value })
+                    }
                     placeholder="https://example.com"
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description (English)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description (English)
+                  </label>
                   <Input
                     value={resourceForm.descriptionEn}
-                    onChange={(e) => setResourceForm({ ...resourceForm, descriptionEn: e.target.value })}
+                    onChange={e =>
+                      setResourceForm({
+                        ...resourceForm,
+                        descriptionEn: e.target.value,
+                      })
+                    }
                     placeholder="Description in English"
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description (Ukrainian)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description (Ukrainian)
+                  </label>
                   <Input
                     value={resourceForm.descriptionUk}
-                    onChange={(e) => setResourceForm({ ...resourceForm, descriptionUk: e.target.value })}
+                    onChange={e =>
+                      setResourceForm({
+                        ...resourceForm,
+                        descriptionUk: e.target.value,
+                      })
+                    }
                     placeholder="Description in Ukrainian"
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description (Russian)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description (Russian)
+                  </label>
                   <Input
                     value={resourceForm.descriptionRu}
-                    onChange={(e) => setResourceForm({ ...resourceForm, descriptionRu: e.target.value })}
+                    onChange={e =>
+                      setResourceForm({
+                        ...resourceForm,
+                        descriptionRu: e.target.value,
+                      })
+                    }
                     placeholder="Description in Russian"
                   />
                 </div>
               </div>
               <div className="flex gap-2 mt-4">
-                <Button onClick={handleSaveResource} disabled={createResourceMutation.isPending || updateResourceMutation.isPending} className="bg-indigo-600 hover:bg-indigo-700">
-                  {createResourceMutation.isPending || updateResourceMutation.isPending ? (
+                <Button
+                  onClick={handleSaveResource}
+                  disabled={
+                    createResourceMutation.isPending ||
+                    updateResourceMutation.isPending
+                  }
+                  className="bg-indigo-600 hover:bg-indigo-700"
+                >
+                  {createResourceMutation.isPending ||
+                  updateResourceMutation.isPending ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       Saving...
@@ -502,15 +694,24 @@ export default function Admin() {
                   <Loader2 className="w-6 h-6 animate-spin text-indigo-600" />
                 </div>
               ) : resources.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">No resources yet</p>
+                <p className="text-gray-500 text-center py-8">
+                  No resources yet
+                </p>
               ) : (
                 <ScrollArea className="h-96">
                   <div className="space-y-2">
                     {resources.map((resource: any) => (
-                      <div key={resource.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div
+                        key={resource.id}
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                      >
                         <div className="flex-1">
-                          <div className="font-medium text-gray-900">{resource.nameEn}</div>
-                          <div className="text-sm text-gray-600">{resource.type}</div>
+                          <div className="font-medium text-gray-900">
+                            {resource.nameEn}
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            {resource.type}
+                          </div>
                         </div>
                         <div className="flex gap-2">
                           <Button
@@ -523,7 +724,9 @@ export default function Admin() {
                           <Button
                             size="sm"
                             variant="destructive"
-                            onClick={() => deleteResourceMutation.mutate({ id: resource.id })}
+                            onClick={() =>
+                              deleteResourceMutation.mutate({ id: resource.id })
+                            }
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -542,11 +745,23 @@ export default function Admin() {
           <div className="space-y-6">
             {/* Add/Edit Contact Form */}
             <Card className="p-6">
-              <h2 className="text-lg font-bold mb-4">{editingId ? "Edit Contact" : "Add New Contact"}</h2>
+              <h2 className="text-lg font-bold mb-4">
+                {editingId ? "Edit Contact" : "Add New Contact"}
+              </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                  <Select value={contactForm.type} onValueChange={(val) => setContactForm({ ...contactForm, type: val as ContactType })}>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Type
+                  </label>
+                  <Select
+                    value={contactForm.type}
+                    onValueChange={val =>
+                      setContactForm({
+                        ...contactForm,
+                        type: val as ContactType,
+                      })
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -563,41 +778,74 @@ export default function Admin() {
                   </Select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Value</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Value
+                  </label>
                   <Input
                     value={contactForm.value}
-                    onChange={(e) => setContactForm({ ...contactForm, value: e.target.value })}
+                    onChange={e =>
+                      setContactForm({ ...contactForm, value: e.target.value })
+                    }
                     placeholder="Contact value"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Label (English)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Label (English)
+                  </label>
                   <Input
                     value={contactForm.labelEn}
-                    onChange={(e) => setContactForm({ ...contactForm, labelEn: e.target.value })}
+                    onChange={e =>
+                      setContactForm({
+                        ...contactForm,
+                        labelEn: e.target.value,
+                      })
+                    }
                     placeholder="Label in English"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Label (Ukrainian)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Label (Ukrainian)
+                  </label>
                   <Input
                     value={contactForm.labelUk}
-                    onChange={(e) => setContactForm({ ...contactForm, labelUk: e.target.value })}
+                    onChange={e =>
+                      setContactForm({
+                        ...contactForm,
+                        labelUk: e.target.value,
+                      })
+                    }
                     placeholder="Label in Ukrainian"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Label (Russian)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Label (Russian)
+                  </label>
                   <Input
                     value={contactForm.labelRu}
-                    onChange={(e) => setContactForm({ ...contactForm, labelRu: e.target.value })}
+                    onChange={e =>
+                      setContactForm({
+                        ...contactForm,
+                        labelRu: e.target.value,
+                      })
+                    }
                     placeholder="Label in Russian"
                   />
                 </div>
               </div>
               <div className="flex gap-2 mt-4">
-                <Button onClick={handleSaveContact} disabled={createContactMutation.isPending || updateContactMutation.isPending} className="bg-indigo-600 hover:bg-indigo-700">
-                  {createContactMutation.isPending || updateContactMutation.isPending ? (
+                <Button
+                  onClick={handleSaveContact}
+                  disabled={
+                    createContactMutation.isPending ||
+                    updateContactMutation.isPending
+                  }
+                  className="bg-indigo-600 hover:bg-indigo-700"
+                >
+                  {createContactMutation.isPending ||
+                  updateContactMutation.isPending ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       Saving...
@@ -625,15 +873,24 @@ export default function Admin() {
                   <Loader2 className="w-6 h-6 animate-spin text-indigo-600" />
                 </div>
               ) : contacts.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">No contacts yet</p>
+                <p className="text-gray-500 text-center py-8">
+                  No contacts yet
+                </p>
               ) : (
                 <ScrollArea className="h-96">
                   <div className="space-y-2">
                     {contacts.map((contact: any) => (
-                      <div key={contact.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div
+                        key={contact.id}
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                      >
                         <div className="flex-1">
-                          <div className="font-medium text-gray-900">{contact.labelEn || contact.value}</div>
-                          <div className="text-sm text-gray-600">{contact.type}: {contact.value}</div>
+                          <div className="font-medium text-gray-900">
+                            {contact.labelEn || contact.value}
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            {contact.type}: {contact.value}
+                          </div>
                         </div>
                         <div className="flex gap-2">
                           <Button
@@ -646,7 +903,9 @@ export default function Admin() {
                           <Button
                             size="sm"
                             variant="destructive"
-                            onClick={() => deleteContactMutation.mutate({ id: contact.id })}
+                            onClick={() =>
+                              deleteContactMutation.mutate({ id: contact.id })
+                            }
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -667,8 +926,15 @@ export default function Admin() {
               <h2 className="text-lg font-bold mb-4">Edit Library Info</h2>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Key</label>
-                  <Select value={infoForm.key} onValueChange={(val) => setInfoForm({ ...infoForm, key: val })}>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Key
+                  </label>
+                  <Select
+                    value={infoForm.key}
+                    onValueChange={val =>
+                      setInfoForm({ ...infoForm, key: val })
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -682,26 +948,38 @@ export default function Admin() {
               </div>
               <div className="grid grid-cols-1 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Value (Ukrainian)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Value (Ukrainian)
+                  </label>
                   <Input
                     value={infoForm.valueUk}
-                    onChange={(e) => setInfoForm({ ...infoForm, valueUk: e.target.value })}
+                    onChange={e =>
+                      setInfoForm({ ...infoForm, valueUk: e.target.value })
+                    }
                     placeholder="Значення українською"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Value (English)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Value (English)
+                  </label>
                   <Input
                     value={infoForm.valueEn}
-                    onChange={(e) => setInfoForm({ ...infoForm, valueEn: e.target.value })}
+                    onChange={e =>
+                      setInfoForm({ ...infoForm, valueEn: e.target.value })
+                    }
                     placeholder="Value in English"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Value (Russian)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Value (Russian)
+                  </label>
                   <Input
                     value={infoForm.valueRu}
-                    onChange={(e) => setInfoForm({ ...infoForm, valueRu: e.target.value })}
+                    onChange={e =>
+                      setInfoForm({ ...infoForm, valueRu: e.target.value })
+                    }
                     placeholder="Значение на русском"
                   />
                 </div>
@@ -712,9 +990,15 @@ export default function Admin() {
                 className="mt-4 bg-indigo-600 hover:bg-indigo-700"
               >
                 {setInfoMutation.isPending ? (
-                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</>
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
                 ) : (
-                  <><Plus className="w-4 h-4 mr-2" />Save Info</>
+                  <>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Save Info
+                  </>
                 )}
               </Button>
             </Card>
@@ -728,12 +1012,23 @@ export default function Admin() {
               ) : (
                 <div className="space-y-3">
                   {(infoEntries as any[]).map((entry: any) => (
-                    <div key={entry.key} className="flex items-start justify-between p-3 bg-gray-50 rounded-lg">
+                    <div
+                      key={entry.key}
+                      className="flex items-start justify-between p-3 bg-gray-50 rounded-lg"
+                    >
                       <div className="flex-1">
-                        <div className="font-medium text-gray-900 text-sm">[{entry.key}]</div>
-                        <div className="text-sm text-gray-600 mt-1 line-clamp-2">{entry.valueUk}</div>
+                        <div className="font-medium text-gray-900 text-sm">
+                          [{entry.key}]
+                        </div>
+                        <div className="text-sm text-gray-600 mt-1 line-clamp-2">
+                          {entry.valueUk}
+                        </div>
                       </div>
-                      <Button size="sm" variant="outline" onClick={() => handleEditInfo(entry)}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEditInfo(entry)}
+                      >
                         <Edit2 className="w-4 h-4" />
                       </Button>
                     </div>
@@ -755,13 +1050,19 @@ export default function Admin() {
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <Card className="p-4 text-center">
-                    <p className="text-3xl font-bold text-indigo-600">{analytics.totalQueries}</p>
+                    <p className="text-3xl font-bold text-indigo-600">
+                      {analytics.totalQueries}
+                    </p>
                     <p className="text-sm text-gray-600 mt-1">Total Queries</p>
                   </Card>
                   {analytics.languageBreakdown.map((lb: any) => (
                     <Card key={lb.language} className="p-4 text-center">
-                      <p className="text-3xl font-bold text-indigo-600">{lb.count}</p>
-                      <p className="text-sm text-gray-600 mt-1 uppercase">{lb.language}</p>
+                      <p className="text-3xl font-bold text-indigo-600">
+                        {lb.count}
+                      </p>
+                      <p className="text-sm text-gray-600 mt-1 uppercase">
+                        {lb.language}
+                      </p>
                     </Card>
                   ))}
                 </div>
@@ -769,13 +1070,20 @@ export default function Admin() {
                 <Card className="p-6">
                   <h2 className="text-lg font-bold mb-4">Top Queries</h2>
                   {analytics.topQueries.length === 0 ? (
-                    <p className="text-gray-500 text-center py-8">No queries logged yet</p>
+                    <p className="text-gray-500 text-center py-8">
+                      No queries logged yet
+                    </p>
                   ) : (
                     <ScrollArea className="h-72">
                       <div className="space-y-2">
                         {analytics.topQueries.map((item: any, i: number) => (
-                          <div key={i} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                            <span className="text-sm text-gray-800 flex-1 truncate">{item.query}</span>
+                          <div
+                            key={i}
+                            className="flex items-center justify-between p-2 bg-gray-50 rounded"
+                          >
+                            <span className="text-sm text-gray-800 flex-1 truncate">
+                              {item.query}
+                            </span>
                             <span className="ml-3 text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
                               {item.count}
                             </span>
@@ -787,7 +1095,9 @@ export default function Admin() {
                 </Card>
               </>
             ) : (
-              <p className="text-gray-500 text-center py-12">Failed to load analytics</p>
+              <p className="text-gray-500 text-center py-12">
+                Failed to load analytics
+              </p>
             )}
           </div>
         )}
@@ -798,8 +1108,9 @@ export default function Admin() {
             <Card className="p-6">
               <h2 className="text-lg font-bold mb-1">Upload Document to RAG</h2>
               <p className="text-sm text-gray-500 mb-5">
-                Paste the text content of a PDF or other document. The system will chunk it,
-                generate embeddings, and add it to the knowledge base for AI search.
+                Paste the text content of a PDF or other document. The system
+                will chunk it, generate embeddings, and add it to the knowledge
+                base for AI search.
               </p>
 
               <div className="space-y-4">
@@ -809,7 +1120,9 @@ export default function Admin() {
                   </label>
                   <Input
                     value={pdfForm.title}
-                    onChange={(e) => setPdfForm({ ...pdfForm, title: e.target.value })}
+                    onChange={e =>
+                      setPdfForm({ ...pdfForm, title: e.target.value })
+                    }
                     placeholder="Document title"
                   />
                 </div>
@@ -820,7 +1133,9 @@ export default function Admin() {
                   </label>
                   <textarea
                     value={pdfForm.content}
-                    onChange={(e) => setPdfForm({ ...pdfForm, content: e.target.value })}
+                    onChange={e =>
+                      setPdfForm({ ...pdfForm, content: e.target.value })
+                    }
                     placeholder="Paste document text here…"
                     rows={10}
                     className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
@@ -829,10 +1144,17 @@ export default function Admin() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Language</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Language
+                    </label>
                     <Select
                       value={pdfForm.language}
-                      onValueChange={(v) => setPdfForm({ ...pdfForm, language: v as "en" | "uk" | "ru" })}
+                      onValueChange={v =>
+                        setPdfForm({
+                          ...pdfForm,
+                          language: v as "en" | "uk" | "ru",
+                        })
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -846,13 +1168,19 @@ export default function Admin() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Source type</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Source type
+                    </label>
                     <Select
                       value={pdfForm.sourceType}
-                      onValueChange={(v) =>
+                      onValueChange={v =>
                         setPdfForm({
                           ...pdfForm,
-                          sourceType: v as "catalog" | "repository" | "database" | "other",
+                          sourceType: v as
+                            | "catalog"
+                            | "repository"
+                            | "database"
+                            | "other",
                         })
                       }
                     >
@@ -870,19 +1198,27 @@ export default function Admin() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">URL (optional)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    URL (optional)
+                  </label>
                   <Input
                     value={pdfForm.url}
-                    onChange={(e) => setPdfForm({ ...pdfForm, url: e.target.value })}
+                    onChange={e =>
+                      setPdfForm({ ...pdfForm, url: e.target.value })
+                    }
                     placeholder="https://…"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Author (optional)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Author (optional)
+                  </label>
                   <Input
                     value={pdfForm.author}
-                    onChange={(e) => setPdfForm({ ...pdfForm, author: e.target.value })}
+                    onChange={e =>
+                      setPdfForm({ ...pdfForm, author: e.target.value })
+                    }
                     placeholder="Author name"
                   />
                 </div>
@@ -892,8 +1228,10 @@ export default function Admin() {
                   <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
                     <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
                     <span>
-                      Processed successfully — <strong>{pdfStatus.chunksCreated}</strong> chunks added
-                      (document ID: <code className="text-xs">{pdfStatus.documentId}</code>)
+                      Processed successfully —{" "}
+                      <strong>{pdfStatus.chunksCreated}</strong> chunks added
+                      (document ID:{" "}
+                      <code className="text-xs">{pdfStatus.documentId}</code>)
                     </span>
                   </div>
                 )}
@@ -906,7 +1244,8 @@ export default function Admin() {
 
                 <Button
                   onClick={async () => {
-                    if (!pdfForm.title.trim() || !pdfForm.content.trim()) return;
+                    if (!pdfForm.title.trim() || !pdfForm.content.trim())
+                      return;
                     setPdfStatus({ type: "loading" });
                     try {
                       const res = await fetch("/api/admin/process-pdf", {
@@ -961,7 +1300,8 @@ export default function Admin() {
                     } catch (err) {
                       setPdfStatus({
                         type: "error",
-                        message: err instanceof Error ? err.message : "Network error",
+                        message:
+                          err instanceof Error ? err.message : "Network error",
                       });
                     }
                   }}
@@ -986,6 +1326,177 @@ export default function Admin() {
                 </Button>
               </div>
             </Card>
+          </div>
+        )}
+
+        {/* Performance Metrics Tab — fetches GET /api/metrics (admin-only) */}
+        {activeTab === "metrics" && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold">Performance Metrics</h2>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => refetchMetrics()}
+                disabled={metricsLoading}
+              >
+                <RefreshCw
+                  className={`w-4 h-4 mr-2 ${metricsLoading ? "animate-spin" : ""}`}
+                />
+                Refresh
+              </Button>
+            </div>
+
+            {metricsLoading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+              </div>
+            ) : metricsError ? (
+              <Card className="p-6 border-red-200 bg-red-50">
+                <div className="flex items-center gap-2 text-red-700">
+                  <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                  <p className="text-sm font-medium">
+                    {(metricsError as Error).message ||
+                      "Failed to load metrics"}
+                  </p>
+                </div>
+              </Card>
+            ) : perfMetrics ? (
+              <>
+                {/* Uptime */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <Card className="p-4 text-center">
+                    <p className="text-3xl font-bold text-indigo-600">
+                      {formatUptime(perfMetrics.uptime.uptimeSeconds)}
+                    </p>
+                    <p className="text-sm text-gray-600 mt-1">Uptime</p>
+                  </Card>
+                  <Card className="p-4 text-center">
+                    <p className="text-3xl font-bold text-indigo-600">
+                      {perfMetrics.streaming.total}
+                    </p>
+                    <p className="text-sm text-gray-600 mt-1">Total Streams</p>
+                  </Card>
+                  <Card className="p-4 text-center">
+                    <p
+                      className={`text-3xl font-bold ${
+                        perfMetrics.streaming.errorRate > 0.1
+                          ? "text-red-600"
+                          : "text-green-600"
+                      }`}
+                    >
+                      {(perfMetrics.streaming.errorRate * 100).toFixed(1)}%
+                    </p>
+                    <p className="text-sm text-gray-600 mt-1">Error Rate</p>
+                  </Card>
+                </div>
+
+                {/* Latency */}
+                <Card className="p-6">
+                  <h3 className="text-base font-semibold mb-4">
+                    Chat Latency ({perfMetrics.latency.samples} samples)
+                  </h3>
+                  {perfMetrics.latency.samples === 0 ? (
+                    <p className="text-sm text-gray-500">
+                      No requests recorded yet
+                    </p>
+                  ) : (
+                    <div className="grid grid-cols-3 gap-4">
+                      {[
+                        { label: "p50", value: perfMetrics.latency.p50Ms },
+                        { label: "p95", value: perfMetrics.latency.p95Ms },
+                        { label: "p99", value: perfMetrics.latency.p99Ms },
+                      ].map(({ label, value }) => (
+                        <div
+                          key={label}
+                          className="text-center bg-gray-50 rounded-lg p-4"
+                        >
+                          <p className="text-2xl font-bold text-indigo-600">
+                            {value != null ? `${Math.round(value)} ms` : "—"}
+                          </p>
+                          <p className="text-sm text-gray-500 mt-1">{label}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Card>
+
+                {/* Streaming counters */}
+                <Card className="p-6">
+                  <h3 className="text-base font-semibold mb-4">
+                    Streaming Outcomes
+                  </h3>
+                  <div className="grid grid-cols-3 gap-4">
+                    {[
+                      {
+                        label: "Success",
+                        value: perfMetrics.streaming.success,
+                        color: "text-green-600",
+                      },
+                      {
+                        label: "Error",
+                        value: perfMetrics.streaming.error,
+                        color: "text-red-600",
+                      },
+                      {
+                        label: "Timeout",
+                        value: perfMetrics.streaming.timeout,
+                        color: "text-yellow-600",
+                      },
+                    ].map(({ label, value, color }) => (
+                      <div
+                        key={label}
+                        className="text-center bg-gray-50 rounded-lg p-4"
+                      >
+                        <p className={`text-2xl font-bold ${color}`}>{value}</p>
+                        <p className="text-sm text-gray-500 mt-1">{label}</p>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+
+                {/* Memory */}
+                {perfMetrics.memory.current && (
+                  <Card className="p-6">
+                    <h3 className="text-base font-semibold mb-4">
+                      Memory (current)
+                    </h3>
+                    <div className="grid grid-cols-3 gap-4">
+                      {[
+                        {
+                          label: "Heap Used",
+                          value: perfMetrics.memory.current.heapUsedMb,
+                        },
+                        {
+                          label: "Heap Total",
+                          value: perfMetrics.memory.current.heapTotalMb,
+                        },
+                        {
+                          label: "RSS",
+                          value: perfMetrics.memory.current.rssMb,
+                        },
+                      ].map(({ label, value }) => (
+                        <div
+                          key={label}
+                          className="text-center bg-gray-50 rounded-lg p-4"
+                        >
+                          <p className="text-2xl font-bold text-indigo-600">
+                            {value != null ? `${value.toFixed(1)} MB` : "—"}
+                          </p>
+                          <p className="text-sm text-gray-500 mt-1">{label}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                )}
+
+                <p className="text-xs text-gray-400 text-right">
+                  Collected at{" "}
+                  {new Date(perfMetrics.collectedAt).toLocaleTimeString()} ·
+                  auto-refreshes every 30 s
+                </p>
+              </>
+            ) : null}
           </div>
         )}
       </div>

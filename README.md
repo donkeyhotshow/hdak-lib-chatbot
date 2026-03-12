@@ -33,6 +33,7 @@ The bot helps readers navigate the library website, search for resources, find a
 - [Admin Panel](#admin-panel)
 - [Testing](#testing)
 - [Build & Deployment](#build--deployment)
+- [Web Interface](#web-interface)
 - [Library Resources Reference](#library-resources-reference)
 - [Known Limitations](#known-limitations)
 
@@ -40,20 +41,20 @@ The bot helps readers navigate the library website, search for resources, find a
 
 ## Features
 
-| Feature | Description |
-|---------|-------------|
-| 🤖 **AI Chat** | Streaming GPT-4o responses via the Vercel AI SDK |
-| 📚 **Site Navigation** | Bot knows the full HDAK website structure (40+ pages with URLs) |
-| 🔍 **Resource Search** | AI tool searches the database and built-in resource list by keyword |
-| 📖 **Catalog Lookup** | AI tool generates step-by-step catalog search instructions for any author, title, or subject |
-| 🌐 **Multilingual** | Full Ukrainian / Russian / English support across UI and AI responses |
-| 💬 **Conversation History** | Persistent multi-turn conversations with a sidebar for history management |
-| 🗑️ **Delete Conversations** | Hover-over trash button in sidebar removes the conversation and its messages |
-| ❌ **Error Feedback** | Inline error banner when a message fails to send |
-| 🏛️ **Admin Panel** | Admin-only CRUD for library resources and contacts |
-| 🔐 **OAuth Auth** | Manus OAuth login; session stored in a signed HTTP-only cookie |
-| 📊 **Query Analytics** | Every user question is logged to the `userQueries` table |
-| 📄 **RAG** | Semantic vector search over uploaded PDF documents (requires embeddings API) |
+| Feature                     | Description                                                                                  |
+| --------------------------- | -------------------------------------------------------------------------------------------- |
+| 🤖 **AI Chat**              | Streaming GPT-4o responses via the Vercel AI SDK                                             |
+| 📚 **Site Navigation**      | Bot knows the full HDAK website structure (40+ pages with URLs)                              |
+| 🔍 **Resource Search**      | AI tool searches the database and built-in resource list by keyword                          |
+| 📖 **Catalog Lookup**       | AI tool generates step-by-step catalog search instructions for any author, title, or subject |
+| 🌐 **Multilingual**         | Full Ukrainian / Russian / English support across UI and AI responses                        |
+| 💬 **Conversation History** | Persistent multi-turn conversations with a sidebar for history management                    |
+| 🗑️ **Delete Conversations** | Hover-over trash button in sidebar removes the conversation and its messages                 |
+| ❌ **Error Feedback**       | Inline error banner when a message fails to send                                             |
+| 🏛️ **Admin Panel**          | Admin-only CRUD for library resources and contacts                                           |
+| 🔐 **OAuth Auth**           | Manus OAuth login; session stored in a signed HTTP-only cookie                               |
+| 📊 **Query Analytics**      | Every user question is logged to the `userQueries` table                                     |
+| 📄 **RAG**                  | Semantic vector search over uploaded PDF documents (requires embeddings API)                 |
 
 ---
 
@@ -133,24 +134,24 @@ hdak-lib-chatbot/
 
 ## Technology Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend framework | React 19 + TypeScript |
-| Build tool | Vite 7 |
-| Styling | Tailwind CSS v4 + shadcn/ui (Radix UI) |
-| Routing (client) | Wouter 3 |
-| State / data fetching | TanStack Query v5 + tRPC v11 |
-| Markdown rendering | Streamdown + Shiki (syntax highlighting) |
-| Backend framework | Express 4 |
-| RPC layer | tRPC v11 with `superjson` transformer |
-| AI SDK | Vercel AI SDK (`ai` package v6) |
-| LLM | OpenAI GPT-4o (via OpenAI-compatible proxy) |
-| Embeddings | OpenAI `text-embedding-3-small` |
-| Database ORM | Drizzle ORM |
-| Database | MySQL (optional — falls back to in-memory mock) |
-| Auth | Manus OAuth 2.0 (JWT session cookie) |
-| Testing | Vitest |
-| Language | TypeScript 5.9 |
+| Layer                 | Technology                                      |
+| --------------------- | ----------------------------------------------- |
+| Frontend framework    | React 19 + TypeScript                           |
+| Build tool            | Vite 7                                          |
+| Styling               | Tailwind CSS v4 + shadcn/ui (Radix UI)          |
+| Routing (client)      | Wouter 3                                        |
+| State / data fetching | TanStack Query v5 + tRPC v11                    |
+| Markdown rendering    | Streamdown + Shiki (syntax highlighting)        |
+| Backend framework     | Express 4                                       |
+| RPC layer             | tRPC v11 with `superjson` transformer           |
+| AI SDK                | Vercel AI SDK (`ai` package v6)                 |
+| LLM                   | OpenAI GPT-4o (via OpenAI-compatible proxy)     |
+| Embeddings            | OpenAI `text-embedding-3-small`                 |
+| Database ORM          | Drizzle ORM                                     |
+| Database              | MySQL (optional — falls back to in-memory mock) |
+| Auth                  | Manus OAuth 2.0 (JWT session cookie)            |
+| Testing               | Vitest                                          |
+| Language              | TypeScript 5.9                                  |
 
 ---
 
@@ -210,17 +211,17 @@ The React frontend is served by Vite in dev mode with HMR.
 
 ### Schema
 
-| Table | Purpose |
-|-------|---------|
-| `users` | Registered users (openId, name, email, role, language) |
-| `conversations` | Chat sessions (userId, title, language) |
-| `messages` | Individual messages (conversationId, role: user\|assistant, content) |
+| Table              | Purpose                                                                      |
+| ------------------ | ---------------------------------------------------------------------------- |
+| `users`            | Registered users (openId, name, email, role, language)                       |
+| `conversations`    | Chat sessions (userId, title, language)                                      |
+| `messages`         | Individual messages (conversationId, role: user\|assistant, content)         |
 | `libraryResources` | Library resource catalog (name/description in en/uk/ru, type, url, keywords) |
-| `libraryContacts` | Contact information (email, phone, address, social media) |
-| `libraryInfo` | Key–value store for general library information |
-| `userQueries` | Analytics log (query, language, resourcesReturned, userId, conversationId) |
-| `documentChunks` | RAG document chunks with JSON-stored embeddings |
-| `documentMetadata` | Metadata for processed documents (title, author, date, processing status) |
+| `libraryContacts`  | Contact information (email, phone, address, social media)                    |
+| `libraryInfo`      | Key–value store for general library information                              |
+| `userQueries`      | Analytics log (query, language, resourcesReturned, userId, conversationId)   |
+| `documentChunks`   | RAG document chunks with JSON-stored embeddings                              |
+| `documentMetadata` | Metadata for processed documents (title, author, date, processing status)    |
 
 **Resource types:** `electronic_library` · `repository` · `catalog` · `database` · `other`  
 **Contact types:** `email` · `phone` · `address` · `telegram` · `viber` · `facebook` · `instagram` · `other`  
@@ -258,15 +259,15 @@ DATABASE_URL=mysql://... node seed-db.mjs
 
 ### REST Endpoints
 
-| Method | Path | Auth | Rate limit | Body limit | Description |
-|--------|------|------|------------|------------|-------------|
-| `GET` | `/api/health` | — | — | — | Always returns `{ "status": "ok" }` |
-| `GET` | `/api/ready` | — | — | — | Returns `{ "ready": true }` when `BUILT_IN_FORGE_API_KEY` and `DATABASE_URL` are set; otherwise `503 { "ready": false, "missing": [...] }` |
-| `GET` | `/api/metrics` | 🔑 admin JWT | 10/min | — | Returns latency percentiles, streaming counters, and memory snapshots |
-| `GET` | `/api/oauth/callback` | — | 10/min | — | OAuth 2.0 callback; exchanges code for token, upserts user, sets session cookie |
-| `POST` | `/api/chat` | — | 5/min | **1 MB** | Streaming AI chat (SSE / UI message stream) |
-| `POST` | `/api/admin/process-pdf` | 🔑 admin JWT | 10/min | **50 MB** | Ingests extracted PDF text into the RAG vector store |
-| `*` | `/api/trpc/*` | varies | 60/min | 1 MB | tRPC batch endpoint |
+| Method | Path                     | Auth         | Rate limit | Body limit | Description                                                                                                                                |
+| ------ | ------------------------ | ------------ | ---------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET`  | `/api/health`            | —            | —          | —          | Always returns `{ "status": "ok" }`                                                                                                        |
+| `GET`  | `/api/ready`             | —            | —          | —          | Returns `{ "ready": true }` when `BUILT_IN_FORGE_API_KEY` and `DATABASE_URL` are set; otherwise `503 { "ready": false, "missing": [...] }` |
+| `GET`  | `/api/metrics`           | 🔑 admin JWT | 10/min     | —          | Returns latency percentiles, streaming counters, and memory snapshots                                                                      |
+| `GET`  | `/api/oauth/callback`    | —            | 10/min     | —          | OAuth 2.0 callback; exchanges code for token, upserts user, sets session cookie                                                            |
+| `POST` | `/api/chat`              | —            | 5/min      | **1 MB**   | Streaming AI chat (SSE / UI message stream)                                                                                                |
+| `POST` | `/api/admin/process-pdf` | 🔑 admin JWT | 10/min     | **50 MB**  | Ingests extracted PDF text into the RAG vector store                                                                                       |
+| `*`    | `/api/trpc/*`            | varies       | 60/min     | 1 MB       | tRPC batch endpoint                                                                                                                        |
 
 > **Body size limits:** The global limit for all endpoints is **1 MB** to protect the server from oversized requests. The admin PDF endpoint is exempt and accepts up to **50 MB** of extracted text content; it is protected by JWT authentication and the admin role.
 
@@ -274,22 +275,21 @@ DATABASE_URL=mysql://... node seed-db.mjs
 
 Streams an AI response using the HDAK library context and tools.
 
-> **Rate limit:** 5 requests/min per IP.  **Body limit:** 1 MB.
+> **Rate limit:** 5 requests/min per IP. **Body limit:** 1 MB.
 
 **Request body:**
+
 ```json
 {
-  "messages": [
-    { "role": "user", "content": "Чи є у вас Scopus?" }
-  ],
+  "messages": [{ "role": "user", "content": "Чи є у вас Scopus?" }],
   "language": "uk"
 }
 ```
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `messages` | `UIMessage[]` | ✅ | Conversation history (Vercel AI SDK `UIMessage` format) |
-| `language` | `"uk" \| "ru" \| "en"` | ❌ | Language for the system prompt (defaults to `"uk"`) |
+| Field      | Type                   | Required | Description                                             |
+| ---------- | ---------------------- | -------- | ------------------------------------------------------- |
+| `messages` | `UIMessage[]`          | ✅       | Conversation history (Vercel AI SDK `UIMessage` format) |
+| `language` | `"uk" \| "ru" \| "en"` | ❌       | Language for the system prompt (defaults to `"uk"`)     |
 
 **Response:** `text/event-stream` — Vercel AI SDK UI message stream format.  
 The AI may call tools before generating the final text response.
@@ -313,6 +313,7 @@ Readiness probe. Returns `200 { "ready": true }` when both `BUILT_IN_FORGE_API_K
 Returns server performance data. Requires a valid admin JWT (passed as `Authorization: Bearer <token>`).
 
 **Response example:**
+
 ```json
 {
   "latency": { "samples": 42, "p50Ms": 120, "p95Ms": 380, "p99Ms": 710 },
@@ -327,9 +328,10 @@ Returns server performance data. Requires a valid admin JWT (passed as `Authoriz
 
 Ingests extracted PDF text into the RAG vector store. Admin-only.
 
-> **Rate limit:** 10 requests/min per IP.  **Body limit:** 50 MB.
+> **Rate limit:** 10 requests/min per IP. **Body limit:** 50 MB.
 
 **Request body:**
+
 ```json
 {
   "title": "Назва документу",
@@ -341,18 +343,23 @@ Ingests extracted PDF text into the RAG vector store. Admin-only.
 }
 ```
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `title` | `string` | ✅ | Document title (max 500 chars) |
-| `content` | `string` | ✅ | Full extracted text |
-| `language` | `"uk" \| "ru" \| "en"` | ❌ | Document language (default `"uk"`) |
-| `sourceType` | `"catalog" \| "repository" \| "database" \| "other"` | ❌ | Source classification (default `"other"`) |
-| `url` | `string` | ❌ | Source URL (max 2048 chars) |
-| `author` | `string` | ❌ | Author(s) (max 500 chars) |
+| Field        | Type                                                 | Required | Description                               |
+| ------------ | ---------------------------------------------------- | -------- | ----------------------------------------- |
+| `title`      | `string`                                             | ✅       | Document title (max 500 chars)            |
+| `content`    | `string`                                             | ✅       | Full extracted text                       |
+| `language`   | `"uk" \| "ru" \| "en"`                               | ❌       | Document language (default `"uk"`)        |
+| `sourceType` | `"catalog" \| "repository" \| "database" \| "other"` | ❌       | Source classification (default `"other"`) |
+| `url`        | `string`                                             | ❌       | Source URL (max 2048 chars)               |
+| `author`     | `string`                                             | ❌       | Author(s) (max 500 chars)                 |
 
 **Success response (`200`):**
+
 ```json
-{ "success": true, "chunksCreated": 12, "documentId": "manual_1710000000_Назва_документу" }
+{
+  "success": true,
+  "chunksCreated": 12,
+  "documentId": "manual_1710000000_Назва_документу"
+}
 ```
 
 ### tRPC Procedures
@@ -363,50 +370,50 @@ All procedures use the **SuperJSON** transformer. Auth-protected procedures requ
 
 #### `auth`
 
-| Procedure | Type | Auth | Description |
-|-----------|------|------|-------------|
-| `auth.me` | query | public | Returns the current user object or `null` |
-| `auth.logout` | mutation | public | Clears the session cookie |
+| Procedure     | Type     | Auth   | Description                               |
+| ------------- | -------- | ------ | ----------------------------------------- |
+| `auth.me`     | query    | public | Returns the current user object or `null` |
+| `auth.logout` | mutation | public | Clears the session cookie                 |
 
 #### `conversations`
 
-| Procedure | Type | Auth | Input | Description |
-|-----------|------|------|-------|-------------|
-| `conversations.create` | mutation | 🔐 user | `{ title: string, language?: "en"\|"uk"\|"ru" }` | Creates a new conversation |
-| `conversations.list` | query | 🔐 user | — | Lists all conversations for the current user |
-| `conversations.get` | query | 🔐 user | `{ id: number }` | Gets a single conversation |
-| `conversations.getMessages` | query | 🔐 user | `{ conversationId: number }` | Gets all messages in a conversation |
-| `conversations.delete` | mutation | 🔐 user | `{ id: number }` | Deletes a conversation and all its messages |
-| `conversations.sendMessage` | mutation | 🔐 user | `{ conversationId: number, content: string }` | Sends a user message, generates AI response, stores both, returns assistant message |
+| Procedure                   | Type     | Auth    | Input                                            | Description                                                                         |
+| --------------------------- | -------- | ------- | ------------------------------------------------ | ----------------------------------------------------------------------------------- |
+| `conversations.create`      | mutation | 🔐 user | `{ title: string, language?: "en"\|"uk"\|"ru" }` | Creates a new conversation                                                          |
+| `conversations.list`        | query    | 🔐 user | —                                                | Lists all conversations for the current user                                        |
+| `conversations.get`         | query    | 🔐 user | `{ id: number }`                                 | Gets a single conversation                                                          |
+| `conversations.getMessages` | query    | 🔐 user | `{ conversationId: number }`                     | Gets all messages in a conversation                                                 |
+| `conversations.delete`      | mutation | 🔐 user | `{ id: number }`                                 | Deletes a conversation and all its messages                                         |
+| `conversations.sendMessage` | mutation | 🔐 user | `{ conversationId: number, content: string }`    | Sends a user message, generates AI response, stores both, returns assistant message |
 
 > **Note on `sendMessage`:** This uses `generateText` (non-streaming) from the Vercel AI SDK. It builds context from: the last 10 messages, matching library resources, and RAG context from document chunks. All search steps are inside a `try/catch` so any failure (e.g. embeddings API unavailable) returns a graceful error message instead of crashing.
 
 #### `resources`
 
-| Procedure | Type | Auth | Input | Description |
-|-----------|------|------|-------|-------------|
-| `resources.getAll` | query | public | — | Returns all library resources |
-| `resources.search` | query | public | `{ query: string }` | Full-text search across name/description fields |
-| `resources.getByType` | query | public | `{ type: string }` | Filter resources by type |
-| `resources.create` | mutation | 🔑 admin | resource fields | Creates a new resource |
-| `resources.update` | mutation | 🔑 admin | `{ id: number, ...fields }` | Updates a resource |
-| `resources.delete` | mutation | 🔑 admin | `{ id: number }` | Deletes a resource |
-| `resources.getSiteResources` | query | public | — | Returns the built-in `hdakResources` array (catalog, repo, Scopus, WoS, etc.) with access conditions |
+| Procedure                    | Type     | Auth     | Input                       | Description                                                                                          |
+| ---------------------------- | -------- | -------- | --------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `resources.getAll`           | query    | public   | —                           | Returns all library resources                                                                        |
+| `resources.search`           | query    | public   | `{ query: string }`         | Full-text search across name/description fields                                                      |
+| `resources.getByType`        | query    | public   | `{ type: string }`          | Filter resources by type                                                                             |
+| `resources.create`           | mutation | 🔑 admin | resource fields             | Creates a new resource                                                                               |
+| `resources.update`           | mutation | 🔑 admin | `{ id: number, ...fields }` | Updates a resource                                                                                   |
+| `resources.delete`           | mutation | 🔑 admin | `{ id: number }`            | Deletes a resource                                                                                   |
+| `resources.getSiteResources` | query    | public   | —                           | Returns the built-in `hdakResources` array (catalog, repo, Scopus, WoS, etc.) with access conditions |
 
 #### `contacts`
 
-| Procedure | Type | Auth | Input | Description |
-|-----------|------|------|-------|-------------|
-| `contacts.getAll` | query | public | — | Returns all contacts |
-| `contacts.create` | mutation | 🔑 admin | contact fields | Creates a new contact |
-| `contacts.update` | mutation | 🔑 admin | `{ id: number, ...fields }` | Updates a contact |
-| `contacts.delete` | mutation | 🔑 admin | `{ id: number }` | Deletes a contact |
+| Procedure         | Type     | Auth     | Input                       | Description           |
+| ----------------- | -------- | -------- | --------------------------- | --------------------- |
+| `contacts.getAll` | query    | public   | —                           | Returns all contacts  |
+| `contacts.create` | mutation | 🔑 admin | contact fields              | Creates a new contact |
+| `contacts.update` | mutation | 🔑 admin | `{ id: number, ...fields }` | Updates a contact     |
+| `contacts.delete` | mutation | 🔑 admin | `{ id: number }`            | Deletes a contact     |
 
 #### `libraryInfo`
 
-| Procedure | Type | Auth | Input | Description |
-|-----------|------|------|-------|-------------|
-| `libraryInfo.get` | query | public | `{ key: string }` | Gets a library info value by key |
+| Procedure         | Type     | Auth     | Input                                | Description                               |
+| ----------------- | -------- | -------- | ------------------------------------ | ----------------------------------------- |
+| `libraryInfo.get` | query    | public   | `{ key: string }`                    | Gets a library info value by key          |
 | `libraryInfo.set` | mutation | 🔑 admin | `{ key, valueEn, valueUk, valueRu }` | Creates or updates a key–value info entry |
 
 ---
@@ -416,6 +423,7 @@ All procedures use the **SuperJSON** transformer. Auth-protected procedures requ
 ### Streaming Chat Endpoint
 
 `/api/chat` uses `streamText` from the Vercel AI SDK with:
+
 - **Model:** `gpt-4o-mini` via an OpenAI-compatible proxy (`BUILT_IN_FORGE_API_URL`)
 - **Stop condition:** `stepCountIs(5)` — maximum 5 tool-call + generation cycles
 - **Patched fetch:** `createPatchedFetch` strips empty `"type": ""` fields from the SSE stream (proxy compatibility fix)
@@ -463,6 +471,7 @@ Output: {
 System prompts are generated by `getSystemPrompt(language, context)` in `server/system-prompts-official.ts`.
 
 The prompt includes:
+
 1. **Role declaration** — "You are a professional librarian assistant for HDAK"
 2. **HDAK site map** — full navigation structure with 40+ URLs for every section
 3. **Library resources** — all databases, repositories, and collections with URLs and access conditions
@@ -495,10 +504,10 @@ The app uses **Manus OAuth 2.0**:
 
 **Roles:**
 
-| Role | Access |
-|------|--------|
-| `user` (default) | Can use the chatbot and manage their own conversations |
-| `admin` | Full access to Admin Panel: CRUD for resources, contacts, and library info |
+| Role             | Access                                                                     |
+| ---------------- | -------------------------------------------------------------------------- |
+| `user` (default) | Can use the chatbot and manage their own conversations                     |
+| `admin`          | Full access to Admin Panel: CRUD for resources, contacts, and library info |
 
 The first user whose `openId` matches `OWNER_OPEN_ID` is assigned the `admin` role automatically.
 
@@ -516,6 +525,7 @@ The first user whose `openId` matches `OWNER_OPEN_ID` is assigned the `admin` ro
 - **Header**: HDAK logo + title, language selector (uk/ru/en), logout button
 
 **State managed:**
+
 - `language` — selected UI/AI language (default: `"uk"`)
 - `conversations` — list synced from tRPC
 - `currentConversationId` — which conversation is open
@@ -534,14 +544,14 @@ The first user whose `openId` matches `OWNER_OPEN_ID` is assigned the `admin` ro
 
 All UI strings are defined in `translations` inside `Home.tsx`:
 
-| Key | en | uk | ru |
-|-----|----|----|-----|
-| `title` | HDAK Library Assistant | Помічник бібліотеки ХДАК | Помощник библиотеки ХДАК |
-| `newChat` | New Chat | Новий чат | Новый чат |
-| `typeMessage` | Type your question here... | Введіть своє запитання... | Введите свой вопрос... |
-| `ex1` | How do I register as a library reader? | Як записатися до бібліотеки? | Как записаться в библиотеку? |
-| `ex3` | Do you have books by Taras Shevchenko? | Чи є книги Тараса Шевченка? | Есть ли книги Тараса Шевченко? |
-| ... | ... | ... | ... |
+| Key           | en                                     | uk                           | ru                             |
+| ------------- | -------------------------------------- | ---------------------------- | ------------------------------ |
+| `title`       | HDAK Library Assistant                 | Помічник бібліотеки ХДАК     | Помощник библиотеки ХДАК       |
+| `newChat`     | New Chat                               | Новий чат                    | Новый чат                      |
+| `typeMessage` | Type your question here...             | Введіть своє запитання...    | Введите свой вопрос...         |
+| `ex1`         | How do I register as a library reader? | Як записатися до бібліотеки? | Как записаться в библиотеку?   |
+| `ex3`         | Do you have books by Taras Shevchenko? | Чи є книги Тараса Шевченка?  | Есть ли книги Тараса Шевченко? |
+| ...           | ...                                    | ...                          | ...                            |
 
 ---
 
@@ -550,6 +560,7 @@ All UI strings are defined in `translations` inside `Home.tsx`:
 Navigate to `/admin` after logging in with an admin account.
 
 **Tabs:**
+
 - **Resources** — manage the `libraryResources` database table  
   Fields: name (en/uk/ru), description (en/uk/ru), type, URL  
   Operations: Add · Edit (inline) · Delete
@@ -572,10 +583,10 @@ npx vitest         # watch mode
 
 **Test files:**
 
-| File | Tests | Coverage |
-|------|-------|----------|
-| `server/chatbot.test.ts` | 30 | DB CRUD (resources, contacts, info, conversations, messages), HDAK site resource assertions, AI tool unit tests |
-| `server/auth.logout.test.ts` | 1 | Auth logout mutation |
+| File                         | Tests | Coverage                                                                                                        |
+| ---------------------------- | ----- | --------------------------------------------------------------------------------------------------------------- |
+| `server/chatbot.test.ts`     | 30    | DB CRUD (resources, contacts, info, conversations, messages), HDAK site resource assertions, AI tool unit tests |
+| `server/auth.logout.test.ts` | 1     | Auth logout mutation                                                                                            |
 
 **Test categories:**
 
@@ -606,6 +617,7 @@ pnpm run build
 ```
 
 This runs two steps:
+
 1. `vite build` — compiles the React app to `dist/public/`
 2. `esbuild` — bundles `server/_core/index.ts` to `dist/index.js`
 
@@ -640,6 +652,7 @@ pnpm run format:check   # CI formatting check
 ### Docker
 
 The project ships a single multi-stage `Dockerfile` that:
+
 1. Installs all dependencies (including dev tools needed for build & migrations).
 2. Builds the frontend (Vite) and backend (esbuild) in one step.
 3. Produces a lean production image containing only the compiled output and
@@ -661,16 +674,16 @@ cp .env.example .env
 
 Required variables:
 
-| Variable | Description |
-|----------|-------------|
-| `BUILT_IN_FORGE_API_KEY` | API key for your OpenAI-compatible LLM endpoint |
-| `BUILT_IN_FORGE_API_URL` | Base URL of the LLM endpoint (must end with `/v1`) |
-| `JWT_SECRET` | Random secret for signing session cookies (`openssl rand -hex 32`) |
-| `VITE_APP_ID` | OAuth application ID |
-| `OAUTH_SERVER_URL` | Base URL of the OAuth server |
-| `OWNER_OPEN_ID` | OpenID that receives the `admin` role on first login |
-| `VITE_OAUTH_PORTAL_URL` | Full URL of the OAuth login portal |
-| `DATABASE_URL` | Override only if you use an **external** MySQL instance |
+| Variable                 | Description                                                        |
+| ------------------------ | ------------------------------------------------------------------ |
+| `BUILT_IN_FORGE_API_KEY` | API key for your OpenAI-compatible LLM endpoint                    |
+| `BUILT_IN_FORGE_API_URL` | Base URL of the LLM endpoint (must end with `/v1`)                 |
+| `JWT_SECRET`             | Random secret for signing session cookies (`openssl rand -hex 32`) |
+| `VITE_APP_ID`            | OAuth application ID                                               |
+| `OAUTH_SERVER_URL`       | Base URL of the OAuth server                                       |
+| `OWNER_OPEN_ID`          | OpenID that receives the `admin` role on first login               |
+| `VITE_OAUTH_PORTAL_URL`  | Full URL of the OAuth login portal                                 |
+| `DATABASE_URL`           | Override only if you use an **external** MySQL instance            |
 
 **2. Start all services:**
 
@@ -697,10 +710,10 @@ docker compose down -v    # also delete the database volume
 
 #### Health & readiness probes
 
-| Endpoint | Purpose |
-|----------|---------|
-| `GET /api/health` | Liveness probe — always returns `{status:"ok"}` when the process is up |
-| `GET /api/ready` | Readiness probe — returns `{ready:true}` only when `BUILT_IN_FORGE_API_KEY` and `DATABASE_URL` are set |
+| Endpoint          | Purpose                                                                                                |
+| ----------------- | ------------------------------------------------------------------------------------------------------ |
+| `GET /api/health` | Liveness probe — always returns `{status:"ok"}` when the process is up                                 |
+| `GET /api/ready`  | Readiness probe — returns `{ready:true}` only when `BUILT_IN_FORGE_API_KEY` and `DATABASE_URL` are set |
 
 Both probes are used by Docker Compose, Fly.io, and Render health checks.
 
@@ -741,6 +754,7 @@ fly deploy
 ```
 
 `fly.toml` configures:
+
 - HTTP/HTTPS listeners on ports 80 and 443
 - Health check on `/api/health` every 15 s
 - Readiness check on `/api/ready` every 30 s
@@ -754,7 +768,7 @@ Render detects `render.yaml` automatically when you connect your GitHub reposito
 2. Connect your repository — Render reads `render.yaml` and creates the web
    service and a free PostgreSQL database (swap for MySQL if needed).
 3. Fill in the environment variables marked `sync: false` in the Render
-   dashboard (BUILT\_IN\_FORGE\_API\_URL, BUILT\_IN\_FORGE\_API\_KEY, etc.).
+   dashboard (BUILT_IN_FORGE_API_URL, BUILT_IN_FORGE_API_KEY, etc.).
 4. Render runs `docker build` on every push to your default branch.
 5. Health check is configured to `/api/health`; migrations run automatically
    on each new deployment.
@@ -786,11 +800,11 @@ Railway auto-detects the `Dockerfile` and sets `PORT` automatically.
 
 `.github/workflows/ci.yml` runs on every push and pull request to `main` / `master`:
 
-| Job | What it does |
-|-----|-------------|
-| `test` | Type-check, format-check, run all tests with coverage |
-| `codeql` | GitHub CodeQL security scan (JavaScript/TypeScript) |
-| `build` | Full production build (`pnpm run build`) |
+| Job      | What it does                                                                               |
+| -------- | ------------------------------------------------------------------------------------------ |
+| `test`   | Type-check, format-check, run all tests with coverage                                      |
+| `codeql` | GitHub CodeQL security scan (JavaScript/TypeScript)                                        |
+| `build`  | Full production build (`pnpm run build`)                                                   |
 | `docker` | Build Docker image (runs **only on push to main/master**, after all three jobs above pass) |
 
 The Docker image is never built if any test fails or CodeQL finds a critical
@@ -806,24 +820,92 @@ pnpm run db:migrate   # alias for drizzle-kit push — creates missing tables/co
 
 ---
 
+## Web Interface
+
+The project ships a complete **React + Vite** chat interface in the `client/`
+directory. The backend serves it as static files from `/` in production — no
+separate frontend server is needed.
+
+### Run locally (development)
+
+```bash
+# Install dependencies
+pnpm install
+
+# Copy and fill .env
+cp .env.example .env    # set BUILT_IN_FORGE_API_KEY and others as needed
+
+# Start the full-stack dev server (HMR for frontend, ts-node for backend)
+pnpm run dev
+```
+
+Open `http://localhost:3000` — the chat UI appears immediately.  
+API routes are served from the same process under `/api/*`.
+
+### Chat interface (`/`)
+
+- Sends messages via `POST /api/chat` (streaming with the Vercel AI SDK)
+- Sidebar shows conversation history (persisted to MySQL when `DATABASE_URL` is set)
+- Multilingual: Ukrainian / Russian / English
+- Clickable example questions on the welcome screen
+
+### Admin panel (`/admin`)
+
+Accessible only to users with `role === "admin"`.
+
+| Tab              | Description                                                                                                               |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| **Resources**    | CRUD for library resources (name/description/URL/type)                                                                    |
+| **Contacts**     | CRUD for library contacts (email / phone / address / social)                                                              |
+| **Library Info** | Key–value entries shown in the chat overview                                                                              |
+| **Analytics**    | Query statistics — most asked questions, language breakdown                                                               |
+| **Documents**    | Upload PDFs / text to the RAG vector store                                                                                |
+| **Performance**  | Live metrics from `GET /api/metrics` — latency percentiles (p50/p95/p99), streaming success/error/timeout, Node.js memory |
+
+> The **Performance** tab polls `/api/metrics` every 30 seconds and requires an
+> admin session cookie (acquired after OAuth login).
+
+### Build the frontend
+
+```bash
+pnpm run build
+# → dist/public/  (React app compiled by Vite)
+# → dist/index.js (Express server bundled by esbuild)
+```
+
+The Express server serves `dist/public/` at `/` and all `/api/*` routes from
+the same process. A single `node dist/index.js` starts everything.
+
+### Deploy the full stack
+
+See **[DEPLOYMENT.md](./DEPLOYMENT.md)** for step-by-step instructions for
+Railway, Render, and Fly.io including:
+
+- CLI commands to link the repo and set secrets
+- How `DATABASE_URL` is injected by each platform's MySQL add-on
+- Post-deploy verification (`/api/health`, `/api/ready`, `/api/chat`, `/api/metrics`)
+- Troubleshooting guide
+
+---
+
 ## Library Resources Reference
 
 The following resources are built into `system-prompts-official.ts` and always available to the AI regardless of database state:
 
-| Resource | Type | Access |
-|----------|------|--------|
-| [Електронний каталог](https://library-service.com.ua:8443/khkhdak/DocumentSearchForm) | catalog | Відкритий доступ |
-| [Інституційний репозитарій ХДАК](https://repository.ac.kharkov.ua/home) | repository | Відкритий доступ |
-| [Електронна бібліотека «Культура України»](http://elib.nplu.org/) | electronic_library | Відкритий доступ |
-| [Scopus](https://www.scopus.com/) | database | Корпоративний доступ (мережа академії / VPN) |
-| [Web of Science](https://www.webofscience.com/) | database | Корпоративний доступ (мережа академії / VPN) |
-| [ScienceDirect (Elsevier)](https://www.sciencedirect.com/) | database | Корпоративний доступ (мережа академії / VPN) |
-| [Springer Link](https://link.springer.com/) | database | Корпоративний доступ (мережа академії / VPN) |
-| [Research 4 Life](https://login.research4life.org/) | database | Корпоративний доступ (мережа академії / VPN) |
-| [Артефактні видання (рідкісні)](https://lib-hdak.in.ua/artifacts.html) | other | Відкритий доступ (онлайн перегляд) |
-| [DOAJ](https://lib-hdak.in.ua/catalog-doaj.html) | other | Відкритий доступ |
-| [УкрІНТЕІ (авторефератів)](http://nrat.ukrintei.ua/) | other | Відкритий доступ |
-| [Офіційний сайт бібліотеки ХДАК](https://lib-hdak.in.ua/) | other | Відкритий доступ |
+| Resource                                                                              | Type               | Access                                       |
+| ------------------------------------------------------------------------------------- | ------------------ | -------------------------------------------- |
+| [Електронний каталог](https://library-service.com.ua:8443/khkhdak/DocumentSearchForm) | catalog            | Відкритий доступ                             |
+| [Інституційний репозитарій ХДАК](https://repository.ac.kharkov.ua/home)               | repository         | Відкритий доступ                             |
+| [Електронна бібліотека «Культура України»](http://elib.nplu.org/)                     | electronic_library | Відкритий доступ                             |
+| [Scopus](https://www.scopus.com/)                                                     | database           | Корпоративний доступ (мережа академії / VPN) |
+| [Web of Science](https://www.webofscience.com/)                                       | database           | Корпоративний доступ (мережа академії / VPN) |
+| [ScienceDirect (Elsevier)](https://www.sciencedirect.com/)                            | database           | Корпоративний доступ (мережа академії / VPN) |
+| [Springer Link](https://link.springer.com/)                                           | database           | Корпоративний доступ (мережа академії / VPN) |
+| [Research 4 Life](https://login.research4life.org/)                                   | database           | Корпоративний доступ (мережа академії / VPN) |
+| [Артефактні видання (рідкісні)](https://lib-hdak.in.ua/artifacts.html)                | other              | Відкритий доступ (онлайн перегляд)           |
+| [DOAJ](https://lib-hdak.in.ua/catalog-doaj.html)                                      | other              | Відкритий доступ                             |
+| [УкрІНТЕІ (авторефератів)](http://nrat.ukrintei.ua/)                                  | other              | Відкритий доступ                             |
+| [Офіційний сайт бібліотеки ХДАК](https://lib-hdak.in.ua/)                             | other              | Відкритий доступ                             |
 
 ---
 
@@ -831,60 +913,60 @@ The following resources are built into `system-prompts-official.ts` and always a
 
 ### AI & Chat
 
-| Limitation | Detail |
-|-----------|--------|
-| **Message history window** | Only the last 10 messages are passed to the AI for context in `sendMessage` (tRPC); earlier messages are silently dropped |
-| **Tool-call depth** | The streaming `/api/chat` endpoint stops after 5 tool-call + generation cycles (`stepCountIs(5)`) |
-| **Non-streaming tRPC** | `conversations.sendMessage` uses `generateText` (non-streaming); the user sees no output until the full response is ready |
-| **Fixed model** | Both pathways use `gpt-4o-mini`; there is no per-user or per-conversation model selection |
-| **Timeout** | AI calls time out after 30 seconds (`AI_TIMEOUT_MS`). Long documents or slow proxies may hit this limit |
-| **Language detection** | Language is inferred from Cyrillic character heuristics (ї/є/ґ → Ukrainian; ё/ы/э → Russian). Mixed-script or code-heavy messages may be misclassified |
+| Limitation                 | Detail                                                                                                                                                 |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Message history window** | Only the last 10 messages are passed to the AI for context in `sendMessage` (tRPC); earlier messages are silently dropped                              |
+| **Tool-call depth**        | The streaming `/api/chat` endpoint stops after 5 tool-call + generation cycles (`stepCountIs(5)`)                                                      |
+| **Non-streaming tRPC**     | `conversations.sendMessage` uses `generateText` (non-streaming); the user sees no output until the full response is ready                              |
+| **Fixed model**            | Both pathways use `gpt-4o-mini`; there is no per-user or per-conversation model selection                                                              |
+| **Timeout**                | AI calls time out after 30 seconds (`AI_TIMEOUT_MS`). Long documents or slow proxies may hit this limit                                                |
+| **Language detection**     | Language is inferred from Cyrillic character heuristics (ї/є/ґ → Ukrainian; ё/ы/э → Russian). Mixed-script or code-heavy messages may be misclassified |
 
 ### RAG (Retrieval-Augmented Generation)
 
-| Limitation | Detail |
-|-----------|--------|
-| **In-memory similarity** | Cosine similarity is computed in-process over all stored embeddings — no vector index. Performance degrades as the number of document chunks grows |
-| **MySQL vector storage** | Embeddings are stored as JSON arrays in MySQL, which has no native vector type or ANN (approximate nearest neighbor) index |
-| **No PDF parsing** | `rag-service.ts` accepts plain text input. There is no built-in PDF-to-text conversion; callers must extract text themselves before calling `processDocument` |
-| **No deduplication** | Re-uploading the same document appends duplicate chunks instead of replacing the previous version |
-| **Partial failure** | If embedding generation fails for some chunks, the successfully stored chunks remain without any cleanup or retry |
+| Limitation               | Detail                                                                                                                                                        |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **In-memory similarity** | Cosine similarity is computed in-process over all stored embeddings — no vector index. Performance degrades as the number of document chunks grows            |
+| **MySQL vector storage** | Embeddings are stored as JSON arrays in MySQL, which has no native vector type or ANN (approximate nearest neighbor) index                                    |
+| **No PDF parsing**       | `rag-service.ts` accepts plain text input. There is no built-in PDF-to-text conversion; callers must extract text themselves before calling `processDocument` |
+| **No deduplication**     | Re-uploading the same document appends duplicate chunks instead of replacing the previous version                                                             |
+| **Partial failure**      | If embedding generation fails for some chunks, the successfully stored chunks remain without any cleanup or retry                                             |
 
 ### Catalog Sync
 
-| Limitation | Detail |
-|-----------|--------|
-| **Regex-based parsing** | The sync service parses the library catalog HTML with simple regular expressions — not a DOM parser. Any layout change on the source page can silently break the sync |
-| **Hardcoded interval** | The scheduler runs every 6 hours; the interval is not configurable via environment variable |
-| **No concurrency guard** | Nothing prevents two sync runs from overlapping if the previous one takes longer than 6 hours |
-| **Silent failures** | Sync errors are logged but do not trigger any alert or notification |
+| Limitation               | Detail                                                                                                                                                                |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Regex-based parsing**  | The sync service parses the library catalog HTML with simple regular expressions — not a DOM parser. Any layout change on the source page can silently break the sync |
+| **Hardcoded interval**   | The scheduler runs every 6 hours; the interval is not configurable via environment variable                                                                           |
+| **No concurrency guard** | Nothing prevents two sync runs from overlapping if the previous one takes longer than 6 hours                                                                         |
+| **Silent failures**      | Sync errors are logged but do not trigger any alert or notification                                                                                                   |
 
 ### Database & Storage
 
-| Limitation | Detail |
-|-----------|--------|
+| Limitation                      | Detail                                                                                                                                              |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Conversations require MySQL** | Without `DATABASE_URL`, conversation history and message persistence are unavailable; only the mock in-memory data for resources/contacts is active |
-| **No file upload UI** | `server/storage.ts` provides file upload/download helpers but there is no admin UI or endpoint wired up to it |
-| **No soft deletes** | Deleting a conversation or resource is permanent — there is no archive or recycle bin |
+| **No file upload UI**           | `server/storage.ts` provides file upload/download helpers but there is no admin UI or endpoint wired up to it                                       |
+| **No soft deletes**             | Deleting a conversation or resource is permanent — there is no archive or recycle bin                                                               |
 
 ### Hardcoded Values
 
 Several values are embedded directly in source code and cannot be overridden without a code change:
 
-| Value | Location |
-|-------|---------|
+| Value                                                                        | Location                                                    |
+| ---------------------------------------------------------------------------- | ----------------------------------------------------------- |
 | Catalog URL `https://library-service.com.ua:8443/khkhdak/DocumentSearchForm` | `server/system-prompts-official.ts`, `server/_core/chat.ts` |
-| Repository URL `https://repository.ac.kharkov.ua/home` | `server/system-prompts-official.ts`, `server/_core/chat.ts` |
-| Phone placeholder `+38 (057) XXX-XX-XX` | `server/system-prompts-official.ts` (3 places) |
-| 40+ HDAK website page URLs (site map) | `server/system-prompts-official.ts` |
+| Repository URL `https://repository.ac.kharkov.ua/home`                       | `server/system-prompts-official.ts`, `server/_core/chat.ts` |
+| Phone placeholder `+38 (057) XXX-XX-XX`                                      | `server/system-prompts-official.ts` (3 places)              |
+| 40+ HDAK website page URLs (site map)                                        | `server/system-prompts-official.ts`                         |
 
 ### Security Notes
 
-| Area | Current State |
-|------|--------------|
-| **CSP** | `helmet` is configured with `'unsafe-inline'` for scripts and styles (required by Vite/Tailwind in development; should be tightened for production) |
-| **Rate limiting** | IP-based: `/api/chat` 30 req/min · `/api/trpc` 60 req/min · `/api/oauth` 10 req/min. No per-user limits |
-| **Prompt injection** | RAG content is sanitized via `sanitizeUntrustedContent()` before insertion into AI prompts |
+| Area                 | Current State                                                                                                                                       |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **CSP**              | `helmet` is configured with `'unsafe-inline'` for scripts and styles (required by Vite/Tailwind in development; should be tightened for production) |
+| **Rate limiting**    | IP-based: `/api/chat` 30 req/min · `/api/trpc` 60 req/min · `/api/oauth` 10 req/min. No per-user limits                                             |
+| **Prompt injection** | RAG content is sanitized via `sanitizeUntrustedContent()` before insertion into AI prompts                                                          |
 
 ---
 
