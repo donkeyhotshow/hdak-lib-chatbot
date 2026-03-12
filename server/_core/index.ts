@@ -42,10 +42,10 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 
 async function startServer() {
   // Validate critical environment variables before starting.
-  // OPENAI_API_KEY and DATABASE_URL are required in every environment;
+  // BUILT_IN_FORGE_API_KEY and DATABASE_URL are required in every environment;
   // the remaining secrets are only checked in production.
   const alwaysRequired: Array<[string, string]> = [
-    ["OPENAI_API_KEY", process.env.OPENAI_API_KEY ?? ""],
+    ["BUILT_IN_FORGE_API_KEY", ENV.forgeApiKey],
     ["DATABASE_URL", ENV.databaseUrl],
   ];
   const alwaysMissing = alwaysRequired.filter(([, v]) => !v).map(([k]) => k);
@@ -61,7 +61,6 @@ async function startServer() {
     const required: Array<[string, string]> = [
       ["JWT_SECRET", ENV.cookieSecret],
       ["BUILT_IN_FORGE_API_URL", ENV.forgeApiUrl],
-      ["BUILT_IN_FORGE_API_KEY", ENV.forgeApiKey],
       ["OWNER_OPEN_ID", ENV.ownerOpenId],
     ];
     const missing = required.filter(([, v]) => !v).map(([k]) => k);
@@ -112,7 +111,7 @@ async function startServer() {
   // Readiness probe — succeeds only when critical env vars are present
   app.get("/api/ready", (_req, res) => {
     const missing: string[] = [];
-    if (!process.env.OPENAI_API_KEY) missing.push("OPENAI_API_KEY");
+    if (!ENV.forgeApiKey) missing.push("BUILT_IN_FORGE_API_KEY");
     if (!ENV.databaseUrl) missing.push("DATABASE_URL");
     if (missing.length > 0) {
       res.status(503).json({ ready: false, missing });
