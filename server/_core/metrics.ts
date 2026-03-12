@@ -77,7 +77,12 @@ interface StreamCounters {
   timeout: number;
 }
 
-const streamCounters: StreamCounters = { total: 0, success: 0, error: 0, timeout: 0 };
+const streamCounters: StreamCounters = {
+  total: 0,
+  success: 0,
+  error: 0,
+  timeout: 0,
+};
 
 /** Record the outcome of a single streaming request. */
 export function recordStreamOutcome(outcome: StreamOutcome): void {
@@ -160,7 +165,9 @@ export function getMemorySnapshots(): MemorySnapshot[] {
 
 /** Return the most recent memory snapshot, or null if none exists. */
 export function getCurrentMemory(): MemorySnapshot | null {
-  return memorySnapshots.length > 0 ? memorySnapshots[memorySnapshots.length - 1] : null;
+  return memorySnapshots.length > 0
+    ? memorySnapshots[memorySnapshots.length - 1]
+    : null;
 }
 
 // ── Aggregate metrics ─────────────────────────────────────────────────────────

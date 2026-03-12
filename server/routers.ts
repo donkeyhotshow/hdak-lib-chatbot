@@ -22,7 +22,10 @@ import { runSync, isSyncing, getLastSyncStatus } from "./services/syncService";
 // Admin-only procedure
 const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
   if (ctx.user?.role !== "admin") {
-    throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" });
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Admin access required",
+    });
   }
   return next({ ctx });
 });
@@ -34,7 +37,7 @@ const MAX_MESSAGE_LENGTH = 10_000;
 
 export const appRouter = router({
   system: systemRouter,
-  
+
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
@@ -49,20 +52,26 @@ export const appRouter = router({
   // Conversation management
   conversations: router({
     create: protectedProcedure
-      .input(z.object({
-        title: z.string().min(1).max(500),
-        language: z.enum(["en", "uk", "ru"]).default("uk"),
-      }))
+      .input(
+        z.object({
+          title: z.string().min(1).max(500),
+          language: z.enum(["en", "uk", "ru"]).default("uk"),
+        })
+      )
       .mutation(async ({ ctx, input }) => {
-        const conversation = await db.createConversation(ctx.user!.id, input.title, input.language);
-        if (!conversation) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const conversation = await db.createConversation(
+          ctx.user!.id,
+          input.title,
+          input.language
+        );
+        if (!conversation)
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
         return conversation;
       }),
 
-    list: protectedProcedure
-      .query(async ({ ctx }) => {
-        return await db.getConversations(ctx.user!.id);
-      }),
+    list: protectedProcedure.query(async ({ ctx }) => {
+      return await db.getConversations(ctx.user!.id);
+    }),
 
     get: protectedProcedure
       .input(z.object({ id: z.number() }))
@@ -100,10 +109,12 @@ export const appRouter = router({
       }),
 
     sendMessage: protectedProcedure
-      .input(z.object({
-        conversationId: z.number().int().positive(),
-        content: z.string().min(1).max(MAX_MESSAGE_LENGTH),
-      }))
+      .input(
+        z.object({
+          conversationId: z.number().int().positive(),
+          content: z.string().min(1).max(MAX_MESSAGE_LENGTH),
+        })
+      )
       .mutation(async ({ ctx, input }) => {
         // Verify that this conversation belongs to the requesting user
         const conversation = await db.getConversation(input.conversationId);
@@ -112,7 +123,9 @@ export const appRouter = router({
           throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
         }
 
-        const conversationLanguage = normalizeLanguage(conversation.language as string | null);
+        const conversationLanguage = normalizeLanguage(
+          conversation.language as string | null
+        );
         const detectedLanguage = detectLanguageFromText(input.content);
         const language = detectedLanguage ?? conversationLanguage;
 
@@ -122,17 +135,14 @@ export const appRouter = router({
         const messages = await db.getMessages(input.conversationId);
         const conversationHistory: ConversationHistoryMessage[] = messages
           .slice(-MAX_CONVERSATION_HISTORY)
-          .map((m) => {
+          .map(m => {
             const isSupportedRole = m.role === "assistant" || m.role === "user";
             if (!isSupportedRole) {
-              logger.warn(
-                `[sendMessage] Unexpected role in conversation`,
-                {
-                  role: m.role,
-                  conversationId: input.conversationId,
-                  messageId: m.id ?? "unknown",
-                }
-              );
+              logger.warn(`[sendMessage] Unexpected role in conversation`, {
+                role: m.role,
+                conversationId: input.conversationId,
+                messageId: m.id ?? "unknown",
+              });
             }
             const role: ConversationHistoryMessage["role"] = isSupportedRole
               ? (m.role as ConversationHistoryMessage["role"])
@@ -142,8 +152,13 @@ export const appRouter = router({
 
         // Save user message after history has been read so the current turn
         // is not included in the history snapshot passed to the AI.
-        const userMessage = await db.createMessage(input.conversationId, "user", input.content);
-        if (!userMessage) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const userMessage = await db.createMessage(
+          input.conversationId,
+          "user",
+          input.content
+        );
+        if (!userMessage)
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
         // Generate AI response (resource search and RAG are inside the try/catch
         // so that embedding or search failures produce a graceful error message
@@ -172,8 +187,13 @@ export const appRouter = router({
         }
 
         // Save assistant message
-        const assistantMessage = await db.createMessage(input.conversationId, "assistant", aiResponse);
-        if (!assistantMessage) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const assistantMessage = await db.createMessage(
+          input.conversationId,
+          "assistant",
+          aiResponse
+        );
+        if (!assistantMessage)
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
         return { ...assistantMessage, source };
       }),
@@ -181,10 +201,9 @@ export const appRouter = router({
 
   // Resource management
   resources: router({
-    getAll: publicProcedure
-      .query(async () => {
-        return await db.getAllResources();
-      }),
+    getAll: publicProcedure.query(async () => {
+      return await db.getAllResources();
+    }),
 
     search: publicProcedure
       .input(z.object({ query: z.string().max(500) }))
@@ -193,23 +212,41 @@ export const appRouter = router({
       }),
 
     getByType: publicProcedure
-      .input(z.object({ type: z.enum(["electronic_library", "repository", "catalog", "database", "other"]) }))
+      .input(
+        z.object({
+          type: z.enum([
+            "electronic_library",
+            "repository",
+            "catalog",
+            "database",
+            "other",
+          ]),
+        })
+      )
       .query(async ({ input }) => {
         return await db.getResourcesByType(input.type);
       }),
 
     create: adminProcedure
-      .input(z.object({
-        nameEn: z.string().min(1).max(500),
-        nameUk: z.string().min(1).max(500),
-        nameRu: z.string().min(1).max(500),
-        descriptionEn: z.string().max(10_000).optional(),
-        descriptionUk: z.string().max(10_000).optional(),
-        descriptionRu: z.string().max(10_000).optional(),
-        type: z.enum(["electronic_library", "repository", "catalog", "database", "other"]),
-        url: z.string().max(2048).optional(),
-        keywords: z.array(z.string().max(200)).max(100).optional(),
-      }))
+      .input(
+        z.object({
+          nameEn: z.string().min(1).max(500),
+          nameUk: z.string().min(1).max(500),
+          nameRu: z.string().min(1).max(500),
+          descriptionEn: z.string().max(10_000).optional(),
+          descriptionUk: z.string().max(10_000).optional(),
+          descriptionRu: z.string().max(10_000).optional(),
+          type: z.enum([
+            "electronic_library",
+            "repository",
+            "catalog",
+            "database",
+            "other",
+          ]),
+          url: z.string().max(2048).optional(),
+          keywords: z.array(z.string().max(200)).max(100).optional(),
+        })
+      )
       .mutation(async ({ input }) => {
         const resource = await db.createResource({
           ...input,
@@ -220,23 +257,35 @@ export const appRouter = router({
       }),
 
     update: adminProcedure
-      .input(z.object({
-        id: z.number(),
-        nameEn: z.string().min(1).max(500).optional(),
-        nameUk: z.string().min(1).max(500).optional(),
-        nameRu: z.string().min(1).max(500).optional(),
-        descriptionEn: z.string().max(10_000).optional(),
-        descriptionUk: z.string().max(10_000).optional(),
-        descriptionRu: z.string().max(10_000).optional(),
-        type: z.enum(["electronic_library", "repository", "catalog", "database", "other"]).optional(),
-        url: z.string().max(2048).optional(),
-        keywords: z.array(z.string().max(200)).max(100).optional(),
-      }))
+      .input(
+        z.object({
+          id: z.number(),
+          nameEn: z.string().min(1).max(500).optional(),
+          nameUk: z.string().min(1).max(500).optional(),
+          nameRu: z.string().min(1).max(500).optional(),
+          descriptionEn: z.string().max(10_000).optional(),
+          descriptionUk: z.string().max(10_000).optional(),
+          descriptionRu: z.string().max(10_000).optional(),
+          type: z
+            .enum([
+              "electronic_library",
+              "repository",
+              "catalog",
+              "database",
+              "other",
+            ])
+            .optional(),
+          url: z.string().max(2048).optional(),
+          keywords: z.array(z.string().max(200)).max(100).optional(),
+        })
+      )
       .mutation(async ({ input }) => {
         const { id, ...updateData } = input;
         const resource = await db.updateResource(id, {
           ...updateData,
-          keywords: updateData.keywords ? JSON.stringify(updateData.keywords) : undefined,
+          keywords: updateData.keywords
+            ? JSON.stringify(updateData.keywords)
+            : undefined,
         });
         if (!resource) throw new TRPCError({ code: "NOT_FOUND" });
         return resource;
@@ -250,27 +299,36 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    getSiteResources: publicProcedure
-      .query(() => {
-        return hdakResources;
-      }),
+    getSiteResources: publicProcedure.query(() => {
+      return hdakResources;
+    }),
   }),
 
   // Contact management
   contacts: router({
-    getAll: publicProcedure
-      .query(async () => {
-        return await db.getAllContacts();
-      }),
+    getAll: publicProcedure.query(async () => {
+      return await db.getAllContacts();
+    }),
 
     create: adminProcedure
-      .input(z.object({
-        type: z.enum(["email", "phone", "address", "telegram", "viber", "facebook", "instagram", "other"]),
-        value: z.string().min(1).max(1000),
-        labelEn: z.string().max(200).optional(),
-        labelUk: z.string().max(200).optional(),
-        labelRu: z.string().max(200).optional(),
-      }))
+      .input(
+        z.object({
+          type: z.enum([
+            "email",
+            "phone",
+            "address",
+            "telegram",
+            "viber",
+            "facebook",
+            "instagram",
+            "other",
+          ]),
+          value: z.string().min(1).max(1000),
+          labelEn: z.string().max(200).optional(),
+          labelUk: z.string().max(200).optional(),
+          labelRu: z.string().max(200).optional(),
+        })
+      )
       .mutation(async ({ input }) => {
         const contact = await db.createContact(input);
         if (!contact) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
@@ -278,14 +336,27 @@ export const appRouter = router({
       }),
 
     update: adminProcedure
-      .input(z.object({
-        id: z.number(),
-        type: z.enum(["email", "phone", "address", "telegram", "viber", "facebook", "instagram", "other"]).optional(),
-        value: z.string().min(1).max(1000).optional(),
-        labelEn: z.string().max(200).optional(),
-        labelUk: z.string().max(200).optional(),
-        labelRu: z.string().max(200).optional(),
-      }))
+      .input(
+        z.object({
+          id: z.number(),
+          type: z
+            .enum([
+              "email",
+              "phone",
+              "address",
+              "telegram",
+              "viber",
+              "facebook",
+              "instagram",
+              "other",
+            ])
+            .optional(),
+          value: z.string().min(1).max(1000).optional(),
+          labelEn: z.string().max(200).optional(),
+          labelUk: z.string().max(200).optional(),
+          labelRu: z.string().max(200).optional(),
+        })
+      )
       .mutation(async ({ input }) => {
         const { id, ...updateData } = input;
         const contact = await db.updateContact(id, updateData);
@@ -310,20 +381,26 @@ export const appRouter = router({
         return await db.getLibraryInfo(input.key);
       }),
 
-    getAll: adminProcedure
-      .query(async () => {
-        return await db.getAllLibraryInfo();
-      }),
+    getAll: adminProcedure.query(async () => {
+      return await db.getAllLibraryInfo();
+    }),
 
     set: adminProcedure
-      .input(z.object({
-        key: z.string().min(1).max(200),
-        valueEn: z.string().max(10_000),
-        valueUk: z.string().max(10_000),
-        valueRu: z.string().max(10_000),
-      }))
+      .input(
+        z.object({
+          key: z.string().min(1).max(200),
+          valueEn: z.string().max(10_000),
+          valueUk: z.string().max(10_000),
+          valueRu: z.string().max(10_000),
+        })
+      )
       .mutation(async ({ input }) => {
-        const info = await db.setLibraryInfo(input.key, input.valueEn, input.valueUk, input.valueRu);
+        const info = await db.setLibraryInfo(
+          input.key,
+          input.valueEn,
+          input.valueUk,
+          input.valueRu
+        );
         if (!info) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
         return info;
       }),
@@ -332,7 +409,9 @@ export const appRouter = router({
   // Analytics (admin only)
   analytics: router({
     getQueryStats: adminProcedure
-      .input(z.object({ limit: z.number().min(1).max(100).default(20) }).optional())
+      .input(
+        z.object({ limit: z.number().min(1).max(100).default(20) }).optional()
+      )
       .query(async ({ input }) => {
         return await db.getQueryAnalytics(input?.limit ?? 20);
       }),
@@ -340,26 +419,23 @@ export const appRouter = router({
 
   // Catalog sync (admin only)
   sync: router({
-    runNow: adminProcedure
-      .mutation(async () => {
-        const result = await runSync();
-        return result;
-      }),
-    status: adminProcedure
-      .query(() => {
-        return { isSyncing: isSyncing() };
-      }),
-    lastStatus: adminProcedure
-      .query(() => {
-        const status = getLastSyncStatus();
-        if (!status) return null;
-        return {
-          success: status.success,
-          timestamp: status.timestamp.toISOString(),
-          synced: status.synced,
-          errors: status.errors,
-        };
-      }),
+    runNow: adminProcedure.mutation(async () => {
+      const result = await runSync();
+      return result;
+    }),
+    status: adminProcedure.query(() => {
+      return { isSyncing: isSyncing() };
+    }),
+    lastStatus: adminProcedure.query(() => {
+      const status = getLastSyncStatus();
+      if (!status) return null;
+      return {
+        success: status.success,
+        timestamp: status.timestamp.toISOString(),
+        synced: status.synced,
+        errors: status.errors,
+      };
+    }),
   }),
 });
 

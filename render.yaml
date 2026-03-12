@@ -1,0 +1,43 @@
+# render.yaml — Render.com deployment configuration for hdak-lib-chatbot
+# Commit this file to your repo; Render will detect it automatically.
+# See: https://render.com/docs/yaml-spec
+
+services:
+  - type: web
+    name: hdak-lib-chatbot
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    # Render sets PORT automatically; the app reads it via process.env.PORT.
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # ── AI / LLM ─────────────────────────────────────────────────────────
+      - key: BUILT_IN_FORGE_API_URL
+        sync: false # fill in the Render dashboard
+      - key: BUILT_IN_FORGE_API_KEY
+        sync: false # fill in the Render dashboard (mark as secret)
+      # ── Auth ─────────────────────────────────────────────────────────────
+      - key: JWT_SECRET
+        generateValue: true # Render generates a secure random value
+      - key: VITE_APP_ID
+        sync: false
+      - key: OAUTH_SERVER_URL
+        sync: false
+      - key: OWNER_OPEN_ID
+        sync: false
+      - key: VITE_OAUTH_PORTAL_URL
+        sync: false
+      # ── Database ─────────────────────────────────────────────────────────
+      - key: DATABASE_URL
+        fromDatabase:
+          name: hdak-chatbot-db
+          property: connectionString
+
+    healthCheckPath: /api/health
+    # Migrations run inside docker-entrypoint.sh on every deploy
+
+databases:
+  - name: hdak-chatbot-db
+    databaseName: hdak_chatbot
+    user: hdak
+    plan: free # upgrade to paid for production workloads

@@ -8,13 +8,36 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Markdown } from "@/components/Markdown";
 import { DocumentCard, type ResourceType } from "@/components/DocumentCard";
 import { trpc } from "@/lib/trpc";
 import type { AppRouter } from "../../../server/routers";
 import { getLoginUrl } from "@/const";
-import { Bot, BookOpen, Database, Search, Loader2, Send, Plus, Globe, LogOut, ExternalLink, Trash2, AlertCircle, RefreshCw, BookMarked, Mail, Share2 } from "lucide-react";
+import {
+  Bot,
+  BookOpen,
+  Database,
+  Search,
+  Loader2,
+  Send,
+  Plus,
+  Globe,
+  LogOut,
+  ExternalLink,
+  Trash2,
+  AlertCircle,
+  RefreshCw,
+  BookMarked,
+  Mail,
+  Share2,
+} from "lucide-react";
 
 type RouterOutput = inferRouterOutputs<AppRouter>;
 type Conversation = RouterOutput["conversations"]["list"][number];
@@ -54,13 +77,17 @@ const translations: Record<Language, Record<string, string>> = {
     russian: "Русский",
     // Overview panel
     overviewGreeting: "Hello! I'm the HDAK Library AI Assistant.",
-    overviewDesc: "Ask me about library resources, how to find a book or author, or how to navigate the library website.",
+    overviewDesc:
+      "Ask me about library resources, how to find a book or author, or how to navigate the library website.",
     feature1Title: "Site Navigation",
-    feature1Desc: "Find any page on the library website — catalog, usage rules, contacts, exhibitions, or publications.",
+    feature1Desc:
+      "Find any page on the library website — catalog, usage rules, contacts, exhibitions, or publications.",
     feature2Title: "Resource Search",
-    feature2Desc: "Discover available databases and collections: Scopus, Web of Science, the institutional repository, and more.",
+    feature2Desc:
+      "Discover available databases and collections: Scopus, Web of Science, the institutional repository, and more.",
     feature3Title: "Author & Book Lookup",
-    feature3Desc: "Ask whether the library has a specific author or book — I'll give you step-by-step catalog instructions.",
+    feature3Desc:
+      "Ask whether the library has a specific author or book — I'll give you step-by-step catalog instructions.",
     examplesTitle: "Try asking:",
     ex1: "How do I register as a library reader?",
     ex2: "Does the library have access to Scopus?",
@@ -107,13 +134,17 @@ const translations: Record<Language, Record<string, string>> = {
     russian: "Русский",
     // Overview panel
     overviewGreeting: "Вітаю! Я AI-асистент бібліотеки ХДАК.",
-    overviewDesc: "Запитайте мене про ресурси бібліотеки, як знайти книгу чи автора, або як орієнтуватися на сайті.",
+    overviewDesc:
+      "Запитайте мене про ресурси бібліотеки, як знайти книгу чи автора, або як орієнтуватися на сайті.",
     feature1Title: "Навігація сайтом",
-    feature1Desc: "Знайду будь-яку сторінку сайту бібліотеки — каталог, правила, контакти, виставки, публікації.",
+    feature1Desc:
+      "Знайду будь-яку сторінку сайту бібліотеки — каталог, правила, контакти, виставки, публікації.",
     feature2Title: "Пошук ресурсів",
-    feature2Desc: "Розкажу про доступні бази даних та колекції: Scopus, Web of Science, репозитарій та інші.",
+    feature2Desc:
+      "Розкажу про доступні бази даних та колекції: Scopus, Web of Science, репозитарій та інші.",
     feature3Title: "Пошук автора і книги",
-    feature3Desc: "Перевірю, чи є в бібліотеці потрібний автор або книга, і дам покрокову інструкцію для каталогу.",
+    feature3Desc:
+      "Перевірю, чи є в бібліотеці потрібний автор або книга, і дам покрокову інструкцію для каталогу.",
     examplesTitle: "Спробуйте запитати:",
     ex1: "Як записатися до бібліотеки?",
     ex2: "Чи є у вас доступ до Scopus?",
@@ -134,7 +165,8 @@ const translations: Record<Language, Record<string, string>> = {
     noResults: "Ресурсів за вашими фільтрами не знайдено.",
     sendFailed: "Помилка надсилання. Спробуйте ще раз.",
     streamError: "Помилка стрімінгу. Спробуйте ще раз.",
-    streamErrorTooLarge: "Повідомлення занадто довге (максимум 10 000 символів).",
+    streamErrorTooLarge:
+      "Повідомлення занадто довге (максимум 10 000 символів).",
     // Quick actions after AI response
     actionFindCatalog: "Знайти в каталозі",
     actionWriteLetter: "Написати листа",
@@ -160,13 +192,17 @@ const translations: Record<Language, Record<string, string>> = {
     russian: "Русский",
     // Overview panel
     overviewGreeting: "Здравствуйте! Я AI-ассистент библиотеки ХДАК.",
-    overviewDesc: "Спросите меня о ресурсах библиотеки, как найти книгу или автора, или как ориентироваться на сайте.",
+    overviewDesc:
+      "Спросите меня о ресурсах библиотеки, как найти книгу или автора, или как ориентироваться на сайте.",
     feature1Title: "Навигация по сайту",
-    feature1Desc: "Найду любую страницу сайта библиотеки — каталог, правила, контакты, выставки, публикации.",
+    feature1Desc:
+      "Найду любую страницу сайта библиотеки — каталог, правила, контакты, выставки, публикации.",
     feature2Title: "Поиск ресурсов",
-    feature2Desc: "Расскажу о доступных базах данных и коллекциях: Scopus, Web of Science, репозиторий и другие.",
+    feature2Desc:
+      "Расскажу о доступных базах данных и коллекциях: Scopus, Web of Science, репозиторий и другие.",
     feature3Title: "Поиск автора и книги",
-    feature3Desc: "Проверю, есть ли в библиотеке нужный автор или книга, и дам пошаговую инструкцию по каталогу.",
+    feature3Desc:
+      "Проверю, есть ли в библиотеке нужный автор или книга, и дам пошаговую инструкцию по каталогу.",
     examplesTitle: "Попробуйте спросить:",
     ex1: "Как записаться в библиотеку?",
     ex2: "Есть ли у вас доступ к Scopus?",
@@ -187,7 +223,8 @@ const translations: Record<Language, Record<string, string>> = {
     noResults: "Ресурсов по вашим фильтрам не найдено.",
     sendFailed: "Ошибка отправки. Попробуйте ещё раз.",
     streamError: "Ошибка стриминга. Попробуйте ещё раз.",
-    streamErrorTooLarge: "Сообщение слишком длинное (максимум 10 000 символов).",
+    streamErrorTooLarge:
+      "Сообщение слишком длинное (максимум 10 000 символов).",
     // Quick actions after AI response
     actionFindCatalog: "Найти в каталоге",
     actionWriteLetter: "Написать письмо",
@@ -196,7 +233,15 @@ const translations: Record<Language, Record<string, string>> = {
 };
 
 /** Reusable feature card for the overview panel. */
-function FeatureCard({ icon, title, description }: { icon: ReactNode; title: string; description: string }) {
+function FeatureCard({
+  icon,
+  title,
+  description,
+}: {
+  icon: ReactNode;
+  title: string;
+  description: string;
+}) {
   return (
     <Card className="p-4 flex flex-col gap-2 border-indigo-100 hover:border-indigo-300 transition-colors">
       <div className="w-9 h-9 rounded-lg bg-indigo-50 flex items-center justify-center">
@@ -217,9 +262,11 @@ function getMessageText(msg: DisplayMessage): string {
     return msg.parts
       .filter(
         (p): p is { type: "text"; text: string } =>
-          p !== null && typeof p === "object" && (p as { type?: string }).type === "text"
+          p !== null &&
+          typeof p === "object" &&
+          (p as { type?: string }).type === "text"
       )
-      .map((p) => p.text)
+      .map(p => p.text)
       .join("");
   }
   return "";
@@ -229,7 +276,9 @@ export default function Home() {
   const { user, isAuthenticated, logout } = useAuth();
   const [language, setLanguage] = useState<Language>("uk");
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [currentConversationId, setCurrentConversationId] = useState<number | null>(null);
+  const [currentConversationId, setCurrentConversationId] = useState<
+    number | null
+  >(null);
   const [sendError, setSendError] = useState<string | null>(null);
   const [localInput, setLocalInput] = useState("");
   const userHasDeselected = useRef(false);
@@ -263,13 +312,15 @@ export default function Home() {
         }),
         prepareSendMessagesRequest: ({ messages, body }) => {
           // Extract the text from the last user UIMessage (parts array format).
-          const lastUser = [...messages].reverse().find((m) => m.role === "user");
+          const lastUser = [...messages].reverse().find(m => m.role === "user");
           const lastUserText = lastUser ? getMessageText(lastUser) : "";
           return {
             body: {
               ...body,
               // Only send the new user message; the server appends DB history.
-              messages: lastUserText ? [{ role: "user", content: lastUserText }] : [],
+              messages: lastUserText
+                ? [{ role: "user", content: lastUserText }]
+                : [],
             },
           };
         },
@@ -296,18 +347,24 @@ export default function Home() {
   });
 
   // Fetch site resources for the resource browser (cached 5 min)
-  const { data: siteResources = [] } = trpc.resources.getSiteResources.useQuery(undefined, {
-    staleTime: 5 * 60 * 1000,
-  });
+  const { data: siteResources = [] } = trpc.resources.getSiteResources.useQuery(
+    undefined,
+    {
+      staleTime: 5 * 60 * 1000,
+    }
+  );
 
   // Resource browser search / filter state
   const [resourceSearch, setResourceSearch] = useState("");
-  const [resourceTypeFilter, setResourceTypeFilter] = useState<ResourceType | "all">("all");
+  const [resourceTypeFilter, setResourceTypeFilter] = useState<
+    ResourceType | "all"
+  >("all");
 
   const filteredResources = useMemo(
     () =>
-      (siteResources ?? []).filter((r) => {
-        const typeMatch = resourceTypeFilter === "all" || r.type === resourceTypeFilter;
+      (siteResources ?? []).filter(r => {
+        const typeMatch =
+          resourceTypeFilter === "all" || r.type === resourceTypeFilter;
         const q = resourceSearch.trim().toLowerCase();
         const textMatch =
           !q ||
@@ -326,20 +383,26 @@ export default function Home() {
   );
 
   // Fetch conversations (cached 5 min; invalidated on create/delete)
-  const { data: conversationsData } = trpc.conversations.list.useQuery(undefined, {
-    enabled: isAuthenticated,
-    staleTime: 5 * 60 * 1000,
-  });
+  const { data: conversationsData } = trpc.conversations.list.useQuery(
+    undefined,
+    {
+      enabled: isAuthenticated,
+      staleTime: 5 * 60 * 1000,
+    }
+  );
 
   // Fetch messages for current conversation
   const { data: messagesData } = trpc.conversations.getMessages.useQuery(
     { conversationId: currentConversationId! },
-    { enabled: isAuthenticated && currentConversationId !== null, staleTime: 30_000 }
+    {
+      enabled: isAuthenticated && currentConversationId !== null,
+      staleTime: 30_000,
+    }
   );
 
   // Create conversation mutation
   const createConversationMutation = trpc.conversations.create.useMutation({
-    onSuccess: (data) => {
+    onSuccess: data => {
       setCurrentConversationId(data.id);
       // Update the ref immediately so the transport body function picks up the new id
       // before the next sendMessage call (React state update is asynchronous).
@@ -466,7 +529,9 @@ export default function Home() {
           </div>
           <Button
             className="w-full bg-indigo-600 hover:bg-indigo-700"
-            onClick={() => { window.location.href = getLoginUrl(); }}
+            onClick={() => {
+              window.location.href = getLoginUrl();
+            }}
           >
             {t.login}
           </Button>
@@ -481,7 +546,10 @@ export default function Home() {
       <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
         {/* Header */}
         <div className="p-4 border-b border-gray-200">
-          <Button onClick={handleNewChat} className="w-full bg-indigo-600 hover:bg-indigo-700 gap-2">
+          <Button
+            onClick={handleNewChat}
+            className="w-full bg-indigo-600 hover:bg-indigo-700 gap-2"
+          >
             <Plus className="w-4 h-4" />
             {t.newChat}
           </Button>
@@ -495,7 +563,7 @@ export default function Home() {
             </div>
           ) : (
             <div className="p-2">
-              {conversations.map((conv) => (
+              {conversations.map(conv => (
                 <div
                   key={conv.id}
                   onClick={() => handleSelectConversation(conv.id)}
@@ -506,9 +574,11 @@ export default function Home() {
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium truncate flex-1">{conv.title}</span>
+                    <span className="text-sm font-medium truncate flex-1">
+                      {conv.title}
+                    </span>
                     <button
-                      onClick={(e) => {
+                      onClick={e => {
                         e.stopPropagation();
                         handleDeleteConversation(conv.id);
                       }}
@@ -527,7 +597,10 @@ export default function Home() {
         <div className="p-4 border-t border-gray-200 space-y-3">
           <div className="flex items-center gap-2">
             <Globe className="w-4 h-4 text-gray-600" />
-            <Select value={language} onValueChange={(value) => setLanguage(value as Language)}>
+            <Select
+              value={language}
+              onValueChange={value => setLanguage(value as Language)}
+            >
               <SelectTrigger className="h-8">
                 <SelectValue />
               </SelectTrigger>
@@ -538,11 +611,7 @@ export default function Home() {
               </SelectContent>
             </Select>
           </div>
-          <Button
-            onClick={logout}
-            variant="outline"
-            className="w-full gap-2"
-          >
+          <Button onClick={logout} variant="outline" className="w-full gap-2">
             <LogOut className="w-4 h-4" />
             {t.logout}
           </Button>
@@ -583,7 +652,9 @@ export default function Home() {
                 </div>
 
                 <Card className="p-6 bg-indigo-50 border-indigo-200 mb-8">
-                  <h3 className="font-semibold text-gray-900 mb-3">{t.examplesTitle}</h3>
+                  <h3 className="font-semibold text-gray-900 mb-3">
+                    {t.examplesTitle}
+                  </h3>
                   <div className="space-y-2">
                     {exampleQuestions.map((example, idx) => (
                       <button
@@ -612,36 +683,50 @@ export default function Home() {
                 {/* Resource browser */}
                 {siteResources.length > 0 && (
                   <div className="mt-10">
-                    <h3 className="font-semibold text-gray-900 mb-4">{t.resourcesTitle}</h3>
+                    <h3 className="font-semibold text-gray-900 mb-4">
+                      {t.resourcesTitle}
+                    </h3>
                     <div className="flex gap-2 mb-4">
                       <div className="relative flex-1">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <Input
                           value={resourceSearch}
-                          onChange={(e) => setResourceSearch(e.target.value)}
+                          onChange={e => setResourceSearch(e.target.value)}
                           placeholder={t.searchPlaceholder}
                           className="pl-9"
                         />
                       </div>
                       <Select
                         value={resourceTypeFilter}
-                        onValueChange={(v) => setResourceTypeFilter(v as ResourceType | "all")}
+                        onValueChange={v =>
+                          setResourceTypeFilter(v as ResourceType | "all")
+                        }
                       >
                         <SelectTrigger className="w-36">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">{t.filterAll}</SelectItem>
-                          <SelectItem value="catalog">{t.filterCatalog}</SelectItem>
-                          <SelectItem value="database">{t.filterDatabase}</SelectItem>
-                          <SelectItem value="electronic_library">{t.filterElectronic}</SelectItem>
-                          <SelectItem value="repository">{t.filterRepository}</SelectItem>
+                          <SelectItem value="catalog">
+                            {t.filterCatalog}
+                          </SelectItem>
+                          <SelectItem value="database">
+                            {t.filterDatabase}
+                          </SelectItem>
+                          <SelectItem value="electronic_library">
+                            {t.filterElectronic}
+                          </SelectItem>
+                          <SelectItem value="repository">
+                            {t.filterRepository}
+                          </SelectItem>
                           <SelectItem value="other">{t.filterOther}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     {filteredResources.length === 0 ? (
-                      <p className="text-sm text-gray-500 text-center py-4">{t.noResults}</p>
+                      <p className="text-sm text-gray-500 text-center py-4">
+                        {t.noResults}
+                      </p>
                     ) : (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {filteredResources.map((r, idx) => (
@@ -685,7 +770,9 @@ export default function Home() {
                             }`}
                           >
                             {msg.role === "user" ? (
-                              <p className="text-sm whitespace-pre-wrap">{getMessageText(msg)}</p>
+                              <p className="text-sm whitespace-pre-wrap">
+                                {getMessageText(msg)}
+                              </p>
                             ) : (
                               <div className="text-sm prose prose-sm max-w-none prose-a:text-indigo-700 prose-a:underline">
                                 <Markdown>{getMessageText(msg)}</Markdown>
@@ -730,12 +817,26 @@ export default function Home() {
                                 onClick={() => {
                                   const text = getMessageText(msg);
                                   if (navigator.share) {
-                                    navigator.share({ title: "HDAK Library", text, url: window.location.href }).catch(() => {
-                                      // Share was cancelled or failed — fall back to clipboard
-                                      navigator.clipboard.writeText(text).catch(() => {/* clipboard unavailable */});
-                                    });
+                                    navigator
+                                      .share({
+                                        title: "HDAK Library",
+                                        text,
+                                        url: window.location.href,
+                                      })
+                                      .catch(() => {
+                                        // Share was cancelled or failed — fall back to clipboard
+                                        navigator.clipboard
+                                          .writeText(text)
+                                          .catch(() => {
+                                            /* clipboard unavailable */
+                                          });
+                                      });
                                   } else {
-                                    navigator.clipboard.writeText(text).catch(() => {/* clipboard unavailable */});
+                                    navigator.clipboard
+                                      .writeText(text)
+                                      .catch(() => {
+                                        /* clipboard unavailable */
+                                      });
                                   }
                                 }}
                               >
@@ -748,6 +849,18 @@ export default function Home() {
                       </div>
                     );
                   })}
+                  {/* Typing indicator — visible while waiting for the first token */}
+                  {status === "submitted" && (
+                    <div className="flex justify-start">
+                      <div className="px-4 py-3 rounded-lg rounded-bl-none bg-gray-200 text-gray-900">
+                        <span className="flex gap-1 items-center h-4">
+                          <span className="w-2 h-2 rounded-full bg-gray-500 animate-bounce [animation-delay:-0.3s]" />
+                          <span className="w-2 h-2 rounded-full bg-gray-500 animate-bounce [animation-delay:-0.15s]" />
+                          <span className="w-2 h-2 rounded-full bg-gray-500 animate-bounce" />
+                        </span>
+                      </div>
+                    </div>
+                  )}
                   <div ref={scrollRef} />
                 </div>
               </ScrollArea>
@@ -758,23 +871,30 @@ export default function Home() {
                 {(sendError || streamError) && (
                   <div className="max-w-3xl mx-auto mb-3 flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
                     <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                    <span className="flex-1">{
-                      streamError
-                        ? (streamError.message?.includes("413") || streamError.message?.includes("too large")
+                    <span className="flex-1">
+                      {streamError
+                        ? streamError.message?.includes("413") ||
+                          streamError.message?.includes("too large")
                           ? t.streamErrorTooLarge
-                          : t.streamError)
-                        : sendError
-                    }</span>
+                          : t.streamError
+                        : sendError}
+                    </span>
                     {/* Retry button — only for streaming errors; replays the last user message */}
                     {streamError && (
                       <Button
                         size="sm"
                         variant="ghost"
                         className="h-6 px-2 text-red-600 hover:text-red-700 hover:bg-red-100 gap-1"
-                        onClick={() => { void regenerate(); }}
+                        onClick={() => {
+                          void regenerate();
+                        }}
                       >
                         <RefreshCw className="w-3 h-3" />
-                        {language === "uk" ? "Повторити" : language === "ru" ? "Повторить" : "Retry"}
+                        {language === "uk"
+                          ? "Повторити"
+                          : language === "ru"
+                            ? "Повторить"
+                            : "Retry"}
                       </Button>
                     )}
                   </div>
@@ -782,13 +902,14 @@ export default function Home() {
                 <div className="max-w-3xl mx-auto flex gap-3">
                   <Input
                     value={localInput}
-                    onChange={(e) => setLocalInput(e.target.value)}
-                    onKeyDown={(e) => {
+                    onChange={e => setLocalInput(e.target.value)}
+                    onKeyDown={e => {
                       if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();
                         // Debounce: ignore rapid repeated Enter presses within SEND_DEBOUNCE_MS
                         const now = Date.now();
-                        if (now - lastSendTimeRef.current < SEND_DEBOUNCE_MS) return;
+                        if (now - lastSendTimeRef.current < SEND_DEBOUNCE_MS)
+                          return;
                         lastSendTimeRef.current = now;
                         handleSendMessage();
                       }

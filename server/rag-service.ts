@@ -2,7 +2,11 @@ import { embed } from "ai";
 import { openai } from "@ai-sdk/openai";
 import * as db from "./db";
 import { logger } from "./_core/logger";
-import { DocumentChunk, InsertDocumentChunk, InsertDocumentMetadata } from "../drizzle/schema";
+import {
+  DocumentChunk,
+  InsertDocumentChunk,
+  InsertDocumentMetadata,
+} from "../drizzle/schema";
 
 /**
  * RAG Service - Handles PDF processing, chunking, and embedding generation
@@ -17,7 +21,11 @@ const MAX_DOCUMENT_SIZE = 500_000; // characters
 /**
  * Split text into chunks with overlap
  */
-export function chunkText(text: string, chunkSize: number = CHUNK_SIZE, overlap: number = CHUNK_OVERLAP): string[] {
+export function chunkText(
+  text: string,
+  chunkSize: number = CHUNK_SIZE,
+  overlap: number = CHUNK_OVERLAP
+): string[] {
   const chunks: string[] = [];
   let start = 0;
 
@@ -46,7 +54,9 @@ export async function generateEmbedding(text: string): Promise<number[]> {
     return embedding;
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
-    logger.error("[generateEmbedding] Failed to generate embedding", { error: msg });
+    logger.error("[generateEmbedding] Failed to generate embedding", {
+      error: msg,
+    });
     throw new Error(`Failed to generate embedding: ${msg}`);
   }
 }
@@ -146,7 +156,10 @@ export async function processDocument(
     await db.createDocumentMetadata(metadata);
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : "Unknown error";
-    logger.error("[RAG] Failed to create document metadata", { error: errorMsg, documentId });
+    logger.error("[RAG] Failed to create document metadata", {
+      error: errorMsg,
+      documentId,
+    });
     return { success: false, chunksCreated: 0, error: errorMsg };
   }
 
@@ -292,7 +305,9 @@ export async function getRagContext(
   const relevantChunks = result.chunks;
 
   if (relevantChunks.length === 0) {
-    logger.info("[RAG] No relevant context found", { query: query.slice(0, 80) });
+    logger.info("[RAG] No relevant context found", {
+      query: query.slice(0, 80),
+    });
     return "";
   }
 
@@ -302,7 +317,7 @@ export async function getRagContext(
   });
 
   const context = relevantChunks
-    .map((chunk) => {
+    .map(chunk => {
       const source = chunk.documentTitle || "Unknown";
       const url = chunk.documentUrl ? ` (${chunk.documentUrl})` : "";
       return `**${source}${url}:**\n${chunk.content}`;

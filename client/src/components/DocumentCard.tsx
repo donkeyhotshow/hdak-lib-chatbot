@@ -1,7 +1,19 @@
-import { ExternalLink, BookOpen, Database, Globe, Archive, Folder } from "lucide-react";
+import {
+  ExternalLink,
+  BookOpen,
+  Database,
+  Globe,
+  Archive,
+  Folder,
+} from "lucide-react";
 import { Card } from "@/components/ui/card";
 
-export type ResourceType = "electronic_library" | "repository" | "catalog" | "database" | "other";
+export type ResourceType =
+  | "electronic_library"
+  | "repository"
+  | "catalog"
+  | "database"
+  | "other";
 
 export interface DocumentCardProps {
   name: string;
@@ -58,7 +70,14 @@ const TYPE_BADGE_CLASSES: Record<ResourceType, string> = {
   other: "bg-gray-100 text-gray-600 border-gray-200",
 };
 
-export function DocumentCard({ name, description, type, url, accessConditions, language = "uk" }: DocumentCardProps) {
+export function DocumentCard({
+  name,
+  description,
+  type,
+  url,
+  accessConditions,
+  language = "uk",
+}: DocumentCardProps) {
   const typeLabel = TYPE_LABELS[language][type];
   const openLabel = OPEN_LINK_LABELS[language];
 
@@ -70,7 +89,9 @@ export function DocumentCard({ name, description, type, url, accessConditions, l
           {TYPE_ICONS[type]}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-gray-900 text-sm leading-snug">{name}</p>
+          <p className="font-semibold text-gray-900 text-sm leading-snug">
+            {name}
+          </p>
           {accessConditions && (
             <p className="text-xs text-gray-500 mt-0.5">{accessConditions}</p>
           )}
@@ -79,7 +100,9 @@ export function DocumentCard({ name, description, type, url, accessConditions, l
 
       {/* Description */}
       {description && (
-        <p className="text-xs text-gray-600 leading-relaxed line-clamp-3">{description}</p>
+        <p className="text-xs text-gray-600 leading-relaxed line-clamp-3">
+          {description}
+        </p>
       )}
 
       {/* Footer row */}

@@ -3,6 +3,7 @@
 ## 1. Content Security Policy (CSP) - HIGH PRIORITY
 
 ### Current Issue
+
 The CSP in `server/_core/index.ts` allows `'unsafe-inline'` for both scripts and styles:
 
 ```typescript
@@ -13,6 +14,7 @@ styleSrc: ["'self'", "'unsafe-inline'"],
 This is a security risk as it allows inline scripts and styles, which can be exploited for XSS attacks.
 
 ### Recommended Fix
+
 ```typescript
 contentSecurityPolicy: {
   directives: {
@@ -31,6 +33,7 @@ contentSecurityPolicy: {
 ```
 
 ### Implementation Notes
+
 - Tailwind CSS v4 supports CSS-in-JS without inline styles
 - Ensure no inline event handlers in React components
 - Use external stylesheets where possible
@@ -40,9 +43,11 @@ contentSecurityPolicy: {
 ## 2. Input Validation and Sanitization - HIGH PRIORITY
 
 ### Current Issue
+
 The `/api/chat` endpoint doesn't validate the incoming messages format.
 
 ### Recommended Fix
+
 Add Zod validation:
 
 ```typescript
@@ -50,13 +55,13 @@ Add Zod validation:
 import { z } from "zod";
 
 const messageSchema = z.object({
-  role: z.enum(['user', 'assistant', 'system']),
+  role: z.enum(["user", "assistant", "system"]),
   content: z.string().min(1).max(10000),
 });
 
 const chatRequestSchema = z.object({
   messages: z.array(messageSchema).min(1),
-  language: z.enum(['en', 'uk', 'ru']).optional(),
+  language: z.enum(["en", "uk", "ru"]).optional(),
   conversationId: z.number().optional(),
 });
 
@@ -66,7 +71,9 @@ app.post("/api/chat", async (req, res) => {
     // ... rest of handler
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: "Invalid request format", details: error.errors });
+      return res
+        .status(400)
+        .json({ error: "Invalid request format", details: error.errors });
     }
     // ...
   }
@@ -78,9 +85,11 @@ app.post("/api/chat", async (req, res) => {
 ## 3. Rate Limiting - MEDIUM PRIORITY
 
 ### Current Issue
+
 Rate limiters are configured but thresholds are not documented or tested.
 
 ### Recommended Fix
+
 Create a configuration file:
 
 ```typescript
@@ -105,6 +114,7 @@ export const rateLimiterConfig = {
 ```
 
 ### Testing
+
 - Load test with concurrent requests
 - Verify rate limiter resets correctly
 - Test edge cases (exactly at limit, just over limit)
@@ -114,14 +124,17 @@ export const rateLimiterConfig = {
 ## 4. SQL Injection Prevention - MEDIUM PRIORITY
 
 ### Current Issue
+
 Drizzle ORM is being used, which provides parameterized queries by default. However, ensure all user inputs are properly typed.
 
 ### Recommended Fix
+
 - Always use Drizzle's query builder methods
 - Never concatenate user input into SQL strings
 - Validate and sanitize all search queries
 
 Example:
+
 ```typescript
 // GOOD - using Drizzle's type-safe query builder
 const results = await db.query.libraryResources.findMany({
@@ -139,9 +152,11 @@ const results = await db.query.libraryResources.findMany({
 ## 5. Authentication and Authorization - HIGH PRIORITY
 
 ### Current Issue
+
 The OAuth implementation stores JWT in HTTP-only cookies, which is good. However, ensure CSRF protection is in place.
 
 ### Recommended Fix
+
 Add CSRF token validation:
 
 ```typescript
@@ -163,9 +178,11 @@ app.post("/api/trpc", csrfProtection, (req, res) => {
 ## 6. Environment Variable Validation - MEDIUM PRIORITY
 
 ### Current Issue
+
 Some environment variables are optional in development but required in production. This could lead to runtime errors.
 
 ### Recommended Fix
+
 Use Zod for validation:
 
 ```typescript
@@ -173,8 +190,10 @@ Use Zod for validation:
 import { z } from "zod";
 
 const envSchema = z.object({
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  PORT: z.string().transform(Number).default('3000'),
+  NODE_ENV: z
+    .enum(["development", "production", "test"])
+    .default("development"),
+  PORT: z.string().transform(Number).default("3000"),
   DATABASE_URL: z.string().url(),
   OPENAI_API_KEY: z.string().min(1),
   JWT_SECRET: z.string().min(32),
@@ -194,16 +213,18 @@ export const ENV = envSchema.parse(process.env);
 ## 7. XSS Prevention - HIGH PRIORITY
 
 ### Current Issue
+
 The `sanitizeUntrustedContent` function in `server/services/aiPipeline.ts` removes HTML tags, which is good. However, ensure it's applied consistently.
 
 ### Recommended Fix
+
 - Apply sanitization to all user-generated content
 - Use DOMPurify on the frontend for additional protection
 - Escape all user input in templates
 
 ```typescript
 // Frontend - add DOMPurify
-import DOMPurify from 'dompurify';
+import DOMPurify from "dompurify";
 
 const sanitized = DOMPurify.sanitize(userContent);
 ```
@@ -213,9 +234,11 @@ const sanitized = DOMPurify.sanitize(userContent);
 ## 8. Dependency Vulnerabilities - MEDIUM PRIORITY
 
 ### Current Issue
+
 Dependencies should be regularly updated and audited.
 
 ### Recommended Fix
+
 ```bash
 # Audit dependencies
 npm audit
@@ -228,6 +251,7 @@ npm outdated
 ```
 
 Add to CI/CD pipeline:
+
 ```yaml
 # .github/workflows/security.yml
 name: Security Audit
@@ -246,27 +270,29 @@ jobs:
 ## 9. Logging and Monitoring - MEDIUM PRIORITY
 
 ### Current Issue
+
 Sensitive information might be logged (e.g., API keys, user data).
 
 ### Recommended Fix
+
 ```typescript
 // server/_core/logger.ts
 export function sanitizeForLogging(obj: any): any {
-  const sensitiveKeys = ['password', 'token', 'apiKey', 'secret', 'email'];
-  
-  if (typeof obj !== 'object' || obj === null) return obj;
-  
+  const sensitiveKeys = ["password", "token", "apiKey", "secret", "email"];
+
+  if (typeof obj !== "object" || obj === null) return obj;
+
   const sanitized = { ...obj };
   for (const key of sensitiveKeys) {
     if (key in sanitized) {
-      sanitized[key] = '[REDACTED]';
+      sanitized[key] = "[REDACTED]";
     }
   }
   return sanitized;
 }
 
 // Usage
-logger.info('User action', sanitizeForLogging(userData));
+logger.info("User action", sanitizeForLogging(userData));
 ```
 
 ---
@@ -274,20 +300,21 @@ logger.info('User action', sanitizeForLogging(userData));
 ## 10. HTTPS and Secure Transport - HIGH PRIORITY
 
 ### Deployment Requirement
+
 - Always use HTTPS in production
 - Set secure cookie flags:
 
 ```typescript
 // server/_core/cookies.ts
 export function getSessionCookieOptions(req: Request) {
-  const isProduction = process.env.NODE_ENV === 'production';
-  
+  const isProduction = process.env.NODE_ENV === "production";
+
   return {
     httpOnly: true,
     secure: isProduction, // HTTPS only in production
-    sameSite: 'strict' as const,
+    sameSite: "strict" as const,
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    domain: isProduction ? '.yourdomain.com' : undefined,
+    domain: isProduction ? ".yourdomain.com" : undefined,
   };
 }
 ```
@@ -315,4 +342,3 @@ export function getSessionCookieOptions(req: Request) {
 - [Content Security Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP)
 - [Helmet.js Documentation](https://helmetjs.github.io/)
 - [Zod Validation](https://zod.dev/)
-

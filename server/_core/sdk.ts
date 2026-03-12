@@ -228,7 +228,9 @@ class SDKServer {
         name,
       };
     } catch (error) {
-      logger.warn("[Auth] Session verification failed", { error: String(error) });
+      logger.warn("[Auth] Session verification failed", {
+        error: String(error),
+      });
       return null;
     }
   }
@@ -284,7 +286,9 @@ class SDKServer {
         });
         user = await db.getUserByOpenId(userInfo.openId);
       } catch (error) {
-        logger.error("[Auth] Failed to sync user from OAuth", { error: error instanceof Error ? error.message : String(error) });
+        logger.error("[Auth] Failed to sync user from OAuth", {
+          error: error instanceof Error ? error.message : String(error),
+        });
         throw ForbiddenError("Failed to sync user info");
       }
     }

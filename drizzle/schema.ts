@@ -1,4 +1,14 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, decimal, index } from "drizzle-orm/mysql-core";
+import {
+  int,
+  mysqlEnum,
+  mysqlTable,
+  text,
+  timestamp,
+  varchar,
+  json,
+  decimal,
+  index,
+} from "drizzle-orm/mysql-core";
 import { relations } from "drizzle-orm";
 
 /**
@@ -67,7 +77,13 @@ export const libraryResources = mysqlTable("libraryResources", {
   descriptionEn: text("descriptionEn"),
   descriptionUk: text("descriptionUk"),
   descriptionRu: text("descriptionRu"),
-  type: mysqlEnum("type", ["electronic_library", "repository", "catalog", "database", "other"]).notNull(),
+  type: mysqlEnum("type", [
+    "electronic_library",
+    "repository",
+    "catalog",
+    "database",
+    "other",
+  ]).notNull(),
   url: varchar("url", { length: 500 }),
   keywords: json("keywords"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -82,7 +98,16 @@ export type InsertLibraryResource = typeof libraryResources.$inferInsert;
  */
 export const libraryContacts = mysqlTable("libraryContacts", {
   id: int("id").autoincrement().primaryKey(),
-  type: mysqlEnum("type", ["email", "phone", "address", "telegram", "viber", "facebook", "instagram", "other"]).notNull(),
+  type: mysqlEnum("type", [
+    "email",
+    "phone",
+    "address",
+    "telegram",
+    "viber",
+    "facebook",
+    "instagram",
+    "other",
+  ]).notNull(),
   value: varchar("value", { length: 255 }).notNull(),
   labelEn: varchar("labelEn", { length: 255 }),
   labelUk: varchar("labelUk", { length: 255 }),
@@ -140,12 +165,17 @@ export const documentChunks = mysqlTable(
     content: text("content").notNull(),
     // Store embedding as JSON array of floats (MySQL doesn't have native vector type)
     embedding: json("embedding"),
-    sourceType: mysqlEnum("sourceType", ["catalog", "repository", "database", "other"]).notNull(),
+    sourceType: mysqlEnum("sourceType", [
+      "catalog",
+      "repository",
+      "database",
+      "other",
+    ]).notNull(),
     language: mysqlEnum("language", ["en", "uk", "ru"]).default("uk").notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   },
-  (table) => ({
+  table => ({
     // Supports fast language-filtered fetch ordered by recency (used by getDocumentChunks).
     languageCreatedAtIdx: index("documentChunks_language_createdAt_idx").on(
       table.language,
@@ -167,12 +197,19 @@ export const documentMetadata = mysqlTable("documentMetadata", {
   url: varchar("url", { length: 1000 }),
   author: varchar("author", { length: 255 }),
   publishedDate: timestamp("publishedDate"),
-  sourceType: mysqlEnum("sourceType", ["catalog", "repository", "database", "other"]).notNull(),
+  sourceType: mysqlEnum("sourceType", [
+    "catalog",
+    "repository",
+    "database",
+    "other",
+  ]).notNull(),
   language: mysqlEnum("language", ["en", "uk", "ru"]).default("uk").notNull(),
   totalChunks: int("totalChunks").default(0),
   isProcessed: int("isProcessed").default(0),
   /** Processing lifecycle: 'processing' → 'completed' | 'failed'. */
-  status: mysqlEnum("status", ["processing", "completed", "failed"]).default("processing").notNull(),
+  status: mysqlEnum("status", ["processing", "completed", "failed"])
+    .default("processing")
+    .notNull(),
   processingError: text("processingError"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

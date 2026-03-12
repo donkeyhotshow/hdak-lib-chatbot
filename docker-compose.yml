@@ -8,19 +8,31 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
-      # Set these in a .env file or CI secrets:
-      # DATABASE_URL=mysql://user:password@db:3306/hdak_chatbot
-      # OPENAI_API_KEY=sk-...
-      # COOKIE_SECRET=...
+      # ── Database ────────────────────────────────────────────────────────────
+      # Uses the credentials defined on the db service below.
+      # Override DATABASE_URL in .env to point at an external MySQL instance.
+      - DATABASE_URL=mysql://${MYSQL_USER:-hdak}:${MYSQL_PASSWORD:-hdakpassword}@db:3306/${MYSQL_DATABASE:-hdak_chatbot}
+      # ── AI / LLM ────────────────────────────────────────────────────────────
+      # Base URL of the OpenAI-compatible API endpoint (must end with /v1)
+      - BUILT_IN_FORGE_API_URL=${BUILT_IN_FORGE_API_URL}
+      # Bearer token / API key for the above endpoint
+      - BUILT_IN_FORGE_API_KEY=${BUILT_IN_FORGE_API_KEY}
+      # ── Auth ────────────────────────────────────────────────────────────────
+      # Secret used to sign session cookies (openssl rand -hex 32)
+      - JWT_SECRET=${JWT_SECRET}
+      - VITE_APP_ID=${VITE_APP_ID:-}
+      - OAUTH_SERVER_URL=${OAUTH_SERVER_URL:-}
+      - OWNER_OPEN_ID=${OWNER_OPEN_ID:-}
+      - VITE_OAUTH_PORTAL_URL=${VITE_OAUTH_PORTAL_URL:-}
     depends_on:
       db:
         condition: service_healthy
-    # Run schema migrations automatically on every cold start, then launch the server.
-    # This ensures tables exist on a fresh VPS without any manual DB setup.
-    command: sh -c "npm run db:migrate && npm run start"
+    # DB migrations run automatically via docker-entrypoint.sh (Dockerfile CMD).
+    # No command override needed — the entrypoint handles migration + server start.
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
+      test:
+        ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -29,10 +41,10 @@ services:
   db:
     image: mysql:8.0
     environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: hdak_chatbot
-      MYSQL_USER: hdak
-      MYSQL_PASSWORD: hdakpassword
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-hdak_chatbot}
+      MYSQL_USER: ${MYSQL_USER:-hdak}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-hdakpassword}
     volumes:
       - mysql_data:/var/lib/mysql
     ports:

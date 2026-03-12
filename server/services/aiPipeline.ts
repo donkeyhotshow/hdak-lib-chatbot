@@ -21,7 +21,10 @@ export const AI_TEMPERATURE = 0.7;
 export const AI_MODEL_NAME = "gpt-4o-mini";
 
 /** Cache for AI conversation replies: key = hash of (prompt+lang+history), TTL = 24h. */
-const replyCache = new NodeCache({ stdTTL: 24 * 60 * 60, checkperiod: 60 * 60 });
+const replyCache = new NodeCache({
+  stdTTL: 24 * 60 * 60,
+  checkperiod: 60 * 60,
+});
 
 /** Flush the reply cache — intended for testing only. */
 export function clearReplyCache(): void {
@@ -64,12 +67,15 @@ export function sanitizeUntrustedContent(text: string): string {
 
   // Remove lines containing injection patterns
   const lines = sanitized.split("\n");
-  const filtered = lines.filter((line) => {
-    const hasInjection = INJECTION_PATTERNS.some((pattern) => pattern.test(line));
+  const filtered = lines.filter(line => {
+    const hasInjection = INJECTION_PATTERNS.some(pattern => pattern.test(line));
     if (hasInjection) {
-      logger.warn("[sanitizeUntrustedContent] Removed potential injection line", {
-        line: line.slice(0, 120),
-      });
+      logger.warn(
+        "[sanitizeUntrustedContent] Removed potential injection line",
+        {
+          line: line.slice(0, 120),
+        }
+      );
     }
     return !hasInjection;
   });
@@ -79,11 +85,14 @@ export function sanitizeUntrustedContent(text: string): string {
   // Log a summary warning whenever the output differs from the input so that
   // any HTML stripping or injection-line removal is surfaced in monitoring.
   if (result !== text.trim()) {
-    logger.warn("[sanitizeUntrustedContent] Content was modified — possible injection attempt", {
-      originalLength: text.length,
-      sanitizedLength: result.length,
-      hadHtml: /<[^>]*>/.test(text),
-    });
+    logger.warn(
+      "[sanitizeUntrustedContent] Content was modified — possible injection attempt",
+      {
+        originalLength: text.length,
+        sanitizedLength: result.length,
+        hadHtml: /<[^>]*>/.test(text),
+      }
+    );
   }
 
   return result;
@@ -119,8 +128,11 @@ export const getOfficialSystemPrompt = (language: SupportedLanguage) => {
   });
 };
 
-export const normalizeLanguage = (language: string | null | undefined): SupportedLanguage => {
-  if (language === "uk" || language === "ru" || language === "en") return language;
+export const normalizeLanguage = (
+  language: string | null | undefined
+): SupportedLanguage => {
+  if (language === "uk" || language === "ru" || language === "en")
+    return language;
   return "uk";
 };
 
@@ -129,7 +141,9 @@ export const normalizeLanguage = (language: string | null | undefined): Supporte
  * Prefers Ukrainian by default, distinguishes Russian via ё/ы/э/ъ.
  * Returns null when the text is empty so callers can fall back to stored language.
  */
-export const detectLanguageFromText = (text: string): SupportedLanguage | null => {
+export const detectLanguageFromText = (
+  text: string
+): SupportedLanguage | null => {
   if (!text.trim()) return null;
   const sample = text.toLowerCase();
 
@@ -153,24 +167,27 @@ const resourceHeadings: Record<SupportedLanguage, string> = {
   en: "Available resources:",
 };
 
-const buildResourceContext = (resources: LibraryResource[], language: SupportedLanguage) => {
+const buildResourceContext = (
+  resources: LibraryResource[],
+  language: SupportedLanguage
+) => {
   if (!resources.length) return "";
 
   const heading = resourceHeadings[language] ?? resourceHeadings.en;
   const resourceLines = resources
-    .map((resource) => {
+    .map(resource => {
       const name =
         language === "uk"
           ? resource.nameUk
           : language === "ru"
-          ? resource.nameRu
-          : resource.nameEn;
+            ? resource.nameRu
+            : resource.nameEn;
       const description =
         language === "uk"
           ? resource.descriptionUk
           : language === "ru"
-          ? resource.descriptionRu
-          : resource.descriptionEn;
+            ? resource.descriptionRu
+            : resource.descriptionEn;
 
       const safeName = name ?? resource.nameEn ?? "";
       const safeDescription = description ?? resource.descriptionEn ?? "";
@@ -225,7 +242,9 @@ export type ConversationReplyResult = {
  * @returns `{ text, source }` where `source` is `'rag'`, `'catalog_search'`, or `'general'`.
  * @throws {AiPipelineError} when the LLM call fails after all retries/timeouts.
  */
-export async function generateConversationReply(params: AiPipelineParams): Promise<ConversationReplyResult> {
+export async function generateConversationReply(
+  params: AiPipelineParams
+): Promise<ConversationReplyResult> {
   const { prompt, language, conversationId, userId, history } = params;
 
   // Build a deterministic cache key from the user prompt, language, and recent history.
@@ -241,14 +260,15 @@ export async function generateConversationReply(params: AiPipelineParams): Promi
 
     // Determine the source based on catalog hits alone — RAG context is
     // checked below, but source is recalculated after getRagContext on a miss.
-    const catalogSource: MessageSource = relevantResources.length > 0 ? "catalog_search" : "general";
+    const catalogSource: MessageSource =
+      relevantResources.length > 0 ? "catalog_search" : "general";
 
     await db.logUserQuery(
       userId,
       conversationId,
       prompt,
       language,
-      relevantResources.map((r) => r.id)
+      relevantResources.map(r => r.id)
     );
 
     // Check the cache BEFORE calling getRagContext (which makes an OpenAI
@@ -257,13 +277,19 @@ export async function generateConversationReply(params: AiPipelineParams): Promi
     // attribution labels remain accurate.
     const cachedText = replyCache.get<string>(cacheKey);
     if (cachedText !== undefined) {
-      logger.info("[AI pipeline] Cache hit — returning cached reply", { conversationId, userId, source: catalogSource });
+      logger.info("[AI pipeline] Cache hit — returning cached reply", {
+        conversationId,
+        userId,
+        source: catalogSource,
+      });
       return { text: cachedText, source: catalogSource };
     }
 
     const rawRagContext = await getRagContext(prompt, language);
     // Sanitize RAG context before injecting into the model prompt
-    const ragContext = rawRagContext ? sanitizeUntrustedContent(rawRagContext) : "";
+    const ragContext = rawRagContext
+      ? sanitizeUntrustedContent(rawRagContext)
+      : "";
 
     // Determine the knowledge source for this request (always computed fresh —
     // not cached — so source accurately reflects the current knowledge base).
@@ -271,8 +297,8 @@ export async function generateConversationReply(params: AiPipelineParams): Promi
     const source: MessageSource = hasRagContext
       ? "rag"
       : relevantResources.length > 0
-      ? "catalog_search"
-      : "general";
+        ? "catalog_search"
+        : "general";
 
     const systemPrompt = [
       getOfficialSystemPrompt(language),
