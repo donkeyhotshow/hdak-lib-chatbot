@@ -1,0 +1,116 @@
+You are working on the HDAK Library Chatbot (hdak-lib-chatbot).
+The app is already running on Replit. Now redesign the frontend to match
+the reference design exactly.
+
+## Design Reference
+
+Dark academic theme:
+- Background: #0b0f18
+- Surface (cards, sidebar): #131929
+- Gold accent: #c8a84b
+- Cream text: #ede3d0
+- Muted text: #566070
+- User bubble bg: #1c1505
+- Fonts: Playfair Display (headings) + DM Sans (body) from Google Fonts
+
+## Layout
+
+Single column, full height, 3 parts:
+
+1. TOPBAR (52px, fixed)
+   - Left: "Історія" button → dropdown with conversation list + "Новий чат" button
+   - Center: 📚 logo + "Бібліотека ХДАК" in Playfair Display
+   - Right: "Ресурси" button → dropdown with all 11 library links
+           + language switcher (УКР/РУС/ENG)
+   - All dropdowns close on outside click (overlay)
+
+2. CHAT AREA (flex-grow, max-width 740px, centered, padding 0 24px)
+
+   Empty state (no active conversation):
+   - Animated book icon (64px, gold glow, breathing animation)
+   - "Чим можу допомогти?" in Playfair Display 26px
+   - Subtitle text, decorative divider with ✦
+   - 4 example chips (rounded pills, hover → gold border)
+
+   Active conversation:
+   - Scrollable message list, gap 14px
+   - User messages: right-aligned, dark amber bubble, border-top-right-radius: 3px
+   - Bot messages: left-aligned, dark surface bubble, border-top-left-radius: 3px
+   - Each message has a small 30px avatar (📚 for bot, 👤 for user)
+   - Typing indicator: 3 gold pulsing dots
+   - Messages animate in with fadeUp (opacity 0→1, translateY 8px→0)
+
+3. INPUT BAR (sticky bottom, padding 12px 0 22px)
+   - Textarea (auto-resize, max 100px height)
+   - Gold send button (paper-plane SVG icon)
+   - Enter to send, Shift+Enter for newline
+   - Hint text below: "Enter — надіслати · Shift+Enter — новий рядок"
+   - Input box glows gold on focus
+
+## Dropdown: Ресурси
+Show all 11 resources in 3 groups separated by thin dividers:
+
+Group 1 (open access):
+- 🗂️ Електронний каталог — https://library-service.com.ua:8443/khkhdak/DocumentSearchForm
+- 🏛️ Репозитарій ХДАК — https://repository.ac.kharkov.ua/home
+- 🎭 Культура України — http://elib.nplu.org/
+
+Group 2 (VPN required — show 🔒 VPN badge in gold):
+- 🔬 Scopus — https://www.scopus.com/
+- 🔭 Web of Science — https://www.webofscience.com/
+- 📰 ScienceDirect — https://www.sciencedirect.com/
+- 🔗 Springer Link — https://link.springer.com/
+- 🌍 Research 4 Life — https://login.research4life.org/
+
+Group 3 (open access):
+- 📖 DOAJ — https://lib-hdak.in.ua/catalog-doaj.html
+- 📜 УкрІНТЕІ — http://nrat.ukrintei.ua/
+- 🏠 Сайт бібліотеки — https://lib-hdak.in.ua/
+
+## CSS Details
+
+Grain texture on body:
+background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='f'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23f)' opacity='0.035'/%3E%3C/svg%3E");
+
+Book icon breathing animation:
+@keyframes breathe {
+  0%,100% { box-shadow: 0 0 32px rgba(200,168,75,0.22); }
+  50%      { box-shadow: 0 0 64px rgba(200,168,75,0.38); }
+}
+
+Message fade-in:
+@keyframes msgIn {
+  from { opacity:0; transform:translateY(8px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+Dot pulse (typing indicator):
+@keyframes dotPulse {
+  0%,100% { transform:scale(.75); opacity:.3; }
+  50%      { transform:scale(1.2); opacity:.9; }
+}
+
+## Technical Requirements
+
+- Rewrite ONLY client/src/pages/Home.tsx
+- Keep ALL existing logic intact:
+  - tRPC hooks (useChat, conversations.*, resources.*)
+  - State management (language, currentConversationId, messages, etc.)
+  - All event handlers and API calls
+  - The existing translations object — add new keys for new strings
+- Load fonts in useEffect:
+  const link = document.createElement('link');
+  link.href = 'https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap';
+  link.rel = 'stylesheet';
+  document.head.appendChild(link);
+- Inject keyframe animations via a <style> tag inside the component JSX
+- Use only Tailwind utility classes + inline style props for CSS variables
+  (no new .css files)
+- All dropdowns: open on button click, close on overlay click
+- Mobile: topbar buttons show icon only (hide text below 480px)
+- Add comment // REDESIGNED at the top of the file
+
+## Do not change
+- server/ directory (no backend changes)
+- Any other client files except Home.tsx
+- package.json dependencies

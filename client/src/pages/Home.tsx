@@ -1,56 +1,21 @@
-import { useState, useEffect, useRef, useMemo, type ReactNode } from "react";
+// REDESIGNED
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useChat } from "@ai-sdk/react";
 import type { UIMessage } from "ai";
 import { DefaultChatTransport } from "ai";
 import type { inferRouterOutputs } from "@trpc/server";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Markdown } from "@/components/Markdown";
-import { DocumentCard, type ResourceType } from "@/components/DocumentCard";
 import { trpc } from "@/lib/trpc";
 import type { AppRouter } from "../../../server/routers";
-import {
-  Bot,
-  BookOpen,
-  Database,
-  Search,
-  Loader2,
-  Send,
-  Plus,
-  Globe,
-  LogOut,
-  ExternalLink,
-  Trash2,
-  AlertCircle,
-  RefreshCw,
-  BookMarked,
-  Mail,
-  Share2,
-} from "lucide-react";
+import { RefreshCw } from "lucide-react";
 
 type RouterOutput = inferRouterOutputs<AppRouter>;
 type Conversation = RouterOutput["conversations"]["list"][number];
 type DbMessage = RouterOutput["conversations"]["getMessages"][number];
-/** Union of persisted DB messages and live streaming UIMessages. */
 type DisplayMessage = DbMessage | UIMessage;
 
-/** Maximum character length used when deriving a conversation title from a prompt. */
 const CHAT_TITLE_MAX_LENGTH = 50;
-
-/**
- * Minimum milliseconds between successive Enter-key sends to prevent accidental
- * double-sends from rapid repeated key presses.
- */
 const SEND_DEBOUNCE_MS = 350;
 
 type Language = "en" | "uk" | "ru";
@@ -67,51 +32,34 @@ const translations: Record<Language, Record<string, string>> = {
     typeMessage: "Type your question here...",
     loading: "Loading...",
     error: "Error",
-    noConversations: "No conversations yet. Start a new chat!",
+    noConversations: "No conversations yet.",
     startChat: "Start Chat",
     conversations: "Conversations",
     selectLanguage: "Select Language",
     english: "English",
     ukrainian: "Українська",
     russian: "Русский",
-    // Overview panel
-    overviewGreeting: "Hello! I'm the HDAK Library AI Assistant.",
+    overviewGreeting: "How can I help?",
     overviewDesc:
-      "Ask me about library resources, how to find a book or author, or how to navigate the library website.",
-    feature1Title: "Site Navigation",
-    feature1Desc:
-      "Find any page on the library website — catalog, usage rules, contacts, exhibitions, or publications.",
-    feature2Title: "Resource Search",
-    feature2Desc:
-      "Discover available databases and collections: Scopus, Web of Science, the institutional repository, and more.",
-    feature3Title: "Author & Book Lookup",
-    feature3Desc:
-      "Ask whether the library has a specific author or book — I'll give you step-by-step catalog instructions.",
+      "Find books in the catalog, learn about databases, navigate the HDAK library website.",
     examplesTitle: "Try asking:",
     ex1: "How do I register as a library reader?",
     ex2: "Does the library have access to Scopus?",
-    ex3: "Do you have books by Taras Shevchenko?",
-    ex4: "What are the library's opening hours?",
+    ex3: "Books by Taras Shevchenko",
+    ex4: "What is the HDAK repository?",
     ex5: "Where can I find the institutional repository?",
-    libraryWebsite: "Visit the official library website",
-    deleteConversation: "Delete conversation",
-    // Resource search
-    resourcesTitle: "Library Resources",
-    searchPlaceholder: "Search resources…",
-    filterAll: "All types",
-    filterCatalog: "Catalog",
-    filterDatabase: "Database",
-    filterElectronic: "E-Library",
-    filterRepository: "Repository",
-    filterOther: "Other",
-    noResults: "No resources match your filters.",
+    deleteConversation: "Delete",
     sendFailed: "Failed to send. Please try again.",
     streamError: "Streaming failed. Please try again.",
     streamErrorTooLarge: "Message is too long (max 10,000 characters).",
-    // Quick actions after AI response
     actionFindCatalog: "Find in Catalog",
     actionWriteLetter: "Write to Librarian",
     actionShare: "Share",
+    interfaceLang: "Interface language",
+    officialResources: "Official library resources",
+    historyLabel: "Conversations",
+    hint: "Enter — send · Shift+Enter — new line",
+    langCode: "ENG",
   },
   uk: {
     title: "Помічник бібліотеки ХДАК",
@@ -120,56 +68,38 @@ const translations: Record<Language, Record<string, string>> = {
     language: "Мова",
     logout: "Вихід",
     login: "Вхід",
-    sendMessage: "Надіслати повідомлення",
+    sendMessage: "Надіслати",
     typeMessage: "Введіть своє запитання...",
     loading: "Завантаження...",
     error: "Помилка",
-    noConversations: "Немає розмов. Почніть новий чат!",
+    noConversations: "Немає розмов.",
     startChat: "Почати чат",
     conversations: "Розмови",
     selectLanguage: "Виберіть мову",
     english: "English",
     ukrainian: "Українська",
     russian: "Русский",
-    // Overview panel
-    overviewGreeting: "Вітаю! Я AI-асистент бібліотеки ХДАК.",
+    overviewGreeting: "Чим можу допомогти?",
     overviewDesc:
-      "Запитайте мене про ресурси бібліотеки, як знайти книгу чи автора, або як орієнтуватися на сайті.",
-    feature1Title: "Навігація сайтом",
-    feature1Desc:
-      "Знайду будь-яку сторінку сайту бібліотеки — каталог, правила, контакти, виставки, публікації.",
-    feature2Title: "Пошук ресурсів",
-    feature2Desc:
-      "Розкажу про доступні бази даних та колекції: Scopus, Web of Science, репозитарій та інші.",
-    feature3Title: "Пошук автора і книги",
-    feature3Desc:
-      "Перевірю, чи є в бібліотеці потрібний автор або книга, і дам покрокову інструкцію для каталогу.",
+      "Знайду книги в каталозі, розповім про бази даних, допоможу орієнтуватися на сайті бібліотеки ХДАК.",
     examplesTitle: "Спробуйте запитати:",
     ex1: "Як записатися до бібліотеки?",
-    ex2: "Чи є у вас доступ до Scopus?",
-    ex3: "Чи є книги Тараса Шевченка?",
-    ex4: "Який графік роботи бібліотеки?",
+    ex2: "Чи є доступ до Scopus?",
+    ex3: "Книги Тараса Шевченка",
+    ex4: "Що таке репозитарій ХДАК?",
     ex5: "Де знайти інституційний репозитарій?",
-    libraryWebsite: "Офіційний сайт бібліотеки",
-    deleteConversation: "Видалити розмову",
-    // Resource search
-    resourcesTitle: "Ресурси бібліотеки",
-    searchPlaceholder: "Пошук ресурсів…",
-    filterAll: "Всі типи",
-    filterCatalog: "Каталог",
-    filterDatabase: "База даних",
-    filterElectronic: "Е-бібліотека",
-    filterRepository: "Репозитарій",
-    filterOther: "Інше",
-    noResults: "Ресурсів за вашими фільтрами не знайдено.",
+    deleteConversation: "Видалити",
     sendFailed: "Помилка надсилання. Спробуйте ще раз.",
     streamError: "Помилка стрімінгу. Спробуйте ще раз.",
-    streamErrorTooLarge:
-      "Повідомлення занадто довге (максимум 10 000 символів).",
-    // Quick actions after AI response
+    streamErrorTooLarge: "Повідомлення занадто довге (максимум 10 000 символів).",
     actionFindCatalog: "Знайти в каталозі",
     actionWriteLetter: "Написати листа",
     actionShare: "Поділитися",
+    interfaceLang: "Мова інтерфейсу",
+    officialResources: "Офіційні ресурси бібліотеки",
+    historyLabel: "Розмови",
+    hint: "Enter — надіслати · Shift+Enter — новий рядок",
+    langCode: "УКР",
   },
   ru: {
     title: "Помощник библиотеки ХДАК",
@@ -178,85 +108,43 @@ const translations: Record<Language, Record<string, string>> = {
     language: "Язык",
     logout: "Выход",
     login: "Вход",
-    sendMessage: "Отправить сообщение",
+    sendMessage: "Отправить",
     typeMessage: "Введите свой вопрос...",
     loading: "Загрузка...",
     error: "Ошибка",
-    noConversations: "Нет разговоров. Начните новый чат!",
+    noConversations: "Нет разговоров.",
     startChat: "Начать чат",
     conversations: "Разговоры",
     selectLanguage: "Выберите язык",
     english: "English",
     ukrainian: "Українська",
     russian: "Русский",
-    // Overview panel
-    overviewGreeting: "Здравствуйте! Я AI-ассистент библиотеки ХДАК.",
+    overviewGreeting: "Чем могу помочь?",
     overviewDesc:
-      "Спросите меня о ресурсах библиотеки, как найти книгу или автора, или как ориентироваться на сайте.",
-    feature1Title: "Навигация по сайту",
-    feature1Desc:
-      "Найду любую страницу сайта библиотеки — каталог, правила, контакты, выставки, публикации.",
-    feature2Title: "Поиск ресурсов",
-    feature2Desc:
-      "Расскажу о доступных базах данных и коллекциях: Scopus, Web of Science, репозиторий и другие.",
-    feature3Title: "Поиск автора и книги",
-    feature3Desc:
-      "Проверю, есть ли в библиотеке нужный автор или книга, и дам пошаговую инструкцию по каталогу.",
+      "Найду книги в каталоге, расскажу о базах данных, помогу ориентироваться на сайте библиотеки ХДАК.",
     examplesTitle: "Попробуйте спросить:",
     ex1: "Как записаться в библиотеку?",
-    ex2: "Есть ли у вас доступ к Scopus?",
-    ex3: "Есть ли книги Тараса Шевченко?",
-    ex4: "Какой режим работы библиотеки?",
+    ex2: "Есть ли доступ к Scopus?",
+    ex3: "Книги Тараса Шевченко",
+    ex4: "Что такое репозиторий ХДАК?",
     ex5: "Где найти институциональный репозиторий?",
-    libraryWebsite: "Официальный сайт библиотеки",
-    deleteConversation: "Удалить разговор",
-    // Resource search
-    resourcesTitle: "Ресурсы библиотеки",
-    searchPlaceholder: "Поиск ресурсов…",
-    filterAll: "Все типы",
-    filterCatalog: "Каталог",
-    filterDatabase: "База данных",
-    filterElectronic: "Э-библиотека",
-    filterRepository: "Репозиторий",
-    filterOther: "Прочее",
-    noResults: "Ресурсов по вашим фильтрам не найдено.",
+    deleteConversation: "Удалить",
     sendFailed: "Ошибка отправки. Попробуйте ещё раз.",
     streamError: "Ошибка стриминга. Попробуйте ещё раз.",
-    streamErrorTooLarge:
-      "Сообщение слишком длинное (максимум 10 000 символов).",
-    // Quick actions after AI response
+    streamErrorTooLarge: "Сообщение слишком длинное (максимум 10 000 символов).",
     actionFindCatalog: "Найти в каталоге",
     actionWriteLetter: "Написать письмо",
     actionShare: "Поделиться",
+    interfaceLang: "Язык интерфейса",
+    officialResources: "Официальные ресурсы библиотеки",
+    historyLabel: "Разговоры",
+    hint: "Enter — отправить · Shift+Enter — новая строка",
+    langCode: "РУС",
   },
 };
 
-/** Reusable feature card for the overview panel. */
-function FeatureCard({
-  icon,
-  title,
-  description,
-}: {
-  icon: ReactNode;
-  title: string;
-  description: string;
-}) {
-  return (
-    <Card className="p-4 flex flex-col gap-2 border-indigo-100 hover:border-indigo-300 transition-colors">
-      <div className="w-9 h-9 rounded-lg bg-indigo-50 flex items-center justify-center">
-        {icon}
-      </div>
-      <p className="font-semibold text-gray-900 text-sm">{title}</p>
-      <p className="text-xs text-gray-500 leading-relaxed">{description}</p>
-    </Card>
-  );
-}
-
-/** Extract a displayable string from a DB message or a streaming UIMessage. */
 function getMessageText(msg: DisplayMessage): string {
-  // DB message format: content is a plain string
   if ("content" in msg && typeof msg.content === "string") return msg.content;
-  // UIMessage format (ai SDK v6): text is in the parts array
   if ("parts" in msg && Array.isArray(msg.parts)) {
     return msg.parts
       .filter(
@@ -271,60 +159,157 @@ function getMessageText(msg: DisplayMessage): string {
   return "";
 }
 
+const RESOURCES = [
+  {
+    group: 1,
+    ico: "🗂️",
+    name: "Електронний каталог",
+    sub: "Пошук книг, авторів, тем",
+    url: "https://library-service.com.ua:8443/khkhdak/DocumentSearchForm",
+    vpn: false,
+  },
+  {
+    group: 1,
+    ico: "🏛️",
+    name: "Репозитарій ХДАК",
+    sub: "Наукові праці академії",
+    url: "https://repository.ac.kharkov.ua/home",
+    vpn: false,
+  },
+  {
+    group: 1,
+    ico: "🎭",
+    name: "Культура України",
+    sub: "Електронна бібліотека",
+    url: "http://elib.nplu.org/",
+    vpn: false,
+  },
+  {
+    group: 2,
+    ico: "🔬",
+    name: "Scopus",
+    sub: "Реферативна база Elsevier",
+    url: "https://www.scopus.com/",
+    vpn: true,
+  },
+  {
+    group: 2,
+    ico: "🔭",
+    name: "Web of Science",
+    sub: "Наукові цитування Clarivate",
+    url: "https://www.webofscience.com/",
+    vpn: true,
+  },
+  {
+    group: 2,
+    ico: "📰",
+    name: "ScienceDirect",
+    sub: "Журнали та книги Elsevier",
+    url: "https://www.sciencedirect.com/",
+    vpn: true,
+  },
+  {
+    group: 2,
+    ico: "🔗",
+    name: "Springer Link",
+    sub: "Видання Springer Nature",
+    url: "https://link.springer.com/",
+    vpn: true,
+  },
+  {
+    group: 2,
+    ico: "🌍",
+    name: "Research 4 Life",
+    sub: "Міжнародний доступ для освіти",
+    url: "https://login.research4life.org/",
+    vpn: true,
+  },
+  {
+    group: 3,
+    ico: "📖",
+    name: "DOAJ",
+    sub: "Відкритий доступ до журналів",
+    url: "https://lib-hdak.in.ua/catalog-doaj.html",
+    vpn: false,
+  },
+  {
+    group: 3,
+    ico: "📜",
+    name: "УкрІНТЕІ",
+    sub: "Автореферати дисертацій",
+    url: "http://nrat.ukrintei.ua/",
+    vpn: false,
+  },
+  {
+    group: 3,
+    ico: "🏠",
+    name: "Сайт бібліотеки",
+    sub: "lib-hdak.in.ua",
+    url: "https://lib-hdak.in.ua/",
+    vpn: false,
+  },
+];
+
+function formatTime(date: Date | string | null | undefined): string {
+  if (!date) return "";
+  const d = typeof date === "string" ? new Date(date) : date;
+  const now = new Date();
+  const diff = now.getTime() - d.getTime();
+  if (diff < 86400000) {
+    return d.toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit" });
+  }
+  if (diff < 172800000) return "Вчора";
+  return d.toLocaleDateString("uk-UA", { day: "numeric", month: "short" });
+}
+
 export default function Home() {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { logout } = useAuth();
   const [language, setLanguage] = useState<Language>("uk");
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [currentConversationId, setCurrentConversationId] = useState<
-    number | null
-  >(null);
+  const [currentConversationId, setCurrentConversationId] = useState<number | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
   const [localInput, setLocalInput] = useState("");
+  const [openDropdown, setOpenDropdown] = useState<"hist" | "res" | "lang" | null>(null);
   const userHasDeselected = useRef(false);
   const pendingPromptRef = useRef<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const prevMessageCountRef = useRef(0);
   const lastSendTimeRef = useRef(0);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const utils = trpc.useUtils();
 
-  // Refs that give the transport function access to the latest React state without
-  // capturing stale closures (the transport is created only once via useMemo).
   const conversationIdRef = useRef<number | null>(null);
   const languageRef = useRef<Language>("uk");
   conversationIdRef.current = currentConversationId;
   languageRef.current = language;
 
-  /**
-   * Transport for useChat: sends only the latest user message to /api/chat.
-   * The server loads persisted history from DB (when conversationId is provided)
-   * so the AI always has full context without the client duplicating history.
-   */
+  useEffect(() => {
+    const link = document.createElement("link");
+    link.href =
+      "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap";
+    link.rel = "stylesheet";
+    document.head.appendChild(link);
+  }, []);
+
   const chatTransport = useMemo(
     () =>
       new DefaultChatTransport({
         api: "/api/chat",
-        // body is a function so it is evaluated at request time, picking up
-        // the latest language and conversationId from their refs.
         body: () => ({
           language: languageRef.current,
           conversationId: conversationIdRef.current,
         }),
         prepareSendMessagesRequest: ({ messages, body }) => {
-          // Extract the text from the last user UIMessage (parts array format).
           const lastUser = [...messages].reverse().find(m => m.role === "user");
           const lastUserText = lastUser ? getMessageText(lastUser) : "";
           return {
             body: {
               ...body,
-              // Only send the new user message; the server appends DB history.
-              messages: lastUserText
-                ? [{ role: "user", content: lastUserText }]
-                : [],
+              messages: lastUserText ? [{ role: "user", content: lastUserText }] : [],
             },
           };
         },
       }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- refs are intentionally stable
     []
   );
 
@@ -345,51 +330,10 @@ export default function Home() {
     },
   });
 
-  // Fetch site resources for the resource browser (cached 5 min)
-  const { data: siteResources = [] } = trpc.resources.getSiteResources.useQuery(
-    undefined,
-    {
-      staleTime: 5 * 60 * 1000,
-    }
-  );
+  const { data: conversationsData } = trpc.conversations.list.useQuery(undefined, {
+    staleTime: 5 * 60 * 1000,
+  });
 
-  // Resource browser search / filter state
-  const [resourceSearch, setResourceSearch] = useState("");
-  const [resourceTypeFilter, setResourceTypeFilter] = useState<
-    ResourceType | "all"
-  >("all");
-
-  const filteredResources = useMemo(
-    () =>
-      (siteResources ?? []).filter(r => {
-        const typeMatch =
-          resourceTypeFilter === "all" || r.type === resourceTypeFilter;
-        const q = resourceSearch.trim().toLowerCase();
-        const textMatch =
-          !q ||
-          r.name.toLowerCase().includes(q) ||
-          (r.description ?? "").toLowerCase().includes(q);
-        return typeMatch && textMatch;
-      }),
-    [siteResources, resourceSearch, resourceTypeFilter]
-  );
-
-  const t = translations[language];
-
-  const exampleQuestions = useMemo(
-    () => [t.ex1, t.ex2, t.ex3, t.ex4, t.ex5],
-    [t]
-  );
-
-  // Fetch conversations (cached 5 min; invalidated on create/delete)
-  const { data: conversationsData } = trpc.conversations.list.useQuery(
-    undefined,
-    {
-      staleTime: 5 * 60 * 1000,
-    }
-  );
-
-  // Fetch messages for current conversation
   const { data: messagesData } = trpc.conversations.getMessages.useQuery(
     { conversationId: currentConversationId! },
     {
@@ -398,24 +342,18 @@ export default function Home() {
     }
   );
 
-  // Create conversation mutation
   const createConversationMutation = trpc.conversations.create.useMutation({
     onSuccess: data => {
       setCurrentConversationId(data.id);
-      // Update the ref immediately so the transport body function picks up the new id
-      // before the next sendMessage call (React state update is asynchronous).
       conversationIdRef.current = data.id;
       setStreamedMessages([]);
-      setLocalInput(""); // Clear input only after conversation is confirmed
+      setLocalInput("");
       utils.conversations.list.invalidate();
       const pendingPrompt = pendingPromptRef.current;
       pendingPromptRef.current = null;
-      if (pendingPrompt) {
-        void sendMessage({ text: pendingPrompt });
-      }
+      if (pendingPrompt) void sendMessage({ text: pendingPrompt });
     },
     onError: () => {
-      // On creation failure: restore pending prompt to input so user can retry
       const restored = pendingPromptRef.current ?? "";
       pendingPromptRef.current = null;
       setLocalInput(restored);
@@ -423,7 +361,6 @@ export default function Home() {
     },
   });
 
-  // Delete conversation mutation
   const deleteConversationMutation = trpc.conversations.delete.useMutation({
     onSuccess: () => {
       userHasDeselected.current = true;
@@ -433,39 +370,27 @@ export default function Home() {
     },
   });
 
-  // Update conversations list when data changes
   useEffect(() => {
-    if (conversationsData) {
-      setConversations(conversationsData);
-    }
+    if (conversationsData) setConversations(conversationsData);
   }, [conversationsData]);
 
-  // Whether streaming/waiting for server response
   const isStreaming = status === "submitted" || status === "streaming";
 
-  // Combined message list for display.
-  // • While streaming: show persisted DB messages + live stream messages
-  // • When idle:       show persisted DB messages only (avoids duplicates after refresh)
   const allMessages: DisplayMessage[] = useMemo(() => {
     const dbMsgs: DisplayMessage[] = messagesData ?? [];
     if (!isStreaming && streamedMessages.length === 0) return dbMsgs;
     return [...dbMsgs, ...streamedMessages];
   }, [messagesData, streamedMessages, isStreaming]);
 
-  // Once the DB query refreshes after streaming completes, clear the local stream
-  // messages to avoid showing duplicates alongside the freshly persisted records.
   useEffect(() => {
     if (status === "ready" && streamedMessages.length > 0 && messagesData) {
       const lastStream = streamedMessages[streamedMessages.length - 1];
       const lastStreamText = getMessageText(lastStream);
       const lastDb = messagesData[messagesData.length - 1];
-      if (lastDb?.content === lastStreamText) {
-        setStreamedMessages([]);
-      }
+      if (lastDb?.content === lastStreamText) setStreamedMessages([]);
     }
   }, [status, messagesData, streamedMessages, setStreamedMessages]);
 
-  // Auto-scroll to bottom only when the number of messages increases
   useEffect(() => {
     const count = allMessages.length;
     if (count > prevMessageCountRef.current) {
@@ -477,15 +402,11 @@ export default function Home() {
   const handleSendMessage = (messageText?: string) => {
     const textToSend = messageText ?? localInput;
     if (!textToSend.trim() || isStreaming) return;
-
     setSendError(null);
-
     if (currentConversationId) {
-      setLocalInput(""); // Clear input immediately when conversation exists
+      setLocalInput("");
       void sendMessage({ text: textToSend });
     } else {
-      // Store the prompt and create a new conversation first.
-      // localInput is cleared in createConversationMutation.onSuccess.
       pendingPromptRef.current = textToSend;
       createConversationMutation.mutate({
         title: textToSend.slice(0, CHAT_TITLE_MAX_LENGTH),
@@ -494,8 +415,10 @@ export default function Home() {
     }
   };
 
-  /** Handle a quick-start prompt click from the overview panel. */
-  const handleQuickStart = (prompt: string) => handleSendMessage(prompt);
+  const handleQuickStart = (prompt: string) => {
+    setOpenDropdown(null);
+    handleSendMessage(prompt);
+  };
 
   const handleNewChat = () => {
     userHasDeselected.current = true;
@@ -503,6 +426,7 @@ export default function Home() {
     setStreamedMessages([]);
     setLocalInput("");
     setSendError(null);
+    setOpenDropdown(null);
   };
 
   const handleSelectConversation = (conversationId: number) => {
@@ -510,407 +434,724 @@ export default function Home() {
     setCurrentConversationId(conversationId);
     setStreamedMessages([]);
     setSendError(null);
+    setOpenDropdown(null);
   };
 
-  const handleDeleteConversation = (conversationId: number) => {
+  const handleDeleteConversation = (e: React.MouseEvent, conversationId: number) => {
+    e.stopPropagation();
     deleteConversationMutation.mutate({ id: conversationId });
   };
 
+  const toggleDropdown = (name: "hist" | "res" | "lang") => {
+    setOpenDropdown(prev => (prev === name ? null : name));
+  };
+
+  const t = translations[language];
+
+  const chips = useMemo(
+    () => [
+      { emoji: "📋", text: t.ex1 },
+      { emoji: "🔬", text: t.ex2 },
+      { emoji: "📚", text: t.ex3 },
+      { emoji: "🏛️", text: t.ex4 },
+    ],
+    [t]
+  );
+
+  const showEmpty = !currentConversationId && !userHasDeselected.current && allMessages.length === 0;
+
+  const adjustTextarea = () => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 100) + "px";
+  };
+
+  const langLabels: Record<Language, string> = { uk: "УКР", ru: "РУС", en: "ENG" };
+
   return (
-    <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
-      <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
-        {/* Header */}
-        <div className="p-4 border-b border-gray-200">
-          <Button
-            onClick={handleNewChat}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            {t.newChat}
-          </Button>
-        </div>
+    <>
+      <style>{`
+        @keyframes breathe {
+          0%,100% { box-shadow: 0 0 32px rgba(200,168,75,0.22); }
+          50%      { box-shadow: 0 0 64px rgba(200,168,75,0.38); }
+        }
+        @keyframes msgIn {
+          from { opacity:0; transform:translateY(8px); }
+          to   { opacity:1; transform:translateY(0); }
+        }
+        @keyframes dotPulse {
+          0%,100% { transform:scale(.75); opacity:.3; }
+          50%      { transform:scale(1.2); opacity:.9; }
+        }
+        @keyframes ddIn {
+          from { opacity:0; transform:translateY(-8px) scale(0.98); }
+          to   { opacity:1; transform:translateY(0) scale(1); }
+        }
+        @keyframes fadeUp {
+          from { opacity:0; transform:translateY(14px); }
+          to   { opacity:1; transform:translateY(0); }
+        }
+        .hdak-body {
+          font-family: 'DM Sans', system-ui, sans-serif;
+          background: #0b0f18;
+          color: #ede3d0;
+          height: 100vh;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+          font-size: 14px;
+          line-height: 1.5;
+          position: relative;
+        }
+        .hdak-body::before {
+          content: '';
+          position: fixed; inset: 0;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='f'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23f)' opacity='0.035'/%3E%3C/svg%3E");
+          pointer-events: none; z-index: 0;
+        }
+        .hdak-serif { font-family: 'Playfair Display', Georgia, serif; }
+        .hdak-dd-scroll::-webkit-scrollbar { width: 3px; }
+        .hdak-dd-scroll::-webkit-scrollbar-thumb { background: rgba(180,148,80,0.14); border-radius: 3px; }
+        .hdak-msg-scroll::-webkit-scrollbar { width: 3px; }
+        .hdak-msg-scroll::-webkit-scrollbar-thumb { background: rgba(180,148,80,0.14); border-radius: 3px; }
+        .hdak-textarea { resize: none; background: transparent; border: none; outline: none; color: #ede3d0; font-family: 'DM Sans', system-ui, sans-serif; font-size: 14px; line-height: 1.55; min-height: 22px; max-height: 100px; width: 100%; }
+        .hdak-textarea::placeholder { color: #566070; }
+        .hdak-bubble a { color: #c8a84b; text-underline-offset: 3px; }
+        .hdak-bubble strong { color: #f2e8d5; font-weight: 500; }
+        .hdak-bubble code { background: rgba(255,255,255,0.06); padding: 1px 5px; border-radius: 4px; font-size: 12.5px; }
+        .hdak-bubble ul { padding-left: 18px; margin-top: 4px; }
+        .hdak-bubble li { margin-bottom: 3px; }
+        .hdak-bubble p { margin-bottom: 6px; }
+        .hdak-chip:hover { border-color: #c8a84b; color: #ede3d0; background: rgba(200,168,75,0.10); transform: translateY(-1px); }
+        .hdak-res-row:hover { background: rgba(200,168,75,0.10); }
+        .hdak-hist-row:hover { background: rgba(200,168,75,0.10); }
+        .hdak-lang-row:hover { background: rgba(200,168,75,0.10); color: #ede3d0; }
+        .hdak-tb-btn:hover, .hdak-tb-btn.active { border-color: rgba(180,148,80,0.35); color: #ede3d0; background: rgba(200,168,75,0.10); }
+        .hdak-send:hover:not(:disabled) { background: #d9b85a; transform: scale(1.07); box-shadow: 0 4px 14px rgba(200,168,75,.4); }
+        .hdak-send:disabled { background: #1a2236; color: #566070; cursor: default; transform: none; box-shadow: none; }
+        .hdak-input-row:focus-within { border-color: rgba(200,168,75,.38); box-shadow: 0 0 0 4px rgba(200,168,75,.06); }
+        @media (max-width: 480px) { .tb-label { display: none; } }
+      `}</style>
 
-        {/* Conversations List */}
-        <div className="flex-1 overflow-y-auto">
-          {conversations.length === 0 ? (
-            <div className="p-4 text-center text-sm text-gray-500">
-              {t.noConversations}
-            </div>
-          ) : (
-            <div className="p-2">
-              {conversations.map(conv => (
-                <div
-                  key={conv.id}
-                  onClick={() => handleSelectConversation(conv.id)}
-                  className={`p-3 rounded-lg cursor-pointer mb-2 transition-colors group ${
-                    currentConversationId === conv.id
-                      ? "bg-indigo-100 text-indigo-900"
-                      : "hover:bg-gray-100 text-gray-700"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium truncate flex-1">
-                      {conv.title}
-                    </span>
-                    <button
-                      onClick={e => {
-                        e.stopPropagation();
-                        handleDeleteConversation(conv.id);
-                      }}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <Trash2 className="w-4 h-4 text-red-500 hover:text-red-700" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+      <div className="hdak-body">
+        {/* Overlay to close dropdowns */}
+        {openDropdown && (
+          <div
+            style={{ position: "fixed", inset: 0, zIndex: 100 }}
+            onClick={() => setOpenDropdown(null)}
+          />
+        )}
 
-        {/* Footer */}
-        <div className="p-4 border-t border-gray-200 space-y-3">
-          <div className="flex items-center gap-2">
-            <Globe className="w-4 h-4 text-gray-600" />
-            <Select
-              value={language}
-              onValueChange={value => setLanguage(value as Language)}
+        {/* ── TOPBAR ── */}
+        <header
+          style={{
+            position: "relative",
+            zIndex: 110,
+            height: 52,
+            display: "flex",
+            alignItems: "center",
+            padding: "0 20px",
+            gap: 10,
+            borderBottom: "1px solid rgba(180,148,80,0.14)",
+            background: "#131929",
+            flexShrink: 0,
+          }}
+        >
+          {/* History button */}
+          <div style={{ position: "relative" }}>
+            <button
+              className={`hdak-tb-btn${openDropdown === "hist" ? " active" : ""}`}
+              onClick={() => toggleDropdown("hist")}
+              style={{
+                height: 30,
+                padding: "0 11px",
+                background: "transparent",
+                border: "1px solid rgba(180,148,80,0.14)",
+                borderRadius: 7,
+                color: "#566070",
+                fontFamily: "'DM Sans', system-ui, sans-serif",
+                fontSize: 12,
+                fontWeight: 400,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+                transition: "all 0.18s",
+                whiteSpace: "nowrap",
+              }}
             >
-              <SelectTrigger className="h-8">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="en">{t.english}</SelectItem>
-                <SelectItem value="uk">{t.ukrainian}</SelectItem>
-                <SelectItem value="ru">{t.russian}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <Button onClick={logout} variant="outline" className="w-full gap-2">
-            <LogOut className="w-4 h-4" />
-            {t.logout}
-          </Button>
-        </div>
-      </div>
+              <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ opacity: 0.55 }}>
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
+              </svg>
+              <span className="tb-label">Історія</span>
+            </button>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        <main className="flex-1 overflow-hidden flex">
-          {!currentConversationId && !userHasDeselected.current ? (
-            // Overview Panel
-            <div className="flex-1 overflow-y-auto p-8">
-              <div className="max-w-3xl mx-auto">
-                <div className="text-center mb-12">
-                  <Bot className="w-16 h-16 text-indigo-600 mx-auto mb-4" />
-                  <h2 className="text-3xl font-bold text-gray-900 mb-2">
-                    {t.overviewGreeting}
-                  </h2>
-                  <p className="text-gray-600">{t.overviewDesc}</p>
+            {openDropdown === "hist" && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: 38,
+                  left: 0,
+                  background: "#131929",
+                  border: "1px solid rgba(180,148,80,0.14)",
+                  borderRadius: 12,
+                  padding: 6,
+                  zIndex: 200,
+                  boxShadow: "0 16px 48px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.03)",
+                  minWidth: 240,
+                  animation: "ddIn 0.15s cubic-bezier(.25,.46,.45,.94) both",
+                  maxHeight: 400,
+                  overflowY: "auto",
+                }}
+                className="hdak-dd-scroll"
+              >
+                <div style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", color: "#566070", padding: "5px 9px 9px" }}>
+                  {t.historyLabel}
                 </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
-                  <FeatureCard
-                    icon={<BookOpen className="w-5 h-5 text-indigo-600" />}
-                    title={t.feature1Title}
-                    description={t.feature1Desc}
-                  />
-                  <FeatureCard
-                    icon={<Database className="w-5 h-5 text-indigo-600" />}
-                    title={t.feature2Title}
-                    description={t.feature2Desc}
-                  />
-                  <FeatureCard
-                    icon={<Search className="w-5 h-5 text-indigo-600" />}
-                    title={t.feature3Title}
-                    description={t.feature3Desc}
-                  />
-                </div>
-
-                <Card className="p-6 bg-indigo-50 border-indigo-200 mb-8">
-                  <h3 className="font-semibold text-gray-900 mb-3">
-                    {t.examplesTitle}
-                  </h3>
-                  <div className="space-y-2">
-                    {exampleQuestions.map((example, idx) => (
+                <button
+                  onClick={handleNewChat}
+                  style={{
+                    width: "100%",
+                    padding: "8px 10px",
+                    marginBottom: 5,
+                    background: "rgba(200,168,75,0.10)",
+                    border: "1px solid rgba(180,148,80,0.14)",
+                    borderRadius: 8,
+                    color: "#c8a84b",
+                    fontFamily: "'DM Sans', system-ui, sans-serif",
+                    fontSize: 12,
+                    fontWeight: 500,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 7,
+                    transition: "background 0.18s",
+                  }}
+                >
+                  <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
+                  {t.newChat}
+                </button>
+                {conversations.length === 0 ? (
+                  <div style={{ padding: "8px 10px", fontSize: 12, color: "#566070" }}>{t.noConversations}</div>
+                ) : (
+                  conversations.map(conv => (
+                    <div
+                      key={conv.id}
+                      className="hdak-hist-row"
+                      onClick={() => handleSelectConversation(conv.id)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        padding: "8px 10px",
+                        borderRadius: 8,
+                        cursor: "pointer",
+                        transition: "background 0.15s",
+                        borderLeft: currentConversationId === conv.id ? "2px solid #c8a84b" : "2px solid transparent",
+                        background: currentConversationId === conv.id ? "rgba(200,168,75,0.10)" : "transparent",
+                      }}
+                    >
+                      <span style={{ flex: 1, fontSize: 13, color: "#ede3d0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {conv.title}
+                      </span>
+                      <span style={{ fontSize: 11, color: "#566070", flexShrink: 0 }}>
+                        {formatTime(conv.updatedAt)}
+                      </span>
                       <button
-                        key={idx}
-                        onClick={() => handleQuickStart(example)}
-                        className="block w-full text-left p-2 rounded hover:bg-indigo-100 transition-colors text-sm text-indigo-900"
+                        onClick={e => handleDeleteConversation(e, conv.id)}
+                        style={{ background: "none", border: "none", color: "#566070", cursor: "pointer", fontSize: 12, padding: "2px 3px", opacity: 0.7, transition: "color 0.15s" }}
+                        onMouseEnter={e => (e.currentTarget.style.color = "#e05555")}
+                        onMouseLeave={e => (e.currentTarget.style.color = "#566070")}
+                        title={t.deleteConversation}
                       >
-                        • {example}
+                        ✕
                       </button>
-                    ))}
-                  </div>
-                </Card>
-
-                <div className="text-center">
-                  <a
-                    href="https://lib-hdak.in.ua/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-medium"
-                  >
-                    {t.libraryWebsite}
-                    <ExternalLink className="w-4 h-4" />
-                  </a>
-                </div>
-
-                {/* Resource browser */}
-                {siteResources.length > 0 && (
-                  <div className="mt-10">
-                    <h3 className="font-semibold text-gray-900 mb-4">
-                      {t.resourcesTitle}
-                    </h3>
-                    <div className="flex gap-2 mb-4">
-                      <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <Input
-                          value={resourceSearch}
-                          onChange={e => setResourceSearch(e.target.value)}
-                          placeholder={t.searchPlaceholder}
-                          className="pl-9"
-                        />
-                      </div>
-                      <Select
-                        value={resourceTypeFilter}
-                        onValueChange={v =>
-                          setResourceTypeFilter(v as ResourceType | "all")
-                        }
-                      >
-                        <SelectTrigger className="w-36">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">{t.filterAll}</SelectItem>
-                          <SelectItem value="catalog">
-                            {t.filterCatalog}
-                          </SelectItem>
-                          <SelectItem value="database">
-                            {t.filterDatabase}
-                          </SelectItem>
-                          <SelectItem value="electronic_library">
-                            {t.filterElectronic}
-                          </SelectItem>
-                          <SelectItem value="repository">
-                            {t.filterRepository}
-                          </SelectItem>
-                          <SelectItem value="other">{t.filterOther}</SelectItem>
-                        </SelectContent>
-                      </Select>
                     </div>
-                    {filteredResources.length === 0 ? (
-                      <p className="text-sm text-gray-500 text-center py-4">
-                        {t.noResults}
-                      </p>
-                    ) : (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {filteredResources.map((r, idx) => (
-                          <DocumentCard
-                            key={r.url ?? idx}
-                            name={r.name}
-                            description={r.description}
-                            type={r.type as ResourceType}
-                            url={r.url}
-                            accessConditions={r.accessConditions}
-                            language={language}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  ))
                 )}
+              </div>
+            )}
+          </div>
+
+          {/* Center logo */}
+          <div style={{ position: "absolute", left: "50%", transform: "translateX(-50%)", display: "flex", alignItems: "center", gap: 9, pointerEvents: "none" }}>
+            <div style={{ width: 28, height: 28, background: "rgba(200,168,75,0.10)", border: "1px solid rgba(180,148,80,0.35)", borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>
+              📚
+            </div>
+            <span className="hdak-serif" style={{ fontSize: 15, color: "#ede3d0", letterSpacing: "0.01em" }}>
+              Бібліотека ХДАК
+            </span>
+          </div>
+
+          {/* Right buttons */}
+          <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+            {/* Resources */}
+            <div style={{ position: "relative" }}>
+              <button
+                className={`hdak-tb-btn${openDropdown === "res" ? " active" : ""}`}
+                onClick={() => toggleDropdown("res")}
+                style={{
+                  height: 30,
+                  padding: "0 11px",
+                  background: "transparent",
+                  border: "1px solid rgba(180,148,80,0.14)",
+                  borderRadius: 7,
+                  color: "#566070",
+                  fontFamily: "'DM Sans', system-ui, sans-serif",
+                  fontSize: 12,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                  transition: "all 0.18s",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ opacity: 0.55 }}>
+                  <path d="M4 19.5A2.5 2.5 0 016.5 17H20" />
+                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" />
+                </svg>
+                <span className="tb-label">Ресурси</span>
+              </button>
+
+              {openDropdown === "res" && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 38,
+                    right: 0,
+                    background: "#131929",
+                    border: "1px solid rgba(180,148,80,0.14)",
+                    borderRadius: 12,
+                    padding: 6,
+                    zIndex: 200,
+                    boxShadow: "0 16px 48px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.03)",
+                    minWidth: 268,
+                    maxHeight: 440,
+                    overflowY: "auto",
+                    animation: "ddIn 0.15s cubic-bezier(.25,.46,.45,.94) both",
+                  }}
+                  className="hdak-dd-scroll"
+                >
+                  <div style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", color: "#566070", padding: "5px 9px 9px" }}>
+                    {t.officialResources}
+                  </div>
+                  {[1, 2, 3].map(group => (
+                    <div key={group}>
+                      {group > 1 && <div style={{ height: 1, background: "rgba(180,148,80,0.14)", margin: "5px 0" }} />}
+                      {RESOURCES.filter(r => r.group === group).map(res => (
+                        <a
+                          key={res.url}
+                          href={res.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="hdak-res-row"
+                          style={{
+                            display: "flex",
+                            alignItems: "flex-start",
+                            gap: 10,
+                            padding: "8px 10px",
+                            borderRadius: 8,
+                            textDecoration: "none",
+                            transition: "background 0.15s",
+                            cursor: "pointer",
+                          }}
+                        >
+                          <span style={{ fontSize: 16, width: 22, textAlign: "center", flexShrink: 0, paddingTop: 1 }}>{res.ico}</span>
+                          <div>
+                            <div style={{ fontSize: 12, color: "#ede3d0", fontWeight: 500, lineHeight: 1.3 }}>
+                              {res.name}
+                              {res.vpn && <span style={{ fontSize: 10, color: "#c8a84b", opacity: 0.75, marginLeft: 4 }}>🔒 VPN</span>}
+                            </div>
+                            <div style={{ fontSize: 11, color: "#566070", lineHeight: 1.3, marginTop: 1 }}>{res.sub}</div>
+                          </div>
+                        </a>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Language */}
+            <div style={{ position: "relative" }}>
+              <button
+                className={`hdak-tb-btn${openDropdown === "lang" ? " active" : ""}`}
+                onClick={() => toggleDropdown("lang")}
+                style={{
+                  height: 30,
+                  padding: "0 11px",
+                  background: "transparent",
+                  border: "1px solid rgba(180,148,80,0.14)",
+                  borderRadius: 7,
+                  color: "#566070",
+                  fontFamily: "'DM Sans', system-ui, sans-serif",
+                  fontSize: 12,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                  transition: "all 0.18s",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                🌐 <span className="tb-label">{langLabels[language]}</span>
+              </button>
+
+              {openDropdown === "lang" && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 38,
+                    right: 0,
+                    background: "#131929",
+                    border: "1px solid rgba(180,148,80,0.14)",
+                    borderRadius: 12,
+                    padding: 6,
+                    zIndex: 200,
+                    boxShadow: "0 16px 48px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.03)",
+                    minWidth: 160,
+                    animation: "ddIn 0.15s cubic-bezier(.25,.46,.45,.94) both",
+                  }}
+                >
+                  <div style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", color: "#566070", padding: "5px 9px 9px" }}>
+                    {t.interfaceLang}
+                  </div>
+                  {(["uk", "ru", "en"] as Language[]).map(lang => (
+                    <div
+                      key={lang}
+                      className="hdak-lang-row"
+                      onClick={() => { setLanguage(lang); setOpenDropdown(null); }}
+                      style={{
+                        padding: "8px 12px",
+                        borderRadius: 8,
+                        cursor: "pointer",
+                        fontSize: 13,
+                        color: language === lang ? "#c8a84b" : "#566070",
+                        transition: "background 0.15s, color 0.15s",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                      }}
+                    >
+                      {lang === "uk" ? "🇺🇦 Українська" : lang === "ru" ? "🇷🇺 Русский" : "🇬🇧 English"}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
+
+        {/* ── MAIN ── */}
+        <main
+          style={{
+            flex: 1,
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+            maxWidth: 740,
+            width: "100%",
+            margin: "0 auto",
+            padding: "0 24px",
+            position: "relative",
+            zIndex: 1,
+          }}
+        >
+          {showEmpty ? (
+            /* Empty state */
+            <div
+              style={{
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                textAlign: "center",
+                animation: "fadeUp 0.55s cubic-bezier(.25,.46,.45,.94) both",
+              }}
+            >
+              <div
+                style={{
+                  width: 64,
+                  height: 64,
+                  background: "rgba(200,168,75,0.10)",
+                  border: "1px solid rgba(180,148,80,0.35)",
+                  borderRadius: 16,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 30,
+                  marginBottom: 22,
+                  animation: "breathe 4s ease-in-out infinite",
+                }}
+              >
+                📖
+              </div>
+              <h1
+                className="hdak-serif"
+                style={{ fontSize: 26, fontWeight: 600, color: "#ede3d0", marginBottom: 10 }}
+              >
+                {t.overviewGreeting}
+              </h1>
+              <p style={{ fontSize: 13, color: "#a8997f", maxWidth: 320, lineHeight: 1.65, marginBottom: 30 }}>
+                {t.overviewDesc}
+              </p>
+
+              {/* Decorative divider */}
+              <div style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", maxWidth: 420, marginBottom: 22 }}>
+                <div style={{ flex: 1, height: 1, background: "rgba(180,148,80,0.14)" }} />
+                <span style={{ fontSize: 12, color: "#c8a84b", opacity: 0.5 }}>✦</span>
+                <div style={{ flex: 1, height: 1, background: "rgba(180,148,80,0.14)" }} />
+              </div>
+
+              {/* Chips */}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center", maxWidth: 480 }}>
+                {chips.map((chip, i) => (
+                  <button
+                    key={i}
+                    className="hdak-chip"
+                    onClick={() => handleQuickStart(chip.text)}
+                    style={{
+                      padding: "8px 16px",
+                      background: "#131929",
+                      border: "1px solid rgba(180,148,80,0.14)",
+                      borderRadius: 22,
+                      fontSize: 12,
+                      color: "#a8997f",
+                      cursor: "pointer",
+                      transition: "all 0.2s",
+                      fontFamily: "'DM Sans', system-ui, sans-serif",
+                    }}
+                  >
+                    {chip.emoji} {chip.text}
+                  </button>
+                ))}
               </div>
             </div>
           ) : (
-            <>
-              {/* Chat Messages */}
-              <ScrollArea className="flex-1 w-full">
-                <div className="max-w-3xl mx-auto p-4 space-y-4">
-                  {allMessages.map((msg, idx) => {
-                    const isLastAssistant =
-                      msg.role === "assistant" &&
-                      idx === allMessages.length - 1 &&
-                      !isStreaming;
-                    return (
-                      <div
-                        key={idx}
-                        className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                      >
-                        <div className="flex flex-col gap-2 max-w-xl">
-                          <div
-                            className={`px-4 py-2 rounded-lg ${
-                              msg.role === "user"
-                                ? "bg-indigo-600 text-white rounded-br-none"
-                                : "bg-gray-200 text-gray-900 rounded-bl-none"
-                            }`}
-                          >
-                            {msg.role === "user" ? (
-                              <p className="text-sm whitespace-pre-wrap">
-                                {getMessageText(msg)}
-                              </p>
-                            ) : (
-                              <div className="text-sm prose prose-sm max-w-none prose-a:text-indigo-700 prose-a:underline">
-                                <Markdown>{getMessageText(msg)}</Markdown>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Quick-action buttons shown below the last assistant message */}
-                          {isLastAssistant && (
-                            <div className="flex flex-wrap gap-2">
-                              <a
-                                href="https://lib-hdak.in.ua/e-catalog.html"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-7 text-xs gap-1 text-indigo-700 border-indigo-200 hover:bg-indigo-50"
-                                >
-                                  <BookMarked className="w-3 h-3" />
-                                  {t.actionFindCatalog}
-                                </Button>
-                              </a>
-                              <a
-                                href="mailto:library@hdak.edu.ua"
-                                rel="noopener noreferrer"
-                              >
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-7 text-xs gap-1 text-indigo-700 border-indigo-200 hover:bg-indigo-50"
-                                >
-                                  <Mail className="w-3 h-3" />
-                                  {t.actionWriteLetter}
-                                </Button>
-                              </a>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-7 text-xs gap-1 text-indigo-700 border-indigo-200 hover:bg-indigo-50"
-                                onClick={() => {
-                                  const text = getMessageText(msg);
-                                  if (navigator.share) {
-                                    navigator
-                                      .share({
-                                        title: "HDAK Library",
-                                        text,
-                                        url: window.location.href,
-                                      })
-                                      .catch(() => {
-                                        // Share was cancelled or failed — fall back to clipboard
-                                        navigator.clipboard
-                                          .writeText(text)
-                                          .catch(() => {
-                                            /* clipboard unavailable */
-                                          });
-                                      });
-                                  } else {
-                                    navigator.clipboard
-                                      .writeText(text)
-                                      .catch(() => {
-                                        /* clipboard unavailable */
-                                      });
-                                  }
-                                }}
-                              >
-                                <Share2 className="w-3 h-3" />
-                                {t.actionShare}
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {/* Typing indicator — visible while waiting for the first token */}
-                  {status === "submitted" && (
-                    <div className="flex justify-start">
-                      <div className="px-4 py-3 rounded-lg rounded-bl-none bg-gray-200 text-gray-900">
-                        <span className="flex gap-1 items-center h-4">
-                          <span className="w-2 h-2 rounded-full bg-gray-500 animate-bounce [animation-delay:-0.3s]" />
-                          <span className="w-2 h-2 rounded-full bg-gray-500 animate-bounce [animation-delay:-0.15s]" />
-                          <span className="w-2 h-2 rounded-full bg-gray-500 animate-bounce" />
-                        </span>
-                      </div>
+            /* Active chat */
+            <div
+              className="hdak-msg-scroll"
+              style={{
+                flex: 1,
+                overflowY: "auto",
+                padding: "24px 0 10px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 14,
+                scrollBehavior: "smooth",
+              }}
+            >
+              {allMessages.map((msg, idx) => {
+                const isUser = msg.role === "user";
+                const isLastAssistant =
+                  msg.role === "assistant" && idx === allMessages.length - 1 && !isStreaming;
+                return (
+                  <div
+                    key={idx}
+                    style={{
+                      display: "flex",
+                      gap: 10,
+                      flexDirection: isUser ? "row-reverse" : "row",
+                      animation: "msgIn 0.28s cubic-bezier(.25,.46,.45,.94) both",
+                    }}
+                  >
+                    {/* Avatar */}
+                    <div
+                      style={{
+                        width: 30,
+                        height: 30,
+                        borderRadius: 8,
+                        flexShrink: 0,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 14,
+                        marginTop: 2,
+                        border: "1px solid rgba(180,148,80,0.14)",
+                        background: isUser ? "#1c1505" : "rgba(200,168,75,0.10)",
+                      }}
+                    >
+                      {isUser ? "👤" : "📚"}
                     </div>
-                  )}
-                  <div ref={scrollRef} />
-                </div>
-              </ScrollArea>
 
-              {/* Input */}
-              <div className="border-t border-gray-200 bg-white p-4">
-                {/* Error banner — shows tRPC create-conversation errors AND streaming errors */}
-                {(sendError || streamError) && (
-                  <div className="max-w-3xl mx-auto mb-3 flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                    <span className="flex-1">
-                      {streamError
-                        ? streamError.message?.includes("413") ||
-                          streamError.message?.includes("too large")
-                          ? t.streamErrorTooLarge
-                          : t.streamError
-                        : sendError}
-                    </span>
-                    {/* Retry button — only for streaming errors; replays the last user message */}
-                    {streamError && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-6 px-2 text-red-600 hover:text-red-700 hover:bg-red-100 gap-1"
-                        onClick={() => {
-                          void regenerate();
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6, maxWidth: 540 }}>
+                      {/* Bubble */}
+                      <div
+                        className="hdak-bubble"
+                        style={{
+                          padding: "11px 15px",
+                          borderRadius: 13,
+                          border: isUser
+                            ? "1px solid rgba(200,168,75,0.18)"
+                            : "1px solid rgba(180,148,80,0.14)",
+                          fontSize: 14,
+                          lineHeight: 1.7,
+                          background: isUser ? "#1c1505" : "#131929",
+                          borderTopRightRadius: isUser ? 3 : 13,
+                          borderTopLeftRadius: isUser ? 13 : 3,
+                          color: "#ede3d0",
                         }}
                       >
-                        <RefreshCw className="w-3 h-3" />
-                        {language === "uk"
-                          ? "Повторити"
-                          : language === "ru"
-                            ? "Повторить"
-                            : "Retry"}
-                      </Button>
-                    )}
+                        {isUser ? (
+                          <p style={{ whiteSpace: "pre-wrap", margin: 0 }}>{getMessageText(msg)}</p>
+                        ) : (
+                          <div style={{ fontSize: 14 }}>
+                            <Markdown>{getMessageText(msg)}</Markdown>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Quick actions under last assistant message */}
+                      {isLastAssistant && (
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                          <a href="https://lib-hdak.in.ua/e-catalog.html" target="_blank" rel="noopener noreferrer">
+                            <button style={{ height: 26, padding: "0 10px", background: "transparent", border: "1px solid rgba(180,148,80,0.14)", borderRadius: 6, color: "#c8a84b", fontSize: 11, cursor: "pointer", fontFamily: "'DM Sans', system-ui, sans-serif", transition: "background 0.15s" }}>
+                              📖 {t.actionFindCatalog}
+                            </button>
+                          </a>
+                          <a href="mailto:library@hdak.edu.ua" rel="noopener noreferrer">
+                            <button style={{ height: 26, padding: "0 10px", background: "transparent", border: "1px solid rgba(180,148,80,0.14)", borderRadius: 6, color: "#c8a84b", fontSize: 11, cursor: "pointer", fontFamily: "'DM Sans', system-ui, sans-serif", transition: "background 0.15s" }}>
+                              ✉️ {t.actionWriteLetter}
+                            </button>
+                          </a>
+                          <button
+                            onClick={() => {
+                              const text = getMessageText(msg);
+                              if (navigator.share) {
+                                navigator.share({ title: "HDAK Library", text, url: window.location.href }).catch(() => navigator.clipboard.writeText(text).catch(() => {}));
+                              } else {
+                                navigator.clipboard.writeText(text).catch(() => {});
+                              }
+                            }}
+                            style={{ height: 26, padding: "0 10px", background: "transparent", border: "1px solid rgba(180,148,80,0.14)", borderRadius: 6, color: "#c8a84b", fontSize: 11, cursor: "pointer", fontFamily: "'DM Sans', system-ui, sans-serif", transition: "background 0.15s" }}
+                          >
+                            🔗 {t.actionShare}
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                )}
-                <div className="max-w-3xl mx-auto flex gap-3">
-                  <Input
-                    value={localInput}
-                    onChange={e => setLocalInput(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        // Debounce: ignore rapid repeated Enter presses within SEND_DEBOUNCE_MS
-                        const now = Date.now();
-                        if (now - lastSendTimeRef.current < SEND_DEBOUNCE_MS)
-                          return;
-                        lastSendTimeRef.current = now;
-                        handleSendMessage();
-                      }
-                    }}
-                    placeholder={t.typeMessage}
-                    disabled={isStreaming}
-                    className="flex-1"
-                  />
-                  <Button
-                    onClick={() => handleSendMessage()}
-                    disabled={isStreaming || !localInput.trim()}
-                    className="bg-indigo-600 hover:bg-indigo-700"
-                  >
-                    {isStreaming ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Send className="w-4 h-4" />
-                    )}
-                  </Button>
+                );
+              })}
+
+              {/* Typing indicator */}
+              {status === "submitted" && (
+                <div style={{ display: "flex", gap: 10 }}>
+                  <div style={{ width: 30, height: 30, borderRadius: 8, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, marginTop: 2, border: "1px solid rgba(180,148,80,0.14)", background: "rgba(200,168,75,0.10)" }}>
+                    📚
+                  </div>
+                  <div style={{ padding: "11px 15px", borderRadius: 13, borderTopLeftRadius: 3, border: "1px solid rgba(180,148,80,0.14)", background: "#131929" }}>
+                    <div style={{ display: "flex", gap: 5, alignItems: "center", padding: "5px 2px" }}>
+                      {[0, 0.2, 0.4].map((delay, i) => (
+                        <div key={i} style={{ width: 7, height: 7, borderRadius: "50%", background: "#c8a84b", opacity: 0.4, animation: `dotPulse 1.3s ease-in-out ${delay}s infinite` }} />
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </>
+              )}
+
+              <div ref={scrollRef} />
+            </div>
           )}
+
+          {/* ── INPUT BAR ── */}
+          <div style={{ padding: "12px 0 22px", flexShrink: 0 }}>
+            {/* Error banner */}
+            {(sendError || streamError) && (
+              <div style={{ marginBottom: 10, display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#e05555", background: "rgba(224,85,85,0.08)", border: "1px solid rgba(224,85,85,0.2)", borderRadius: 8, padding: "8px 12px" }}>
+                <span style={{ flex: 1 }}>
+                  {streamError
+                    ? streamError.message?.includes("413") || streamError.message?.includes("too large")
+                      ? t.streamErrorTooLarge
+                      : t.streamError
+                    : sendError}
+                </span>
+                {streamError && (
+                  <button
+                    onClick={() => void regenerate()}
+                    style={{ background: "none", border: "none", color: "#e05555", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontSize: 11, padding: "2px 6px" }}
+                  >
+                    <RefreshCw size={12} />
+                    {language === "uk" ? "Повторити" : language === "ru" ? "Повторить" : "Retry"}
+                  </button>
+                )}
+              </div>
+            )}
+
+            <div
+              className="hdak-input-row"
+              style={{
+                display: "flex",
+                alignItems: "flex-end",
+                gap: 8,
+                background: "#131929",
+                border: "1px solid rgba(180,148,80,0.14)",
+                borderRadius: 14,
+                padding: "10px 12px",
+                transition: "border-color 0.2s, box-shadow 0.2s",
+              }}
+            >
+              <textarea
+                ref={textareaRef}
+                className="hdak-textarea"
+                rows={1}
+                value={localInput}
+                onChange={e => {
+                  setLocalInput(e.target.value);
+                  adjustTextarea();
+                }}
+                onKeyDown={e => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    const now = Date.now();
+                    if (now - lastSendTimeRef.current < SEND_DEBOUNCE_MS) return;
+                    lastSendTimeRef.current = now;
+                    handleSendMessage();
+                    if (textareaRef.current) {
+                      textareaRef.current.style.height = "auto";
+                    }
+                  }
+                }}
+                placeholder={t.typeMessage}
+                disabled={isStreaming}
+              />
+              <button
+                className="hdak-send"
+                onClick={() => {
+                  handleSendMessage();
+                  if (textareaRef.current) textareaRef.current.style.height = "auto";
+                }}
+                disabled={isStreaming || !localInput.trim()}
+                style={{
+                  width: 34,
+                  height: 34,
+                  flexShrink: 0,
+                  background: isStreaming || !localInput.trim() ? "#1a2236" : "#c8a84b",
+                  border: "none",
+                  borderRadius: 9,
+                  cursor: isStreaming || !localInput.trim() ? "default" : "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: isStreaming || !localInput.trim() ? "#566070" : "#0b0f18",
+                  transition: "background 0.18s, transform 0.15s, box-shadow 0.18s",
+                }}
+              >
+                <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z" />
+                </svg>
+              </button>
+            </div>
+            <div style={{ fontSize: 11, color: "#566070", textAlign: "center", marginTop: 7 }}>
+              {t.hint}
+            </div>
+          </div>
         </main>
       </div>
-    </div>
+    </>
   );
 }

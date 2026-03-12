@@ -102,10 +102,10 @@ async function startServer() {
         directives: {
           defaultSrc: ["'self'"],
           scriptSrc: isDev ? ["'self'", "'unsafe-inline'"] : ["'self'"],
-          styleSrc: isDev ? ["'self'", "'unsafe-inline'"] : ["'self'"],
+          styleSrc: isDev ? ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"] : ["'self'", "https://fonts.googleapis.com"],
           imgSrc: ["'self'", "data:", "blob:"],
           connectSrc: ["'self'"],
-          fontSrc: ["'self'"],
+          fontSrc: ["'self'", "https://fonts.gstatic.com"],
           objectSrc: ["'none'"],
           frameAncestors: ["'none'"],
         },
