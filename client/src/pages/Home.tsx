@@ -4,7 +4,7 @@ import { useChat } from "@ai-sdk/react";
 import type { UIMessage } from "ai";
 import { DefaultChatTransport } from "ai";
 import type { inferRouterOutputs } from "@trpc/server";
-import { useAuth } from "@/_core/hooks/useAuth";
+
 import { Markdown } from "@/components/Markdown";
 import { trpc } from "@/lib/trpc";
 import type { AppRouter } from "../../../server/routers";
@@ -263,7 +263,7 @@ function formatTime(date: Date | string | null | undefined): string {
 }
 
 export default function Home() {
-  const { logout } = useAuth();
+
   const [language, setLanguage] = useState<Language>("uk");
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<number | null>(null);
