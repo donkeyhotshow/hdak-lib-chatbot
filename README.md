@@ -596,86 +596,212 @@ All tests use the **in-memory mock** (no database required).
 ### Development
 
 ```bash
-npm run dev      # starts Vite dev server + Express backend in one command
+pnpm dev      # starts Vite dev server + Express backend in one command
 ```
 
 ### Build
 
 ```bash
-npm run build
+pnpm run build
 ```
 
-This runs two steps in parallel:
+This runs two steps:
 1. `vite build` — compiles the React app to `dist/public/`
 2. `esbuild` — bundles `server/_core/index.ts` to `dist/index.js`
 
-### Production start
+The Express server in production serves the compiled frontend from `dist/public/`
+alongside the REST and tRPC API routes — no separate frontend container is needed.
+
+### Run tests
+
+```bash
+pnpm test               # run all tests once
+pnpm run test:coverage  # run all tests with coverage report
+```
+
+Tests must pass before any deployment (CI enforces this automatically).
+
+### Production start (manual)
 
 ```bash
 NODE_ENV=production node dist/index.js
 ```
 
-### Docker Compose (recommended for production)
+### Type checking & formatting
 
-The included `docker-compose.yml` starts the app together with a MySQL database. All schema migrations run automatically on container start.
+```bash
+pnpm run check          # tsc --noEmit
+pnpm run format         # prettier --write .
+pnpm run format:check   # CI formatting check
+```
+
+---
+
+### Docker
+
+The project ships a single multi-stage `Dockerfile` that:
+1. Installs all dependencies (including dev tools needed for build & migrations).
+2. Builds the frontend (Vite) and backend (esbuild) in one step.
+3. Produces a lean production image containing only the compiled output and
+   `node_modules` (drizzle-kit is kept for auto-migration on cold start).
+
+#### Build the image
+
+```bash
+docker build -t hdak-lib-chatbot:latest .
+```
+
+#### Run with Docker Compose (backend + MySQL)
 
 **1. Copy the example env file and fill in your values:**
 
 ```bash
 cp .env.example .env
-# Edit .env and set: JWT_SECRET, VITE_APP_ID, OAUTH_SERVER_URL, OWNER_OPEN_ID,
-#                    VITE_OAUTH_PORTAL_URL, BUILT_IN_FORGE_API_URL, BUILT_IN_FORGE_API_KEY
 ```
 
-**2. Start:**
+Required variables:
+
+| Variable | Description |
+|----------|-------------|
+| `BUILT_IN_FORGE_API_KEY` | API key for your OpenAI-compatible LLM endpoint |
+| `BUILT_IN_FORGE_API_URL` | Base URL of the LLM endpoint (must end with `/v1`) |
+| `JWT_SECRET` | Random secret for signing session cookies (`openssl rand -hex 32`) |
+| `VITE_APP_ID` | OAuth application ID |
+| `OAUTH_SERVER_URL` | Base URL of the OAuth server |
+| `OWNER_OPEN_ID` | OpenID that receives the `admin` role on first login |
+| `VITE_OAUTH_PORTAL_URL` | Full URL of the OAuth login portal |
+| `DATABASE_URL` | Override only if you use an **external** MySQL instance |
+
+**2. Start all services:**
 
 ```bash
 docker compose up -d
 ```
 
-The app will be available at `http://localhost:3000`.
+The app will be available at `http://localhost:3000`.  
+Database schema migrations run automatically inside `docker-entrypoint.sh`
+before the server starts — no manual migration step needed.
 
-**3. Stop:**
+**3. View logs:**
 
 ```bash
-docker compose down          # keep database volume
-docker compose down -v       # also delete the database volume
+docker compose logs -f app
 ```
 
-**Environment variables for Docker:**
+**4. Stop:**
 
-Set the following in a `.env` file next to `docker-compose.yml`, or pass them as environment variables to the `app` service. The `db` service credentials are pre-configured for local use — change them for internet-facing deployments.
+```bash
+docker compose down       # keep database volume
+docker compose down -v    # also delete the database volume
+```
 
-| Variable | Description |
-|----------|-------------|
-| `JWT_SECRET` | Secret for signing session cookies (required in production) |
-| `VITE_APP_ID` | OAuth application ID |
-| `OAUTH_SERVER_URL` | Base URL of the OAuth server |
-| `VITE_OAUTH_PORTAL_URL` | Full URL of the OAuth login portal |
-| `OWNER_OPEN_ID` | OpenID that receives the admin role on first login |
-| `BUILT_IN_FORGE_API_URL` | OpenAI-compatible API base URL |
-| `BUILT_IN_FORGE_API_KEY` | API key for the above endpoint |
-| `DATABASE_URL` | Override if you use an external MySQL (default: the bundled `db` service) |
+#### Health & readiness probes
+
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /api/health` | Liveness probe — always returns `{status:"ok"}` when the process is up |
+| `GET /api/ready` | Readiness probe — returns `{ready:true}` only when `BUILT_IN_FORGE_API_KEY` and `DATABASE_URL` are set |
+
+Both probes are used by Docker Compose, Fly.io, and Render health checks.
+
+---
+
+### Deploying on free / low-cost cloud platforms
+
+> **Pre-requisites for all platforms:** tests must pass and the Docker image
+> must build successfully (CI enforces both via the `test`, `codeql`, `build`,
+> and `docker` jobs in `.github/workflows/ci.yml`).
+
+#### Fly.io
+
+Fly.io can deploy directly from the `Dockerfile` using the included `fly.toml`.
+
+```bash
+# Install the Fly CLI: https://fly.io/docs/hands-on/install-flyctl/
+fly auth login
+
+# First deploy (creates the app and asks for a region)
+fly launch
+
+# Set all required secrets (never put secrets in fly.toml)
+fly secrets set \
+  BUILT_IN_FORGE_API_URL="https://your-llm.example.com/v1" \
+  BUILT_IN_FORGE_API_KEY="your-key" \
+  JWT_SECRET="$(openssl rand -hex 32)" \
+  OWNER_OPEN_ID="your-owner-openid" \
+  OAUTH_SERVER_URL="https://oauth.example.com" \
+  VITE_APP_ID="your-app-id" \
+  VITE_OAUTH_PORTAL_URL="https://oauth.example.com"
+
+# Attach a managed Postgres/MySQL database, or set DATABASE_URL to an external DB
+fly secrets set DATABASE_URL="mysql://user:pass@host:3306/hdak_chatbot"
+
+# Subsequent deploys
+fly deploy
+```
+
+`fly.toml` configures:
+- HTTP/HTTPS listeners on ports 80 and 443
+- Health check on `/api/health` every 15 s
+- Readiness check on `/api/ready` every 30 s
+- A shared-CPU 512 MB VM (free tier compatible)
+
+#### Render
+
+Render detects `render.yaml` automatically when you connect your GitHub repository.
+
+1. Go to [render.com](https://render.com) → **New** → **Blueprint**.
+2. Connect your repository — Render reads `render.yaml` and creates the web
+   service and a free PostgreSQL database (swap for MySQL if needed).
+3. Fill in the environment variables marked `sync: false` in the Render
+   dashboard (BUILT\_IN\_FORGE\_API\_URL, BUILT\_IN\_FORGE\_API\_KEY, etc.).
+4. Render runs `docker build` on every push to your default branch.
+5. Health check is configured to `/api/health`; migrations run automatically
+   on each new deployment.
+
+#### Railway
+
+Railway supports Docker deployments without extra config files.
+
+```bash
+# Install the Railway CLI: https://docs.railway.app/develop/cli
+railway login
+railway init          # link or create a project
+
+# Add a MySQL plugin from the Railway dashboard, then set:
+railway variables set BUILT_IN_FORGE_API_URL="..."
+railway variables set BUILT_IN_FORGE_API_KEY="..."
+railway variables set JWT_SECRET="$(openssl rand -hex 32)"
+# Railway's MySQL plugin injects DATABASE_URL automatically as a full
+# connection string — no manual set needed once the plugin is linked.
+
+railway up            # deploy
+```
+
+Railway auto-detects the `Dockerfile` and sets `PORT` automatically.
+
+---
+
+### CI / CD pipeline
+
+`.github/workflows/ci.yml` runs on every push and pull request to `main` / `master`:
+
+| Job | What it does |
+|-----|-------------|
+| `test` | Type-check, format-check, run all tests with coverage |
+| `codeql` | GitHub CodeQL security scan (JavaScript/TypeScript) |
+| `build` | Full production build (`pnpm run build`) |
+| `docker` | Build Docker image (runs **only on push to main/master**, after all three jobs above pass) |
+
+The Docker image is never built if any test fails or CodeQL finds a critical
+issue, preventing insecure or broken artefacts from reaching production.
 
 ### Database schema
 
 Run migrations manually (outside Docker):
 
 ```bash
-npm run db:push      # push schema to DB (development / first deploy)
-npm run db:migrate   # run generated migration files (production-safe)
-```
-
-### Type checking
-
-```bash
-npm run check     # tsc --noEmit
-```
-
-### Code formatting
-
-```bash
-npm run format    # prettier --write .
+pnpm run db:migrate   # alias for drizzle-kit push — creates missing tables/columns, never drops data
 ```
 
 ---
