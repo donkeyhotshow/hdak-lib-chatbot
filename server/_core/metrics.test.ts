@@ -200,14 +200,26 @@ vi.mock("./sdk", () => ({
 
 // Use a stub rate-limiter that is a no-op middleware
 vi.mock("./rateLimiter", () => ({
-  adminRateLimiter: (_req: express.Request, _res: express.Response, next: express.NextFunction) =>
-    next(),
-  chatRateLimiter: (_req: express.Request, _res: express.Response, next: express.NextFunction) =>
-    next(),
-  trpcRateLimiter: (_req: express.Request, _res: express.Response, next: express.NextFunction) =>
-    next(),
-  oauthRateLimiter: (_req: express.Request, _res: express.Response, next: express.NextFunction) =>
-    next(),
+  adminRateLimiter: (
+    _req: express.Request,
+    _res: express.Response,
+    next: express.NextFunction
+  ) => next(),
+  chatRateLimiter: (
+    _req: express.Request,
+    _res: express.Response,
+    next: express.NextFunction
+  ) => next(),
+  trpcRateLimiter: (
+    _req: express.Request,
+    _res: express.Response,
+    next: express.NextFunction
+  ) => next(),
+  oauthRateLimiter: (
+    _req: express.Request,
+    _res: express.Response,
+    next: express.NextFunction
+  ) => next(),
 }));
 
 import { sdk } from "./sdk";
@@ -218,20 +230,24 @@ function buildMetricsApp() {
   const app = express();
   app.use(express.json());
 
-  app.get("/api/metrics", adminRateLimiter, async (req: express.Request, res: express.Response) => {
-    let user: { role: string } | null = null;
-    try {
-      user = await (sdk.authenticateRequest as ReturnType<typeof vi.fn>)(req);
-    } catch {
-      res.status(401).json({ error: "Authentication required" });
-      return;
+  app.get(
+    "/api/metrics",
+    adminRateLimiter,
+    async (req: express.Request, res: express.Response) => {
+      let user: { role: string } | null = null;
+      try {
+        user = await (sdk.authenticateRequest as ReturnType<typeof vi.fn>)(req);
+      } catch {
+        res.status(401).json({ error: "Authentication required" });
+        return;
+      }
+      if (!user || user.role !== "admin") {
+        res.status(403).json({ error: "Admin access required" });
+        return;
+      }
+      res.json(getMetrics());
     }
-    if (!user || user.role !== "admin") {
-      res.status(403).json({ error: "Admin access required" });
-      return;
-    }
-    res.json(getMetrics());
-  });
+  );
 
   return app;
 }
@@ -263,7 +279,7 @@ describe("/api/metrics HTTP endpoint — security", () => {
 
     const res = await fetch(`${baseUrl}/api/metrics`);
     expect(res.status).toBe(401);
-    const body = await res.json() as { error: string };
+    const body = (await res.json()) as { error: string };
     expect(body.error).toBe("Authentication required");
   });
 
@@ -275,7 +291,7 @@ describe("/api/metrics HTTP endpoint — security", () => {
 
     const res = await fetch(`${baseUrl}/api/metrics`);
     expect(res.status).toBe(403);
-    const body = await res.json() as { error: string };
+    const body = (await res.json()) as { error: string };
     expect(body.error).toBe("Admin access required");
   });
 
@@ -291,7 +307,7 @@ describe("/api/metrics HTTP endpoint — security", () => {
     const res = await fetch(`${baseUrl}/api/metrics`);
     expect(res.status).toBe(200);
 
-    const body = await res.json() as ReturnType<typeof getMetrics>;
+    const body = (await res.json()) as ReturnType<typeof getMetrics>;
     expect(body.latency.samples).toBe(1);
     expect(body.streaming.total).toBe(1);
     expect(body.streaming.success).toBe(1);

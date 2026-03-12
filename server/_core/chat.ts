@@ -15,8 +15,18 @@ import { createPatchedFetch } from "./patchedFetch";
 import { logger } from "./logger";
 import { sdk } from "./sdk";
 import * as db from "../db";
-import { getSystemPrompt, officialLibraryInfo, officialLibraryResources, hdakResources } from "../system-prompts-official";
-import { detectLanguageFromText, sanitizeUntrustedContent, AI_TEMPERATURE, AI_MODEL_NAME } from "../services/aiPipeline";
+import {
+  getSystemPrompt,
+  officialLibraryInfo,
+  officialLibraryResources,
+  hdakResources,
+} from "../system-prompts-official";
+import {
+  detectLanguageFromText,
+  sanitizeUntrustedContent,
+  AI_TEMPERATURE,
+  AI_MODEL_NAME,
+} from "../services/aiPipeline";
 import { recordLatency, recordStreamOutcome } from "./metrics";
 
 /** Maximum number of recent messages to scan when detecting the last user language. */
@@ -28,7 +38,11 @@ function findLastUserMessage(messages: IncomingMessage[] | unknown): string {
   if (!Array.isArray(messages)) return "";
 
   let scanned = 0;
-  for (let i = messages.length - 1; i >= 0 && scanned < MAX_LANGUAGE_LOOKBACK; i--, scanned++) {
+  for (
+    let i = messages.length - 1;
+    i >= 0 && scanned < MAX_LANGUAGE_LOOKBACK;
+    i--, scanned++
+  ) {
     const msg = messages[i];
     if (msg?.role === "user" && typeof msg.content === "string") {
       return msg.content;
@@ -89,25 +103,29 @@ export const tools = {
     inputSchema: z.object({
       query: z
         .string()
-        .describe("Search query — author name, subject, database name, topic, etc."),
+        .describe(
+          "Search query — author name, subject, database name, topic, etc."
+        ),
     }),
     execute: async ({ query }) => {
       const dbResources = await db.searchResources(query);
       const q = query.toLowerCase();
       const siteResources = hdakResources.filter(
-        (r) =>
+        r =>
           r.name.toLowerCase().includes(q) ||
           r.description.toLowerCase().includes(q)
       );
       return {
         query,
-        dbResources: dbResources.slice(0, 5).map((r) => ({
+        dbResources: dbResources.slice(0, 5).map(r => ({
           name: sanitizeUntrustedContent(r.nameUk || r.nameEn || ""),
-          description: sanitizeUntrustedContent(r.descriptionUk || r.descriptionEn || ""),
+          description: sanitizeUntrustedContent(
+            r.descriptionUk || r.descriptionEn || ""
+          ),
           url: r.url,
           type: r.type,
         })),
-        siteResources: siteResources.slice(0, 4).map((r) => ({
+        siteResources: siteResources.slice(0, 4).map(r => ({
           name: r.name,
           description: r.description,
           url: r.url,
@@ -146,7 +164,8 @@ export const tools = {
         keyword: "Ключові слова / Keywords",
       };
       return {
-        catalogUrl: "https://library-service.com.ua:8443/khkhdak/DocumentSearchForm",
+        catalogUrl:
+          "https://library-service.com.ua:8443/khkhdak/DocumentSearchForm",
         catalogPageUrl: "https://lib-hdak.in.ua/e-catalog.html",
         repositoryUrl: "https://repository.ac.kharkov.ua/home",
         searchTerm,
@@ -179,17 +198,29 @@ export const tools = {
       keyword: z
         .string()
         .optional()
-        .describe("Optional keyword or topic to filter events, e.g. 'виставка', 'лекція', 'презентація'"),
+        .describe(
+          "Optional keyword or topic to filter events, e.g. 'виставка', 'лекція', 'презентація'"
+        ),
       dateFrom: z
         .string()
-        .regex(/^\d{4}-\d{2}-\d{2}$/, "dateFrom must be a valid date in YYYY-MM-DD format")
+        .regex(
+          /^\d{4}-\d{2}-\d{2}$/,
+          "dateFrom must be a valid date in YYYY-MM-DD format"
+        )
         .optional()
-        .describe("Optional ISO date (YYYY-MM-DD) — filter events on or after this date"),
+        .describe(
+          "Optional ISO date (YYYY-MM-DD) — filter events on or after this date"
+        ),
       dateTo: z
         .string()
-        .regex(/^\d{4}-\d{2}-\d{2}$/, "dateTo must be a valid date in YYYY-MM-DD format")
+        .regex(
+          /^\d{4}-\d{2}-\d{2}$/,
+          "dateTo must be a valid date in YYYY-MM-DD format"
+        )
         .optional()
-        .describe("Optional ISO date (YYYY-MM-DD) — filter events up to and including this date"),
+        .describe(
+          "Optional ISO date (YYYY-MM-DD) — filter events up to and including this date"
+        ),
     }),
     execute: async ({ keyword, dateFrom, dateTo }) => {
       // Search library info entries whose key starts with "event" or contains the keyword.
@@ -199,16 +230,15 @@ export const tools = {
       const from = dateFrom ? new Date(dateFrom) : null;
       const to = dateTo ? new Date(dateTo) : null;
 
-      const events = allInfo.filter((entry) => {
+      const events = allInfo.filter(entry => {
         const isEvent =
           entry.key.toLowerCase().startsWith("event") ||
           entry.key.toLowerCase().includes("announcement") ||
           entry.key.toLowerCase().includes("exhibition") ||
-          (kw && (
-            (entry.valueUk ?? "").toLowerCase().includes(kw) ||
-            (entry.valueEn ?? "").toLowerCase().includes(kw) ||
-            (entry.valueRu ?? "").toLowerCase().includes(kw)
-          ));
+          (kw &&
+            ((entry.valueUk ?? "").toLowerCase().includes(kw) ||
+              (entry.valueEn ?? "").toLowerCase().includes(kw) ||
+              (entry.valueRu ?? "").toLowerCase().includes(kw)));
         if (!isEvent) return false;
         // Date filtering: parse date embedded in the key (e.g. "event_2024-12-15_exhibition")
         if (from || to) {
@@ -225,7 +255,7 @@ export const tools = {
       return {
         found: events.length,
         eventsPageUrl: "https://lib-hdak.in.ua/news.html",
-        events: events.slice(0, 8).map((e) => ({
+        events: events.slice(0, 8).map(e => ({
           key: e.key,
           uk: e.valueUk,
           en: e.valueEn,
@@ -273,28 +303,34 @@ export function registerChatRoutes(app: Express) {
         // Return 413 when any message content exceeds the per-message size limit;
         // return 400 for all other validation failures (wrong role, empty content, etc.).
         const hasTooLarge = parseResult.error.issues.some(
-          (issue) => issue.code === "too_big" && issue.path.includes("content")
+          issue => issue.code === "too_big" && issue.path.includes("content")
         );
         if (hasTooLarge) {
-          res
-            .status(413)
-            .json({ error: "Message too large", details: `Each message must be at most ${MAX_CHAT_MESSAGE_LENGTH} characters.` });
+          res.status(413).json({
+            error: "Message too large",
+            details: `Each message must be at most ${MAX_CHAT_MESSAGE_LENGTH} characters.`,
+          });
           return;
         }
-        res.status(400).json({ error: "Invalid request", details: parseResult.error.issues });
+        res.status(400).json({
+          error: "Invalid request",
+          details: parseResult.error.issues,
+        });
         return;
       }
 
       const { messages, language, conversationId } = parseResult.data;
 
       // Sanitize message content (strip HTML and injection patterns) before passing to AI
-      const sanitizedMessages = messages.map((m) => ({
+      const sanitizedMessages = messages.map(m => ({
         role: m.role,
         content: sanitizeUntrustedContent(m.content),
       }));
 
       const lastUserMessage = findLastUserMessage(sanitizedMessages);
-      const detectedLanguage = lastUserMessage ? detectLanguageFromText(lastUserMessage) : null;
+      const detectedLanguage = lastUserMessage
+        ? detectLanguageFromText(lastUserMessage)
+        : null;
       const lang: "en" | "uk" | "ru" = language ?? detectedLanguage ?? "uk";
 
       // When a conversationId is supplied, verify the caller is authenticated
@@ -305,13 +341,19 @@ export function registerChatRoutes(app: Express) {
         try {
           requestUser = await sdk.authenticateRequest(req);
         } catch (authErr) {
-          logger.warn("[/api/chat] Authentication error while checking conversationId ownership", {
-            conversationId,
-            error: authErr instanceof Error ? authErr.message : String(authErr),
-          });
+          logger.warn(
+            "[/api/chat] Authentication error while checking conversationId ownership",
+            {
+              conversationId,
+              error:
+                authErr instanceof Error ? authErr.message : String(authErr),
+            }
+          );
         }
         if (!requestUser) {
-          res.status(401).json({ error: "Authentication required to save to a conversation" });
+          res.status(401).json({
+            error: "Authentication required to save to a conversation",
+          });
           return;
         }
         const conv = await db.getConversation(conversationId);
@@ -341,8 +383,11 @@ export function registerChatRoutes(app: Express) {
             .slice(-MAX_CHAT_HISTORY)
             // Only include roles the AI understands; system messages are handled
             // via the system prompt, so they are intentionally excluded here.
-            .filter((m) => m.role === "user" || m.role === "assistant")
-            .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
+            .filter(m => m.role === "user" || m.role === "assistant")
+            .map(m => ({
+              role: m.role as "user" | "assistant",
+              content: m.content,
+            }));
         } catch (err) {
           logger.warn("[/api/chat] Failed to load conversation history", {
             conversationId: convId,
@@ -353,7 +398,9 @@ export function registerChatRoutes(app: Express) {
 
       // Build the full message array for the AI: persisted history + new client message(s)
       const messagesForAI: { role: "user" | "assistant"; content: string }[] =
-        dbHistory.length > 0 ? [...dbHistory, ...sanitizedMessages] : sanitizedMessages;
+        dbHistory.length > 0
+          ? [...dbHistory, ...sanitizedMessages]
+          : sanitizedMessages;
 
       const result = streamText({
         model: openai.chat(AI_MODEL_NAME),
@@ -396,7 +443,9 @@ export function registerChatRoutes(app: Express) {
 
       result.pipeUIMessageStreamToResponse(res);
     } catch (error) {
-      logger.error("[/api/chat] Error", { error: error instanceof Error ? error.message : String(error) });
+      logger.error("[/api/chat] Error", {
+        error: error instanceof Error ? error.message : String(error),
+      });
       if (!res.headersSent) {
         res.status(500).json({ error: "Internal server error" });
       }

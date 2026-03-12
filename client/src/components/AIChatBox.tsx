@@ -164,12 +164,19 @@ export interface AIChatBoxProps {
 // DEFAULT TOOL RENDERER
 // ============================================================================
 
-function DefaultToolPartRenderer({ toolName, state, output, errorText }: ToolPartRendererProps) {
+function DefaultToolPartRenderer({
+  toolName,
+  state,
+  output,
+  errorText,
+}: ToolPartRendererProps) {
   if (isToolLoading(state)) {
     return (
       <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg my-2">
         <Loader2 className="size-4 animate-spin" />
-        <span className="text-sm text-muted-foreground">Running {toolName}...</span>
+        <span className="text-sm text-muted-foreground">
+          Running {toolName}...
+        </span>
       </div>
     );
   }
@@ -228,7 +235,9 @@ function MessageBubble({
       <div
         className={cn(
           "max-w-[80%] rounded-lg px-4 py-2.5",
-          isUser ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"
+          isUser
+            ? "bg-primary text-primary-foreground"
+            : "bg-muted text-foreground"
         )}
       >
         {message.parts.map((part, i) => {
@@ -239,13 +248,21 @@ function MessageBubble({
               return (
                 <div key={i} className="flex items-center gap-2">
                   <Loader2 className="size-4 animate-spin" />
-                  <span className="text-sm text-muted-foreground">Thinking...</span>
+                  <span className="text-sm text-muted-foreground">
+                    Thinking...
+                  </span>
                 </div>
               );
             }
             return (
-              <div key={i} className="prose prose-sm dark:prose-invert max-w-none">
-                <Markdown mode={isStreaming ? "streaming" : "static"} isAnimating={isStreaming}>
+              <div
+                key={i}
+                className="prose prose-sm dark:prose-invert max-w-none"
+              >
+                <Markdown
+                  mode={isStreaming ? "streaming" : "static"}
+                  isAnimating={isStreaming}
+                >
                   {part.text}
                 </Markdown>
               </div>
@@ -279,13 +296,20 @@ function MessageBubble({
             if (customRender !== null) {
               return <div key={i}>{customRender}</div>;
             }
-            return <div key={i}><DefaultToolPartRenderer {...rendererProps} /></div>;
+            return (
+              <div key={i}>
+                <DefaultToolPartRenderer {...rendererProps} />
+              </div>
+            );
           }
 
           // Reasoning parts (if using reasoning models)
           if (part.type === "reasoning") {
             return (
-              <div key={i} className="text-xs text-muted-foreground italic border-l-2 pl-2 my-2">
+              <div
+                key={i}
+                className="text-xs text-muted-foreground italic border-l-2 pl-2 my-2"
+              >
                 {part.text}
               </div>
             );
@@ -390,7 +414,9 @@ export function AIChatBox({
   const lastMessage = messages[messages.length - 1];
   const isWaitingForContent =
     status === "submitted" ||
-    (isStreaming && lastMessage?.role === "assistant" && lastMessage?.parts.length === 0);
+    (isStreaming &&
+      lastMessage?.role === "assistant" &&
+      lastMessage?.parts.length === 0);
 
   // -------------------------------------------------------------------------
   // Auto-scroll on new messages
@@ -469,7 +495,8 @@ export function AIChatBox({
                 {/* Message list */}
                 {messages.map((message, index) => {
                   const isLastAssistant =
-                    index === messages.length - 1 && message.role === "assistant";
+                    index === messages.length - 1 &&
+                    message.role === "assistant";
                   const hasContent = message.parts.length > 0;
 
                   // Skip empty assistant messages (thinking indicator shows instead)
@@ -507,7 +534,7 @@ export function AIChatBox({
             <Textarea
               ref={textareaRef}
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={placeholder}
               className="min-h-[44px] max-h-32 resize-none"

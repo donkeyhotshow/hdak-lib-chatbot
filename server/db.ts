@@ -1,18 +1,35 @@
 import { eq, like, or, and, lt, asc, desc, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { 
-  InsertUser, users, 
-  conversations, Conversation, InsertConversation,
-  messages, Message, InsertMessage,
-  libraryResources, LibraryResource, InsertLibraryResource,
-  libraryContacts, LibraryContact, InsertLibraryContact,
-  libraryInfo, LibraryInfo, InsertLibraryInfo,
-  userQueries, UserQuery, InsertUserQuery,
-  documentChunks, DocumentChunk, InsertDocumentChunk,
-  documentMetadata, DocumentMetadata, InsertDocumentMetadata
+import {
+  InsertUser,
+  users,
+  conversations,
+  Conversation,
+  InsertConversation,
+  messages,
+  Message,
+  InsertMessage,
+  libraryResources,
+  LibraryResource,
+  InsertLibraryResource,
+  libraryContacts,
+  LibraryContact,
+  InsertLibraryContact,
+  libraryInfo,
+  LibraryInfo,
+  InsertLibraryInfo,
+  userQueries,
+  UserQuery,
+  InsertUserQuery,
+  documentChunks,
+  DocumentChunk,
+  InsertDocumentChunk,
+  documentMetadata,
+  DocumentMetadata,
+  InsertDocumentMetadata,
 } from "../drizzle/schema";
-import { ENV } from './_core/env';
-import { logger } from './_core/logger';
+import { ENV } from "./_core/env";
+import { logger } from "./_core/logger";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -41,8 +58,17 @@ const nextResourceId = () => mockState.resourceId++;
 const nextContactId = () => mockState.contactId++;
 const nextInfoId = () => mockState.infoId++;
 // Extract only mutable fields to avoid overwriting immutable identifiers or timestamps during mock updates.
-const getMutableFields = <T extends { id?: unknown; createdAt?: unknown; type?: unknown }>(value: T) => {
-  const { id: _id, createdAt: _createdAt, type: _type, ...mutableFields } = value;
+const getMutableFields = <
+  T extends { id?: unknown; createdAt?: unknown; type?: unknown },
+>(
+  value: T
+) => {
+  const {
+    id: _id,
+    createdAt: _createdAt,
+    type: _type,
+    ...mutableFields
+  } = value;
   return mutableFields;
 };
 const applyResourceNameDefaults = (resource: InsertLibraryResource) => ({
@@ -61,9 +87,12 @@ function ensureMockState() {
       nameEn: "Electronic Catalog",
       nameUk: "Електронний каталог",
       nameRu: "Электронный каталог",
-      descriptionEn: "Search HDAK library holdings by author, title, or subject. Started in 1997 on CDS/ISIS, migrated to AIBIS UFD/Library in 2008. The first Ukrainian e-catalog of music editions was created here.",
-      descriptionUk: "Пошук документів бібліотечного фонду ХДАК за автором, назвою, тематикою. Розпочато у 1997 р. на базі CDS/ISIS, з 2008 р. — АІБС «УФД/Бібліотека».",
-      descriptionRu: "Поиск документов библиотечного фонда ХГАК по автору, названию, тематике. Начат в 1997 г. на базе CDS/ISIS, с 2008 г. — АИБС «УФД/Библиотека».",
+      descriptionEn:
+        "Search HDAK library holdings by author, title, or subject. Started in 1997 on CDS/ISIS, migrated to AIBIS UFD/Library in 2008. The first Ukrainian e-catalog of music editions was created here.",
+      descriptionUk:
+        "Пошук документів бібліотечного фонду ХДАК за автором, назвою, тематикою. Розпочато у 1997 р. на базі CDS/ISIS, з 2008 р. — АІБС «УФД/Бібліотека».",
+      descriptionRu:
+        "Поиск документов библиотечного фонда ХГАК по автору, названию, тематике. Начат в 1997 г. на базе CDS/ISIS, с 2008 г. — АИБС «УФД/Библиотека».",
       type: "catalog",
       url: "https://library-service.com.ua:8443/khkhdak/DocumentSearchForm",
       keywords: ["catalog", "books", "journals", "search", "каталог", "книги"],
@@ -75,12 +104,21 @@ function ensureMockState() {
       nameEn: "HDAK Institutional Repository",
       nameUk: "Інституційний репозитарій ХДАК",
       nameRu: "Институциональный репозиторий ХГАК",
-      descriptionEn: "Full-text publications by HDAK scholars: textbooks, monographs, articles, qualification works, educational materials. Launched on 29 March 2019. Open access.",
-      descriptionUk: "Повнотекстові публікації учених академії: підручники, монографії, статті, кваліфікаційні роботи, навчально-методичні матеріали. Введено в дію 29 березня 2019 р.",
-      descriptionRu: "Полнотекстовые публикации учёных академии: учебники, монографии, статьи, квалификационные работы. Запущен 29 марта 2019 г.",
+      descriptionEn:
+        "Full-text publications by HDAK scholars: textbooks, monographs, articles, qualification works, educational materials. Launched on 29 March 2019. Open access.",
+      descriptionUk:
+        "Повнотекстові публікації учених академії: підручники, монографії, статті, кваліфікаційні роботи, навчально-методичні матеріали. Введено в дію 29 березня 2019 р.",
+      descriptionRu:
+        "Полнотекстовые публикации учёных академии: учебники, монографии, статьи, квалификационные работы. Запущен 29 марта 2019 г.",
       type: "repository",
       url: "https://repository.ac.kharkov.ua/home",
-      keywords: ["repository", "publications", "theses", "репозитарій", "публікації"],
+      keywords: [
+        "repository",
+        "publications",
+        "theses",
+        "репозитарій",
+        "публікації",
+      ],
       createdAt: now,
       updatedAt: now,
     },
@@ -89,12 +127,21 @@ function ensureMockState() {
       nameEn: "Electronic Library 'Culture of Ukraine'",
       nameUk: "Електронна бібліотека «Культура України»",
       nameRu: "Электронная библиотека «Культура Украины»",
-      descriptionEn: "Resource of the National Parliamentary Library of Ukraine with full-text publications. Open access.",
-      descriptionUk: "Ресурс Національної парламентської бібліотеки України з повнотекстовими виданнями. Відкритий доступ.",
-      descriptionRu: "Ресурс Национальной парламентской библиотеки Украины с полнотекстовыми изданиями. Открытый доступ.",
+      descriptionEn:
+        "Resource of the National Parliamentary Library of Ukraine with full-text publications. Open access.",
+      descriptionUk:
+        "Ресурс Національної парламентської бібліотеки України з повнотекстовими виданнями. Відкритий доступ.",
+      descriptionRu:
+        "Ресурс Национальной парламентской библиотеки Украины с полнотекстовыми изданиями. Открытый доступ.",
       type: "electronic_library",
       url: "http://elib.nplu.org/",
-      keywords: ["culture", "Ukraine", "digital library", "культура", "бібліотека"],
+      keywords: [
+        "culture",
+        "Ukraine",
+        "digital library",
+        "культура",
+        "бібліотека",
+      ],
       createdAt: now,
       updatedAt: now,
     },
@@ -103,12 +150,21 @@ function ensureMockState() {
       nameEn: "Scopus",
       nameUk: "Scopus",
       nameRu: "Scopus",
-      descriptionEn: "International abstract and citation database. HDAK scholars have 13 articles in Scopus. Corporate access (academy network or VPN only).",
-      descriptionUk: "Міжнародна наукометрична база даних анотацій та цитувань. Публікації вчених ХДАК у Scopus: 13 статей. Корпоративний доступ (лише з мережі академії або через VPN).",
-      descriptionRu: "Международная наукометрическая база данных. Публикации учёных ХГАК в Scopus: 13 статей. Корпоративный доступ (только из сети академии или через VPN).",
+      descriptionEn:
+        "International abstract and citation database. HDAK scholars have 13 articles in Scopus. Corporate access (academy network or VPN only).",
+      descriptionUk:
+        "Міжнародна наукометрична база даних анотацій та цитувань. Публікації вчених ХДАК у Scopus: 13 статей. Корпоративний доступ (лише з мережі академії або через VPN).",
+      descriptionRu:
+        "Международная наукометрическая база данных. Публикации учёных ХГАК в Scopus: 13 статей. Корпоративный доступ (только из сети академии или через VPN).",
       type: "database",
       url: "https://www.scopus.com/",
-      keywords: ["Scopus", "citations", "international", "VPN", "corporate access"],
+      keywords: [
+        "Scopus",
+        "citations",
+        "international",
+        "VPN",
+        "corporate access",
+      ],
       createdAt: now,
       updatedAt: now,
     },
@@ -117,9 +173,12 @@ function ensureMockState() {
       nameEn: "Web of Science",
       nameUk: "Web of Science",
       nameRu: "Web of Science",
-      descriptionEn: "International citation index. HDAK scholars have 10 articles in Web of Science. Corporate access (academy network or VPN only).",
-      descriptionUk: "Міжнародна наукометрична база даних. Публікації вчених ХДАК у Web of Science: 10 статей. Корпоративний доступ (лише з мережі академії або через VPN).",
-      descriptionRu: "Международная наукометрическая база данных. Публикации учёных ХГАК в Web of Science: 10 статей. Корпоративный доступ.",
+      descriptionEn:
+        "International citation index. HDAK scholars have 10 articles in Web of Science. Corporate access (academy network or VPN only).",
+      descriptionUk:
+        "Міжнародна наукометрична база даних. Публікації вчених ХДАК у Web of Science: 10 статей. Корпоративний доступ (лише з мережі академії або через VPN).",
+      descriptionRu:
+        "Международная наукометрическая база данных. Публикации учёных ХГАК в Web of Science: 10 статей. Корпоративный доступ.",
       type: "database",
       url: "https://www.webofscience.com/",
       keywords: ["Web of Science", "citations", "international", "VPN"],
@@ -131,9 +190,12 @@ function ensureMockState() {
       nameEn: "ScienceDirect (Elsevier)",
       nameUk: "ScienceDirect (Elsevier)",
       nameRu: "ScienceDirect (Elsevier)",
-      descriptionEn: "Full-text articles from Elsevier scientific journals. Corporate access (academy network or VPN only).",
-      descriptionUk: "Повнотекстові статті наукових журналів видавництва Elsevier. Корпоративний доступ (лише з мережі академії або через VPN).",
-      descriptionRu: "Полнотекстовые статьи журналов Elsevier. Корпоративный доступ (только из сети академии или через VPN).",
+      descriptionEn:
+        "Full-text articles from Elsevier scientific journals. Corporate access (academy network or VPN only).",
+      descriptionUk:
+        "Повнотекстові статті наукових журналів видавництва Elsevier. Корпоративний доступ (лише з мережі академії або через VPN).",
+      descriptionRu:
+        "Полнотекстовые статьи журналов Elsevier. Корпоративный доступ (только из сети академии или через VPN).",
       type: "database",
       url: "https://www.sciencedirect.com/",
       keywords: ["Elsevier", "ScienceDirect", "journals", "VPN"],
@@ -145,9 +207,12 @@ function ensureMockState() {
       nameEn: "Springer Link",
       nameUk: "Springer Link",
       nameRu: "Springer Link",
-      descriptionEn: "Full-text resources from Springer portal: journals, books, conference proceedings. Corporate access (academy network or VPN only).",
-      descriptionUk: "Повнотекстові ресурси порталу Springer: журнали, книги, протоколи конференцій. Корпоративний доступ (лише з мережі академії або через VPN).",
-      descriptionRu: "Полнотекстовые ресурсы портала Springer. Корпоративный доступ.",
+      descriptionEn:
+        "Full-text resources from Springer portal: journals, books, conference proceedings. Corporate access (academy network or VPN only).",
+      descriptionUk:
+        "Повнотекстові ресурси порталу Springer: журнали, книги, протоколи конференцій. Корпоративний доступ (лише з мережі академії або через VPN).",
+      descriptionRu:
+        "Полнотекстовые ресурсы портала Springer. Корпоративный доступ.",
       type: "database",
       url: "https://link.springer.com/",
       keywords: ["Springer", "journals", "books", "VPN"],
@@ -159,9 +224,12 @@ function ensureMockState() {
       nameEn: "Research 4 Life",
       nameUk: "Research 4 Life",
       nameRu: "Research 4 Life",
-      descriptionEn: "International programme providing access to scientific and medical literature for educational institutions. Corporate access.",
-      descriptionUk: "Міжнародна програма доступу до наукової та медичної літератури для закладів освіти. Корпоративний доступ.",
-      descriptionRu: "Международная программа доступа к научной и медицинской литературе. Корпоративный доступ.",
+      descriptionEn:
+        "International programme providing access to scientific and medical literature for educational institutions. Corporate access.",
+      descriptionUk:
+        "Міжнародна програма доступу до наукової та медичної літератури для закладів освіти. Корпоративний доступ.",
+      descriptionRu:
+        "Международная программа доступа к научной и медицинской литературе. Корпоративный доступ.",
       type: "database",
       url: "https://login.research4life.org/tacsgr1portal_research4life_org/",
       keywords: ["Research 4 Life", "medical", "scientific literature"],
@@ -207,9 +275,12 @@ function ensureMockState() {
     {
       id: nextInfoId(),
       key: "about",
-      valueEn: "HDAK Library (Kharkiv State Academy of Culture) is one of the oldest and largest libraries in Kharkiv with a rich collection of documents. It provides access to an electronic catalog, institutional repository, and international scientific databases.",
-      valueUk: "Бібліотека ХДАК (Харківська державна академія культури) — одна з найстаріших та найбільших бібліотек Харкова з багатим фондом документів. Надає доступ до електронного каталогу, інституційного репозитарію та міжнародних наукових баз даних.",
-      valueRu: "Библиотека ХДАК (Харьковская государственная академия культуры) — одна из старейших и крупнейших библиотек Харькова с богатым фондом документов. Предоставляет доступ к электронному каталогу, институциональному репозиторию и международным научным базам данных.",
+      valueEn:
+        "HDAK Library (Kharkiv State Academy of Culture) is one of the oldest and largest libraries in Kharkiv with a rich collection of documents. It provides access to an electronic catalog, institutional repository, and international scientific databases.",
+      valueUk:
+        "Бібліотека ХДАК (Харківська державна академія культури) — одна з найстаріших та найбільших бібліотек Харкова з багатим фондом документів. Надає доступ до електронного каталогу, інституційного репозитарію та міжнародних наукових баз даних.",
+      valueRu:
+        "Библиотека ХДАК (Харьковская государственная академия культуры) — одна из старейших и крупнейших библиотек Харькова с богатым фондом документов. Предоставляет доступ к электронному каталогу, институциональному репозиторию и международным научным базам данных.",
       createdAt: now,
       updatedAt: now,
     },
@@ -245,7 +316,9 @@ export async function getDb() {
     try {
       _db = drizzle(process.env.DATABASE_URL);
     } catch (error) {
-      logger.warn("[Database] Failed to connect", { error: error instanceof Error ? error.message : String(error) });
+      logger.warn("[Database] Failed to connect", {
+        error: error instanceof Error ? error.message : String(error),
+      });
       _db = null;
     }
   }
@@ -290,8 +363,8 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       values.role = user.role;
       updateSet.role = user.role;
     } else if (user.openId === ENV.ownerOpenId) {
-      values.role = 'admin';
-      updateSet.role = 'admin';
+      values.role = "admin";
+      updateSet.role = "admin";
     }
 
     if (!values.lastSignedIn) {
@@ -306,7 +379,9 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       set: updateSet,
     });
   } catch (error) {
-    logger.error("[Database] Failed to upsert user", { error: error instanceof Error ? error.message : String(error) });
+    logger.error("[Database] Failed to upsert user", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     throw error;
   }
 }
@@ -318,53 +393,81 @@ export async function getUserByOpenId(openId: string) {
     return undefined;
   }
 
-  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
+  const result = await db
+    .select()
+    .from(users)
+    .where(eq(users.openId, openId))
+    .limit(1);
 
   return result.length > 0 ? result[0] : undefined;
 }
 
 // Conversation helpers
-export async function createConversation(userId: number, title: string, language: string): Promise<Conversation | null> {
+export async function createConversation(
+  userId: number,
+  title: string,
+  language: string
+): Promise<Conversation | null> {
   const db = await getDb();
   if (!db) return null;
-  
+
   try {
     const result = await db.insert(conversations).values({
       userId,
       title,
       language: language as any,
     });
-    
+
     // Get the last inserted ID
     const lastId = (result as any).insertId;
     if (lastId) {
-      const created = await db.select().from(conversations).where(eq(conversations.id, lastId)).limit(1);
+      const created = await db
+        .select()
+        .from(conversations)
+        .where(eq(conversations.id, lastId))
+        .limit(1);
       return created[0] || null;
     }
-    
+
     return null;
   } catch (error) {
-    logger.error("[Database] Error creating conversation:", { error: error instanceof Error ? error.message : String(error) });
+    logger.error("[Database] Error creating conversation:", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return null;
   }
 }
 
-export async function getConversations(userId: number): Promise<Conversation[]> {
+export async function getConversations(
+  userId: number
+): Promise<Conversation[]> {
   const db = await getDb();
   if (!db) return [];
-  
-  return db.select().from(conversations).where(eq(conversations.userId, userId)).orderBy(desc(conversations.createdAt));
+
+  return db
+    .select()
+    .from(conversations)
+    .where(eq(conversations.userId, userId))
+    .orderBy(desc(conversations.createdAt));
 }
 
-export async function getConversation(conversationId: number): Promise<Conversation | null> {
+export async function getConversation(
+  conversationId: number
+): Promise<Conversation | null> {
   const db = await getDb();
   if (!db) return null;
-  
-  const result = await db.select().from(conversations).where(eq(conversations.id, conversationId)).limit(1);
+
+  const result = await db
+    .select()
+    .from(conversations)
+    .where(eq(conversations.id, conversationId))
+    .limit(1);
   return result[0] || null;
 }
 
-export async function deleteConversation(conversationId: number): Promise<boolean> {
+export async function deleteConversation(
+  conversationId: number
+): Promise<boolean> {
   const db = await getDb();
   if (!db) return false;
 
@@ -372,13 +475,19 @@ export async function deleteConversation(conversationId: number): Promise<boolea
     // Wrap in a transaction to ensure both deletes succeed or both fail,
     // preventing orphaned messages if the conversation delete were to fail
     // after messages were already removed.
-    const result = await db.transaction(async (tx) => {
-      await tx.delete(messages).where(eq(messages.conversationId, conversationId));
-      return tx.delete(conversations).where(eq(conversations.id, conversationId));
+    const result = await db.transaction(async tx => {
+      await tx
+        .delete(messages)
+        .where(eq(messages.conversationId, conversationId));
+      return tx
+        .delete(conversations)
+        .where(eq(conversations.id, conversationId));
     });
     return (result as any).affectedRows > 0;
   } catch (error) {
-    logger.error("[Database] Error deleting conversation:", { error: error instanceof Error ? error.message : String(error) });
+    logger.error("[Database] Error deleting conversation:", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return false;
   }
 }
@@ -388,7 +497,9 @@ export async function deleteConversation(conversationId: number): Promise<boolea
  * Intended for scheduled garbage-collection in autonomous / "deploy-and-forget" mode.
  * Returns the number of conversations removed.
  */
-export async function clearOldConversations(days: number = 30): Promise<number> {
+export async function clearOldConversations(
+  days: number = 30
+): Promise<number> {
   const db = await getDb();
   if (!db) return 0;
 
@@ -406,42 +517,57 @@ export async function clearOldConversations(days: number = 30): Promise<number> 
     const ids = old.map(r => r.id);
 
     // Batch-delete messages and conversations atomically inside a transaction.
-    const result = await db.transaction(async (tx) => {
+    const result = await db.transaction(async tx => {
       await tx.delete(messages).where(inArray(messages.conversationId, ids));
       return tx.delete(conversations).where(inArray(conversations.id, ids));
     });
     const deleted = (result as any).affectedRows ?? ids.length;
 
-    logger.info("[Database] clearOldConversations: removed old conversations", { days, removed: deleted });
+    logger.info("[Database] clearOldConversations: removed old conversations", {
+      days,
+      removed: deleted,
+    });
     return deleted;
   } catch (error) {
-    logger.error("[Database] Error in clearOldConversations:", { error: error instanceof Error ? error.message : String(error) });
+    logger.error("[Database] Error in clearOldConversations:", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return 0;
   }
 }
 
 // Message helpers
-export async function createMessage(conversationId: number, role: 'user' | 'assistant', content: string): Promise<Message | null> {
+export async function createMessage(
+  conversationId: number,
+  role: "user" | "assistant",
+  content: string
+): Promise<Message | null> {
   const db = await getDb();
   if (!db) return null;
-  
+
   try {
     const result = await db.insert(messages).values({
       conversationId,
       role,
       content,
     });
-    
+
     // Get the last inserted ID
     const lastId = (result as any).insertId;
     if (lastId) {
-      const created = await db.select().from(messages).where(eq(messages.id, lastId)).limit(1);
+      const created = await db
+        .select()
+        .from(messages)
+        .where(eq(messages.id, lastId))
+        .limit(1);
       return created[0] || null;
     }
-    
+
     return null;
   } catch (error) {
-    logger.error("[Database] Error creating message:", { error: error instanceof Error ? error.message : String(error) });
+    logger.error("[Database] Error creating message:", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return null;
   }
 }
@@ -449,8 +575,12 @@ export async function createMessage(conversationId: number, role: 'user' | 'assi
 export async function getMessages(conversationId: number): Promise<Message[]> {
   const db = await getDb();
   if (!db) return [];
-  
-  return db.select().from(messages).where(eq(messages.conversationId, conversationId)).orderBy(asc(messages.id));
+
+  return db
+    .select()
+    .from(messages)
+    .where(eq(messages.conversationId, conversationId))
+    .orderBy(asc(messages.id));
 }
 
 // Library Resource helpers
@@ -460,11 +590,13 @@ export async function getAllResources(): Promise<LibraryResource[]> {
     ensureMockState();
     return mockState.resources;
   }
-  
+
   return db.select().from(libraryResources);
 }
 
-export async function getResourceByUrl(url: string): Promise<LibraryResource | null> {
+export async function getResourceByUrl(
+  url: string
+): Promise<LibraryResource | null> {
   const db = await getDb();
   if (!db) {
     ensureMockState();
@@ -472,15 +604,24 @@ export async function getResourceByUrl(url: string): Promise<LibraryResource | n
   }
 
   try {
-    const result = await db.select().from(libraryResources).where(eq(libraryResources.url, url)).limit(1);
+    const result = await db
+      .select()
+      .from(libraryResources)
+      .where(eq(libraryResources.url, url))
+      .limit(1);
     return result[0] ?? null;
   } catch (error) {
-    logger.error("[Database] Error getting resource by URL", { error: String(error), url });
+    logger.error("[Database] Error getting resource by URL", {
+      error: String(error),
+      url,
+    });
     return null;
   }
 }
 
-export async function searchResources(query: string): Promise<LibraryResource[]> {
+export async function searchResources(
+  query: string
+): Promise<LibraryResource[]> {
   const db = await getDb();
   if (!db) {
     ensureMockState();
@@ -502,31 +643,44 @@ export async function searchResources(query: string): Promise<LibraryResource[]>
 
   // Escape LIKE wildcard characters so that user input like "%" or "_" is
   // matched literally rather than acting as a SQL wildcard pattern.
-  const escapedQuery = query.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
+  const escapedQuery = query
+    .replace(/\\/g, "\\\\")
+    .replace(/%/g, "\\%")
+    .replace(/_/g, "\\_");
 
-  return db.select().from(libraryResources).where(
-    or(
-      like(libraryResources.nameEn, `%${escapedQuery}%`),
-      like(libraryResources.nameUk, `%${escapedQuery}%`),
-      like(libraryResources.nameRu, `%${escapedQuery}%`),
-      like(libraryResources.descriptionEn, `%${escapedQuery}%`),
-      like(libraryResources.descriptionUk, `%${escapedQuery}%`),
-      like(libraryResources.descriptionRu, `%${escapedQuery}%`)
-    )
-  );
+  return db
+    .select()
+    .from(libraryResources)
+    .where(
+      or(
+        like(libraryResources.nameEn, `%${escapedQuery}%`),
+        like(libraryResources.nameUk, `%${escapedQuery}%`),
+        like(libraryResources.nameRu, `%${escapedQuery}%`),
+        like(libraryResources.descriptionEn, `%${escapedQuery}%`),
+        like(libraryResources.descriptionUk, `%${escapedQuery}%`),
+        like(libraryResources.descriptionRu, `%${escapedQuery}%`)
+      )
+    );
 }
 
-export async function getResourcesByType(type: string): Promise<LibraryResource[]> {
+export async function getResourcesByType(
+  type: string
+): Promise<LibraryResource[]> {
   const db = await getDb();
   if (!db) {
     ensureMockState();
     return mockState.resources.filter(resource => resource.type === type);
   }
-  
-  return db.select().from(libraryResources).where(eq(libraryResources.type, type as any));
+
+  return db
+    .select()
+    .from(libraryResources)
+    .where(eq(libraryResources.type, type as any));
 }
 
-export async function createResource(resource: InsertLibraryResource): Promise<LibraryResource | null> {
+export async function createResource(
+  resource: InsertLibraryResource
+): Promise<LibraryResource | null> {
   const db = await getDb();
   if (!db) {
     ensureMockState();
@@ -547,25 +701,34 @@ export async function createResource(resource: InsertLibraryResource): Promise<L
     mockState.resources.push(created);
     return created;
   }
-  
+
   try {
     const result = await db.insert(libraryResources).values(resource);
-    
+
     // Get the last inserted ID
     const lastId = (result as any).insertId;
     if (lastId) {
-      const created = await db.select().from(libraryResources).where(eq(libraryResources.id, lastId)).limit(1);
+      const created = await db
+        .select()
+        .from(libraryResources)
+        .where(eq(libraryResources.id, lastId))
+        .limit(1);
       return created[0] || null;
     }
-    
+
     return null;
   } catch (error) {
-    logger.error("[Database] Error creating resource:", { error: error instanceof Error ? error.message : String(error) });
+    logger.error("[Database] Error creating resource:", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return null;
   }
 }
 
-export async function updateResource(id: number, resource: Partial<InsertLibraryResource>): Promise<LibraryResource | null> {
+export async function updateResource(
+  id: number,
+  resource: Partial<InsertLibraryResource>
+): Promise<LibraryResource | null> {
   const db = await getDb();
   if (!db) {
     ensureMockState();
@@ -577,15 +740,27 @@ export async function updateResource(id: number, resource: Partial<InsertLibrary
       ...mutableFields,
       updatedAt: new Date(),
     };
-    mockState.resources = mockState.resources.map(r => r.id === id ? updated : r);
+    mockState.resources = mockState.resources.map(r =>
+      r.id === id ? updated : r
+    );
     return updated;
   }
-  
+
   try {
-    await db.update(libraryResources).set(resource).where(eq(libraryResources.id, id));
-    return db.select().from(libraryResources).where(eq(libraryResources.id, id)).limit(1).then(r => r[0] || null);
+    await db
+      .update(libraryResources)
+      .set(resource)
+      .where(eq(libraryResources.id, id));
+    return db
+      .select()
+      .from(libraryResources)
+      .where(eq(libraryResources.id, id))
+      .limit(1)
+      .then(r => r[0] || null);
   } catch (error) {
-    logger.error("[Database] Error updating resource:", { error: error instanceof Error ? error.message : String(error) });
+    logger.error("[Database] Error updating resource:", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return null;
   }
 }
@@ -598,12 +773,16 @@ export async function deleteResource(id: number): Promise<boolean> {
     mockState.resources = mockState.resources.filter(r => r.id !== id);
     return mockState.resources.length < before;
   }
-  
+
   try {
-    const result = await db.delete(libraryResources).where(eq(libraryResources.id, id));
+    const result = await db
+      .delete(libraryResources)
+      .where(eq(libraryResources.id, id));
     return (result as any).affectedRows > 0;
   } catch (error) {
-    logger.error("[Database] Error deleting resource:", { error: error instanceof Error ? error.message : String(error) });
+    logger.error("[Database] Error deleting resource:", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return false;
   }
 }
@@ -615,11 +794,13 @@ export async function getAllContacts(): Promise<LibraryContact[]> {
     ensureMockState();
     return mockState.contacts;
   }
-  
+
   return db.select().from(libraryContacts);
 }
 
-export async function createContact(contact: InsertLibraryContact): Promise<LibraryContact | null> {
+export async function createContact(
+  contact: InsertLibraryContact
+): Promise<LibraryContact | null> {
   const db = await getDb();
   if (!db) {
     ensureMockState();
@@ -637,25 +818,34 @@ export async function createContact(contact: InsertLibraryContact): Promise<Libr
     mockState.contacts.push(created);
     return created;
   }
-  
+
   try {
     const result = await db.insert(libraryContacts).values(contact);
-    
+
     // Get the last inserted ID
     const lastId = (result as any).insertId;
     if (lastId) {
-      const created = await db.select().from(libraryContacts).where(eq(libraryContacts.id, lastId)).limit(1);
+      const created = await db
+        .select()
+        .from(libraryContacts)
+        .where(eq(libraryContacts.id, lastId))
+        .limit(1);
       return created[0] || null;
     }
-    
+
     return null;
   } catch (error) {
-    logger.error("[Database] Error creating contact:", { error: error instanceof Error ? error.message : String(error) });
+    logger.error("[Database] Error creating contact:", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return null;
   }
 }
 
-export async function updateContact(id: number, contact: Partial<InsertLibraryContact>): Promise<LibraryContact | null> {
+export async function updateContact(
+  id: number,
+  contact: Partial<InsertLibraryContact>
+): Promise<LibraryContact | null> {
   const db = await getDb();
   if (!db) {
     ensureMockState();
@@ -667,15 +857,27 @@ export async function updateContact(id: number, contact: Partial<InsertLibraryCo
       ...mutableFields,
       updatedAt: new Date(),
     };
-    mockState.contacts = mockState.contacts.map(c => c.id === id ? updated : c);
+    mockState.contacts = mockState.contacts.map(c =>
+      c.id === id ? updated : c
+    );
     return updated;
   }
-  
+
   try {
-    await db.update(libraryContacts).set(contact).where(eq(libraryContacts.id, id));
-    return db.select().from(libraryContacts).where(eq(libraryContacts.id, id)).limit(1).then(r => r[0] || null);
+    await db
+      .update(libraryContacts)
+      .set(contact)
+      .where(eq(libraryContacts.id, id));
+    return db
+      .select()
+      .from(libraryContacts)
+      .where(eq(libraryContacts.id, id))
+      .limit(1)
+      .then(r => r[0] || null);
   } catch (error) {
-    logger.error("[Database] Error updating contact:", { error: error instanceof Error ? error.message : String(error) });
+    logger.error("[Database] Error updating contact:", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return null;
   }
 }
@@ -688,12 +890,16 @@ export async function deleteContact(id: number): Promise<boolean> {
     mockState.contacts = mockState.contacts.filter(c => c.id !== id);
     return mockState.contacts.length < before;
   }
-  
+
   try {
-    const result = await db.delete(libraryContacts).where(eq(libraryContacts.id, id));
+    const result = await db
+      .delete(libraryContacts)
+      .where(eq(libraryContacts.id, id));
     return (result as any).affectedRows > 0;
   } catch (error) {
-    logger.error("[Database] Error deleting contact:", { error: error instanceof Error ? error.message : String(error) });
+    logger.error("[Database] Error deleting contact:", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return false;
   }
 }
@@ -705,12 +911,21 @@ export async function getLibraryInfo(key: string): Promise<LibraryInfo | null> {
     ensureMockState();
     return mockState.info.find(item => item.key === key) ?? null;
   }
-  
-  const result = await db.select().from(libraryInfo).where(eq(libraryInfo.key, key)).limit(1);
+
+  const result = await db
+    .select()
+    .from(libraryInfo)
+    .where(eq(libraryInfo.key, key))
+    .limit(1);
   return result[0] || null;
 }
 
-export async function setLibraryInfo(key: string, valueEn: string, valueUk: string, valueRu: string): Promise<LibraryInfo | null> {
+export async function setLibraryInfo(
+  key: string,
+  valueEn: string,
+  valueUk: string,
+  valueRu: string
+): Promise<LibraryInfo | null> {
   const db = await getDb();
   if (!db) {
     ensureMockState();
@@ -724,7 +939,9 @@ export async function setLibraryInfo(key: string, valueEn: string, valueUk: stri
         valueRu,
         updatedAt: now,
       };
-      mockState.info = mockState.info.map(item => item.key === key ? updated : item);
+      mockState.info = mockState.info.map(item =>
+        item.key === key ? updated : item
+      );
       return updated;
     }
     const created: LibraryInfo = {
@@ -739,24 +956,40 @@ export async function setLibraryInfo(key: string, valueEn: string, valueUk: stri
     mockState.info.push(created);
     return created;
   }
-  
+
   try {
     const existing = await getLibraryInfo(key);
-    
+
     if (existing) {
-      await db.update(libraryInfo).set({ valueEn, valueUk, valueRu }).where(eq(libraryInfo.key, key));
-      return db.select().from(libraryInfo).where(eq(libraryInfo.key, key)).limit(1).then(r => r[0] || null);
+      await db
+        .update(libraryInfo)
+        .set({ valueEn, valueUk, valueRu })
+        .where(eq(libraryInfo.key, key));
+      return db
+        .select()
+        .from(libraryInfo)
+        .where(eq(libraryInfo.key, key))
+        .limit(1)
+        .then(r => r[0] || null);
     } else {
-      const result = await db.insert(libraryInfo).values({ key, valueEn, valueUk, valueRu });
+      const result = await db
+        .insert(libraryInfo)
+        .values({ key, valueEn, valueUk, valueRu });
       const lastId = (result as any).insertId;
       if (lastId) {
-        const created = await db.select().from(libraryInfo).where(eq(libraryInfo.id, lastId)).limit(1);
+        const created = await db
+          .select()
+          .from(libraryInfo)
+          .where(eq(libraryInfo.id, lastId))
+          .limit(1);
         return created[0] || null;
       }
       return null;
     }
   } catch (error) {
-    logger.error("[Database] Error setting library info:", { error: error instanceof Error ? error.message : String(error) });
+    logger.error("[Database] Error setting library info:", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return null;
   }
 }
@@ -771,54 +1004,77 @@ export async function getAllLibraryInfo(): Promise<LibraryInfo[]> {
 }
 
 // User Query logging
-export async function logUserQuery(userId: number | null, conversationId: number | null, query: string, language: string, resourcesReturned: any = null): Promise<UserQuery | null> {
+export async function logUserQuery(
+  userId: number | null,
+  conversationId: number | null,
+  query: string,
+  language: string,
+  resourcesReturned: any = null
+): Promise<UserQuery | null> {
   const db = await getDb();
   if (!db) return null;
-  
+
   try {
     const result = await db.insert(userQueries).values({
       userId,
       conversationId,
       query,
       language: language as any,
-      resourcesReturned: resourcesReturned ? JSON.stringify(resourcesReturned) : null,
+      resourcesReturned: resourcesReturned
+        ? JSON.stringify(resourcesReturned)
+        : null,
     });
-    
+
     // Get the last inserted ID
     const lastId = (result as any).insertId;
     if (lastId) {
-      const created = await db.select().from(userQueries).where(eq(userQueries.id, lastId)).limit(1);
+      const created = await db
+        .select()
+        .from(userQueries)
+        .where(eq(userQueries.id, lastId))
+        .limit(1);
       return created[0] || null;
     }
-    
+
     return null;
   } catch (error) {
-    logger.error("[Database] Error logging user query:", { error: error instanceof Error ? error.message : String(error) });
+    logger.error("[Database] Error logging user query:", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return null;
   }
 }
 
-
 // Document Chunks functions
-export async function createDocumentChunk(chunk: InsertDocumentChunk): Promise<DocumentChunk | null> {
+export async function createDocumentChunk(
+  chunk: InsertDocumentChunk
+): Promise<DocumentChunk | null> {
   const db = await getDb();
   if (!db) return null;
-  
+
   try {
     const result = await db.insert(documentChunks).values(chunk);
     const lastId = (result as any).insertId;
     if (lastId) {
-      const created = await db.select().from(documentChunks).where(eq(documentChunks.id, lastId)).limit(1);
+      const created = await db
+        .select()
+        .from(documentChunks)
+        .where(eq(documentChunks.id, lastId))
+        .limit(1);
       return created[0] || null;
     }
     return null;
   } catch (error) {
-    logger.error("[Database] Error creating document chunk:", { error: error instanceof Error ? error.message : String(error) });
+    logger.error("[Database] Error creating document chunk:", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return null;
   }
 }
 
-export async function getDocumentChunks(language?: string): Promise<DocumentChunk[]> {
+export async function getDocumentChunks(
+  language?: string
+): Promise<DocumentChunk[]> {
   const db = await getDb();
   if (!db) return [];
 
@@ -842,64 +1098,97 @@ export async function getDocumentChunks(language?: string): Promise<DocumentChun
       .orderBy(desc(documentChunks.createdAt))
       .limit(CHUNK_LIMIT);
   } catch (error) {
-    logger.error("[Database] Error getting document chunks:", { error: error instanceof Error ? error.message : String(error) });
+    logger.error("[Database] Error getting document chunks:", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return [];
   }
 }
 
-export async function getDocumentChunksByDocument(documentId: string): Promise<DocumentChunk[]> {
+export async function getDocumentChunksByDocument(
+  documentId: string
+): Promise<DocumentChunk[]> {
   const db = await getDb();
   if (!db) return [];
-  
+
   try {
-    return await db.select().from(documentChunks).where(eq(documentChunks.documentId, documentId));
+    return await db
+      .select()
+      .from(documentChunks)
+      .where(eq(documentChunks.documentId, documentId));
   } catch (error) {
-    logger.error("[Database] Error getting document chunks by document:", { error: error instanceof Error ? error.message : String(error) });
+    logger.error("[Database] Error getting document chunks by document:", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return [];
   }
 }
 
 // Document Metadata functions
-export async function createDocumentMetadata(metadata: InsertDocumentMetadata): Promise<DocumentMetadata | null> {
+export async function createDocumentMetadata(
+  metadata: InsertDocumentMetadata
+): Promise<DocumentMetadata | null> {
   const db = await getDb();
   if (!db) return null;
-  
+
   try {
     const result = await db.insert(documentMetadata).values(metadata);
     const lastId = (result as any).insertId;
     if (lastId) {
-      const created = await db.select().from(documentMetadata).where(eq(documentMetadata.id, lastId)).limit(1);
+      const created = await db
+        .select()
+        .from(documentMetadata)
+        .where(eq(documentMetadata.id, lastId))
+        .limit(1);
       return created[0] || null;
     }
     return null;
   } catch (error) {
-    logger.error("[Database] Error creating document metadata:", { error: error instanceof Error ? error.message : String(error) });
+    logger.error("[Database] Error creating document metadata:", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return null;
   }
 }
 
-export async function getDocumentMetadata(documentId: string): Promise<DocumentMetadata | null> {
+export async function getDocumentMetadata(
+  documentId: string
+): Promise<DocumentMetadata | null> {
   const db = await getDb();
   if (!db) return null;
-  
+
   try {
-    const result = await db.select().from(documentMetadata).where(eq(documentMetadata.documentId, documentId)).limit(1);
+    const result = await db
+      .select()
+      .from(documentMetadata)
+      .where(eq(documentMetadata.documentId, documentId))
+      .limit(1);
     return result[0] || null;
   } catch (error) {
-    logger.error("[Database] Error getting document metadata:", { error: error instanceof Error ? error.message : String(error) });
+    logger.error("[Database] Error getting document metadata:", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return null;
   }
 }
 
-export async function updateDocumentMetadata(documentId: string, updates: Partial<InsertDocumentMetadata>): Promise<DocumentMetadata | null> {
+export async function updateDocumentMetadata(
+  documentId: string,
+  updates: Partial<InsertDocumentMetadata>
+): Promise<DocumentMetadata | null> {
   const db = await getDb();
   if (!db) return null;
-  
+
   try {
-    await db.update(documentMetadata).set(updates).where(eq(documentMetadata.documentId, documentId));
+    await db
+      .update(documentMetadata)
+      .set(updates)
+      .where(eq(documentMetadata.documentId, documentId));
     return getDocumentMetadata(documentId);
   } catch (error) {
-    logger.error("[Database] Error updating document metadata:", { error: error instanceof Error ? error.message : String(error) });
+    logger.error("[Database] Error updating document metadata:", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return null;
   }
 }
@@ -907,24 +1196,32 @@ export async function updateDocumentMetadata(documentId: string, updates: Partia
 export async function getAllDocumentMetadata(): Promise<DocumentMetadata[]> {
   const db = await getDb();
   if (!db) return [];
-  
+
   try {
     return await db.select().from(documentMetadata);
   } catch (error) {
-    logger.error("[Database] Error getting all document metadata:", { error: error instanceof Error ? error.message : String(error) });
+    logger.error("[Database] Error getting all document metadata:", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return [];
   }
 }
 
-export async function deleteDocumentChunks(documentId: string): Promise<boolean> {
+export async function deleteDocumentChunks(
+  documentId: string
+): Promise<boolean> {
   const db = await getDb();
   if (!db) return false;
-  
+
   try {
-    await db.delete(documentChunks).where(eq(documentChunks.documentId, documentId));
+    await db
+      .delete(documentChunks)
+      .where(eq(documentChunks.documentId, documentId));
     return true;
   } catch (error) {
-    logger.error("[Database] Error deleting document chunks:", { error: error instanceof Error ? error.message : String(error) });
+    logger.error("[Database] Error deleting document chunks:", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return false;
   }
 }
@@ -965,14 +1262,18 @@ export async function getQueryAnalytics(limit = 20): Promise<{
       .slice(0, limit)
       .map(([query, count]) => ({ query, count }));
 
-    const languageBreakdown = Object.entries(langCounts).map(([language, count]) => ({
-      language,
-      count,
-    }));
+    const languageBreakdown = Object.entries(langCounts).map(
+      ([language, count]) => ({
+        language,
+        count,
+      })
+    );
 
     return { topQueries, languageBreakdown, totalQueries };
   } catch (error) {
-    logger.error("[Database] Error getting query analytics", { error: String(error) });
+    logger.error("[Database] Error getting query analytics", {
+      error: String(error),
+    });
     return { topQueries: [], languageBreakdown: [], totalQueries: 0 };
   }
 }

@@ -8,6 +8,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [Unreleased]
 
 ### Added
+
 - Zod schema for `process.env` validation in `server/_core/env.ts` — prevents startup with missing secrets
 - `/api/ready` readiness probe endpoint — returns `{ ready: true }` when critical environment variables are present, `503` otherwise
 - CI pipeline (`.github/workflows/ci.yml`) with type-check, format-check, test with coverage upload, build, and Docker build stages
@@ -16,6 +17,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [1.0.0-alpha] — 2026-03-11
 
 ### Added
+
 - Initial production-grade chatbot for KSAC library with MySQL database integration
 - AI-powered RAG (Retrieval-Augmented Generation) pipeline using OpenAI embeddings
 - Streaming chat via `ai` SDK (`/api/chat`)

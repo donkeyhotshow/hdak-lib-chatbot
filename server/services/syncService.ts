@@ -58,7 +58,11 @@ export function parseResourcesFromHtml(html: string): ParsedResource[] {
         type = "catalog";
       } else if (href.includes("repository") || href.includes("репозитор")) {
         type = "repository";
-      } else if (href.includes("scopus") || href.includes("webofscience") || href.includes("doaj")) {
+      } else if (
+        href.includes("scopus") ||
+        href.includes("webofscience") ||
+        href.includes("doaj")
+      ) {
         type = "database";
       } else if (href.includes("elib") || href.includes("e-library")) {
         type = "electronic_library";
@@ -90,7 +94,9 @@ async function fetchCatalogHtml(): Promise<string> {
     headers: { "User-Agent": "HDAK-LibBot-Sync/1.0" },
   });
   if (!response.ok) {
-    throw new Error(`Catalog fetch failed: ${response.status} ${response.statusText}`);
+    throw new Error(
+      `Catalog fetch failed: ${response.status} ${response.statusText}`
+    );
   }
   return response.text();
 }
@@ -132,8 +138,15 @@ export async function runSync(): Promise<{ synced: number; errors: string[] }> {
       html = await fetchCatalogHtml();
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      logger.error("[syncService] Failed to fetch catalog HTML", { error: msg });
-      _lastSyncStatus = { success: false, timestamp: new Date(), synced: 0, errors: [msg] };
+      logger.error("[syncService] Failed to fetch catalog HTML", {
+        error: msg,
+      });
+      _lastSyncStatus = {
+        success: false,
+        timestamp: new Date(),
+        synced: 0,
+        errors: [msg],
+      };
       return { synced: 0, errors: [msg] };
     }
 
@@ -149,7 +162,12 @@ export async function runSync(): Promise<{ synced: number; errors: string[] }> {
       if (existing.length > 0) {
         const msg = `[SYNC] Sanity check failed: catalog page returned 0 resources but DB has ${existing.length}. Possible parse error or site outage. Skipping sync.`;
         logger.warn(msg);
-        _lastSyncStatus = { success: false, timestamp: new Date(), synced: 0, errors: [msg] };
+        _lastSyncStatus = {
+          success: false,
+          timestamp: new Date(),
+          synced: 0,
+          errors: [msg],
+        };
         return { synced: 0, errors: [msg] };
       }
     }
@@ -169,7 +187,9 @@ export async function runSync(): Promise<{ synced: number; errors: string[] }> {
             url: resource.url,
           });
           synced++;
-          logger.info(`[syncService] Synced resource: ${resource.nameUk}`, { url: resource.url });
+          logger.info(`[syncService] Synced resource: ${resource.nameUk}`, {
+            url: resource.url,
+          });
         }
       } catch (err) {
         const msg = `Failed to sync "${resource.nameUk}": ${err instanceof Error ? err.message : String(err)}`;
@@ -185,9 +205,13 @@ export async function runSync(): Promise<{ synced: number; errors: string[] }> {
       // New data was added — invalidate the AI reply cache so responses reflect
       // the updated catalog rather than returning stale cached answers.
       clearReplyCache();
-      logger.milestone(`[SYNC] Catalog sync complete: ${synced} new resources added — reply cache cleared`);
+      logger.milestone(
+        `[SYNC] Catalog sync complete: ${synced} new resources added — reply cache cleared`
+      );
     } else {
-      logger.info(`[SYNC] Catalog sync complete. synced=${synced} errors=${errors.length}`);
+      logger.info(
+        `[SYNC] Catalog sync complete. synced=${synced} errors=${errors.length}`
+      );
     }
 
     return { synced, errors };
@@ -226,7 +250,9 @@ export function getLastSyncStatus(): {
 }
 
 /** Start the periodic background synchronisation scheduler. */
-export function startSyncScheduler(intervalMs: number = DEFAULT_INTERVAL_MS): void {
+export function startSyncScheduler(
+  intervalMs: number = DEFAULT_INTERVAL_MS
+): void {
   if (_syncTimer) return; // already running
 
   // Run once at startup (fire-and-forget; do not crash the server on error).
@@ -236,7 +262,9 @@ export function startSyncScheduler(intervalMs: number = DEFAULT_INTERVAL_MS): vo
 
   _syncTimer = setInterval(() => {
     runSync().catch(err =>
-      logger.error("[syncService] Scheduled sync failed", { error: String(err) })
+      logger.error("[syncService] Scheduled sync failed", {
+        error: String(err),
+      })
     );
   }, intervalMs);
 

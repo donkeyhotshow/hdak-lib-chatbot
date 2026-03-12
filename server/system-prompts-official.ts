@@ -92,7 +92,8 @@ export const hdakResources: SiteResource[] = [
   {
     name: "Електронна бібліотека «Культура України»",
     type: "electronic_library",
-    description: "Ресурс Національної парламентської бібліотеки України з повнотекстовими виданнями.",
+    description:
+      "Ресурс Національної парламентської бібліотеки України з повнотекстовими виданнями.",
     url: "http://elib.nplu.org/",
     accessConditions: "відкритий доступ",
   },
@@ -102,7 +103,8 @@ export const hdakResources: SiteResource[] = [
     description:
       "Міжнародна наукометрична база даних анотацій та цитувань. Публікації вчених ХДАК у Scopus: 13 статей.",
     url: "https://www.scopus.com/",
-    accessConditions: "корпоративний доступ (лише з мережі академії або через VPN)",
+    accessConditions:
+      "корпоративний доступ (лише з мережі академії або через VPN)",
   },
   {
     name: "Web of Science",
@@ -110,28 +112,34 @@ export const hdakResources: SiteResource[] = [
     description:
       "Міжнародна наукометрична база даних. Публікації вчених ХДАК у Web of Science: 10 статей.",
     url: "https://www.webofscience.com/",
-    accessConditions: "корпоративний доступ (лише з мережі академії або через VPN)",
+    accessConditions:
+      "корпоративний доступ (лише з мережі академії або через VPN)",
   },
   {
     name: "ScienceDirect (Elsevier)",
     type: "database",
     description: "Повнотекстові статті наукових журналів видавництва Elsevier.",
     url: "https://www.sciencedirect.com/",
-    accessConditions: "корпоративний доступ (лише з мережі академії або через VPN)",
+    accessConditions:
+      "корпоративний доступ (лише з мережі академії або через VPN)",
   },
   {
     name: "Springer Link",
     type: "database",
-    description: "Повнотекстові ресурси порталу Springer: журнали, книги, протоколи конференцій.",
+    description:
+      "Повнотекстові ресурси порталу Springer: журнали, книги, протоколи конференцій.",
     url: "https://link.springer.com/",
-    accessConditions: "корпоративний доступ (лише з мережі академії або через VPN)",
+    accessConditions:
+      "корпоративний доступ (лише з мережі академії або через VPN)",
   },
   {
     name: "Research 4 Life",
     type: "database",
-    description: "Міжнародна програма доступу до наукової та медичної літератури для закладів освіти.",
+    description:
+      "Міжнародна програма доступу до наукової та медичної літератури для закладів освіти.",
     url: "https://login.research4life.org/tacsgr1portal_research4life_org/",
-    accessConditions: "корпоративний доступ (лише з мережі академії або через VPN)",
+    accessConditions:
+      "корпоративний доступ (лише з мережі академії або через VPN)",
   },
   {
     name: "Артефактні книжкові видання (фонд рідкісних видань)",
@@ -158,7 +166,8 @@ export const hdakResources: SiteResource[] = [
   {
     name: "Офіційний сайт бібліотеки ХДАК",
     type: "other",
-    description: "Головна сторінка бібліотеки: новини, структура, послуги, контакти.",
+    description:
+      "Головна сторінка бібліотеки: новини, структура, послуги, контакти.",
     url: "https://lib-hdak.in.ua/",
     accessConditions: "відкритий доступ",
   },
@@ -168,7 +177,7 @@ export const hdakResources: SiteResource[] = [
 function formatResources(resources: SiteResource[]): string {
   return resources
     .map(
-      (r) =>
+      r =>
         `• ${r.name}\n  Тип: ${r.type}\n  Опис: ${r.description}\n  URL: ${r.url}\n  Доступ: ${r.accessConditions}`
     )
     .join("\n\n");
@@ -364,16 +373,20 @@ export const officialLibraryInfo = {
     email: "library@hdak.edu.ua",
     phone: "+38 (057) XXX-XX-XX",
     working_hours: "Пн-Пт: 9:00 - 17:00, Сб-Нд: Вихідний",
-    rules: "Користування бібліотекою безкоштовне для студентів та викладачів ХДАК.",
-    about: "Бібліотека ХДАК - одна з найстаріших та найбільших бібліотек Харкова з багатим фондом документів.",
+    rules:
+      "Користування бібліотекою безкоштовне для студентів та викладачів ХДАК.",
+    about:
+      "Бібліотека ХДАК - одна з найстаріших та найбільших бібліотек Харкова з багатим фондом документів.",
   },
   ru: {
     address: "ул. Бурсацкий узвоз, 4, Харьков, Украина",
     email: "library@hdak.edu.ua",
     phone: "+38 (057) XXX-XX-XX",
     working_hours: "Пн-Пт: 9:00 - 17:00, Сб-Вс: Выходной",
-    rules: "Пользование библиотекой бесплатно для студентов и преподавателей KSAC.",
-    about: "Библиотека KSAC - одна из старейших и крупнейших библиотек Харькова с богатым фондом документов.",
+    rules:
+      "Пользование библиотекой бесплатно для студентов и преподавателей KSAC.",
+    about:
+      "Библиотека KSAC - одна из старейших и крупнейших библиотек Харькова с богатым фондом документов.",
   },
   en: {
     address: "Bursatskyi Uzviz St., 4, Kharkiv, Ukraine",
@@ -381,7 +394,8 @@ export const officialLibraryInfo = {
     phone: "+38 (057) XXX-XX-XX",
     working_hours: "Mon-Fri: 9:00 - 17:00, Sat-Sun: Closed",
     rules: "Library access is free for HDAK students and faculty.",
-    about: "HDAK Library is one of the oldest and largest libraries in Kharkiv with a rich collection of documents.",
+    about:
+      "HDAK Library is one of the oldest and largest libraries in Kharkiv with a rich collection of documents.",
   },
 };
 
@@ -400,7 +414,8 @@ export const officialLibraryResources = {
     {
       name: "Інституційний репозитарій ХДАК",
       url: "https://repository.ac.kharkov.ua/home",
-      description: "Повнотекстові публікації учених академії (відкритий доступ)",
+      description:
+        "Повнотекстові публікації учених академії (відкритий доступ)",
     },
     {
       name: "Електронна бібліотека «Культура України»",
@@ -420,17 +435,20 @@ export const officialLibraryResources = {
     {
       name: "ScienceDirect",
       url: "https://www.sciencedirect.com/",
-      description: "Повнотекстові статті журналів Elsevier (корпоративний доступ)",
+      description:
+        "Повнотекстові статті журналів Elsevier (корпоративний доступ)",
     },
     {
       name: "Springer Link",
       url: "https://link.springer.com/",
-      description: "Повнотекстові ресурси порталу Springer (корпоративний доступ)",
+      description:
+        "Повнотекстові ресурси порталу Springer (корпоративний доступ)",
     },
     {
       name: "Research 4 Life",
       url: "https://login.research4life.org/tacsgr1portal_research4life_org/",
-      description: "Програма доступу до наукової літератури (корпоративний доступ)",
+      description:
+        "Програма доступу до наукової літератури (корпоративний доступ)",
     },
   ],
   ru: [
@@ -447,7 +465,8 @@ export const officialLibraryResources = {
     {
       name: "Институциональный репозиторий ХГАК",
       url: "https://repository.ac.kharkov.ua/home",
-      description: "Полнотекстовые публикации учёных академии (открытый доступ)",
+      description:
+        "Полнотекстовые публикации учёных академии (открытый доступ)",
     },
     {
       name: "Электронная библиотека «Культура Украины»",
@@ -467,17 +486,20 @@ export const officialLibraryResources = {
     {
       name: "ScienceDirect",
       url: "https://www.sciencedirect.com/",
-      description: "Полнотекстовые статьи журналов Elsevier (корпоративный доступ)",
+      description:
+        "Полнотекстовые статьи журналов Elsevier (корпоративный доступ)",
     },
     {
       name: "Springer Link",
       url: "https://link.springer.com/",
-      description: "Полнотекстовые ресурсы портала Springer (корпоративный доступ)",
+      description:
+        "Полнотекстовые ресурсы портала Springer (корпоративный доступ)",
     },
     {
       name: "Research 4 Life",
       url: "https://login.research4life.org/tacsgr1portal_research4life_org/",
-      description: "Программа доступа к научной литературе (корпоративный доступ)",
+      description:
+        "Программа доступа к научной литературе (корпоративный доступ)",
     },
   ],
   en: [
@@ -504,7 +526,8 @@ export const officialLibraryResources = {
     {
       name: "Scopus",
       url: "https://www.scopus.com/",
-      description: "International abstract and citation database (corporate access)",
+      description:
+        "International abstract and citation database (corporate access)",
     },
     {
       name: "Web of Science",
@@ -514,17 +537,20 @@ export const officialLibraryResources = {
     {
       name: "ScienceDirect",
       url: "https://www.sciencedirect.com/",
-      description: "Full-text scientific journal articles by Elsevier (corporate access)",
+      description:
+        "Full-text scientific journal articles by Elsevier (corporate access)",
     },
     {
       name: "Springer Link",
       url: "https://link.springer.com/",
-      description: "Full-text resources from Springer portal (corporate access)",
+      description:
+        "Full-text resources from Springer portal (corporate access)",
     },
     {
       name: "Research 4 Life",
       url: "https://login.research4life.org/tacsgr1portal_research4life_org/",
-      description: "Programme providing access to scientific literature (corporate access)",
+      description:
+        "Programme providing access to scientific literature (corporate access)",
     },
   ],
 };

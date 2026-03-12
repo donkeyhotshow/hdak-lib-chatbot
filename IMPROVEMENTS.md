@@ -7,6 +7,7 @@
 **Current State**: Error handling is inconsistent across the codebase.
 
 **Recommendations**:
+
 - Create a centralized error handling middleware
 - Define custom error classes for different scenarios
 - Implement proper error recovery strategies
@@ -21,25 +22,25 @@ export class AppError extends Error {
     public details?: Record<string, any>
   ) {
     super(message);
-    this.name = 'AppError';
+    this.name = "AppError";
   }
 }
 
 export class ValidationError extends AppError {
   constructor(message: string, details?: Record<string, any>) {
-    super('VALIDATION_ERROR', 400, message, details);
+    super("VALIDATION_ERROR", 400, message, details);
   }
 }
 
 export class NotFoundError extends AppError {
   constructor(resource: string) {
-    super('NOT_FOUND', 404, `${resource} not found`);
+    super("NOT_FOUND", 404, `${resource} not found`);
   }
 }
 
 export class UnauthorizedError extends AppError {
-  constructor(message = 'Unauthorized') {
-    super('UNAUTHORIZED', 401, message);
+  constructor(message = "Unauthorized") {
+    super("UNAUTHORIZED", 401, message);
   }
 }
 ```
@@ -49,15 +50,16 @@ export class UnauthorizedError extends AppError {
 **Current State**: Database connection is created once but not managed properly.
 
 **Recommendations**:
+
 ```typescript
 // server/_core/db.ts
-import { createPool } from 'mysql2/promise';
+import { createPool } from "mysql2/promise";
 
 let pool: Pool | null = null;
 
 export async function getDbPool(): Promise<Pool> {
   if (pool) return pool;
-  
+
   pool = await createPool({
     host: ENV.databaseHost,
     user: ENV.databaseUser,
@@ -67,7 +69,7 @@ export async function getDbPool(): Promise<Pool> {
     connectionLimit: 10,
     queueLimit: 0,
   });
-  
+
   return pool;
 }
 
@@ -84,18 +86,19 @@ export async function closeDbPool(): Promise<void> {
 **Current State**: Simple in-memory cache for AI responses.
 
 **Recommendations**:
+
 - Implement Redis for distributed caching
 - Add cache invalidation strategies
 - Monitor cache hit rates
 
 ```typescript
 // server/_core/cache.ts
-import Redis from 'ioredis';
+import Redis from "ioredis";
 
 const redis = new Redis({
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379'),
-  retryStrategy: (times) => Math.min(times * 50, 2000),
+  host: process.env.REDIS_HOST || "localhost",
+  port: parseInt(process.env.REDIS_PORT || "6379"),
+  retryStrategy: times => Math.min(times * 50, 2000),
 });
 
 export async function getCached<T>(key: string): Promise<T | null> {
@@ -103,7 +106,11 @@ export async function getCached<T>(key: string): Promise<T | null> {
   return cached ? JSON.parse(cached) : null;
 }
 
-export async function setCached<T>(key: string, value: T, ttl = 3600): Promise<void> {
+export async function setCached<T>(
+  key: string,
+  value: T,
+  ttl = 3600
+): Promise<void> {
   await redis.setex(key, ttl, JSON.stringify(value));
 }
 
@@ -120,28 +127,34 @@ export async function invalidateCache(pattern: string): Promise<void> {
 **Current State**: Document processing is synchronous and could block requests.
 
 **Recommendations**:
+
 - Implement Bull or BullMQ for job queuing
 - Process documents asynchronously
 - Add progress tracking
 
 ```typescript
 // server/services/jobQueue.ts
-import Queue from 'bull';
+import Queue from "bull";
 
-export const documentProcessingQueue = new Queue('document-processing', {
+export const documentProcessingQueue = new Queue("document-processing", {
   redis: {
-    host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT || '6379'),
+    host: process.env.REDIS_HOST || "localhost",
+    port: parseInt(process.env.REDIS_PORT || "6379"),
   },
 });
 
-documentProcessingQueue.process(async (job) => {
+documentProcessingQueue.process(async job => {
   const { documentId, title, content, sourceType } = job.data;
-  
+
   job.progress(10);
-  
+
   try {
-    const result = await processDocument(documentId, title, content, sourceType);
+    const result = await processDocument(
+      documentId,
+      title,
+      content,
+      sourceType
+    );
     job.progress(100);
     return result;
   } catch (error) {
@@ -151,16 +164,16 @@ documentProcessingQueue.process(async (job) => {
 });
 
 // In API endpoint
-app.post('/api/documents/upload', async (req, res) => {
+app.post("/api/documents/upload", async (req, res) => {
   const { title, content } = req.body;
-  
+
   const job = await documentProcessingQueue.add({
     documentId: nanoid(),
     title,
     content,
-    sourceType: 'other',
+    sourceType: "other",
   });
-  
+
   res.json({ jobId: job.id });
 });
 ```
@@ -170,22 +183,23 @@ app.post('/api/documents/upload', async (req, res) => {
 **Current State**: Basic logging only.
 
 **Recommendations**:
+
 - Implement structured logging
 - Add performance monitoring
 - Track metrics and errors
 
 ```typescript
 // server/_core/monitoring.ts
-import pino from 'pino';
+import pino from "pino";
 
 export const logger = pino({
-  level: process.env.LOG_LEVEL || 'info',
+  level: process.env.LOG_LEVEL || "info",
   transport: {
-    target: 'pino-pretty',
+    target: "pino-pretty",
     options: {
       colorize: true,
-      translateTime: 'SYS:standard',
-      ignore: 'pid,hostname',
+      translateTime: "SYS:standard",
+      ignore: "pid,hostname",
     },
   },
 });
@@ -195,7 +209,10 @@ export function measurePerformance(name: string) {
   const start = Date.now();
   return () => {
     const duration = Date.now() - start;
-    logger.info({ operation: name, duration }, `${name} completed in ${duration}ms`);
+    logger.info(
+      { operation: name, duration },
+      `${name} completed in ${duration}ms`
+    );
   };
 }
 ```
@@ -209,18 +226,23 @@ export function measurePerformance(name: string) {
 **Current State**: Some queries might not be optimized.
 
 **Recommendations**:
+
 ```typescript
 // Add indexes to frequently queried columns
 // In drizzle/schema.ts
-export const conversations = mysqlTable('conversations', {
-  id: int('id').primaryKey().autoincrement(),
-  userId: int('userId').notNull().index(), // Add index
-  createdAt: timestamp('createdAt').defaultNow(),
-  // ...
-}, (table) => ({
-  userIdIdx: index('user_id_idx').on(table.userId),
-  createdAtIdx: index('created_at_idx').on(table.createdAt),
-}));
+export const conversations = mysqlTable(
+  "conversations",
+  {
+    id: int("id").primaryKey().autoincrement(),
+    userId: int("userId").notNull().index(), // Add index
+    createdAt: timestamp("createdAt").defaultNow(),
+    // ...
+  },
+  table => ({
+    userIdIdx: index("user_id_idx").on(table.userId),
+    createdAtIdx: index("created_at_idx").on(table.createdAt),
+  })
+);
 ```
 
 ### 2. Pagination for Large Result Sets
@@ -228,6 +250,7 @@ export const conversations = mysqlTable('conversations', {
 **Current State**: No pagination for resource lists.
 
 **Recommendations**:
+
 ```typescript
 // server/routers.ts
 resources: router({
@@ -258,6 +281,7 @@ resources: router({
 **Current State**: All messages are loaded at once.
 
 **Recommendations**:
+
 ```typescript
 // Implement virtual scrolling on frontend
 // Use react-window or react-virtual
@@ -286,14 +310,17 @@ export function MessageList({ messages }) {
 **Current State**: No explicit compression configuration.
 
 **Recommendations**:
+
 ```typescript
 // server/_core/index.ts
-import compression from 'compression';
+import compression from "compression";
 
-app.use(compression({
-  level: 6, // Balance between compression ratio and CPU usage
-  threshold: 1024, // Only compress responses > 1KB
-}));
+app.use(
+  compression({
+    level: 6, // Balance between compression ratio and CPU usage
+    threshold: 1024, // Only compress responses > 1KB
+  })
+);
 ```
 
 ---
@@ -305,37 +332,38 @@ app.use(compression({
 **Current State**: Limited test coverage.
 
 **Recommendations**:
+
 ```typescript
 // server/routers.test.ts
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { createCaller } from './routers';
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { createCaller } from "./routers";
 
-describe('Conversations Router', () => {
+describe("Conversations Router", () => {
   let caller: ReturnType<typeof createCaller>;
-  
+
   beforeEach(() => {
     caller = createCaller(mockContext);
   });
-  
-  describe('sendMessage', () => {
-    it('should create a user message', async () => {
+
+  describe("sendMessage", () => {
+    it("should create a user message", async () => {
       const result = await caller.conversations.sendMessage({
         conversationId: 1,
-        content: 'Test message',
+        content: "Test message",
       });
-      
+
       expect(result).toBeDefined();
-      expect(result.content).toBe('Test message');
-      expect(result.role).toBe('user');
+      expect(result.content).toBe("Test message");
+      expect(result.role).toBe("user");
     });
-    
-    it('should generate an AI response', async () => {
+
+    it("should generate an AI response", async () => {
       const result = await caller.conversations.sendMessage({
         conversationId: 1,
-        content: 'What resources do you have?',
+        content: "What resources do you have?",
       });
-      
-      expect(result.role).toBe('assistant');
+
+      expect(result.role).toBe("assistant");
       expect(result.content.length).toBeGreaterThan(0);
     });
   });
@@ -347,6 +375,7 @@ describe('Conversations Router', () => {
 **Current State**: Some `any` types are used.
 
 **Recommendations**:
+
 - Replace all `any` types with proper types
 - Use strict TypeScript settings
 - Enable `noImplicitAny` in tsconfig.json
@@ -356,10 +385,11 @@ describe('Conversations Router', () => {
 **Current State**: Some functions lack documentation.
 
 **Recommendations**:
-```typescript
+
+````typescript
 /**
  * Generate an AI response for a user message.
- * 
+ *
  * @param prompt - The user's message
  * @param language - Language code (en, uk, ru)
  * @param conversationId - ID of the conversation
@@ -367,7 +397,7 @@ describe('Conversations Router', () => {
  * @param history - Recent conversation history for context
  * @returns Promise containing the AI response and knowledge source
  * @throws {AiPipelineError} When the LLM call fails
- * 
+ *
  * @example
  * ```typescript
  * const result = await generateConversationReply({
@@ -386,7 +416,7 @@ export async function generateConversationReply(
 ): Promise<ConversationReplyResult> {
   // ...
 }
-```
+````
 
 ---
 
@@ -397,6 +427,7 @@ export async function generateConversationReply(
 **Current State**: Dockerfile exists but might need optimization.
 
 **Recommendations**:
+
 ```dockerfile
 # Dockerfile
 FROM node:22-alpine AS builder
@@ -434,6 +465,7 @@ CMD ["node", "dist/index.js"]
 **Current State**: .env.example exists.
 
 **Recommendations**:
+
 - Create separate .env files for different environments
 - Use environment-specific configurations
 - Document all environment variables
@@ -452,6 +484,7 @@ LOG_LEVEL=info
 **Current State**: No CI/CD configuration.
 
 **Recommendations**:
+
 ```yaml
 # .github/workflows/deploy.yml
 name: Deploy
@@ -504,4 +537,3 @@ jobs:
 - [TypeScript Handbook](https://www.typescriptlang.org/docs/)
 - [Express.js Security](https://expressjs.com/en/advanced/best-practice-security.html)
 - [React Performance](https://react.dev/reference/react/Profiler)
-

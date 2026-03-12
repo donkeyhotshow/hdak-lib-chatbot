@@ -47,7 +47,7 @@ let baseUrl: string;
 
 beforeAll(
   () =>
-    new Promise<void>((resolve) => {
+    new Promise<void>(resolve => {
       server = http.createServer(buildApp());
       server.listen(0, () => {
         const addr = server.address() as { port: number };
@@ -59,7 +59,7 @@ beforeAll(
 
 afterAll(
   () =>
-    new Promise<void>((resolve) => {
+    new Promise<void>(resolve => {
       server.close(() => resolve());
     })
 );

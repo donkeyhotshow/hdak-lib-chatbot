@@ -12,7 +12,12 @@ import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { logger } from "./logger";
 import { startSyncScheduler } from "../services/syncService";
-import { chatRateLimiter, trpcRateLimiter, oauthRateLimiter, adminRateLimiter } from "./rateLimiter";
+import {
+  chatRateLimiter,
+  trpcRateLimiter,
+  oauthRateLimiter,
+  adminRateLimiter,
+} from "./rateLimiter";
 import { ENV } from "./env";
 import { sdk } from "./sdk";
 import { processDocument } from "../rag-service";
@@ -52,7 +57,7 @@ async function startServer() {
   if (alwaysMissing.length > 0) {
     logger.error(
       `Missing required environment variable(s): ${alwaysMissing.join(", ")}. ` +
-      "Set them in your .env file or deployment environment and restart the server."
+        "Set them in your .env file or deployment environment and restart the server."
     );
     process.exit(1);
   }
@@ -65,7 +70,9 @@ async function startServer() {
     ];
     const missing = required.filter(([, v]) => !v).map(([k]) => k);
     if (missing.length > 0) {
-      logger.error(`Missing required environment variables: ${missing.join(", ")}`);
+      logger.error(
+        `Missing required environment variables: ${missing.join(", ")}`
+      );
       process.exit(1);
     }
   }
@@ -120,101 +127,121 @@ async function startServer() {
     adminRateLimiter,
     express.json({ limit: "50mb" }),
     async (req, res) => {
-    // Authenticate + authorise (admin only)
-    let user;
-    try {
-      user = await sdk.authenticateRequest(req);
-    } catch {
-      res.status(401).json({ error: "Authentication required" });
-      return;
-    }
-    if (user.role !== "admin") {
-      res.status(403).json({ error: "Admin access required" });
-      return;
-    }
+      // Authenticate + authorise (admin only)
+      let user;
+      try {
+        user = await sdk.authenticateRequest(req);
+      } catch {
+        res.status(401).json({ error: "Authentication required" });
+        return;
+      }
+      if (user.role !== "admin") {
+        res.status(403).json({ error: "Admin access required" });
+        return;
+      }
 
-    const {
-      title,
-      content,
-      language = "uk",
-      sourceType = "other",
-      url,
-      author,
-    } = req.body as {
-      title?: unknown;
-      content?: unknown;
-      language?: unknown;
-      sourceType?: unknown;
-      url?: unknown;
-      author?: unknown;
-    };
-
-    if (typeof title !== "string" || !title.trim()) {
-      res.status(400).json({ error: "title must be a non-empty string" });
-      return;
-    }
-    if (title.length > 500) {
-      res.status(400).json({ error: "title must be at most 500 characters" });
-      return;
-    }
-    if (typeof content !== "string" || !content.trim()) {
-      res.status(400).json({ error: "content must be a non-empty string" });
-      return;
-    }
-    if (typeof url === "string" && url.length > 2048) {
-      res.status(400).json({ error: "url must be at most 2048 characters" });
-      return;
-    }
-    if (typeof author === "string" && author.length > 500) {
-      res.status(400).json({ error: "author must be at most 500 characters" });
-      return;
-    }
-    const validLangs = ["en", "uk", "ru"] as const;
-    const validSources = ["catalog", "repository", "database", "other"] as const;
-    const lang = validLangs.includes(language as (typeof validLangs)[number])
-      ? (language as (typeof validLangs)[number])
-      : "uk";
-    const src = validSources.includes(sourceType as (typeof validSources)[number])
-      ? (sourceType as (typeof validSources)[number])
-      : "other";
-
-    const documentId = `manual_${Date.now()}_${title.slice(0, 40).replace(/\s+/g, "_")}`;
-
-    logger.info("[/api/admin/process-pdf] Processing document", {
-      documentId,
-      title,
-      lang,
-      src,
-      contentLength: content.length,
-    });
-
-    try {
-      const result = await processDocument(
-        documentId,
+      const {
         title,
         content,
-        src,
-        lang,
-        typeof url === "string" ? url : undefined,
-        typeof author === "string" ? author : undefined
-      );
+        language = "uk",
+        sourceType = "other",
+        url,
+        author,
+      } = req.body as {
+        title?: unknown;
+        content?: unknown;
+        language?: unknown;
+        sourceType?: unknown;
+        url?: unknown;
+        author?: unknown;
+      };
 
-      if (result.success) {
-        logger.info("[/api/admin/process-pdf] Document processed successfully", {
-          documentId,
-          chunksCreated: result.chunksCreated,
-        });
-        res.json({ success: true, chunksCreated: result.chunksCreated, documentId });
-      } else {
-        res.status(422).json({ success: false, error: result.error ?? "Processing failed" });
+      if (typeof title !== "string" || !title.trim()) {
+        res.status(400).json({ error: "title must be a non-empty string" });
+        return;
       }
-    } catch (err) {
-      logger.error("[/api/admin/process-pdf] Unexpected error", {
-        error: err instanceof Error ? err.message : String(err),
+      if (title.length > 500) {
+        res.status(400).json({ error: "title must be at most 500 characters" });
+        return;
+      }
+      if (typeof content !== "string" || !content.trim()) {
+        res.status(400).json({ error: "content must be a non-empty string" });
+        return;
+      }
+      if (typeof url === "string" && url.length > 2048) {
+        res.status(400).json({ error: "url must be at most 2048 characters" });
+        return;
+      }
+      if (typeof author === "string" && author.length > 500) {
+        res
+          .status(400)
+          .json({ error: "author must be at most 500 characters" });
+        return;
+      }
+      const validLangs = ["en", "uk", "ru"] as const;
+      const validSources = [
+        "catalog",
+        "repository",
+        "database",
+        "other",
+      ] as const;
+      const lang = validLangs.includes(language as (typeof validLangs)[number])
+        ? (language as (typeof validLangs)[number])
+        : "uk";
+      const src = validSources.includes(
+        sourceType as (typeof validSources)[number]
+      )
+        ? (sourceType as (typeof validSources)[number])
+        : "other";
+
+      const documentId = `manual_${Date.now()}_${title.slice(0, 40).replace(/\s+/g, "_")}`;
+
+      logger.info("[/api/admin/process-pdf] Processing document", {
+        documentId,
+        title,
+        lang,
+        src,
+        contentLength: content.length,
       });
-      res.status(500).json({ error: "Internal server error" });
+
+      try {
+        const result = await processDocument(
+          documentId,
+          title,
+          content,
+          src,
+          lang,
+          typeof url === "string" ? url : undefined,
+          typeof author === "string" ? author : undefined
+        );
+
+        if (result.success) {
+          logger.info(
+            "[/api/admin/process-pdf] Document processed successfully",
+            {
+              documentId,
+              chunksCreated: result.chunksCreated,
+            }
+          );
+          res.json({
+            success: true,
+            chunksCreated: result.chunksCreated,
+            documentId,
+          });
+        } else {
+          res.status(422).json({
+            success: false,
+            error: result.error ?? "Processing failed",
+          });
+        }
+      } catch (err) {
+        logger.error("[/api/admin/process-pdf] Unexpected error", {
+          error: err instanceof Error ? err.message : String(err),
+        });
+        res.status(500).json({ error: "Internal server error" });
+      }
     }
-  });
+  );
 
   // Body parser — 1 MB global limit to protect public endpoints against abuse.
   // /api/admin/process-pdf is registered above with its own 50 MB body parser;
@@ -284,7 +311,9 @@ async function startServer() {
   }
 
   server.listen(port, () => {
-    logger.milestone(`Server started on http://localhost:${port}/`, { env: process.env.NODE_ENV ?? "development" });
+    logger.milestone(`Server started on http://localhost:${port}/`, {
+      env: process.env.NODE_ENV ?? "development",
+    });
     // Start periodic memory monitoring for the /api/metrics endpoint
     startMemoryMonitoring();
     // Start periodic catalog sync (only outside test environments)
@@ -312,6 +341,8 @@ async function startServer() {
 }
 
 startServer().catch(err => {
-  logger.error("Fatal server startup error", { error: err instanceof Error ? err.message : String(err) });
+  logger.error("Fatal server startup error", {
+    error: err instanceof Error ? err.message : String(err),
+  });
   process.exit(1);
 });
