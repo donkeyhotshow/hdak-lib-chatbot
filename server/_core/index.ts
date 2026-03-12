@@ -99,48 +99,6 @@ async function startServer() {
     })
   );
 
-  // Configure body parser with larger size limit for file uploads
-  app.use(express.json({ limit: "50mb" }));
-  app.use(express.urlencoded({ limit: "50mb", extended: true }));
-  // Enable gzip/deflate compression for all responses
-  app.use(compression());
-  // Health check endpoint
-  app.get("/api/health", (_req, res) => {
-    res.json({ status: "ok", timestamp: new Date().toISOString() });
-  });
-  // Readiness probe — succeeds only when critical env vars are present
-  app.get("/api/ready", (_req, res) => {
-    const missing: string[] = [];
-    if (!ENV.forgeApiKey) missing.push("BUILT_IN_FORGE_API_KEY");
-    if (!ENV.databaseUrl) missing.push("DATABASE_URL");
-    if (missing.length > 0) {
-      res.status(503).json({ ready: false, missing });
-      return;
-    }
-    res.json({ ready: true });
-  });
-  // Metrics endpoint (admin-only) — exposes latency, memory and streaming stats
-  app.get("/api/metrics", adminRateLimiter, async (req, res) => {
-    let user;
-    try {
-      user = await sdk.authenticateRequest(req);
-    } catch {
-      res.status(401).json({ error: "Authentication required" });
-      return;
-    }
-    if (user.role !== "admin") {
-      res.status(403).json({ error: "Admin access required" });
-      return;
-    }
-    res.json(getMetrics());
-  });
-  // OAuth callback under /api/oauth/callback
-  app.use("/api/oauth", oauthRateLimiter);
-  registerOAuthRoutes(app);
-  // Chat API with streaming and tool calling
-  app.use("/api/chat", chatRateLimiter);
-  registerChatRoutes(app);
-
   /**
    * POST /api/admin/process-pdf
    * Admin-only endpoint: accepts a text body (extracted PDF content) and
@@ -152,8 +110,16 @@ async function startServer() {
    * Returns:
    *   { success, chunksCreated, documentId }  (200)
    *   { error }  (400 / 401 / 403 / 500)
+   *
+   * Registered BEFORE the global 1 MB body-parser so that its own 50 MB
+   * per-route parser runs first.  Once the handler sends a response the global
+   * parser is never reached for this route.
    */
-  app.post("/api/admin/process-pdf", adminRateLimiter, async (req, res) => {
+  app.post(
+    "/api/admin/process-pdf",
+    adminRateLimiter,
+    express.json({ limit: "50mb" }),
+    async (req, res) => {
     // Authenticate + authorise (admin only)
     let user;
     try {
@@ -249,6 +215,51 @@ async function startServer() {
       res.status(500).json({ error: "Internal server error" });
     }
   });
+
+  // Body parser — 1 MB global limit to protect public endpoints against abuse.
+  // /api/admin/process-pdf is registered above with its own 50 MB body parser;
+  // since it sends a response without calling next(), this global middleware is
+  // never reached for that route.
+  app.use(express.json({ limit: "1mb" }));
+  app.use(express.urlencoded({ limit: "1mb", extended: true }));
+  // Enable gzip/deflate compression for all responses
+  app.use(compression());
+  // Health check endpoint
+  app.get("/api/health", (_req, res) => {
+    res.json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+  // Readiness probe — succeeds only when critical env vars are present
+  app.get("/api/ready", (_req, res) => {
+    const missing: string[] = [];
+    if (!ENV.forgeApiKey) missing.push("BUILT_IN_FORGE_API_KEY");
+    if (!ENV.databaseUrl) missing.push("DATABASE_URL");
+    if (missing.length > 0) {
+      res.status(503).json({ ready: false, missing });
+      return;
+    }
+    res.json({ ready: true });
+  });
+  // Metrics endpoint (admin-only) — exposes latency, memory and streaming stats
+  app.get("/api/metrics", adminRateLimiter, async (req, res) => {
+    let user;
+    try {
+      user = await sdk.authenticateRequest(req);
+    } catch {
+      res.status(401).json({ error: "Authentication required" });
+      return;
+    }
+    if (user.role !== "admin") {
+      res.status(403).json({ error: "Admin access required" });
+      return;
+    }
+    res.json(getMetrics());
+  });
+  // OAuth callback under /api/oauth/callback
+  app.use("/api/oauth", oauthRateLimiter);
+  registerOAuthRoutes(app);
+  // Chat API with streaming and tool calling
+  app.use("/api/chat", chatRateLimiter);
+  registerChatRoutes(app);
   // tRPC API
   app.use(
     "/api/trpc",
