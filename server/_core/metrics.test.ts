@@ -1,4 +1,15 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import {
+  afterAll,
+  beforeAll,
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+  vi,
+} from "vitest";
+import express from "express";
+import * as http from "node:http";
 import {
   recordLatency,
   getLatencyStats,
@@ -172,5 +183,118 @@ describe("getMetrics", () => {
     expect(m.latency.samples).toBe(0);
     expect(m.streaming.total).toBe(0);
     expect(m.memory.history).toHaveLength(0);
+  });
+});
+
+// ── /api/metrics HTTP endpoint security ───────────────────────────────────────
+//
+// These tests spin up a minimal Express server that wires the /api/metrics
+// handler exactly as index.ts does (auth check → role check → getMetrics).
+// The SDK and rate-limiter are mocked so no real auth happens.
+
+vi.mock("./sdk", () => ({
+  sdk: {
+    authenticateRequest: vi.fn(),
+  },
+}));
+
+// Use a stub rate-limiter that is a no-op middleware
+vi.mock("./rateLimiter", () => ({
+  adminRateLimiter: (_req: express.Request, _res: express.Response, next: express.NextFunction) =>
+    next(),
+  chatRateLimiter: (_req: express.Request, _res: express.Response, next: express.NextFunction) =>
+    next(),
+  trpcRateLimiter: (_req: express.Request, _res: express.Response, next: express.NextFunction) =>
+    next(),
+  oauthRateLimiter: (_req: express.Request, _res: express.Response, next: express.NextFunction) =>
+    next(),
+}));
+
+import { sdk } from "./sdk";
+import { adminRateLimiter } from "./rateLimiter";
+
+/** Build a minimal Express app with the /api/metrics route mirroring index.ts. */
+function buildMetricsApp() {
+  const app = express();
+  app.use(express.json());
+
+  app.get("/api/metrics", adminRateLimiter, async (req: express.Request, res: express.Response) => {
+    let user: { role: string } | null = null;
+    try {
+      user = await (sdk.authenticateRequest as ReturnType<typeof vi.fn>)(req);
+    } catch {
+      res.status(401).json({ error: "Authentication required" });
+      return;
+    }
+    if (!user || user.role !== "admin") {
+      res.status(403).json({ error: "Admin access required" });
+      return;
+    }
+    res.json(getMetrics());
+  });
+
+  return app;
+}
+
+describe("/api/metrics HTTP endpoint — security", () => {
+  let server: http.Server;
+  let baseUrl: string;
+
+  beforeAll(() => {
+    const app = buildMetricsApp();
+    server = app.listen(0);
+    const addr = server.address() as { port: number };
+    baseUrl = `http://127.0.0.1:${addr.port}`;
+  });
+
+  afterAll(() => {
+    server.close();
+  });
+
+  beforeEach(() => {
+    _resetMetrics();
+    vi.restoreAllMocks();
+  });
+
+  it("returns 401 when no auth token is provided", async () => {
+    (sdk.authenticateRequest as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error("No auth")
+    );
+
+    const res = await fetch(`${baseUrl}/api/metrics`);
+    expect(res.status).toBe(401);
+    const body = await res.json() as { error: string };
+    expect(body.error).toBe("Authentication required");
+  });
+
+  it("returns 403 when authenticated as a non-admin user", async () => {
+    (sdk.authenticateRequest as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 2,
+      role: "user",
+    });
+
+    const res = await fetch(`${baseUrl}/api/metrics`);
+    expect(res.status).toBe(403);
+    const body = await res.json() as { error: string };
+    expect(body.error).toBe("Admin access required");
+  });
+
+  it("returns 200 with metrics JSON for an admin user", async () => {
+    (sdk.authenticateRequest as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 1,
+      role: "admin",
+    });
+
+    recordLatency(100);
+    recordStreamOutcome("success");
+
+    const res = await fetch(`${baseUrl}/api/metrics`);
+    expect(res.status).toBe(200);
+
+    const body = await res.json() as ReturnType<typeof getMetrics>;
+    expect(body.latency.samples).toBe(1);
+    expect(body.streaming.total).toBe(1);
+    expect(body.streaming.success).toBe(1);
+    expect(typeof body.collectedAt).toBe("string");
   });
 });
