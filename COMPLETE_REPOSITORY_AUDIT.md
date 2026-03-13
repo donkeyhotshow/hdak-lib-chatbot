@@ -1,13 +1,462 @@
 # Complete Repository Audit — hdak-lib-chatbot
 
 Date: 2026-03-13
-Scope: full tracked repository (`git ls-files` = 205 files)
+Scope: full tracked repository (`git ls-files` = 206 files)
 
 ## STAGE 1 — Repository Index
 
 ### Full tracked tree (hierarchical)
 
-Generated from `git ls-files` and archived during analysis as `/tmp/repo_tree.txt` and `/tmp/repo_git_files.txt` in the audit session.
+Total tracked files: 206 (`git -c core.quotePath=false ls-files`)
+
+#### 1.1 Full tracked file enumeration
+
+```text
+.env.example
+.github/workflows/ci.yml
+.github/workflows/keep-alive.yml
+.gitignore
+.gitkeep
+.prettierignore
+.prettierrc
+.replit
+CHANGELOG.md
+COMPLETE_REPOSITORY_AUDIT.md
+DEPLOYMENT.md
+Dockerfile
+FREE_DEPLOYMENT.md
+IMPROVEMENTS.md
+ISSUES_FOUND.md
+README.md
+SECURITY_IMPROVEMENTS.md
+TELEGRAM_SOUNDTRACK_INTEGRATION.md
+attached_assets/Pasted--DOCTYPE-html-html-lang-uk-head-meta-charset-UTF-8-meta_1773357706504.txt
+attached_assets/Pasted-You-are-working-on-the-HDAK-Library-Chatbot-hdak-lib-ch_1773357791942.txt
+attached_assets/{3F11AFE1-A667-45BC-A722-5D11D0F877FE}_1773357798128.png
+client/index.html
+client/public/.gitkeep
+client/public/__manus__/debug-collector.js
+client/src/App.tsx
+client/src/_core/hooks/useAuth.ts
+client/src/components/AIChatBox.tsx
+client/src/components/DashboardLayout.tsx
+client/src/components/DashboardLayoutSkeleton.tsx
+client/src/components/DocumentCard.tsx
+client/src/components/ErrorBoundary.tsx
+client/src/components/ManusDialog.tsx
+client/src/components/Map.tsx
+client/src/components/Markdown.tsx
+client/src/components/ui/accordion.tsx
+client/src/components/ui/alert-dialog.tsx
+client/src/components/ui/alert.tsx
+client/src/components/ui/aspect-ratio.tsx
+client/src/components/ui/avatar.tsx
+client/src/components/ui/badge.tsx
+client/src/components/ui/breadcrumb.tsx
+client/src/components/ui/button-group.tsx
+client/src/components/ui/button.tsx
+client/src/components/ui/calendar.tsx
+client/src/components/ui/card.tsx
+client/src/components/ui/carousel.tsx
+client/src/components/ui/chart.tsx
+client/src/components/ui/checkbox.tsx
+client/src/components/ui/collapsible.tsx
+client/src/components/ui/command.tsx
+client/src/components/ui/context-menu.tsx
+client/src/components/ui/dialog.tsx
+client/src/components/ui/drawer.tsx
+client/src/components/ui/dropdown-menu.tsx
+client/src/components/ui/empty.tsx
+client/src/components/ui/field.tsx
+client/src/components/ui/form.tsx
+client/src/components/ui/hover-card.tsx
+client/src/components/ui/input-group.tsx
+client/src/components/ui/input-otp.tsx
+client/src/components/ui/input.tsx
+client/src/components/ui/item.tsx
+client/src/components/ui/kbd.tsx
+client/src/components/ui/label.tsx
+client/src/components/ui/menubar.tsx
+client/src/components/ui/navigation-menu.tsx
+client/src/components/ui/pagination.tsx
+client/src/components/ui/popover.tsx
+client/src/components/ui/progress.tsx
+client/src/components/ui/radio-group.tsx
+client/src/components/ui/resizable.tsx
+client/src/components/ui/scroll-area.tsx
+client/src/components/ui/select.tsx
+client/src/components/ui/separator.tsx
+client/src/components/ui/sheet.tsx
+client/src/components/ui/sidebar.tsx
+client/src/components/ui/skeleton.tsx
+client/src/components/ui/slider.tsx
+client/src/components/ui/sonner.tsx
+client/src/components/ui/spinner.tsx
+client/src/components/ui/switch.tsx
+client/src/components/ui/table.tsx
+client/src/components/ui/tabs.tsx
+client/src/components/ui/textarea.tsx
+client/src/components/ui/toggle-group.tsx
+client/src/components/ui/toggle.tsx
+client/src/components/ui/tooltip.tsx
+client/src/const.ts
+client/src/contexts/ThemeContext.tsx
+client/src/hooks/useComposition.ts
+client/src/hooks/useFileUpload.ts
+client/src/hooks/useMobile.tsx
+client/src/hooks/usePersistFn.ts
+client/src/index.css
+client/src/lib/trpc.ts
+client/src/lib/utils.ts
+client/src/main.tsx
+client/src/pages/Admin.tsx
+client/src/pages/ComponentShowcase.tsx
+client/src/pages/Home.tsx
+client/src/pages/Home.tsx.backup
+client/src/pages/Home.tsx.fixed
+client/src/pages/NotFound.tsx
+components.json
+docker-compose.yml
+docker-entrypoint.sh
+drizzle.config.ts
+drizzle/0000_bizarre_excalibur.sql
+drizzle/0001_flawless_the_watchers.sql
+drizzle/0002_easy_cardiac.sql
+drizzle/0003_document_chunks_language_idx.sql
+drizzle/meta/0000_snapshot.json
+drizzle/meta/0001_snapshot.json
+drizzle/meta/0002_snapshot.json
+drizzle/meta/_journal.json
+drizzle/migrations/.gitkeep
+drizzle/relations.ts
+drizzle/schema.ts
+fly.toml
+package-lock.json
+package.json
+patches/wouter@3.7.1.patch
+pnpm-lock.yaml
+railway.json
+references/ai-sdk-react-query.md
+references/ai-sdk.md
+render.yaml
+replit.md
+seed-db.mjs
+seed-db.ts
+server/_core/bodyLimit.test.ts
+server/_core/chat.test.ts
+server/_core/chat.ts
+server/_core/context.test.ts
+server/_core/context.ts
+server/_core/cookies.test.ts
+server/_core/cookies.ts
+server/_core/dataApi.ts
+server/_core/env.ts
+server/_core/imageGeneration.ts
+server/_core/index.ts
+server/_core/logger.test.ts
+server/_core/logger.ts
+server/_core/map.ts
+server/_core/metrics.test.ts
+server/_core/metrics.ts
+server/_core/notification.ts
+server/_core/oauth.ts
+server/_core/patchedFetch.ts
+server/_core/rateLimiter.test.ts
+server/_core/rateLimiter.ts
+server/_core/sdk.ts
+server/_core/systemRouter.ts
+server/_core/trpc.test.ts
+server/_core/trpc.ts
+server/_core/types/cookie.d.ts
+server/_core/types/manusTypes.ts
+server/_core/vite.ts
+server/_core/voiceTranscription.ts
+server/auth.logout.test.ts
+server/chatbot.test.ts
+server/db.extra.test.ts
+server/db.test.ts
+server/db.ts
+server/rag-service.extra.test.ts
+server/rag-service.test.ts
+server/rag-service.ts
+server/routers.admin.test.ts
+server/routers.conversations.test.ts
+server/routers.idor.test.ts
+server/routers.sendmessage.test.ts
+server/routers.ts
+server/services/aiPipeline.extra.test.ts
+server/services/aiPipeline.nullfields.test.ts
+server/services/aiPipeline.test.ts
+server/services/aiPipeline.ts
+server/services/syncService.extra.test.ts
+server/services/syncService.test.ts
+server/services/syncService.ts
+server/storage.ts
+server/system-prompts-official.ts
+shared/_core/errors.ts
+shared/const.ts
+shared/types.ts
+soundtrack_resources/4e282630-c24c-410a-90a8-ae1c3a740a4e.mp3
+soundtrack_resources/Plan_Prompts_Leitmotif.docx
+soundtrack_resources/Plan_Soundtrack.docx
+soundtrack_resources/README.md
+soundtrack_resources/dcab56b1-3acf-4a9d-afcc-b6cb96f8039c.mp3
+soundtrack_resources/Город LP.mp3
+soundtrack_resources/Игра LP Быстрая.mp3
+soundtrack_resources/Марш 2.mp3
+soundtrack_resources/Марш Другой.mp3
+soundtrack_resources/Мечта малыша ВЕРСИЯ.mp3
+soundtrack_resources/Мечта малыша.mp3
+soundtrack_resources/Плюшки LP.mp3
+soundtrack_resources/ТАНГО CUT.mp3
+soundtrack_resources/Танго SPEED LP.mp3
+soundtrack_resources/У окна с надеждой.mp3
+soundtrack_resources/Ф-Бок.mp3
+soundtrack_resources/филле-рулле 2.mp3
+soundtrack_resources/филле-рулле.mp3
+todo.md
+tsconfig.json
+vite.config.ts
+vitest.config.ts
+```
+
+#### 1.2 Hierarchical tracked-file tree
+
+```text
+├── .env.example
+├── .github
+│   └── workflows
+│       ├── ci.yml
+│       └── keep-alive.yml
+├── .gitignore
+├── .gitkeep
+├── .prettierignore
+├── .prettierrc
+├── .replit
+├── CHANGELOG.md
+├── COMPLETE_REPOSITORY_AUDIT.md
+├── DEPLOYMENT.md
+├── Dockerfile
+├── FREE_DEPLOYMENT.md
+├── IMPROVEMENTS.md
+├── ISSUES_FOUND.md
+├── README.md
+├── SECURITY_IMPROVEMENTS.md
+├── TELEGRAM_SOUNDTRACK_INTEGRATION.md
+├── attached_assets
+│   ├── Pasted--DOCTYPE-html-html-lang-uk-head-meta-charset-UTF-8-meta_1773357706504.txt
+│   ├── Pasted-You-are-working-on-the-HDAK-Library-Chatbot-hdak-lib-ch_1773357791942.txt
+│   └── {3F11AFE1-A667-45BC-A722-5D11D0F877FE}_1773357798128.png
+├── client
+│   ├── index.html
+│   ├── public
+│   │   ├── .gitkeep
+│   │   └── __manus__
+│   │       └── debug-collector.js
+│   └── src
+│       ├── App.tsx
+│       ├── _core
+│       │   └── hooks
+│       │       └── useAuth.ts
+│       ├── components
+│       │   ├── AIChatBox.tsx
+│       │   ├── DashboardLayout.tsx
+│       │   ├── DashboardLayoutSkeleton.tsx
+│       │   ├── DocumentCard.tsx
+│       │   ├── ErrorBoundary.tsx
+│       │   ├── ManusDialog.tsx
+│       │   ├── Map.tsx
+│       │   ├── Markdown.tsx
+│       │   └── ui
+│       │       ├── accordion.tsx
+│       │       ├── alert-dialog.tsx
+│       │       ├── alert.tsx
+│       │       ├── aspect-ratio.tsx
+│       │       ├── avatar.tsx
+│       │       ├── badge.tsx
+│       │       ├── breadcrumb.tsx
+│       │       ├── button-group.tsx
+│       │       ├── button.tsx
+│       │       ├── calendar.tsx
+│       │       ├── card.tsx
+│       │       ├── carousel.tsx
+│       │       ├── chart.tsx
+│       │       ├── checkbox.tsx
+│       │       ├── collapsible.tsx
+│       │       ├── command.tsx
+│       │       ├── context-menu.tsx
+│       │       ├── dialog.tsx
+│       │       ├── drawer.tsx
+│       │       ├── dropdown-menu.tsx
+│       │       ├── empty.tsx
+│       │       ├── field.tsx
+│       │       ├── form.tsx
+│       │       ├── hover-card.tsx
+│       │       ├── input-group.tsx
+│       │       ├── input-otp.tsx
+│       │       ├── input.tsx
+│       │       ├── item.tsx
+│       │       ├── kbd.tsx
+│       │       ├── label.tsx
+│       │       ├── menubar.tsx
+│       │       ├── navigation-menu.tsx
+│       │       ├── pagination.tsx
+│       │       ├── popover.tsx
+│       │       ├── progress.tsx
+│       │       ├── radio-group.tsx
+│       │       ├── resizable.tsx
+│       │       ├── scroll-area.tsx
+│       │       ├── select.tsx
+│       │       ├── separator.tsx
+│       │       ├── sheet.tsx
+│       │       ├── sidebar.tsx
+│       │       ├── skeleton.tsx
+│       │       ├── slider.tsx
+│       │       ├── sonner.tsx
+│       │       ├── spinner.tsx
+│       │       ├── switch.tsx
+│       │       ├── table.tsx
+│       │       ├── tabs.tsx
+│       │       ├── textarea.tsx
+│       │       ├── toggle-group.tsx
+│       │       ├── toggle.tsx
+│       │       └── tooltip.tsx
+│       ├── const.ts
+│       ├── contexts
+│       │   └── ThemeContext.tsx
+│       ├── hooks
+│       │   ├── useComposition.ts
+│       │   ├── useFileUpload.ts
+│       │   ├── useMobile.tsx
+│       │   └── usePersistFn.ts
+│       ├── index.css
+│       ├── lib
+│       │   ├── trpc.ts
+│       │   └── utils.ts
+│       ├── main.tsx
+│       └── pages
+│           ├── Admin.tsx
+│           ├── ComponentShowcase.tsx
+│           ├── Home.tsx
+│           ├── Home.tsx.backup
+│           ├── Home.tsx.fixed
+│           └── NotFound.tsx
+├── components.json
+├── docker-compose.yml
+├── docker-entrypoint.sh
+├── drizzle
+│   ├── 0000_bizarre_excalibur.sql
+│   ├── 0001_flawless_the_watchers.sql
+│   ├── 0002_easy_cardiac.sql
+│   ├── 0003_document_chunks_language_idx.sql
+│   ├── meta
+│   │   ├── 0000_snapshot.json
+│   │   ├── 0001_snapshot.json
+│   │   ├── 0002_snapshot.json
+│   │   └── _journal.json
+│   ├── migrations
+│   │   └── .gitkeep
+│   ├── relations.ts
+│   └── schema.ts
+├── drizzle.config.ts
+├── fly.toml
+├── package-lock.json
+├── package.json
+├── patches
+│   └── wouter@3.7.1.patch
+├── pnpm-lock.yaml
+├── railway.json
+├── references
+│   ├── ai-sdk-react-query.md
+│   └── ai-sdk.md
+├── render.yaml
+├── replit.md
+├── seed-db.mjs
+├── seed-db.ts
+├── server
+│   ├── _core
+│   │   ├── bodyLimit.test.ts
+│   │   ├── chat.test.ts
+│   │   ├── chat.ts
+│   │   ├── context.test.ts
+│   │   ├── context.ts
+│   │   ├── cookies.test.ts
+│   │   ├── cookies.ts
+│   │   ├── dataApi.ts
+│   │   ├── env.ts
+│   │   ├── imageGeneration.ts
+│   │   ├── index.ts
+│   │   ├── logger.test.ts
+│   │   ├── logger.ts
+│   │   ├── map.ts
+│   │   ├── metrics.test.ts
+│   │   ├── metrics.ts
+│   │   ├── notification.ts
+│   │   ├── oauth.ts
+│   │   ├── patchedFetch.ts
+│   │   ├── rateLimiter.test.ts
+│   │   ├── rateLimiter.ts
+│   │   ├── sdk.ts
+│   │   ├── systemRouter.ts
+│   │   ├── trpc.test.ts
+│   │   ├── trpc.ts
+│   │   ├── types
+│   │   │   ├── cookie.d.ts
+│   │   │   └── manusTypes.ts
+│   │   ├── vite.ts
+│   │   └── voiceTranscription.ts
+│   ├── auth.logout.test.ts
+│   ├── chatbot.test.ts
+│   ├── db.extra.test.ts
+│   ├── db.test.ts
+│   ├── db.ts
+│   ├── rag-service.extra.test.ts
+│   ├── rag-service.test.ts
+│   ├── rag-service.ts
+│   ├── routers.admin.test.ts
+│   ├── routers.conversations.test.ts
+│   ├── routers.idor.test.ts
+│   ├── routers.sendmessage.test.ts
+│   ├── routers.ts
+│   ├── services
+│   │   ├── aiPipeline.extra.test.ts
+│   │   ├── aiPipeline.nullfields.test.ts
+│   │   ├── aiPipeline.test.ts
+│   │   ├── aiPipeline.ts
+│   │   ├── syncService.extra.test.ts
+│   │   ├── syncService.test.ts
+│   │   └── syncService.ts
+│   ├── storage.ts
+│   └── system-prompts-official.ts
+├── shared
+│   ├── _core
+│   │   └── errors.ts
+│   ├── const.ts
+│   └── types.ts
+├── soundtrack_resources
+│   ├── 4e282630-c24c-410a-90a8-ae1c3a740a4e.mp3
+│   ├── Plan_Prompts_Leitmotif.docx
+│   ├── Plan_Soundtrack.docx
+│   ├── README.md
+│   ├── dcab56b1-3acf-4a9d-afcc-b6cb96f8039c.mp3
+│   ├── Город LP.mp3
+│   ├── Игра LP Быстрая.mp3
+│   ├── Марш 2.mp3
+│   ├── Марш Другой.mp3
+│   ├── Мечта малыша ВЕРСИЯ.mp3
+│   ├── Мечта малыша.mp3
+│   ├── Плюшки LP.mp3
+│   ├── ТАНГО CUT.mp3
+│   ├── Танго SPEED LP.mp3
+│   ├── У окна с надеждой.mp3
+│   ├── Ф-Бок.mp3
+│   ├── филле-рулле 2.mp3
+│   └── филле-рулле.mp3
+├── todo.md
+├── tsconfig.json
+├── vite.config.ts
+└── vitest.config.ts
+```
 
 ### Key modules
 
