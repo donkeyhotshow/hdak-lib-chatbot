@@ -4,6 +4,7 @@ import { SECURITY_CONFIG } from "../config/security";
 type StreamResult = {
   pipeUIMessageStreamToResponse: (res: Response) => void;
 };
+type ResponseWriteParams = Parameters<Response["write"]>;
 
 export function streamToHttpResponse(
   result: StreamResult,
@@ -14,7 +15,8 @@ export function streamToHttpResponse(
 
   let streamBytes = 0;
   const originalWrite = res.write.bind(res);
-  res.write = ((chunk: any, ...args: any[]) => {
+  res.write = ((...writeArgs: ResponseWriteParams) => {
+    const [chunk, ...args] = writeArgs;
     const size = Buffer.isBuffer(chunk)
       ? chunk.length
       : Buffer.byteLength(String(chunk));
