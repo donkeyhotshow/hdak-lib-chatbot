@@ -366,11 +366,11 @@ export function registerChatRoutes(app: Express) {
       // conversations without incurring unnecessary token costs.
       const MAX_CHAT_HISTORY = 14;
       let dbHistory: { role: "user" | "assistant"; content: string }[] = [];
-      if (convId !== null && authUserId !== null) {
+      if (convId !== null) {
         try {
           dbHistory = await getOwnedConversationHistory(
             convId,
-            authUserId,
+            authUserId!,
             MAX_CHAT_HISTORY
           );
         } catch (err) {
@@ -413,7 +413,7 @@ export function registerChatRoutes(app: Express) {
         onFinish: async ({ text }) => {
           recordLatency(Date.now() - requestStartMs);
           recordStreamOutcome("success");
-          if (convId !== null && authUserId !== null) {
+          if (convId !== null) {
             try {
               // Save the original (pre-sanitization) user message so the user
               // sees exactly what they typed. The AI received the sanitized version.

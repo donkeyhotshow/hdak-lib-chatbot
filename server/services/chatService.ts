@@ -71,7 +71,7 @@ export async function sendConversationMessage(
     .map(m => {
       const isSupportedRole = m.role === "assistant" || m.role === "user";
       if (!isSupportedRole) {
-        logger.warn(`[chatService.sendConversationMessage] Unexpected role`, {
+        logger.warn(`[chatService] Unexpected role in conversation history`, {
           role: m.role,
           conversationId,
           messageId: m.id ?? "unknown",
