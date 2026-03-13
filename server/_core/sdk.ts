@@ -33,9 +33,15 @@ class OAuthService {
   constructor(private client: ReturnType<typeof axios.create>) {
     logger.info("[OAuth] Initialized", { baseURL: ENV.oAuthServerUrl });
     if (!ENV.oAuthServerUrl) {
-      logger.error(
-        "[OAuth] OAUTH_SERVER_URL is not configured! Set OAUTH_SERVER_URL environment variable."
-      );
+      if (ENV.isProduction) {
+        logger.error(
+          "[OAuth] OAUTH_SERVER_URL is not configured! Set OAUTH_SERVER_URL environment variable."
+        );
+      } else {
+        logger.info(
+          "[INFO] OAuth disabled, running in public mode (no OAUTH_SERVER_URL set)"
+        );
+      }
     }
   }
 

@@ -18,7 +18,7 @@ import {
   oauthRateLimiter,
   adminRateLimiter,
 } from "./rateLimiter";
-import { ENV } from "./env";
+import { ENV, validateStartupEnv } from "./env";
 import { sdk } from "./sdk";
 import { processDocument } from "../rag-service";
 import { getMetrics, startMemoryMonitoring } from "./metrics";
@@ -46,24 +46,20 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 }
 
 async function startServer() {
-  // Validate critical environment variables before starting.
-  // BUILT_IN_FORGE_API_KEY and DATABASE_URL are required in every environment;
-  // the remaining secrets are only checked in production.
-  const alwaysRequired: Array<[string, string]> = [
-    ["BUILT_IN_FORGE_API_KEY", ENV.forgeApiKey],
-    ["DATABASE_URL", ENV.databaseUrl],
-  ];
-  const alwaysMissing = alwaysRequired.filter(([, v]) => !v).map(([k]) => k);
-  if (alwaysMissing.length > 0) {
+  // Validate DATABASE_URL and OAUTH_SERVER_URL: info in dev/mock, error+exit in prod.
+  validateStartupEnv();
+
+  // BUILT_IN_FORGE_API_KEY is always required for AI functionality.
+  if (!ENV.forgeApiKey) {
     if (ENV.isProduction) {
       logger.error(
-        `Missing required environment variable(s): ${alwaysMissing.join(", ")}. ` +
+        "Missing required environment variable(s): BUILT_IN_FORGE_API_KEY. " +
           "Set them in your .env file or deployment environment and restart the server."
       );
       process.exit(1);
     } else {
       logger.warn(
-        `Missing environment variable(s): ${alwaysMissing.join(", ")}. ` +
+        "Missing environment variable(s): BUILT_IN_FORGE_API_KEY. " +
           "Running in development mode with mock data. Set these in your .env file for full functionality."
       );
     }
