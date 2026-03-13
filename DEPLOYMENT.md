@@ -169,10 +169,13 @@ Render reads `render.yaml` when you connect your GitHub repository.
 1. Go to [render.com](https://render.com) → **New** → **Blueprint**.
 2. Authorize Render to access your GitHub account and select this repository.
 3. Render reads `render.yaml` and creates:
-   - A **web service** (Docker, port 3000)
-   - A **free database** add-on — note the app requires **MySQL 8**.
-     Render's native database is PostgreSQL; for MySQL use an external provider
-     (e.g. Railway MySQL, PlanetScale, or Aiven) and override `DATABASE_URL`.
+   - A **web service** (Docker)
+   - **Note:** The app requires **MySQL 8**. Render only offers PostgreSQL
+     natively — set `DATABASE_URL` to an external MySQL provider
+     (e.g. [TiDB Serverless](https://tidbcloud.com), Railway MySQL, or
+     Aiven), or leave it empty for mock mode (chat works, no persistence).
+   - See [FREE_DEPLOYMENT.md](FREE_DEPLOYMENT.md) for step-by-step free
+     MySQL setup.
 
 #### 2. Fill in secrets
 
