@@ -10,6 +10,8 @@ app_port: 7860
 
 # HDAK Library Chatbot
 
+<!-- ci: invalidate HF Spaces Docker cache [2026-03-13] -->
+
 AI-powered chatbot assistant for the **Kharkiv State Academy of Culture (ХДАК)** library.  
 The bot helps readers navigate the library website, search for resources, find authors and books in the electronic catalog, and discover available databases.
 
