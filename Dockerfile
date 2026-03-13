@@ -17,7 +17,7 @@ RUN corepack enable pnpm && pnpm run build
 FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
-ENV PORT=3000
+ENV PORT=7860
 
 # Run as a non-root user to reduce attack surface.
 # addgroup/adduser flags (-S, -g, -u) are BusyBox/Alpine syntax — intentional
@@ -39,9 +39,9 @@ RUN chmod +x ./docker-entrypoint.sh
 RUN chown -R nodejs:nodejs /app
 USER nodejs
 
-EXPOSE 3000
+EXPOSE 7860
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-  CMD node -e "const p=process.env.PORT||3000;require('http').get('http://localhost:'+p+'/api/health',(r)=>{if(r.statusCode!==200)process.exit(1);}).on('error',()=>process.exit(1))"
+  CMD node -e "const p=process.env.PORT||7860;require('http').get('http://localhost:'+p+'/api/health',(r)=>{if(r.statusCode!==200)process.exit(1);}).on('error',()=>process.exit(1))"
 
-CMD ["./docker-entrypoint.sh"]
+CMD ["node", "dist/index.js"]
