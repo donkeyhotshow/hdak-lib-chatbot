@@ -5,6 +5,7 @@
  *   })
  */
 import { ENV } from "./env";
+import { fetchWithSecurity } from "../services/security/safeRequest";
 
 export type DataApiCallOptions = {
   query?: Record<string, unknown>;
@@ -33,22 +34,26 @@ export async function callDataApi(
     baseUrl
   ).toString();
 
-  const response = await fetch(fullUrl, {
-    method: "POST",
-    headers: {
-      accept: "application/json",
-      "content-type": "application/json",
-      "connect-protocol-version": "1",
-      authorization: `Bearer ${ENV.forgeApiKey}`,
+  const response = await fetchWithSecurity(
+    fullUrl,
+    {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+        "connect-protocol-version": "1",
+        authorization: `Bearer ${ENV.forgeApiKey}`,
+      },
+      body: JSON.stringify({
+        apiId,
+        query: options.query,
+        body: options.body,
+        path_params: options.pathParams,
+        multipart_form_data: options.formData,
+      }),
     },
-    body: JSON.stringify({
-      apiId,
-      query: options.query,
-      body: options.body,
-      path_params: options.pathParams,
-      multipart_form_data: options.formData,
-    }),
-  });
+    { allowPrivateHosts: true }
+  );
 
   if (!response.ok) {
     const detail = await response.text().catch(() => "");

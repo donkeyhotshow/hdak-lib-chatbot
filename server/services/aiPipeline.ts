@@ -2,6 +2,7 @@ import { generateText } from "ai";
 import { openai } from "@ai-sdk/openai";
 import NodeCache from "node-cache";
 import type { LibraryResource } from "../../drizzle/schema";
+import { SECURITY_CONFIG } from "../config/security";
 import * as db from "../db";
 import { logger } from "../_core/logger";
 import { getRagContext } from "./rag/retriever";

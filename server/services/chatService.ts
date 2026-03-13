@@ -1,5 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import type { Message } from "../../drizzle/schema";
+import { SECURITY_CONFIG } from "../config/security";
 import * as db from "../db";
 import { logger } from "../_core/logger";
 import {
@@ -8,10 +9,15 @@ import {
   getLocalizedAiErrorMessage,
   logAiPipelineError,
   normalizeLanguage,
-  sanitizeUntrustedContent,
   type ConversationHistoryMessage,
   type MessageSource,
 } from "./aiPipeline";
+import { guardPrompt } from "./security/promptGuard";
+import {
+  trimHistoryMessages,
+  trimPromptToTokenLimit,
+  trimResponseLength,
+} from "./security/tokenLimits";
 
 export async function assertConversationOwnership(
   conversationId: number,
@@ -46,6 +52,7 @@ export async function getOwnedConversationHistory(
 type SendConversationMessageInput = {
   conversationId: number;
   userId: number;
+  ip?: string | null;
   content: string;
   maxHistory: number;
 };
@@ -53,7 +60,7 @@ type SendConversationMessageInput = {
 export async function sendConversationMessage(
   input: SendConversationMessageInput
 ): Promise<Message & { source: MessageSource }> {
-  const { conversationId, userId, content, maxHistory } = input;
+  const { conversationId, userId, ip, content, maxHistory } = input;
   const conversation = await assertConversationOwnership(
     conversationId,
     userId
@@ -66,27 +73,56 @@ export async function sendConversationMessage(
   const language = detectedLanguage ?? conversationLanguage;
 
   const messages = await db.getMessages(conversationId);
-  const conversationHistory: ConversationHistoryMessage[] = messages
-    .slice(-maxHistory)
-    .map(m => {
-      const isSupportedRole = m.role === "assistant" || m.role === "user";
-      if (!isSupportedRole) {
-        logger.warn(`[chatService] Unexpected role in conversation history`, {
-          role: m.role,
-          conversationId,
-          messageId: m.id ?? "unknown",
-        });
-      }
-      const role: ConversationHistoryMessage["role"] = isSupportedRole
-        ? (m.role as ConversationHistoryMessage["role"])
-        : "user";
-      return { role, content: m.content };
-    });
+  const conversationHistory = messages.slice(-maxHistory).map(m => {
+    const isSupportedRole = m.role === "assistant" || m.role === "user";
+    if (!isSupportedRole) {
+      logger.warn(`[chatService] Unexpected role in conversation history`, {
+        role: m.role,
+        conversationId,
+        messageId: m.id ?? "unknown",
+      });
+    }
+    const role: ConversationHistoryMessage["role"] = isSupportedRole
+      ? (m.role as ConversationHistoryMessage["role"])
+      : "user";
+    return { role, content: m.content };
+  });
+  const limitedHistory: ConversationHistoryMessage[] = trimHistoryMessages(
+    conversationHistory,
+    {
+      endpoint: "trpc.conversations.sendMessage",
+      userId,
+      ip: ip ?? null,
+    }
+  ).slice(
+    -Math.min(maxHistory, SECURITY_CONFIG.tokenLimits.maxHistoryMessages)
+  );
 
   const userMessage = await db.createMessage(conversationId, "user", content);
   if (!userMessage) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
-  const sanitizedPrompt = sanitizeUntrustedContent(content);
+  const guardResult = guardPrompt(content, {
+    endpoint: "trpc.conversations.sendMessage",
+    userId,
+    ip: ip ?? null,
+  });
+  if (guardResult.flagged) {
+    const assistantMessage = await db.createMessage(
+      conversationId,
+      "assistant",
+      guardResult.fallbackResponse ??
+        SECURITY_CONFIG.promptInjection.safeFallbackResponse
+    );
+    if (!assistantMessage)
+      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+    return { ...assistantMessage, source: "general" };
+  }
+
+  const sanitizedPrompt = trimPromptToTokenLimit(guardResult.sanitizedPrompt, {
+    endpoint: "trpc.conversations.sendMessage",
+    userId,
+    ip: ip ?? null,
+  });
 
   let aiResponse = "";
   let source: MessageSource = "general";
@@ -97,9 +133,13 @@ export async function sendConversationMessage(
       conversationId,
       language,
       userId,
-      history: conversationHistory,
+      history: limitedHistory,
     });
-    aiResponse = result.text;
+    aiResponse = trimResponseLength(result.text, {
+      endpoint: "trpc.conversations.sendMessage",
+      userId,
+      ip: ip ?? null,
+    });
     source = result.source;
   } catch (error) {
     logAiPipelineError(error, {

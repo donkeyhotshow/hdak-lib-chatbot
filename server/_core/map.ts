@@ -8,6 +8,7 @@
  */
 
 import { ENV } from "./env";
+import { fetchWithSecurity } from "../services/security/safeRequest";
 
 // ============================================================================
 // Configuration
@@ -71,13 +72,17 @@ export async function makeRequest<T = unknown>(
     }
   });
 
-  const response = await fetch(url.toString(), {
-    method: options.method || "GET",
-    headers: {
-      "Content-Type": "application/json",
+  const response = await fetchWithSecurity(
+    url.toString(),
+    {
+      method: options.method || "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: options.body ? JSON.stringify(options.body) : undefined,
     },
-    body: options.body ? JSON.stringify(options.body) : undefined,
-  });
+    { allowPrivateHosts: true }
+  );
 
   if (!response.ok) {
     const errorText = await response.text();

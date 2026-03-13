@@ -9,18 +9,24 @@ import {
 } from "./_core/trpc";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import { SECURITY_CONFIG } from "./config/security";
 import * as db from "./db";
 import { hdakResources } from "./system-prompts-official";
 import {
   assertConversationOwnership,
   sendConversationMessage,
 } from "./services/chatService";
+import {
+  enforceSecurityRateLimit,
+  getRequestIp,
+} from "./services/security/rateLimiter";
 import { runSync, isSyncing, getLastSyncStatus } from "./services/syncService";
 
 /** Maximum number of previous messages included in the AI context window. */
-const MAX_CONVERSATION_HISTORY = 10;
+const MAX_CONVERSATION_HISTORY =
+  SECURITY_CONFIG.tokenLimits.conversationContextHistory;
 /** Maximum character length allowed for a single user message. */
-const MAX_MESSAGE_LENGTH = 10_000;
+const MAX_MESSAGE_LENGTH = SECURITY_CONFIG.tokenLimits.maxMessageChars;
 
 export const appRouter = router({
   system: systemRouter,
@@ -39,6 +45,14 @@ export const appRouter = router({
   // Conversation management
   conversations: router({
     create: protectedProcedure
+      .use(({ ctx, next }) => {
+        enforceSecurityRateLimit({
+          endpoint: "trpc.conversations",
+          userId: ctx.user.id,
+          ip: getRequestIp(ctx.req),
+        });
+        return next();
+      })
       .input(
         z.object({
           title: z.string().min(1).max(500),
@@ -57,10 +71,23 @@ export const appRouter = router({
       }),
 
     list: protectedProcedure.query(async ({ ctx }) => {
+      enforceSecurityRateLimit({
+        endpoint: "trpc.conversations",
+        userId: ctx.user.id,
+        ip: getRequestIp(ctx.req),
+      });
       return await db.getConversations(ctx.user!.id);
     }),
 
     get: protectedProcedure
+      .use(({ ctx, next }) => {
+        enforceSecurityRateLimit({
+          endpoint: "trpc.conversations",
+          userId: ctx.user.id,
+          ip: getRequestIp(ctx.req),
+        });
+        return next();
+      })
       .input(z.object({ id: z.number() }))
       .query(async ({ ctx, input }) => {
         const conversation = await db.getConversation(input.id);
@@ -72,6 +99,14 @@ export const appRouter = router({
       }),
 
     getMessages: protectedProcedure
+      .use(({ ctx, next }) => {
+        enforceSecurityRateLimit({
+          endpoint: "trpc.conversations",
+          userId: ctx.user.id,
+          ip: getRequestIp(ctx.req),
+        });
+        return next();
+      })
       .input(z.object({ conversationId: z.number() }))
       .query(async ({ ctx, input }) => {
         await assertConversationOwnership(input.conversationId, ctx.user.id);
@@ -79,6 +114,14 @@ export const appRouter = router({
       }),
 
     delete: protectedProcedure
+      .use(({ ctx, next }) => {
+        enforceSecurityRateLimit({
+          endpoint: "trpc.conversations",
+          userId: ctx.user.id,
+          ip: getRequestIp(ctx.req),
+        });
+        return next();
+      })
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
         await assertConversationOwnership(input.id, ctx.user.id);
@@ -88,6 +131,14 @@ export const appRouter = router({
       }),
 
     sendMessage: protectedProcedure
+      .use(({ ctx, next }) => {
+        enforceSecurityRateLimit({
+          endpoint: "trpc.conversations",
+          userId: ctx.user.id,
+          ip: getRequestIp(ctx.req),
+        });
+        return next();
+      })
       .input(
         z.object({
           conversationId: z.number().int().positive(),
@@ -98,6 +149,7 @@ export const appRouter = router({
         return await sendConversationMessage({
           conversationId: input.conversationId,
           userId: ctx.user.id,
+          ip: getRequestIp(ctx.req),
           content: input.content,
           maxHistory: MAX_CONVERSATION_HISTORY,
         });

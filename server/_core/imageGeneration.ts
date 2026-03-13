@@ -17,6 +17,7 @@
  */
 import { storagePut } from "server/storage";
 import { ENV } from "./env";
+import { fetchWithSecurity } from "../services/security/safeRequest";
 
 export type GenerateImageOptions = {
   prompt: string;
@@ -50,19 +51,23 @@ export async function generateImage(
     baseUrl
   ).toString();
 
-  const response = await fetch(fullUrl, {
-    method: "POST",
-    headers: {
-      accept: "application/json",
-      "content-type": "application/json",
-      "connect-protocol-version": "1",
-      authorization: `Bearer ${ENV.forgeApiKey}`,
+  const response = await fetchWithSecurity(
+    fullUrl,
+    {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+        "connect-protocol-version": "1",
+        authorization: `Bearer ${ENV.forgeApiKey}`,
+      },
+      body: JSON.stringify({
+        prompt: options.prompt,
+        original_images: options.originalImages || [],
+      }),
     },
-    body: JSON.stringify({
-      prompt: options.prompt,
-      original_images: options.originalImages || [],
-    }),
-  });
+    { allowPrivateHosts: true }
+  );
 
   if (!response.ok) {
     const detail = await response.text().catch(() => "");
