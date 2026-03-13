@@ -76,10 +76,17 @@ describe("publicProcedure — accessible without authentication", () => {
 });
 
 // ---------------------------------------------------------------------------
-// protectedProcedure — no longer enforces auth (equals publicProcedure)
+// protectedProcedure — requires authenticated user
 // ---------------------------------------------------------------------------
 
-describe("protectedProcedure — accessible without authentication", () => {
+describe("protectedProcedure — requires authentication", () => {
+  it("conversations.list throws UNAUTHORIZED when user is unauthenticated", async () => {
+    const caller = appRouter.createCaller(makeCtx(null));
+    await expect(caller.conversations.list()).rejects.toMatchObject({
+      code: "UNAUTHORIZED",
+    });
+  });
+
   it("conversations.list works for authenticated users", async () => {
     vi.spyOn(db, "getConversations").mockResolvedValue([]);
     const caller = appRouter.createCaller(makeCtx(makeUser()));
@@ -153,7 +160,7 @@ describe("adminProcedure — access control", () => {
   it("adminProcedure throws FORBIDDEN when user is not authenticated at all", async () => {
     const caller = appRouter.createCaller(makeCtx(null));
     await expect(caller.sync.runNow()).rejects.toMatchObject({
-      code: "FORBIDDEN",
+      code: "UNAUTHORIZED",
     });
   });
 });
@@ -214,18 +221,18 @@ describe("system.healthCheck", () => {
 });
 
 // ---------------------------------------------------------------------------
-// system.notifyOwner — public mutation (adminProcedure = publicProcedure)
+// system.notifyOwner — admin-only mutation
 // ---------------------------------------------------------------------------
 
 describe("system.notifyOwner", () => {
-  it("calls notifyOwner for any user (no auth check)", async () => {
-    vi.mocked(notification.notifyOwner).mockResolvedValueOnce(true);
+  it("throws FORBIDDEN for non-admin users", async () => {
     const caller = appRouter.createCaller(makeCtx(makeUser("user")));
-    const result = await caller.system.notifyOwner({
-      title: "Hi",
-      content: "Body",
-    });
-    expect(result.success).toBe(true);
+    await expect(
+      caller.system.notifyOwner({
+        title: "Hi",
+        content: "Body",
+      })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
   it("calls notifyOwner and returns success for admin users", async () => {

@@ -26,6 +26,10 @@
  * ```
  */
 import { ENV } from "./env";
+import {
+  fetchWithSecurity,
+  validateExternalUrl,
+} from "../services/security/safeRequest";
 
 export type TranscribeOptions = {
   audioUrl: string; // URL to the audio file (e.g., S3 URL)
@@ -99,7 +103,8 @@ export async function transcribeAudio(
     let audioBuffer: Buffer;
     let mimeType: string;
     try {
-      const response = await fetch(options.audioUrl);
+      validateExternalUrl(options.audioUrl);
+      const response = await fetchWithSecurity(options.audioUrl);
       if (!response.ok) {
         return {
           error: "Failed to download audio file",
@@ -156,14 +161,18 @@ export async function transcribeAudio(
 
     const fullUrl = new URL("v1/audio/transcriptions", baseUrl).toString();
 
-    const response = await fetch(fullUrl, {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${ENV.forgeApiKey}`,
-        "Accept-Encoding": "identity",
+    const response = await fetchWithSecurity(
+      fullUrl,
+      {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${ENV.forgeApiKey}`,
+          "Accept-Encoding": "identity",
+        },
+        body: formData,
       },
-      body: formData,
-    });
+      { allowPrivateHosts: true }
+    );
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => "");

@@ -7,6 +7,7 @@
  */
 
 import rateLimit from "express-rate-limit";
+import { SECURITY_CONFIG } from "../config/security";
 
 /** Shared 429 JSON response format. */
 const handler = (
@@ -21,8 +22,8 @@ const handler = (
  * 5 requests per minute per IP to keep LLM costs bounded.
  */
 export const chatRateLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  limit: 5,
+  windowMs: SECURITY_CONFIG.rateLimit.windowMs,
+  limit: SECURITY_CONFIG.rateLimit.ipRequestsPerMinute,
   standardHeaders: "draft-8",
   legacyHeaders: false,
   handler,
@@ -33,8 +34,8 @@ export const chatRateLimiter = rateLimit({
  * 60 requests per minute per IP — tRPC handles many small mutations.
  */
 export const trpcRateLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  limit: 60,
+  windowMs: SECURITY_CONFIG.rateLimit.windowMs,
+  limit: SECURITY_CONFIG.rateLimit.ipRequestsPerMinute,
   standardHeaders: "draft-8",
   legacyHeaders: false,
   handler,
@@ -45,7 +46,7 @@ export const trpcRateLimiter = rateLimit({
  * 10 requests per minute per IP to mitigate brute-force / token-fishing.
  */
 export const oauthRateLimiter = rateLimit({
-  windowMs: 60 * 1000,
+  windowMs: SECURITY_CONFIG.rateLimit.windowMs,
   limit: 10,
   standardHeaders: "draft-8",
   legacyHeaders: false,
@@ -57,7 +58,7 @@ export const oauthRateLimiter = rateLimit({
  * 10 requests per minute per IP — document processing is resource-intensive.
  */
 export const adminRateLimiter = rateLimit({
-  windowMs: 60 * 1000,
+  windowMs: SECURITY_CONFIG.rateLimit.windowMs,
   limit: 10,
   standardHeaders: "draft-8",
   legacyHeaders: false,

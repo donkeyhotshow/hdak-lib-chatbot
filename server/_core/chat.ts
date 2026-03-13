@@ -8,11 +8,14 @@
 import { streamText, stepCountIs } from "ai";
 import { tool } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
+import { TRPCError } from "@trpc/server";
 import type { Express } from "express";
 import { z } from "zod/v4";
+import { SECURITY_CONFIG } from "../config/security";
 import { ENV } from "./env";
 import { createPatchedFetch } from "./patchedFetch";
 import { logger } from "./logger";
+import { sdk } from "./sdk";
 import * as db from "../db";
 import {
   getSystemPrompt,
@@ -26,6 +29,19 @@ import {
   AI_TEMPERATURE,
   AI_MODEL_NAME,
 } from "../services/aiPipeline";
+import { logSecurityEvent } from "../services/observability/securityLogger";
+import { getOwnedConversationHistory } from "../services/chatService";
+import { guardPrompt } from "../services/security/promptGuard";
+import {
+  enforceSecurityRateLimit,
+  getRequestIp,
+} from "../services/security/rateLimiter";
+import { executeSandboxedTool } from "../services/security/toolSandbox";
+import {
+  trimHistoryMessages,
+  trimPromptToTokenLimit,
+  trimResponseLength,
+} from "../services/security/tokenLimits";
 import { recordLatency, recordStreamOutcome } from "./metrics";
 
 /** Maximum number of recent messages to scan when detecting the last user language. */
@@ -51,10 +67,11 @@ function findLastUserMessage(messages: IncomingMessage[] | unknown): string {
 }
 
 /** Maximum time (ms) allowed for a single streaming chat request. */
-const CHAT_TIMEOUT_MS = 30_000;
+const CHAT_TIMEOUT_MS = SECURITY_CONFIG.chat.timeoutMs;
 
 /** Maximum character length allowed per individual message in the /api/chat endpoint. */
-export const MAX_CHAT_MESSAGE_LENGTH = 10_000;
+export const MAX_CHAT_MESSAGE_LENGTH =
+  SECURITY_CONFIG.tokenLimits.maxMessageChars;
 
 /** Zod schema for validating individual chat messages from the client. */
 const chatMessageSchema = z.object({
@@ -111,32 +128,40 @@ export const tools = {
           "Search query — author name, subject, database name, topic, etc."
         ),
     }),
-    execute: async ({ query }) => {
-      const dbResources = await db.searchResources(query);
-      const q = query.toLowerCase();
-      const siteResources = hdakResources.filter(
-        r =>
-          r.name.toLowerCase().includes(q) ||
-          r.description.toLowerCase().includes(q)
-      );
-      return {
-        query,
-        dbResources: dbResources.slice(0, 5).map(r => ({
-          name: sanitizeUntrustedContent(r.nameUk || r.nameEn || ""),
-          description: sanitizeUntrustedContent(
-            r.descriptionUk || r.descriptionEn || ""
-          ),
-          url: r.url,
-          type: r.type,
-        })),
-        siteResources: siteResources.slice(0, 4).map(r => ({
-          name: r.name,
-          description: r.description,
-          url: r.url,
-          accessConditions: r.accessConditions,
-        })),
-        found: dbResources.length + siteResources.length,
-      };
+    execute: async input => {
+      return executeSandboxedTool({
+        toolName: "searchLibraryResources",
+        input,
+        schema: z.object({ query: z.string() }),
+        context: { endpoint: "/api/chat" },
+        execute: async ({ query }) => {
+          const dbResources = await db.searchResources(query);
+          const q = query.toLowerCase();
+          const siteResources = hdakResources.filter(
+            r =>
+              r.name.toLowerCase().includes(q) ||
+              r.description.toLowerCase().includes(q)
+          );
+          return {
+            query,
+            dbResources: dbResources.slice(0, 5).map(r => ({
+              name: sanitizeUntrustedContent(r.nameUk || r.nameEn || ""),
+              description: sanitizeUntrustedContent(
+                r.descriptionUk || r.descriptionEn || ""
+              ),
+              url: r.url,
+              type: r.type,
+            })),
+            siteResources: siteResources.slice(0, 4).map(r => ({
+              name: r.name,
+              description: r.description,
+              url: r.url,
+              accessConditions: r.accessConditions,
+            })),
+            found: dbResources.length + siteResources.length,
+          };
+        },
+      });
     },
   }),
 
@@ -160,30 +185,41 @@ export const tools = {
         .default("author")
         .describe("Type of search field to use"),
     }),
-    execute: async ({ searchTerm, searchType }) => {
-      const fieldLabel: Record<string, string> = {
-        author: "Автор / Author",
-        title: "Назва / Title",
-        subject: "Тематика / Subject",
-        keyword: "Ключові слова / Keywords",
-      };
-      return {
-        catalogUrl:
-          "https://library-service.com.ua:8443/khkhdak/DocumentSearchForm",
-        catalogPageUrl: "https://lib-hdak.in.ua/e-catalog.html",
-        repositoryUrl: "https://repository.ac.kharkov.ua/home",
-        searchTerm,
-        searchType,
-        searchFieldLabel: fieldLabel[searchType] ?? fieldLabel.author,
-        steps: [
-          `Відкрийте електронний каталог ХДАК: https://lib-hdak.in.ua/e-catalog.html`,
-          `Натисніть кнопку "Пошук" або перейдіть за посиланням: https://library-service.com.ua:8443/khkhdak/DocumentSearchForm`,
-          `У полі "${fieldLabel[searchType]}" введіть: ${searchTerm}`,
-          `Натисніть кнопку пошуку та перегляньте результати.`,
-        ],
-        repositoryNote:
-          "Якщо шукаєте публікації вчених ХДАК — скористайтесь репозитарієм: https://repository.ac.kharkov.ua/home",
-      };
+    execute: async input => {
+      return executeSandboxedTool({
+        toolName: "getCatalogSearchLink",
+        input,
+        schema: z.object({
+          searchTerm: z.string(),
+          searchType: z.enum(["author", "title", "subject", "keyword"]),
+        }),
+        context: { endpoint: "/api/chat" },
+        execute: async ({ searchTerm, searchType }) => {
+          const fieldLabel: Record<string, string> = {
+            author: "Автор / Author",
+            title: "Назва / Title",
+            subject: "Тематика / Subject",
+            keyword: "Ключові слова / Keywords",
+          };
+          return {
+            catalogUrl:
+              "https://library-service.com.ua:8443/khkhdak/DocumentSearchForm",
+            catalogPageUrl: "https://lib-hdak.in.ua/e-catalog.html",
+            repositoryUrl: "https://repository.ac.kharkov.ua/home",
+            searchTerm,
+            searchType,
+            searchFieldLabel: fieldLabel[searchType] ?? fieldLabel.author,
+            steps: [
+              `Відкрийте електронний каталог ХДАК: https://lib-hdak.in.ua/e-catalog.html`,
+              `Натисніть кнопку "Пошук" або перейдіть за посиланням: https://library-service.com.ua:8443/khkhdak/DocumentSearchForm`,
+              `У полі "${fieldLabel[searchType]}" введіть: ${searchTerm}`,
+              `Натисніть кнопку пошуку та перегляньте результати.`,
+            ],
+            repositoryNote:
+              "Якщо шукаєте публікації вчених ХДАК — скористайтесь репозитарієм: https://repository.ac.kharkov.ua/home",
+          };
+        },
+      });
     },
   }),
 
@@ -226,50 +262,62 @@ export const tools = {
           "Optional ISO date (YYYY-MM-DD) — filter events up to and including this date"
         ),
     }),
-    execute: async ({ keyword, dateFrom, dateTo }) => {
-      // Search library info entries whose key starts with "event" or contains the keyword.
-      // This provides a lightweight events registry without a dedicated DB table.
-      const allInfo = await db.getAllLibraryInfo();
-      const kw = keyword?.toLowerCase() ?? "";
-      const from = dateFrom ? new Date(dateFrom) : null;
-      const to = dateTo ? new Date(dateTo) : null;
+    execute: async input => {
+      return executeSandboxedTool({
+        toolName: "findUpcomingLibraryEvents",
+        input,
+        schema: z.object({
+          keyword: z.string().optional(),
+          dateFrom: z.string().optional(),
+          dateTo: z.string().optional(),
+        }),
+        context: { endpoint: "/api/chat" },
+        execute: async ({ keyword, dateFrom, dateTo }) => {
+          // Search library info entries whose key starts with "event" or contains the keyword.
+          // This provides a lightweight events registry without a dedicated DB table.
+          const allInfo = await db.getAllLibraryInfo();
+          const kw = keyword?.toLowerCase() ?? "";
+          const from = dateFrom ? new Date(dateFrom) : null;
+          const to = dateTo ? new Date(dateTo) : null;
 
-      const events = allInfo.filter(entry => {
-        const isEvent =
-          entry.key.toLowerCase().startsWith("event") ||
-          entry.key.toLowerCase().includes("announcement") ||
-          entry.key.toLowerCase().includes("exhibition") ||
-          (kw &&
-            ((entry.valueUk ?? "").toLowerCase().includes(kw) ||
-              (entry.valueEn ?? "").toLowerCase().includes(kw) ||
-              (entry.valueRu ?? "").toLowerCase().includes(kw)));
-        if (!isEvent) return false;
-        // Date filtering: parse date embedded in the key (e.g. "event_2024-12-15_exhibition")
-        if (from || to) {
-          const dateMatch = entry.key.match(/(\d{4}-\d{2}-\d{2})/);
-          if (dateMatch) {
-            const d = new Date(dateMatch[1]);
-            if (from && d < from) return false;
-            if (to && d > to) return false;
-          }
-        }
-        return true;
+          const events = allInfo.filter(entry => {
+            const isEvent =
+              entry.key.toLowerCase().startsWith("event") ||
+              entry.key.toLowerCase().includes("announcement") ||
+              entry.key.toLowerCase().includes("exhibition") ||
+              (kw &&
+                ((entry.valueUk ?? "").toLowerCase().includes(kw) ||
+                  (entry.valueEn ?? "").toLowerCase().includes(kw) ||
+                  (entry.valueRu ?? "").toLowerCase().includes(kw)));
+            if (!isEvent) return false;
+            // Date filtering: parse date embedded in the key (e.g. "event_2024-12-15_exhibition")
+            if (from || to) {
+              const dateMatch = entry.key.match(/(\d{4}-\d{2}-\d{2})/);
+              if (dateMatch) {
+                const d = new Date(dateMatch[1]);
+                if (from && d < from) return false;
+                if (to && d > to) return false;
+              }
+            }
+            return true;
+          });
+
+          return {
+            found: events.length,
+            eventsPageUrl: "https://lib-hdak.in.ua/news.html",
+            events: events.slice(0, 8).map(e => ({
+              key: e.key,
+              uk: e.valueUk,
+              en: e.valueEn,
+              ru: e.valueRu,
+            })),
+            note:
+              events.length === 0
+                ? "No matching events found in the library info registry. Check the library news page: https://lib-hdak.in.ua/news.html"
+                : undefined,
+          };
+        },
       });
-
-      return {
-        found: events.length,
-        eventsPageUrl: "https://lib-hdak.in.ua/news.html",
-        events: events.slice(0, 8).map(e => ({
-          key: e.key,
-          uk: e.valueUk,
-          en: e.valueEn,
-          ru: e.valueRu,
-        })),
-        note:
-          events.length === 0
-            ? "No matching events found in the library info registry. Check the library news page: https://lib-hdak.in.ua/news.html"
-            : undefined,
-      };
     },
   }),
 };
@@ -301,7 +349,18 @@ export function registerChatRoutes(app: Express) {
 
   app.post("/api/chat", async (req, res) => {
     const requestStartMs = Date.now();
+    const requestIp = getRequestIp(req);
     try {
+      try {
+        enforceSecurityRateLimit({
+          endpoint: "/api/chat",
+          ip: requestIp,
+        });
+      } catch {
+        res.status(429).json({ error: "Too many requests" });
+        return;
+      }
+
       const parseResult = chatRequestSchema.safeParse(req.body);
       if (!parseResult.success) {
         // Return 413 when any message content exceeds the per-message size limit;
@@ -325,10 +384,51 @@ export function registerChatRoutes(app: Express) {
 
       const { messages, language, conversationId } = parseResult.data;
 
-      // Sanitize message content (strip HTML and injection patterns) before passing to AI
-      const sanitizedMessages = messages.map(m => ({
+      let authUserId: number | null = null;
+      try {
+        const maybeUser = await sdk.authenticateRequest(req);
+        authUserId = maybeUser.id;
+        try {
+          enforceSecurityRateLimit({
+            endpoint: "/api/chat",
+            ip: requestIp,
+            userId: maybeUser.id,
+          });
+        } catch {
+          res.status(429).json({ error: "Too many requests" });
+          return;
+        }
+      } catch {
+        // Anonymous requests are allowed for generic /api/chat usage.
+      }
+
+      const guardedMessages = messages.map(m => {
+        const guarded =
+          m.role === "user"
+            ? guardPrompt(m.content, {
+                endpoint: "/api/chat",
+                ip: requestIp,
+              })
+            : { flagged: false, sanitizedPrompt: m.content, reasons: [] };
+        return {
+          role: m.role,
+          flagged: guarded.flagged,
+          content: guarded.sanitizedPrompt,
+        };
+      });
+      if (guardedMessages.some(m => m.flagged)) {
+        res.status(400).json({
+          message: SECURITY_CONFIG.promptInjection.safeFallbackResponse,
+          flagged: true,
+        });
+        return;
+      }
+      const sanitizedMessages = guardedMessages.map(m => ({
         role: m.role,
-        content: sanitizeUntrustedContent(m.content),
+        content: trimPromptToTokenLimit(m.content, {
+          endpoint: "/api/chat",
+          ip: requestIp,
+        }),
       }));
 
       const lastUserMessage = findLastUserMessage(sanitizedMessages);
@@ -337,9 +437,18 @@ export function registerChatRoutes(app: Express) {
         : null;
       const lang: "en" | "uk" | "ru" = language ?? detectedLanguage ?? "uk";
 
-      // Accept any conversationId without authentication — auth is fully removed.
+      // conversationId-scoped operations require authentication + ownership checks.
       let convId: number | null = null;
       if (conversationId !== undefined) {
+        if (authUserId === null) {
+          logSecurityEvent({
+            endpoint: "/api/chat",
+            eventType: "auth_failure",
+            ip: requestIp,
+          });
+          res.status(401).json({ error: "Authentication required" });
+          return;
+        }
         convId = conversationId;
       }
 
@@ -356,22 +465,43 @@ export function registerChatRoutes(app: Express) {
       const MAX_CHAT_HISTORY = 14;
       let dbHistory: { role: "user" | "assistant"; content: string }[] = [];
       if (convId !== null) {
+        if (authUserId === null) {
+          res.status(401).json({ error: "Authentication required" });
+          return;
+        }
         try {
-          const history = await db.getMessages(convId);
-          dbHistory = history
-            .slice(-MAX_CHAT_HISTORY)
-            // Only include roles the AI understands; system messages are handled
-            // via the system prompt, so they are intentionally excluded here.
-            .filter(m => m.role === "user" || m.role === "assistant")
-            .map(m => ({
-              role: m.role as "user" | "assistant",
-              content: m.content,
-            }));
+          dbHistory = trimHistoryMessages(
+            await getOwnedConversationHistory(
+              convId,
+              authUserId,
+              MAX_CHAT_HISTORY
+            ),
+            {
+              endpoint: "/api/chat",
+              ip: requestIp,
+              userId: authUserId,
+            }
+          );
         } catch (err) {
+          if (err instanceof TRPCError) {
+            if (err.code === "NOT_FOUND") {
+              res.status(404).json({ error: "Conversation not found" });
+              return;
+            }
+            if (err.code === "FORBIDDEN") {
+              res.status(403).json({ error: "Access denied" });
+              return;
+            }
+          }
+
           logger.warn("[/api/chat] Failed to load conversation history", {
             conversationId: convId,
             error: err instanceof Error ? err.message : String(err),
           });
+          res
+            .status(500)
+            .json({ error: "Failed to load conversation history" });
+          return;
         }
       }
 
@@ -380,11 +510,16 @@ export function registerChatRoutes(app: Express) {
         dbHistory.length > 0
           ? [...dbHistory, ...sanitizedMessages]
           : sanitizedMessages;
+      const limitedMessagesForAI = trimHistoryMessages(messagesForAI, {
+        endpoint: "/api/chat",
+        ip: requestIp,
+        userId: authUserId,
+      });
 
       const result = streamText({
         model: openai.chat(AI_MODEL_NAME),
         system: buildSystemPrompt(lang),
-        messages: messagesForAI,
+        messages: limitedMessagesForAI,
         tools,
         temperature: AI_TEMPERATURE,
         stopWhen: stepCountIs(5),
@@ -400,7 +535,15 @@ export function registerChatRoutes(app: Express) {
               if (lastUserMsg) {
                 await db.createMessage(convId, "user", lastUserMsg);
               }
-              await db.createMessage(convId, "assistant", text);
+              await db.createMessage(
+                convId,
+                "assistant",
+                trimResponseLength(text, {
+                  endpoint: "/api/chat",
+                  ip: requestIp,
+                  userId: authUserId,
+                })
+              );
             } catch (err) {
               logger.error("[/api/chat] Failed to save messages", { err });
             }

@@ -9,6 +9,7 @@
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { appRouter } from "./routers";
+import { clearSecurityRateLimitBuckets } from "./services/security/rateLimiter";
 import type { TrpcContext } from "./_core/context";
 import * as db from "./db";
 
@@ -72,7 +73,10 @@ function makeConv(userId: number, id = 10) {
   };
 }
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  clearSecurityRateLimitBuckets();
+  vi.restoreAllMocks();
+});
 
 // ---------------------------------------------------------------------------
 // conversations.create

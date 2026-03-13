@@ -1,39 +1,40 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
-import { logger } from "./_core/logger";
+import {
+  adminProcedure,
+  publicProcedure,
+  protectedProcedure,
+  router,
+} from "./_core/trpc";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import { SECURITY_CONFIG } from "./config/security";
 import * as db from "./db";
 import { hdakResources } from "./system-prompts-official";
 import {
-  detectLanguageFromText,
-  generateConversationReply,
-  getLocalizedAiErrorMessage,
-  logAiPipelineError,
-  normalizeLanguage,
-  sanitizeUntrustedContent,
-  type ConversationHistoryMessage,
-  type MessageSource,
-} from "./services/aiPipeline";
+  assertConversationOwnership,
+  sendConversationMessage,
+} from "./services/chatService";
+import {
+  enforceSecurityRateLimit,
+  getRequestIp,
+} from "./services/security/rateLimiter";
 import { runSync, isSyncing, getLastSyncStatus } from "./services/syncService";
 
-// Admin-only procedure
-const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
-  if (ctx.user?.role !== "admin") {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "Admin access required",
-    });
-  }
-  return next({ ctx });
-});
-
 /** Maximum number of previous messages included in the AI context window. */
-const MAX_CONVERSATION_HISTORY = 10;
+const MAX_CONVERSATION_HISTORY =
+  SECURITY_CONFIG.tokenLimits.conversationContextHistory;
 /** Maximum character length allowed for a single user message. */
-const MAX_MESSAGE_LENGTH = 10_000;
+const MAX_MESSAGE_LENGTH = SECURITY_CONFIG.tokenLimits.maxMessageChars;
+const conversationProcedure = protectedProcedure.use(({ ctx, next }) => {
+  enforceSecurityRateLimit({
+    endpoint: "trpc.conversations",
+    userId: ctx.user.id,
+    ip: getRequestIp(ctx.req),
+  });
+  return next();
+});
 
 export const appRouter = router({
   system: systemRouter,
@@ -51,7 +52,7 @@ export const appRouter = router({
 
   // Conversation management
   conversations: router({
-    create: protectedProcedure
+    create: conversationProcedure
       .input(
         z.object({
           title: z.string().min(1).max(500),
@@ -69,46 +70,38 @@ export const appRouter = router({
         return conversation;
       }),
 
-    list: protectedProcedure.query(async ({ ctx }) => {
+    list: conversationProcedure.query(async ({ ctx }) => {
       return await db.getConversations(ctx.user!.id);
     }),
 
-    get: protectedProcedure
+    get: conversationProcedure
       .input(z.object({ id: z.number() }))
       .query(async ({ ctx, input }) => {
         const conversation = await db.getConversation(input.id);
         if (!conversation) return null;
-        if (conversation.userId !== ctx.user!.id) {
+        if (conversation.userId !== ctx.user.id) {
           throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
         }
         return conversation;
       }),
 
-    getMessages: protectedProcedure
+    getMessages: conversationProcedure
       .input(z.object({ conversationId: z.number() }))
       .query(async ({ ctx, input }) => {
-        const conversation = await db.getConversation(input.conversationId);
-        if (!conversation) throw new TRPCError({ code: "NOT_FOUND" });
-        if (conversation.userId !== ctx.user!.id) {
-          throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
-        }
+        await assertConversationOwnership(input.conversationId, ctx.user.id);
         return await db.getMessages(input.conversationId);
       }),
 
-    delete: protectedProcedure
+    delete: conversationProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
-        const conversation = await db.getConversation(input.id);
-        if (!conversation) throw new TRPCError({ code: "NOT_FOUND" });
-        if (conversation.userId !== ctx.user!.id) {
-          throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
-        }
+        await assertConversationOwnership(input.id, ctx.user.id);
         const success = await db.deleteConversation(input.id);
         if (!success) throw new TRPCError({ code: "NOT_FOUND" });
         return { success: true };
       }),
 
-    sendMessage: protectedProcedure
+    sendMessage: conversationProcedure
       .input(
         z.object({
           conversationId: z.number().int().positive(),
@@ -116,86 +109,13 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ ctx, input }) => {
-        // Verify that this conversation belongs to the requesting user
-        const conversation = await db.getConversation(input.conversationId);
-        if (!conversation) throw new TRPCError({ code: "NOT_FOUND" });
-        if (conversation.userId !== ctx.user!.id) {
-          throw new TRPCError({ code: "FORBIDDEN", message: "Access denied" });
-        }
-
-        const conversationLanguage = normalizeLanguage(
-          conversation.language as string | null
-        );
-        const detectedLanguage = detectLanguageFromText(input.content);
-        const language = detectedLanguage ?? conversationLanguage;
-
-        // Fetch conversation history BEFORE saving the new user message so that
-        // generateConversationReply (which appends the prompt itself) does not
-        // receive the current user turn twice.
-        const messages = await db.getMessages(input.conversationId);
-        const conversationHistory: ConversationHistoryMessage[] = messages
-          .slice(-MAX_CONVERSATION_HISTORY)
-          .map(m => {
-            const isSupportedRole = m.role === "assistant" || m.role === "user";
-            if (!isSupportedRole) {
-              logger.warn(`[sendMessage] Unexpected role in conversation`, {
-                role: m.role,
-                conversationId: input.conversationId,
-                messageId: m.id ?? "unknown",
-              });
-            }
-            const role: ConversationHistoryMessage["role"] = isSupportedRole
-              ? (m.role as ConversationHistoryMessage["role"])
-              : "user";
-            return { role, content: m.content };
-          });
-
-        // Save user message after history has been read so the current turn
-        // is not included in the history snapshot passed to the AI.
-        const userMessage = await db.createMessage(
-          input.conversationId,
-          "user",
-          input.content
-        );
-        if (!userMessage)
-          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-
-        // Generate AI response (resource search and RAG are inside the try/catch
-        // so that embedding or search failures produce a graceful error message
-        // rather than an uncaught exception)
-        // Sanitize the prompt before passing to AI to prevent prompt injection attacks.
-        const sanitizedPrompt = sanitizeUntrustedContent(input.content);
-        let aiResponse = "";
-        let source: MessageSource = "general";
-        try {
-          const result = await generateConversationReply({
-            prompt: sanitizedPrompt,
-            conversationId: input.conversationId,
-            language,
-            userId: ctx.user!.id,
-            history: conversationHistory,
-          });
-          aiResponse = result.text;
-          source = result.source;
-        } catch (error) {
-          logAiPipelineError(error, {
-            conversationId: input.conversationId,
-            userId: ctx.user!.id,
-            prompt: input.content,
-          });
-          aiResponse = getLocalizedAiErrorMessage(language);
-        }
-
-        // Save assistant message
-        const assistantMessage = await db.createMessage(
-          input.conversationId,
-          "assistant",
-          aiResponse
-        );
-        if (!assistantMessage)
-          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-
-        return { ...assistantMessage, source };
+        return await sendConversationMessage({
+          conversationId: input.conversationId,
+          userId: ctx.user.id,
+          ip: getRequestIp(ctx.req),
+          content: input.content,
+          maxHistory: MAX_CONVERSATION_HISTORY,
+        });
       }),
   }),
 

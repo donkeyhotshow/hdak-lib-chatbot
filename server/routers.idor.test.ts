@@ -3,6 +3,7 @@ import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
 import * as db from "./db";
 import * as aiPipeline from "./services/aiPipeline";
+import { clearSecurityRateLimitBuckets } from "./services/security/rateLimiter";
 
 vi.mock("./db", async importOriginal => {
   const actual = await importOriginal<typeof import("./db")>();
@@ -46,6 +47,10 @@ const mockConversation = (userId: number, id = 42) => ({
   language: "uk" as const,
   createdAt: new Date(),
   updatedAt: new Date(),
+});
+
+afterEach(() => {
+  clearSecurityRateLimitBuckets();
 });
 
 describe("conversations.get — IDOR protection", () => {

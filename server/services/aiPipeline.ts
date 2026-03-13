@@ -2,9 +2,11 @@ import { generateText } from "ai";
 import { openai } from "@ai-sdk/openai";
 import NodeCache from "node-cache";
 import type { LibraryResource } from "../../drizzle/schema";
+import { SECURITY_CONFIG } from "../config/security";
 import * as db from "../db";
-import { getRagContext } from "../rag-service";
 import { logger } from "../_core/logger";
+import { getRagContext } from "./rag/retriever";
+import { buildRagPromptSection } from "./rag/promptBuilder";
 import {
   getSystemPrompt,
   officialLibraryInfo,
@@ -288,7 +290,7 @@ export async function generateConversationReply(
     const rawRagContext = await getRagContext(prompt, language);
     // Sanitize RAG context before injecting into the model prompt
     const ragContext = rawRagContext
-      ? sanitizeUntrustedContent(rawRagContext)
+      ? buildRagPromptSection(sanitizeUntrustedContent(rawRagContext))
       : "";
 
     // Determine the knowledge source for this request (always computed fresh —
