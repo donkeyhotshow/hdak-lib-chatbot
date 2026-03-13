@@ -91,7 +91,8 @@ const translations: Record<Language, Record<string, string>> = {
     deleteConversation: "Видалити",
     sendFailed: "Помилка надсилання. Спробуйте ще раз.",
     streamError: "Помилка стрімінгу. Спробуйте ще раз.",
-    streamErrorTooLarge: "Повідомлення занадто довге (максимум 10 000 символів).",
+    streamErrorTooLarge:
+      "Повідомлення занадто довге (максимум 10 000 символів).",
     actionFindCatalog: "Знайти в каталозі",
     actionWriteLetter: "Написати листа",
     actionShare: "Поділитися",
@@ -131,7 +132,8 @@ const translations: Record<Language, Record<string, string>> = {
     deleteConversation: "Удалить",
     sendFailed: "Ошибка отправки. Попробуйте ещё раз.",
     streamError: "Ошибка стриминга. Попробуйте ещё раз.",
-    streamErrorTooLarge: "Сообщение слишком длинное (максимум 10 000 символов).",
+    streamErrorTooLarge:
+      "Сообщение слишком длинное (максимум 10 000 символов).",
     actionFindCatalog: "Найти в каталоге",
     actionWriteLetter: "Написать письмо",
     actionShare: "Поделиться",
@@ -256,20 +258,26 @@ function formatTime(date: Date | string | null | undefined): string {
   const now = new Date();
   const diff = now.getTime() - d.getTime();
   if (diff < 86400000) {
-    return d.toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit" });
+    return d.toLocaleTimeString("uk-UA", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   }
   if (diff < 172800000) return "Вчора";
   return d.toLocaleDateString("uk-UA", { day: "numeric", month: "short" });
 }
 
 export default function Home() {
-
   const [language, setLanguage] = useState<Language>("uk");
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [currentConversationId, setCurrentConversationId] = useState<number | null>(null);
+  const [currentConversationId, setCurrentConversationId] = useState<
+    number | null
+  >(null);
   const [sendError, setSendError] = useState<string | null>(null);
   const [localInput, setLocalInput] = useState("");
-  const [openDropdown, setOpenDropdown] = useState<"hist" | "res" | "lang" | null>(null);
+  const [openDropdown, setOpenDropdown] = useState<
+    "hist" | "res" | "lang" | null
+  >(null);
   const userHasDeselected = useRef(false);
   const pendingPromptRef = useRef<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -305,7 +313,9 @@ export default function Home() {
           return {
             body: {
               ...body,
-              messages: lastUserText ? [{ role: "user", content: lastUserText }] : [],
+              messages: lastUserText
+                ? [{ role: "user", content: lastUserText }]
+                : [],
             },
           };
         },
@@ -330,9 +340,12 @@ export default function Home() {
     },
   });
 
-  const { data: conversationsData } = trpc.conversations.list.useQuery(undefined, {
-    staleTime: 5 * 60 * 1000,
-  });
+  const { data: conversationsData } = trpc.conversations.list.useQuery(
+    undefined,
+    {
+      staleTime: 5 * 60 * 1000,
+    }
+  );
 
   const { data: messagesData } = trpc.conversations.getMessages.useQuery(
     { conversationId: currentConversationId! },
@@ -437,7 +450,10 @@ export default function Home() {
     setOpenDropdown(null);
   };
 
-  const handleDeleteConversation = (e: React.MouseEvent, conversationId: number) => {
+  const handleDeleteConversation = (
+    e: React.MouseEvent,
+    conversationId: number
+  ) => {
     e.stopPropagation();
     deleteConversationMutation.mutate({ id: conversationId });
   };
@@ -458,7 +474,10 @@ export default function Home() {
     [t]
   );
 
-  const showEmpty = !currentConversationId && !userHasDeselected.current && allMessages.length === 0;
+  const showEmpty =
+    !currentConversationId &&
+    !userHasDeselected.current &&
+    allMessages.length === 0;
 
   const adjustTextarea = () => {
     const el = textareaRef.current;
@@ -467,7 +486,11 @@ export default function Home() {
     el.style.height = Math.min(el.scrollHeight, 100) + "px";
   };
 
-  const langLabels: Record<Language, string> = { uk: "УКР", ru: "РУС", en: "ENG" };
+  const langLabels: Record<Language, string> = {
+    uk: "УКР",
+    ru: "РУС",
+    en: "ENG",
+  };
 
   return (
     <>
@@ -581,7 +604,15 @@ export default function Home() {
                 whiteSpace: "nowrap",
               }}
             >
-              <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ opacity: 0.55 }}>
+              <svg
+                width="13"
+                height="13"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+                style={{ opacity: 0.55 }}
+              >
                 <circle cx="12" cy="12" r="10" />
                 <polyline points="12 6 12 12 16 14" />
               </svg>
@@ -599,7 +630,8 @@ export default function Home() {
                   borderRadius: 12,
                   padding: 6,
                   zIndex: 200,
-                  boxShadow: "0 16px 48px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.03)",
+                  boxShadow:
+                    "0 16px 48px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.03)",
                   minWidth: 240,
                   animation: "ddIn 0.15s cubic-bezier(.25,.46,.45,.94) both",
                   maxHeight: 400,
@@ -607,7 +639,16 @@ export default function Home() {
                 }}
                 className="hdak-dd-scroll"
               >
-                <div style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", color: "#566070", padding: "5px 9px 9px" }}>
+                <div
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 500,
+                    letterSpacing: "0.1em",
+                    textTransform: "uppercase",
+                    color: "#566070",
+                    padding: "5px 9px 9px",
+                  }}
+                >
                   {t.historyLabel}
                 </div>
                 <button
@@ -630,11 +671,28 @@ export default function Home() {
                     transition: "background 0.18s",
                   }}
                 >
-                  <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
+                  <svg
+                    width="12"
+                    height="12"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M12 5v14M5 12h14" />
+                  </svg>
                   {t.newChat}
                 </button>
                 {conversations.length === 0 ? (
-                  <div style={{ padding: "8px 10px", fontSize: 12, color: "#566070" }}>{t.noConversations}</div>
+                  <div
+                    style={{
+                      padding: "8px 10px",
+                      fontSize: 12,
+                      color: "#566070",
+                    }}
+                  >
+                    {t.noConversations}
+                  </div>
                 ) : (
                   conversations.map(conv => (
                     <div
@@ -649,21 +707,55 @@ export default function Home() {
                         borderRadius: 8,
                         cursor: "pointer",
                         transition: "background 0.15s",
-                        borderLeft: currentConversationId === conv.id ? "2px solid #c8a84b" : "2px solid transparent",
-                        background: currentConversationId === conv.id ? "rgba(200,168,75,0.10)" : "transparent",
+                        borderLeft:
+                          currentConversationId === conv.id
+                            ? "2px solid #c8a84b"
+                            : "2px solid transparent",
+                        background:
+                          currentConversationId === conv.id
+                            ? "rgba(200,168,75,0.10)"
+                            : "transparent",
                       }}
                     >
-                      <span style={{ flex: 1, fontSize: 13, color: "#ede3d0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <span
+                        style={{
+                          flex: 1,
+                          fontSize: 13,
+                          color: "#ede3d0",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
                         {conv.title}
                       </span>
-                      <span style={{ fontSize: 11, color: "#566070", flexShrink: 0 }}>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          color: "#566070",
+                          flexShrink: 0,
+                        }}
+                      >
                         {formatTime(conv.updatedAt)}
                       </span>
                       <button
                         onClick={e => handleDeleteConversation(e, conv.id)}
-                        style={{ background: "none", border: "none", color: "#566070", cursor: "pointer", fontSize: 12, padding: "2px 3px", opacity: 0.7, transition: "color 0.15s" }}
-                        onMouseEnter={e => (e.currentTarget.style.color = "#e05555")}
-                        onMouseLeave={e => (e.currentTarget.style.color = "#566070")}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: "#566070",
+                          cursor: "pointer",
+                          fontSize: 12,
+                          padding: "2px 3px",
+                          opacity: 0.7,
+                          transition: "color 0.15s",
+                        }}
+                        onMouseEnter={e =>
+                          (e.currentTarget.style.color = "#e05555")
+                        }
+                        onMouseLeave={e =>
+                          (e.currentTarget.style.color = "#566070")
+                        }
                         title={t.deleteConversation}
                       >
                         ✕
@@ -676,11 +768,40 @@ export default function Home() {
           </div>
 
           {/* Center logo */}
-          <div style={{ position: "absolute", left: "50%", transform: "translateX(-50%)", display: "flex", alignItems: "center", gap: 9, pointerEvents: "none" }}>
-            <div style={{ width: 28, height: 28, background: "rgba(200,168,75,0.10)", border: "1px solid rgba(180,148,80,0.35)", borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>
+          <div
+            style={{
+              position: "absolute",
+              left: "50%",
+              transform: "translateX(-50%)",
+              display: "flex",
+              alignItems: "center",
+              gap: 9,
+              pointerEvents: "none",
+            }}
+          >
+            <div
+              style={{
+                width: 28,
+                height: 28,
+                background: "rgba(200,168,75,0.10)",
+                border: "1px solid rgba(180,148,80,0.35)",
+                borderRadius: 7,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 14,
+              }}
+            >
               📚
             </div>
-            <span className="hdak-serif" style={{ fontSize: 15, color: "#ede3d0", letterSpacing: "0.01em" }}>
+            <span
+              className="hdak-serif"
+              style={{
+                fontSize: 15,
+                color: "#ede3d0",
+                letterSpacing: "0.01em",
+              }}
+            >
               Бібліотека ХДАК
             </span>
           </div>
@@ -709,7 +830,15 @@ export default function Home() {
                   whiteSpace: "nowrap",
                 }}
               >
-                <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ opacity: 0.55 }}>
+                <svg
+                  width="13"
+                  height="13"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  viewBox="0 0 24 24"
+                  style={{ opacity: 0.55 }}
+                >
                   <path d="M4 19.5A2.5 2.5 0 016.5 17H20" />
                   <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" />
                 </svg>
@@ -727,7 +856,8 @@ export default function Home() {
                     borderRadius: 12,
                     padding: 6,
                     zIndex: 200,
-                    boxShadow: "0 16px 48px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.03)",
+                    boxShadow:
+                      "0 16px 48px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.03)",
                     minWidth: 268,
                     maxHeight: 440,
                     overflowY: "auto",
@@ -735,12 +865,29 @@ export default function Home() {
                   }}
                   className="hdak-dd-scroll"
                 >
-                  <div style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", color: "#566070", padding: "5px 9px 9px" }}>
+                  <div
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 500,
+                      letterSpacing: "0.1em",
+                      textTransform: "uppercase",
+                      color: "#566070",
+                      padding: "5px 9px 9px",
+                    }}
+                  >
                     {t.officialResources}
                   </div>
                   {[1, 2, 3].map(group => (
                     <div key={group}>
-                      {group > 1 && <div style={{ height: 1, background: "rgba(180,148,80,0.14)", margin: "5px 0" }} />}
+                      {group > 1 && (
+                        <div
+                          style={{
+                            height: 1,
+                            background: "rgba(180,148,80,0.14)",
+                            margin: "5px 0",
+                          }}
+                        />
+                      )}
                       {RESOURCES.filter(r => r.group === group).map(res => (
                         <a
                           key={res.url}
@@ -759,13 +906,50 @@ export default function Home() {
                             cursor: "pointer",
                           }}
                         >
-                          <span style={{ fontSize: 16, width: 22, textAlign: "center", flexShrink: 0, paddingTop: 1 }}>{res.ico}</span>
+                          <span
+                            style={{
+                              fontSize: 16,
+                              width: 22,
+                              textAlign: "center",
+                              flexShrink: 0,
+                              paddingTop: 1,
+                            }}
+                          >
+                            {res.ico}
+                          </span>
                           <div>
-                            <div style={{ fontSize: 12, color: "#ede3d0", fontWeight: 500, lineHeight: 1.3 }}>
+                            <div
+                              style={{
+                                fontSize: 12,
+                                color: "#ede3d0",
+                                fontWeight: 500,
+                                lineHeight: 1.3,
+                              }}
+                            >
                               {res.name}
-                              {res.vpn && <span style={{ fontSize: 10, color: "#c8a84b", opacity: 0.75, marginLeft: 4 }}>🔒 VPN</span>}
+                              {res.vpn && (
+                                <span
+                                  style={{
+                                    fontSize: 10,
+                                    color: "#c8a84b",
+                                    opacity: 0.75,
+                                    marginLeft: 4,
+                                  }}
+                                >
+                                  🔒 VPN
+                                </span>
+                              )}
                             </div>
-                            <div style={{ fontSize: 11, color: "#566070", lineHeight: 1.3, marginTop: 1 }}>{res.sub}</div>
+                            <div
+                              style={{
+                                fontSize: 11,
+                                color: "#566070",
+                                lineHeight: 1.3,
+                                marginTop: 1,
+                              }}
+                            >
+                              {res.sub}
+                            </div>
                           </div>
                         </a>
                       ))}
@@ -811,19 +995,32 @@ export default function Home() {
                     borderRadius: 12,
                     padding: 6,
                     zIndex: 200,
-                    boxShadow: "0 16px 48px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.03)",
+                    boxShadow:
+                      "0 16px 48px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.03)",
                     minWidth: 160,
                     animation: "ddIn 0.15s cubic-bezier(.25,.46,.45,.94) both",
                   }}
                 >
-                  <div style={{ fontSize: 10, fontWeight: 500, letterSpacing: "0.1em", textTransform: "uppercase", color: "#566070", padding: "5px 9px 9px" }}>
+                  <div
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 500,
+                      letterSpacing: "0.1em",
+                      textTransform: "uppercase",
+                      color: "#566070",
+                      padding: "5px 9px 9px",
+                    }}
+                  >
                     {t.interfaceLang}
                   </div>
                   {(["uk", "ru", "en"] as Language[]).map(lang => (
                     <div
                       key={lang}
                       className="hdak-lang-row"
-                      onClick={() => { setLanguage(lang); setOpenDropdown(null); }}
+                      onClick={() => {
+                        setLanguage(lang);
+                        setOpenDropdown(null);
+                      }}
                       style={{
                         padding: "8px 12px",
                         borderRadius: 8,
@@ -836,7 +1033,11 @@ export default function Home() {
                         gap: 8,
                       }}
                     >
-                      {lang === "uk" ? "🇺🇦 Українська" : lang === "ru" ? "🇷🇺 Русский" : "🇬🇧 English"}
+                      {lang === "uk"
+                        ? "🇺🇦 Українська"
+                        : lang === "ru"
+                          ? "🇷🇺 Русский"
+                          : "🇬🇧 English"}
                     </div>
                   ))}
                 </div>
@@ -892,23 +1093,67 @@ export default function Home() {
               </div>
               <h1
                 className="hdak-serif"
-                style={{ fontSize: 26, fontWeight: 600, color: "#ede3d0", marginBottom: 10 }}
+                style={{
+                  fontSize: 26,
+                  fontWeight: 600,
+                  color: "#ede3d0",
+                  marginBottom: 10,
+                }}
               >
                 {t.overviewGreeting}
               </h1>
-              <p style={{ fontSize: 13, color: "#a8997f", maxWidth: 320, lineHeight: 1.65, marginBottom: 30 }}>
+              <p
+                style={{
+                  fontSize: 13,
+                  color: "#a8997f",
+                  maxWidth: 320,
+                  lineHeight: 1.65,
+                  marginBottom: 30,
+                }}
+              >
                 {t.overviewDesc}
               </p>
 
               {/* Decorative divider */}
-              <div style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", maxWidth: 420, marginBottom: 22 }}>
-                <div style={{ flex: 1, height: 1, background: "rgba(180,148,80,0.14)" }} />
-                <span style={{ fontSize: 12, color: "#c8a84b", opacity: 0.5 }}>✦</span>
-                <div style={{ flex: 1, height: 1, background: "rgba(180,148,80,0.14)" }} />
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  width: "100%",
+                  maxWidth: 420,
+                  marginBottom: 22,
+                }}
+              >
+                <div
+                  style={{
+                    flex: 1,
+                    height: 1,
+                    background: "rgba(180,148,80,0.14)",
+                  }}
+                />
+                <span style={{ fontSize: 12, color: "#c8a84b", opacity: 0.5 }}>
+                  ✦
+                </span>
+                <div
+                  style={{
+                    flex: 1,
+                    height: 1,
+                    background: "rgba(180,148,80,0.14)",
+                  }}
+                />
               </div>
 
               {/* Chips */}
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center", maxWidth: 480 }}>
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 8,
+                  justifyContent: "center",
+                  maxWidth: 480,
+                }}
+              >
                 {chips.map((chip, i) => (
                   <button
                     key={i}
@@ -948,7 +1193,9 @@ export default function Home() {
               {allMessages.map((msg, idx) => {
                 const isUser = msg.role === "user";
                 const isLastAssistant =
-                  msg.role === "assistant" && idx === allMessages.length - 1 && !isStreaming;
+                  msg.role === "assistant" &&
+                  idx === allMessages.length - 1 &&
+                  !isStreaming;
                 return (
                   <div
                     key={idx}
@@ -956,7 +1203,8 @@ export default function Home() {
                       display: "flex",
                       gap: 10,
                       flexDirection: isUser ? "row-reverse" : "row",
-                      animation: "msgIn 0.28s cubic-bezier(.25,.46,.45,.94) both",
+                      animation:
+                        "msgIn 0.28s cubic-bezier(.25,.46,.45,.94) both",
                     }}
                   >
                     {/* Avatar */}
@@ -972,13 +1220,22 @@ export default function Home() {
                         fontSize: 14,
                         marginTop: 2,
                         border: "1px solid rgba(180,148,80,0.14)",
-                        background: isUser ? "#1c1505" : "rgba(200,168,75,0.10)",
+                        background: isUser
+                          ? "#1c1505"
+                          : "rgba(200,168,75,0.10)",
                       }}
                     >
                       {isUser ? "👤" : "📚"}
                     </div>
 
-                    <div style={{ display: "flex", flexDirection: "column", gap: 6, maxWidth: 540 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 6,
+                        maxWidth: 540,
+                      }}
+                    >
                       {/* Bubble */}
                       <div
                         className="hdak-bubble"
@@ -997,7 +1254,9 @@ export default function Home() {
                         }}
                       >
                         {isUser ? (
-                          <p style={{ whiteSpace: "pre-wrap", margin: 0 }}>{getMessageText(msg)}</p>
+                          <p style={{ whiteSpace: "pre-wrap", margin: 0 }}>
+                            {getMessageText(msg)}
+                          </p>
                         ) : (
                           <div style={{ fontSize: 14 }}>
                             <Markdown>{getMessageText(msg)}</Markdown>
@@ -1007,14 +1266,49 @@ export default function Home() {
 
                       {/* Quick actions under last assistant message */}
                       {isLastAssistant && (
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                          <a href="https://lib-hdak.in.ua/e-catalog.html" target="_blank" rel="noopener noreferrer">
-                            <button style={{ height: 26, padding: "0 10px", background: "transparent", border: "1px solid rgba(180,148,80,0.14)", borderRadius: 6, color: "#c8a84b", fontSize: 11, cursor: "pointer", fontFamily: "'DM Sans', system-ui, sans-serif", transition: "background 0.15s" }}>
+                        <div
+                          style={{ display: "flex", flexWrap: "wrap", gap: 6 }}
+                        >
+                          <a
+                            href="https://lib-hdak.in.ua/e-catalog.html"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <button
+                              style={{
+                                height: 26,
+                                padding: "0 10px",
+                                background: "transparent",
+                                border: "1px solid rgba(180,148,80,0.14)",
+                                borderRadius: 6,
+                                color: "#c8a84b",
+                                fontSize: 11,
+                                cursor: "pointer",
+                                fontFamily: "'DM Sans', system-ui, sans-serif",
+                                transition: "background 0.15s",
+                              }}
+                            >
                               📖 {t.actionFindCatalog}
                             </button>
                           </a>
-                          <a href="mailto:library@hdak.edu.ua" rel="noopener noreferrer">
-                            <button style={{ height: 26, padding: "0 10px", background: "transparent", border: "1px solid rgba(180,148,80,0.14)", borderRadius: 6, color: "#c8a84b", fontSize: 11, cursor: "pointer", fontFamily: "'DM Sans', system-ui, sans-serif", transition: "background 0.15s" }}>
+                          <a
+                            href="mailto:library@hdak.edu.ua"
+                            rel="noopener noreferrer"
+                          >
+                            <button
+                              style={{
+                                height: 26,
+                                padding: "0 10px",
+                                background: "transparent",
+                                border: "1px solid rgba(180,148,80,0.14)",
+                                borderRadius: 6,
+                                color: "#c8a84b",
+                                fontSize: 11,
+                                cursor: "pointer",
+                                fontFamily: "'DM Sans', system-ui, sans-serif",
+                                transition: "background 0.15s",
+                              }}
+                            >
                               ✉️ {t.actionWriteLetter}
                             </button>
                           </a>
@@ -1022,12 +1316,35 @@ export default function Home() {
                             onClick={() => {
                               const text = getMessageText(msg);
                               if (navigator.share) {
-                                navigator.share({ title: "HDAK Library", text, url: window.location.href }).catch(() => navigator.clipboard.writeText(text).catch(() => {}));
+                                navigator
+                                  .share({
+                                    title: "HDAK Library",
+                                    text,
+                                    url: window.location.href,
+                                  })
+                                  .catch(() =>
+                                    navigator.clipboard
+                                      .writeText(text)
+                                      .catch(() => {})
+                                  );
                               } else {
-                                navigator.clipboard.writeText(text).catch(() => {});
+                                navigator.clipboard
+                                  .writeText(text)
+                                  .catch(() => {});
                               }
                             }}
-                            style={{ height: 26, padding: "0 10px", background: "transparent", border: "1px solid rgba(180,148,80,0.14)", borderRadius: 6, color: "#c8a84b", fontSize: 11, cursor: "pointer", fontFamily: "'DM Sans', system-ui, sans-serif", transition: "background 0.15s" }}
+                            style={{
+                              height: 26,
+                              padding: "0 10px",
+                              background: "transparent",
+                              border: "1px solid rgba(180,148,80,0.14)",
+                              borderRadius: 6,
+                              color: "#c8a84b",
+                              fontSize: 11,
+                              cursor: "pointer",
+                              fontFamily: "'DM Sans', system-ui, sans-serif",
+                              transition: "background 0.15s",
+                            }}
                           >
                             🔗 {t.actionShare}
                           </button>
@@ -1041,13 +1358,52 @@ export default function Home() {
               {/* Typing indicator */}
               {status === "submitted" && (
                 <div style={{ display: "flex", gap: 10 }}>
-                  <div style={{ width: 30, height: 30, borderRadius: 8, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, marginTop: 2, border: "1px solid rgba(180,148,80,0.14)", background: "rgba(200,168,75,0.10)" }}>
+                  <div
+                    style={{
+                      width: 30,
+                      height: 30,
+                      borderRadius: 8,
+                      flexShrink: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 14,
+                      marginTop: 2,
+                      border: "1px solid rgba(180,148,80,0.14)",
+                      background: "rgba(200,168,75,0.10)",
+                    }}
+                  >
                     📚
                   </div>
-                  <div style={{ padding: "11px 15px", borderRadius: 13, borderTopLeftRadius: 3, border: "1px solid rgba(180,148,80,0.14)", background: "#131929" }}>
-                    <div style={{ display: "flex", gap: 5, alignItems: "center", padding: "5px 2px" }}>
+                  <div
+                    style={{
+                      padding: "11px 15px",
+                      borderRadius: 13,
+                      borderTopLeftRadius: 3,
+                      border: "1px solid rgba(180,148,80,0.14)",
+                      background: "#131929",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 5,
+                        alignItems: "center",
+                        padding: "5px 2px",
+                      }}
+                    >
                       {[0, 0.2, 0.4].map((delay, i) => (
-                        <div key={i} style={{ width: 7, height: 7, borderRadius: "50%", background: "#c8a84b", opacity: 0.4, animation: `dotPulse 1.3s ease-in-out ${delay}s infinite` }} />
+                        <div
+                          key={i}
+                          style={{
+                            width: 7,
+                            height: 7,
+                            borderRadius: "50%",
+                            background: "#c8a84b",
+                            opacity: 0.4,
+                            animation: `dotPulse 1.3s ease-in-out ${delay}s infinite`,
+                          }}
+                        />
                       ))}
                     </div>
                   </div>
@@ -1062,10 +1418,24 @@ export default function Home() {
           <div style={{ padding: "12px 0 22px", flexShrink: 0 }}>
             {/* Error banner */}
             {(sendError || streamError) && (
-              <div style={{ marginBottom: 10, display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#e05555", background: "rgba(224,85,85,0.08)", border: "1px solid rgba(224,85,85,0.2)", borderRadius: 8, padding: "8px 12px" }}>
+              <div
+                style={{
+                  marginBottom: 10,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  fontSize: 12,
+                  color: "#e05555",
+                  background: "rgba(224,85,85,0.08)",
+                  border: "1px solid rgba(224,85,85,0.2)",
+                  borderRadius: 8,
+                  padding: "8px 12px",
+                }}
+              >
                 <span style={{ flex: 1 }}>
                   {streamError
-                    ? streamError.message?.includes("413") || streamError.message?.includes("too large")
+                    ? streamError.message?.includes("413") ||
+                      streamError.message?.includes("too large")
                       ? t.streamErrorTooLarge
                       : t.streamError
                     : sendError}
@@ -1073,10 +1443,24 @@ export default function Home() {
                 {streamError && (
                   <button
                     onClick={() => void regenerate()}
-                    style={{ background: "none", border: "none", color: "#e05555", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontSize: 11, padding: "2px 6px" }}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "#e05555",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                      fontSize: 11,
+                      padding: "2px 6px",
+                    }}
                   >
                     <RefreshCw size={12} />
-                    {language === "uk" ? "Повторити" : language === "ru" ? "Повторить" : "Retry"}
+                    {language === "uk"
+                      ? "Повторити"
+                      : language === "ru"
+                        ? "Повторить"
+                        : "Retry"}
                   </button>
                 )}
               </div>
@@ -1108,7 +1492,8 @@ export default function Home() {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
                     const now = Date.now();
-                    if (now - lastSendTimeRef.current < SEND_DEBOUNCE_MS) return;
+                    if (now - lastSendTimeRef.current < SEND_DEBOUNCE_MS)
+                      return;
                     lastSendTimeRef.current = now;
                     handleSendMessage();
                     if (textareaRef.current) {
@@ -1123,30 +1508,49 @@ export default function Home() {
                 className="hdak-send"
                 onClick={() => {
                   handleSendMessage();
-                  if (textareaRef.current) textareaRef.current.style.height = "auto";
+                  if (textareaRef.current)
+                    textareaRef.current.style.height = "auto";
                 }}
                 disabled={isStreaming || !localInput.trim()}
                 style={{
                   width: 34,
                   height: 34,
                   flexShrink: 0,
-                  background: isStreaming || !localInput.trim() ? "#1a2236" : "#c8a84b",
+                  background:
+                    isStreaming || !localInput.trim() ? "#1a2236" : "#c8a84b",
                   border: "none",
                   borderRadius: 9,
-                  cursor: isStreaming || !localInput.trim() ? "default" : "pointer",
+                  cursor:
+                    isStreaming || !localInput.trim() ? "default" : "pointer",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: isStreaming || !localInput.trim() ? "#566070" : "#0b0f18",
-                  transition: "background 0.18s, transform 0.15s, box-shadow 0.18s",
+                  color:
+                    isStreaming || !localInput.trim() ? "#566070" : "#0b0f18",
+                  transition:
+                    "background 0.18s, transform 0.15s, box-shadow 0.18s",
                 }}
               >
-                <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <svg
+                  width="15"
+                  height="15"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  viewBox="0 0 24 24"
+                >
                   <path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z" />
                 </svg>
               </button>
             </div>
-            <div style={{ fontSize: 11, color: "#566070", textAlign: "center", marginTop: 7 }}>
+            <div
+              style={{
+                fontSize: 11,
+                color: "#566070",
+                textAlign: "center",
+                marginTop: 7,
+              }}
+            >
               {t.hint}
             </div>
           </div>

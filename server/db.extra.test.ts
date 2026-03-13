@@ -101,12 +101,20 @@ describe("db sentinel paths — no database available", () => {
     expect(await db.getConversation(1)).toBeNull();
   });
 
-  it("createConversation returns null when no DB", async () => {
-    expect(await db.createConversation(1, "Test", "uk")).toBeNull();
+  it("createConversation returns a mock conversation when no DB", async () => {
+    const result = await db.createConversation(1, "Test", "uk");
+    expect(result).not.toBeNull();
+    expect(result).toMatchObject({ userId: 1, title: "Test", language: "uk" });
   });
 
-  it("createMessage returns null when no DB", async () => {
-    expect(await db.createMessage(1, "user", "Hello")).toBeNull();
+  it("createMessage returns a mock message when no DB", async () => {
+    const result = await db.createMessage(1, "user", "Hello");
+    expect(result).not.toBeNull();
+    expect(result).toMatchObject({
+      conversationId: 1,
+      role: "user",
+      content: "Hello",
+    });
   });
 
   it("getUserByOpenId returns undefined when no DB", async () => {

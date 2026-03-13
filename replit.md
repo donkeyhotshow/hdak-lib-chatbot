@@ -28,6 +28,7 @@ shared/          - Shared types/constants between client and server
 The app runs on **port 5000** via `pnpm run dev`.
 
 ### Required Environment Variables (Production)
+
 - `DATABASE_URL` - MySQL connection string (e.g. `mysql://user:pass@host:3306/dbname`)
 - `BUILT_IN_FORGE_API_KEY` - API key for the AI endpoint
 - `BUILT_IN_FORGE_API_URL` - Base URL of the OpenAI-compatible API (must end with /v1)
@@ -38,6 +39,7 @@ The app runs on **port 5000** via `pnpm run dev`.
 - `OWNER_OPEN_ID` - OpenID of the admin user
 
 ### Development Mode
+
 In development, missing `DATABASE_URL` and `BUILT_IN_FORGE_API_KEY` only produce warnings (not exit). The app runs with mock data.
 
 ## Key Configuration Changes for Replit

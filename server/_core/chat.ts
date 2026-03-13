@@ -13,7 +13,6 @@ import { z } from "zod/v4";
 import { ENV } from "./env";
 import { createPatchedFetch } from "./patchedFetch";
 import { logger } from "./logger";
-import { sdk } from "./sdk";
 import * as db from "../db";
 import {
   getSystemPrompt,
@@ -338,37 +337,9 @@ export function registerChatRoutes(app: Express) {
         : null;
       const lang: "en" | "uk" | "ru" = language ?? detectedLanguage ?? "uk";
 
-      // When a conversationId is supplied, verify the caller is authenticated
-      // and owns that conversation before allowing messages to be persisted.
+      // Accept any conversationId without authentication — auth is fully removed.
       let convId: number | null = null;
       if (conversationId !== undefined) {
-        let requestUser: { id: number } | null = null;
-        try {
-          requestUser = await sdk.authenticateRequest(req);
-        } catch (authErr) {
-          logger.warn(
-            "[/api/chat] Authentication error while checking conversationId ownership",
-            {
-              conversationId,
-              error:
-                authErr instanceof Error ? authErr.message : String(authErr),
-            }
-          );
-        }
-        if (!requestUser && process.env.NODE_ENV !== "production") {
-          requestUser = { id: 1 };
-        }
-        if (!requestUser) {
-          res.status(401).json({
-            error: "Authentication required to save to a conversation",
-          });
-          return;
-        }
-        const conv = await db.getConversation(conversationId);
-        if (!conv || conv.userId !== requestUser.id) {
-          res.status(403).json({ error: "Access denied" });
-          return;
-        }
         convId = conversationId;
       }
 
