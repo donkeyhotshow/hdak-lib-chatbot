@@ -8,11 +8,13 @@
 import { streamText, stepCountIs } from "ai";
 import { tool } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
+import { TRPCError } from "@trpc/server";
 import type { Express } from "express";
 import { z } from "zod/v4";
 import { ENV } from "./env";
 import { createPatchedFetch } from "./patchedFetch";
 import { logger } from "./logger";
+import { sdk } from "./sdk";
 import * as db from "../db";
 import {
   getSystemPrompt,
@@ -26,6 +28,7 @@ import {
   AI_TEMPERATURE,
   AI_MODEL_NAME,
 } from "../services/aiPipeline";
+import { getOwnedConversationHistory } from "../services/chatService";
 import { recordLatency, recordStreamOutcome } from "./metrics";
 
 /** Maximum number of recent messages to scan when detecting the last user language. */
@@ -337,9 +340,17 @@ export function registerChatRoutes(app: Express) {
         : null;
       const lang: "en" | "uk" | "ru" = language ?? detectedLanguage ?? "uk";
 
-      // Accept any conversationId without authentication — auth is fully removed.
+      // conversationId-scoped operations require authentication + ownership checks.
       let convId: number | null = null;
+      let authUserId: number | null = null;
       if (conversationId !== undefined) {
+        try {
+          const user = await sdk.authenticateRequest(req);
+          authUserId = user.id;
+        } catch {
+          res.status(401).json({ error: "Authentication required" });
+          return;
+        }
         convId = conversationId;
       }
 
@@ -355,23 +366,33 @@ export function registerChatRoutes(app: Express) {
       // conversations without incurring unnecessary token costs.
       const MAX_CHAT_HISTORY = 14;
       let dbHistory: { role: "user" | "assistant"; content: string }[] = [];
-      if (convId !== null) {
+      if (convId !== null && authUserId !== null) {
         try {
-          const history = await db.getMessages(convId);
-          dbHistory = history
-            .slice(-MAX_CHAT_HISTORY)
-            // Only include roles the AI understands; system messages are handled
-            // via the system prompt, so they are intentionally excluded here.
-            .filter(m => m.role === "user" || m.role === "assistant")
-            .map(m => ({
-              role: m.role as "user" | "assistant",
-              content: m.content,
-            }));
+          dbHistory = await getOwnedConversationHistory(
+            convId,
+            authUserId,
+            MAX_CHAT_HISTORY
+          );
         } catch (err) {
+          if (err instanceof TRPCError) {
+            if (err.code === "NOT_FOUND") {
+              res.status(404).json({ error: "Conversation not found" });
+              return;
+            }
+            if (err.code === "FORBIDDEN") {
+              res.status(403).json({ error: "Access denied" });
+              return;
+            }
+          }
+
           logger.warn("[/api/chat] Failed to load conversation history", {
             conversationId: convId,
             error: err instanceof Error ? err.message : String(err),
           });
+          res
+            .status(500)
+            .json({ error: "Failed to load conversation history" });
+          return;
         }
       }
 
@@ -392,7 +413,7 @@ export function registerChatRoutes(app: Express) {
         onFinish: async ({ text }) => {
           recordLatency(Date.now() - requestStartMs);
           recordStreamOutcome("success");
-          if (convId !== null) {
+          if (convId !== null && authUserId !== null) {
             try {
               // Save the original (pre-sanitization) user message so the user
               // sees exactly what they typed. The AI received the sanitized version.
