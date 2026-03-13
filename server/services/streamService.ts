@@ -1,0 +1,42 @@
+import type { Response } from "express";
+import { SECURITY_CONFIG } from "../config/security";
+
+type StreamResult = {
+  pipeUIMessageStreamToResponse: (res: Response) => void;
+};
+
+export function streamToHttpResponse(
+  result: StreamResult,
+  res: Response
+): void {
+  const maxBytes = SECURITY_CONFIG.responseLimits.maxResponseLength * 2;
+  const timeoutMs = SECURITY_CONFIG.chat.timeoutMs;
+
+  let streamBytes = 0;
+  const originalWrite = res.write.bind(res);
+  res.write = ((chunk: any, ...args: any[]) => {
+    const size = Buffer.isBuffer(chunk)
+      ? chunk.length
+      : Buffer.byteLength(String(chunk));
+    streamBytes += size;
+    if (streamBytes > maxBytes) {
+      res.statusCode = 413;
+      res.end('{"error":"Stream too large"}');
+      return false;
+    }
+    return originalWrite(chunk, ...args);
+  }) as typeof res.write;
+
+  const timeout = setTimeout(() => {
+    if (!res.headersSent) {
+      res.status(504).json({ error: "Stream timeout" });
+      return;
+    }
+    if (!res.writableEnded) {
+      res.end();
+    }
+  }, timeoutMs);
+
+  res.on("finish", () => clearTimeout(timeout));
+  result.pipeUIMessageStreamToResponse(res);
+}
