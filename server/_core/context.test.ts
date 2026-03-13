@@ -1,24 +1,12 @@
 /**
  * Tests for server/_core/context.ts
  *
- * Verifies that createContext correctly authenticates users via the SDK and
- * falls back to user=null on authentication errors.
+ * Verifies that createContext always returns a mock user without any SDK calls.
  */
 
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { createContext } from "./context";
-import { sdk } from "./sdk";
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
-
-// ---------------------------------------------------------------------------
-// Module mocks
-// ---------------------------------------------------------------------------
-
-vi.mock("./sdk", () => ({
-  sdk: {
-    authenticateRequest: vi.fn(),
-  },
-}));
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -40,72 +28,25 @@ function makeOpts(): CreateExpressContextOptions {
   };
 }
 
-function makeUser() {
-  return {
-    id: 1,
-    openId: "test-open-id",
-    email: "test@example.com",
-    name: "Test User",
-    loginMethod: "manus" as const,
-    role: "user" as const,
-    language: "uk",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    lastSignedIn: new Date(),
-  };
-}
-
-afterEach(() => vi.restoreAllMocks());
-
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
-describe("createContext — authenticated user", () => {
-  it("returns the user when SDK authentication succeeds", async () => {
-    const user = makeUser();
-    vi.mocked(sdk.authenticateRequest).mockResolvedValueOnce(user as any);
-
+describe("createContext — always returns mock user", () => {
+  it("returns a valid mock user without any SDK calls", async () => {
     const opts = makeOpts();
     const ctx = await createContext(opts);
 
-    expect(ctx.user).toMatchObject({ id: 1, email: "test@example.com" });
-    expect(ctx.req).toBe(opts.req);
-    expect(ctx.res).toBe(opts.res);
+    expect(ctx.user).toMatchObject({
+      id: 1,
+      openId: "public",
+      name: "Guest",
+      role: "user",
+      language: "uk",
+    });
   });
 
-  it("passes the request to sdk.authenticateRequest", async () => {
-    vi.mocked(sdk.authenticateRequest).mockResolvedValueOnce(makeUser() as any);
-
-    const opts = makeOpts();
-    await createContext(opts);
-
-    expect(sdk.authenticateRequest).toHaveBeenCalledWith(opts.req);
-  });
-});
-
-describe("createContext — unauthenticated / error paths", () => {
-  it("returns user=null when SDK throws an error", async () => {
-    vi.mocked(sdk.authenticateRequest).mockRejectedValueOnce(
-      new Error("invalid token")
-    );
-
-    const ctx = await createContext(makeOpts());
-    expect(ctx.user).toBeNull();
-  });
-
-  it("returns user=null when SDK returns null", async () => {
-    vi.mocked(sdk.authenticateRequest).mockResolvedValueOnce(null as any);
-
-    const ctx = await createContext(makeOpts());
-    expect(ctx.user).toBeNull();
-  });
-
-  it("still returns req and res even when authentication fails", async () => {
-    vi.mocked(sdk.authenticateRequest).mockRejectedValueOnce(
-      new Error("auth failure")
-    );
-
+  it("always returns req and res", async () => {
     const opts = makeOpts();
     const ctx = await createContext(opts);
 
@@ -113,10 +54,18 @@ describe("createContext — unauthenticated / error paths", () => {
     expect(ctx.res).toBe(opts.res);
   });
 
-  it("returns user=null when SDK throws a non-Error value", async () => {
-    vi.mocked(sdk.authenticateRequest).mockRejectedValueOnce("string error");
+  it("user is never null", async () => {
+    const opts = makeOpts();
+    const ctx = await createContext(opts);
 
-    const ctx = await createContext(makeOpts());
-    expect(ctx.user).toBeNull();
+    expect(ctx.user).not.toBeNull();
+    expect(ctx.user).not.toBeUndefined();
+  });
+
+  it("returns consistent mock user across multiple calls", async () => {
+    const ctx1 = await createContext(makeOpts());
+    const ctx2 = await createContext(makeOpts());
+
+    expect(ctx1.user).toMatchObject(ctx2.user);
   });
 });

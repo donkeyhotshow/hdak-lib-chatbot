@@ -162,31 +162,12 @@ describe("/api/chat — successful streaming response", () => {
   });
 });
 
-describe("/api/chat — conversationId ownership check", () => {
-  it("returns 401 when conversationId is given but user is not authenticated", async () => {
-    const { sdk } = await import("./sdk");
-    vi.mocked(sdk.authenticateRequest).mockRejectedValueOnce(
-      new Error("Not authenticated")
-    );
-
-    const res = await post({
-      messages: [{ role: "user", content: "Hello" }],
-      conversationId: 42,
-    });
-    expect(res.status).toBe(401);
-  });
-
-  it("returns 403 when the authenticated user does not own the conversation", async () => {
-    const { sdk } = await import("./sdk");
-    vi.mocked(sdk.authenticateRequest).mockResolvedValueOnce({
-      id: 1,
-      openId: "user-1",
-    } as any);
-
+describe("/api/chat — conversationId (no auth required)", () => {
+  it("accepts conversationId without authentication", async () => {
     const dbModule = await import("../db");
     vi.spyOn(dbModule, "getConversation").mockResolvedValueOnce({
       id: 42,
-      userId: 99, // different user
+      userId: 1,
       title: "Test",
       language: "uk",
       createdAt: new Date(),
@@ -197,6 +178,6 @@ describe("/api/chat — conversationId ownership check", () => {
       messages: [{ role: "user", content: "Hello" }],
       conversationId: 42,
     });
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(200);
   });
 });

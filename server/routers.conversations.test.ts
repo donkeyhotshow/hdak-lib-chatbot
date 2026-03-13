@@ -149,18 +149,6 @@ describe("conversations.create", () => {
       caller.conversations.create({ title: "Test", language: "de" as never })
     ).rejects.toBeDefined();
   });
-
-  it("throws UNAUTHORIZED when called without a user", async () => {
-    const ctx: TrpcContext = {
-      user: null,
-      req: { protocol: "https", headers: {} } as TrpcContext["req"],
-      res: {} as TrpcContext["res"],
-    };
-    const caller = appRouter.createCaller(ctx);
-    await expect(
-      caller.conversations.create({ title: "No auth" })
-    ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
-  });
 });
 
 // ---------------------------------------------------------------------------
@@ -184,17 +172,6 @@ describe("conversations.list", () => {
     const caller = appRouter.createCaller(ctx);
     const result = await caller.conversations.list();
     expect(result).toEqual([]);
-  });
-
-  it("throws UNAUTHORIZED when called without a user", async () => {
-    const ctx: TrpcContext = {
-      user: null,
-      req: { protocol: "https", headers: {} } as TrpcContext["req"],
-      res: {} as TrpcContext["res"],
-    };
-    await expect(
-      appRouter.createCaller(ctx).conversations.list()
-    ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
   });
 });
 
