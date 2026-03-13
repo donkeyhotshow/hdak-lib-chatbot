@@ -45,6 +45,7 @@ The bot helps readers navigate the library website, search for resources, find a
 - [Admin Panel](#admin-panel)
 - [Testing](#testing)
 - [Build & Deployment](#build--deployment)
+- [🆓 Бесплатный деплой (FREE_DEPLOYMENT.md)](FREE_DEPLOYMENT.md)
 - [Web Interface](#web-interface)
   - [Run locally (development)](#run-locally-development)
   - [Chat interface (`/`)](#chat-interface-)
@@ -785,7 +786,9 @@ Render detects `render.yaml` automatically when you connect your GitHub reposito
 
 1. Go to [render.com](https://render.com) → **New** → **Blueprint**.
 2. Connect your repository — Render reads `render.yaml` and creates the web
-   service and a free PostgreSQL database (swap for MySQL if needed).
+   service. **Note:** the app requires MySQL 8; Render only offers PostgreSQL
+   natively. Set `DATABASE_URL` to an external MySQL provider (e.g. TiDB
+   Serverless) or leave it empty for mock mode.
 3. Fill in the environment variables marked `sync: false` in the Render
    dashboard (BUILT_IN_FORGE_API_URL, BUILT_IN_FORGE_API_KEY, etc.).
 4. Render runs `docker build` on every push to your default branch.
