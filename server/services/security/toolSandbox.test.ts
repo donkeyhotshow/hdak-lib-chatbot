@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
+import { SECURITY_CONFIG } from "../../config/security";
 import { executeSandboxedTool } from "./toolSandbox";
 
 describe("toolSandbox", () => {
@@ -36,7 +37,10 @@ describe("toolSandbox", () => {
         context: { endpoint: "/api/chat", userId: 1, ip: "1.1.1.1" },
         execute: async () =>
           await new Promise(resolve =>
-            setTimeout(() => resolve({ ok: true }), 5500)
+            setTimeout(
+              () => resolve({ ok: true }),
+              SECURITY_CONFIG.toolSandbox.executionTimeoutMs + 500
+            )
           ),
       })
     ).rejects.toThrow("timed out");

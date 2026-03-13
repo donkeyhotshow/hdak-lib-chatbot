@@ -27,6 +27,14 @@ const MAX_CONVERSATION_HISTORY =
   SECURITY_CONFIG.tokenLimits.conversationContextHistory;
 /** Maximum character length allowed for a single user message. */
 const MAX_MESSAGE_LENGTH = SECURITY_CONFIG.tokenLimits.maxMessageChars;
+const conversationProcedure = protectedProcedure.use(({ ctx, next }) => {
+  enforceSecurityRateLimit({
+    endpoint: "trpc.conversations",
+    userId: ctx.user.id,
+    ip: getRequestIp(ctx.req),
+  });
+  return next();
+});
 
 export const appRouter = router({
   system: systemRouter,
@@ -44,15 +52,7 @@ export const appRouter = router({
 
   // Conversation management
   conversations: router({
-    create: protectedProcedure
-      .use(({ ctx, next }) => {
-        enforceSecurityRateLimit({
-          endpoint: "trpc.conversations",
-          userId: ctx.user.id,
-          ip: getRequestIp(ctx.req),
-        });
-        return next();
-      })
+    create: conversationProcedure
       .input(
         z.object({
           title: z.string().min(1).max(500),
@@ -70,24 +70,11 @@ export const appRouter = router({
         return conversation;
       }),
 
-    list: protectedProcedure.query(async ({ ctx }) => {
-      enforceSecurityRateLimit({
-        endpoint: "trpc.conversations",
-        userId: ctx.user.id,
-        ip: getRequestIp(ctx.req),
-      });
+    list: conversationProcedure.query(async ({ ctx }) => {
       return await db.getConversations(ctx.user!.id);
     }),
 
-    get: protectedProcedure
-      .use(({ ctx, next }) => {
-        enforceSecurityRateLimit({
-          endpoint: "trpc.conversations",
-          userId: ctx.user.id,
-          ip: getRequestIp(ctx.req),
-        });
-        return next();
-      })
+    get: conversationProcedure
       .input(z.object({ id: z.number() }))
       .query(async ({ ctx, input }) => {
         const conversation = await db.getConversation(input.id);
@@ -98,30 +85,14 @@ export const appRouter = router({
         return conversation;
       }),
 
-    getMessages: protectedProcedure
-      .use(({ ctx, next }) => {
-        enforceSecurityRateLimit({
-          endpoint: "trpc.conversations",
-          userId: ctx.user.id,
-          ip: getRequestIp(ctx.req),
-        });
-        return next();
-      })
+    getMessages: conversationProcedure
       .input(z.object({ conversationId: z.number() }))
       .query(async ({ ctx, input }) => {
         await assertConversationOwnership(input.conversationId, ctx.user.id);
         return await db.getMessages(input.conversationId);
       }),
 
-    delete: protectedProcedure
-      .use(({ ctx, next }) => {
-        enforceSecurityRateLimit({
-          endpoint: "trpc.conversations",
-          userId: ctx.user.id,
-          ip: getRequestIp(ctx.req),
-        });
-        return next();
-      })
+    delete: conversationProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
         await assertConversationOwnership(input.id, ctx.user.id);
@@ -130,15 +101,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    sendMessage: protectedProcedure
-      .use(({ ctx, next }) => {
-        enforceSecurityRateLimit({
-          endpoint: "trpc.conversations",
-          userId: ctx.user.id,
-          ip: getRequestIp(ctx.req),
-        });
-        return next();
-      })
+    sendMessage: conversationProcedure
       .input(
         z.object({
           conversationId: z.number().int().positive(),

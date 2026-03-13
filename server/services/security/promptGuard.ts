@@ -1,6 +1,9 @@
 import { SECURITY_CONFIG } from "../../config/security";
 import { logSecurityEvent } from "../observability/securityLogger";
 
+const MAX_REASON_PREVIEW_CHARS = 120;
+const MAX_HTML_STRIP_PASSES = 5;
+
 export type PromptGuardResult = {
   flagged: boolean;
   sanitizedPrompt: string;
@@ -14,10 +17,12 @@ export function guardPrompt(
 ): PromptGuardResult {
   let sanitized = prompt;
   let previous: string;
+  let pass = 0;
   do {
     previous = sanitized;
     sanitized = sanitized.replace(/<[^>]*>/g, "");
-  } while (sanitized !== previous);
+    pass++;
+  } while (sanitized !== previous && pass < MAX_HTML_STRIP_PASSES);
 
   const reasons: string[] = [];
   const filtered = sanitized.split("\n").filter(line => {
@@ -25,7 +30,7 @@ export function guardPrompt(
       pattern.test(line)
     );
     if (matched) {
-      reasons.push(line.slice(0, 120));
+      reasons.push(line.slice(0, MAX_REASON_PREVIEW_CHARS));
     }
     return !matched;
   });

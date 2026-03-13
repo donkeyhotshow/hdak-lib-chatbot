@@ -7,6 +7,8 @@ export type ChatHistoryMessage = {
 };
 
 export function estimateTokens(text: string): number {
+  // Approximation only: real tokenizers vary by model/language; 4 chars/token
+  // is used as a conservative lightweight estimator for guardrail enforcement.
   return Math.ceil(text.length / 4);
 }
 

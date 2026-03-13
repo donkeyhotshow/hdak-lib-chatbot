@@ -49,4 +49,4 @@ const enforceAdminUser = t.middleware(({ ctx, next }) => {
 });
 
 export const protectedProcedure = t.procedure.use(enforceAuthenticatedUser);
-export const adminProcedure = t.procedure.use(enforceAdminUser);
+export const adminProcedure = protectedProcedure.use(enforceAdminUser);

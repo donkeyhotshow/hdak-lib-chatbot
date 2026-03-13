@@ -107,11 +107,13 @@ export async function sendConversationMessage(
     ip: ip ?? null,
   });
   if (guardResult.flagged) {
+    if (!guardResult.fallbackResponse) {
+      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+    }
     const assistantMessage = await db.createMessage(
       conversationId,
       "assistant",
-      guardResult.fallbackResponse ??
-        SECURITY_CONFIG.promptInjection.safeFallbackResponse
+      guardResult.fallbackResponse
     );
     if (!assistantMessage)
       throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });

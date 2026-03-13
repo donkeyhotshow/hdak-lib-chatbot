@@ -403,18 +403,21 @@ export function registerChatRoutes(app: Express) {
       }
 
       const guardedMessages = messages.map(m => {
-        const guarded = guardPrompt(m.content, {
-          endpoint: "/api/chat",
-          ip: requestIp,
-        });
+        const guarded =
+          m.role === "user"
+            ? guardPrompt(m.content, {
+                endpoint: "/api/chat",
+                ip: requestIp,
+              })
+            : { flagged: false, sanitizedPrompt: m.content, reasons: [] };
         return {
           role: m.role,
           flagged: guarded.flagged,
-          content: sanitizeUntrustedContent(guarded.sanitizedPrompt),
+          content: guarded.sanitizedPrompt,
         };
       });
       if (guardedMessages.some(m => m.flagged)) {
-        res.status(200).json({
+        res.status(400).json({
           message: SECURITY_CONFIG.promptInjection.safeFallbackResponse,
           flagged: true,
         });
@@ -462,11 +465,15 @@ export function registerChatRoutes(app: Express) {
       const MAX_CHAT_HISTORY = 14;
       let dbHistory: { role: "user" | "assistant"; content: string }[] = [];
       if (convId !== null) {
+        if (authUserId === null) {
+          res.status(401).json({ error: "Authentication required" });
+          return;
+        }
         try {
           dbHistory = trimHistoryMessages(
             await getOwnedConversationHistory(
               convId,
-              authUserId!,
+              authUserId,
               MAX_CHAT_HISTORY
             ),
             {

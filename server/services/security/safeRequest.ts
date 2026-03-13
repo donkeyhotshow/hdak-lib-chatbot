@@ -41,13 +41,15 @@ export async function fetchWithSecurity(
     allowPrivateHosts: options?.allowPrivateHosts,
   });
 
-  const retries =
-    options?.retries ?? SECURITY_CONFIG.externalRequests.maxRetries;
+  const maxAttempts = Math.max(
+    1,
+    options?.retries ?? SECURITY_CONFIG.externalRequests.maxRetries
+  );
   const timeoutMs =
     options?.timeoutMs ?? SECURITY_CONFIG.externalRequests.timeoutMs;
 
   let lastError: unknown;
-  for (let attempt = 0; attempt <= retries; attempt++) {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
     try {
@@ -57,7 +59,7 @@ export async function fetchWithSecurity(
       });
     } catch (error) {
       lastError = error;
-      if (attempt === retries) break;
+      if (attempt === maxAttempts - 1) break;
     } finally {
       clearTimeout(timeout);
     }
