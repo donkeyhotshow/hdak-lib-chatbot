@@ -1,7 +1,7 @@
 # Complete Repository Audit — hdak-lib-chatbot
 
 Date: 2026-03-13
-Scope: full tracked repository (`git ls-files` = 206 files)
+Scope: full tracked repository (`git -c core.quotePath=false ls-files` = 206 files)
 
 ## STAGE 1 — Repository Index
 
