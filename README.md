@@ -1,3 +1,13 @@
+---
+title: HDAK Library Chatbot
+emoji: 📚
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+pinned: false
+app_port: 7860
+---
+
 # HDAK Library Chatbot
 
 AI-powered chatbot assistant for the **Kharkiv State Academy of Culture (ХДАК)** library.  

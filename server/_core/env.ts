@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+const PORT = parseInt(process.env.PORT || "7860", 10);
+
 const envSchema = z.object({
   VITE_APP_ID: z.string().default(""),
   JWT_SECRET: z.string().default(""),
@@ -31,4 +33,5 @@ export const ENV = {
   isProduction: parsed.NODE_ENV === "production",
   forgeApiUrl: parsed.BUILT_IN_FORGE_API_URL,
   forgeApiKey: parsed.BUILT_IN_FORGE_API_KEY,
+  port: PORT,
 };
