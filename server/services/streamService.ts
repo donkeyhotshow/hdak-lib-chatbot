@@ -20,8 +20,11 @@ export function streamToHttpResponse(
       : Buffer.byteLength(String(chunk));
     streamBytes += size;
     if (streamBytes > maxBytes) {
-      res.statusCode = 413;
-      res.end('{"error":"Stream too large"}');
+      if (!res.headersSent) {
+        res.status(413).json({ error: "Stream too large" });
+      } else if (!res.writableEnded) {
+        res.end();
+      }
       return false;
     }
     return originalWrite(chunk, ...args);

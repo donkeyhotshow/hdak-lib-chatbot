@@ -177,6 +177,7 @@ export class ChatEndpointError extends Error {
   ) {
     super(message);
     this.name = "ChatEndpointError";
+    Error.captureStackTrace?.(this, ChatEndpointError);
   }
 }
 

@@ -32,8 +32,11 @@ export function buildAiTools(context: ToolExecutionContext) {
   const tools = Object.fromEntries(
     CHAT_TOOL_NAMES.map(name => {
       const definition = getTool(name);
-      if (!definition?.inputSchema) {
-        throw new Error(`Missing tool definition for ${name}`);
+      if (!definition) {
+        throw new Error(`Tool not found in registry: ${name}`);
+      }
+      if (!definition.inputSchema) {
+        throw new Error(`Tool is missing input schema: ${name}`);
       }
       return [
         name,

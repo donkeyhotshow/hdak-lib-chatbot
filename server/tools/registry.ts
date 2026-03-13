@@ -1,4 +1,4 @@
-import type { ZodTypeAny } from "zod";
+import type { ZodTypeAny, infer as ZodInfer } from "zod";
 import { dataTools } from "./dataTool";
 import { imageTools } from "./imageTool";
 import { mapTools } from "./mapTool";
@@ -10,12 +10,15 @@ export type ToolExecutionContext = {
   ip?: string | null;
 };
 
-export type ToolRegistryEntry = {
+export type ToolRegistryEntry<TSchema extends ZodTypeAny = ZodTypeAny> = {
   name: string;
   description: string;
-  schema: ZodTypeAny;
+  schema: TSchema;
   inputSchema?: ZodTypeAny;
-  execute: (input: any, context: ToolExecutionContext) => Promise<unknown>;
+  execute: (
+    input: ZodInfer<TSchema>,
+    context: ToolExecutionContext
+  ) => Promise<unknown>;
 };
 
 const toolEntries: ToolRegistryEntry[] = [

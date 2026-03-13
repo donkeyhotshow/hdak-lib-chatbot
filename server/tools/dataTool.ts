@@ -15,7 +15,7 @@ const findUpcomingLibraryEventsSchema = z.object({
   dateTo: z.string().optional(),
 });
 
-export const dataTools: ToolRegistryEntry[] = [
+export const dataTools = [
   {
     name: "searchLibraryResources",
     description:
@@ -50,7 +50,7 @@ export const dataTools: ToolRegistryEntry[] = [
         found: dbResources.length + siteResources.length,
       };
     },
-  },
+  } satisfies ToolRegistryEntry<typeof searchLibraryResourcesSchema>,
   {
     name: "getCatalogSearchLink",
     description:
@@ -90,7 +90,7 @@ export const dataTools: ToolRegistryEntry[] = [
           "Якщо шукаєте публікації вчених ХДАК — скористайтесь репозитарієм: https://repository.ac.kharkov.ua/home",
       };
     },
-  },
+  } satisfies ToolRegistryEntry<typeof getCatalogSearchLinkSchema>,
   {
     name: "findUpcomingLibraryEvents",
     description:
@@ -152,5 +152,5 @@ export const dataTools: ToolRegistryEntry[] = [
             : undefined,
       };
     },
-  },
-];
+  } satisfies ToolRegistryEntry<typeof findUpcomingLibraryEventsSchema>,
+] as ToolRegistryEntry[];
