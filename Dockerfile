@@ -44,4 +44,4 @@ EXPOSE 7860
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
   CMD node -e "const p=process.env.PORT||7860;require('http').get('http://localhost:'+p+'/api/health',(r)=>{if(r.statusCode!==200)process.exit(1);}).on('error',()=>process.exit(1))"
 
-CMD ["node", "dist/index.js"]
+ENTRYPOINT ["./docker-entrypoint.sh"]

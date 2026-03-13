@@ -47,26 +47,28 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 
 async function startServer() {
   // Validate critical environment variables before starting.
-  // BUILT_IN_FORGE_API_KEY and DATABASE_URL are required in every environment;
-  // the remaining secrets are only checked in production.
-  const alwaysRequired: Array<[string, string]> = [
-    ["BUILT_IN_FORGE_API_KEY", ENV.forgeApiKey],
-    ["DATABASE_URL", ENV.databaseUrl],
-  ];
-  const alwaysMissing = alwaysRequired.filter(([, v]) => !v).map(([k]) => k);
-  if (alwaysMissing.length > 0) {
+  // BUILT_IN_FORGE_API_KEY is always required in production.
+  // DATABASE_URL is optional: when absent the server runs in mock-data mode.
+  if (!ENV.forgeApiKey) {
     if (ENV.isProduction) {
       logger.error(
-        `Missing required environment variable(s): ${alwaysMissing.join(", ")}. ` +
+        "Missing required environment variable(s): BUILT_IN_FORGE_API_KEY. " +
           "Set them in your .env file or deployment environment and restart the server."
       );
       process.exit(1);
     } else {
       logger.warn(
-        `Missing environment variable(s): ${alwaysMissing.join(", ")}. ` +
+        "Missing environment variable(s): BUILT_IN_FORGE_API_KEY. " +
           "Running in development mode with mock data. Set these in your .env file for full functionality."
       );
     }
+  }
+
+  if (!ENV.databaseUrl) {
+    logger.warn(
+      "No DATABASE_URL configured — server will start in mock-data mode. " +
+        "Set DATABASE_URL for persistent storage."
+    );
   }
 
   if (ENV.isProduction) {
@@ -264,11 +266,10 @@ async function startServer() {
   app.get("/api/health", (_req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
   });
-  // Readiness probe — succeeds only when critical env vars are present
+  // Readiness probe — succeeds only when the AI API key is present
   app.get("/api/ready", (_req, res) => {
     const missing: string[] = [];
     if (!ENV.forgeApiKey) missing.push("BUILT_IN_FORGE_API_KEY");
-    if (!ENV.databaseUrl) missing.push("DATABASE_URL");
     if (missing.length > 0) {
       res.status(503).json({ ready: false, missing });
       return;
