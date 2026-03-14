@@ -204,6 +204,25 @@ Set these values:
 | `VITE_OAUTH_PORTAL_URL` | No | OAuth portal URL shown to unauthenticated users |
 | `DATABASE_URL` | No | MySQL URL (`mysql://user:password@host:3306/dbname`); if omitted app runs in mock mode |
 
+Where to get these values:
+
+- `BUILT_IN_FORGE_API_URL` / `FORGE_API_URL` and API key (`BUILT_IN_FORGE_API_KEY` / `FORGE_API_KEY` / `OPENAI_API_KEY`)
+  - Get both in your LLM provider dashboard (OpenAI-compatible endpoint + key).
+  - Example for Gemini OpenAI-compatible endpoint:
+    `https://generativelanguage.googleapis.com/v1beta/openai`
+- `OWNER_OPEN_ID`
+  - Sign in once via your OAuth provider, then copy your OpenID from the provider profile/token payload.
+  - Use the OpenID of the account that should become admin owner.
+- `DATABASE_URL` (optional)
+  - Create an external MySQL 8 database (for example TiDB Serverless, Railway MySQL, Aiven).
+  - Copy the connection URL in format:
+    `mysql://user:password@host:3306/dbname`
+- `OAUTH_SERVER_URL`, `VITE_APP_ID`, `VITE_OAUTH_PORTAL_URL` (optional)
+  - Take from your OAuth/Manus app settings:
+    - OAuth base URL → `OAUTH_SERVER_URL`
+    - app/client id → `VITE_APP_ID`
+    - login portal URL → `VITE_OAUTH_PORTAL_URL`
+
 > Note: Render does not provide native MySQL. If you need persistence, use an
 > external MySQL provider and set `DATABASE_URL` manually.
 
