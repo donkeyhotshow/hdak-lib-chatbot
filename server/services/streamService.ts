@@ -16,6 +16,9 @@ export function streamToHttpResponse(
   let streamBytes = 0;
   const originalWrite = res.write.bind(res);
   res.write = ((...writeArgs: ResponseWriteParams) => {
+    if (res.writableEnded || res.destroyed) {
+      return false;
+    }
     const [chunk, ...args] = writeArgs;
     const size = Buffer.isBuffer(chunk)
       ? chunk.length
@@ -42,6 +45,9 @@ export function streamToHttpResponse(
     }
   }, timeoutMs);
 
-  res.on("finish", () => clearTimeout(timeout));
+  const clearStreamTimeout = () => clearTimeout(timeout);
+  res.once("finish", clearStreamTimeout);
+  res.once("close", clearStreamTimeout);
+  res.once("error", clearStreamTimeout);
   result.pipeUIMessageStreamToResponse(res);
 }

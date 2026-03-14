@@ -48,6 +48,11 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   });
 }
 
+function getSerializedResultSize(value: unknown): number {
+  const serialized = JSON.stringify(value);
+  return Buffer.byteLength(serialized ?? "null");
+}
+
 function assertToolAllowed(toolName: string, context: SandboxContext) {
   const allowedTools = SECURITY_CONFIG.toolSandbox.allowedTools;
   if (!allowedTools.some(tool => tool === toolName)) {
@@ -105,6 +110,21 @@ export async function executeSandboxedTool<TInput, TResult>(
       options.execute(parsed.data),
       SECURITY_CONFIG.toolSandbox.executionTimeoutMs
     );
+    const resultSize = getSerializedResultSize(result);
+    if (resultSize > SECURITY_CONFIG.toolSandbox.maxOutputChars) {
+      logSecurityEvent({
+        endpoint: options.context.endpoint,
+        eventType: "tool_rejected",
+        userId: options.context.userId ?? null,
+        ip: options.context.ip ?? null,
+        details: {
+          toolName: options.toolName,
+          reason: "output_too_large",
+          outputSize: resultSize,
+        },
+      });
+      throw new Error(`Tool "${options.toolName}" output exceeds safety limit`);
+    }
     logSecurityEvent({
       endpoint: options.context.endpoint,
       eventType: "tool_execution",

@@ -45,4 +45,18 @@ describe("toolSandbox", () => {
       })
     ).rejects.toThrow("timed out");
   });
+
+  it("rejects oversized tool outputs", async () => {
+    await expect(
+      executeSandboxedTool({
+        toolName: "searchLibraryResources",
+        input: { query: "db" },
+        schema: z.object({ query: z.string() }),
+        context: { endpoint: "/api/chat", userId: 1, ip: "1.1.1.1" },
+        execute: async () => ({
+          data: "x".repeat(SECURITY_CONFIG.toolSandbox.maxOutputChars + 1),
+        }),
+      })
+    ).rejects.toThrow("output exceeds safety limit");
+  });
 });
