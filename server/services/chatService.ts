@@ -24,6 +24,7 @@ import {
   persistConversationMessages,
 } from "./conversationMemory";
 import { logSecurityEvent } from "../observability/securityLogger";
+import { setSessionState } from "./sessionStore";
 
 export async function assertConversationOwnership(
   conversationId: number,
@@ -164,6 +165,23 @@ export async function sendConversationMessage(
     aiResponse
   );
   if (!assistantMessage) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+  // Update the in-memory session state so subsequent calls within the same
+  // session benefit from the already-detected language and message count.
+  setSessionState(
+    userId,
+    {
+      conversationId,
+      dialogState: {
+        sessionLanguage: language,
+        messageCount:
+          (messages.filter(m => m.role === "user").length + 1),
+        lastActiveAt: new Date().toISOString(),
+        context: {},
+      },
+    },
+    conversationId
+  );
 
   return { ...assistantMessage, source };
 }
