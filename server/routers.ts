@@ -21,6 +21,17 @@ import {
   getRequestIp,
 } from "./services/security/rateLimiter";
 import { runSync, isSyncing, getLastSyncStatus } from "./services/syncService";
+import {
+  getCachedAllResources,
+  getCachedSearchResources,
+  getCachedAllContacts,
+  getCachedLibraryInfo,
+  getCachedAllLibraryInfo,
+  invalidateResourceCache,
+  invalidateContactCache,
+  invalidateInfoCache,
+} from "./services/libraryCache";
+import { clearSession } from "./services/sessionStore";
 
 /** Maximum number of previous messages included in the AI context window. */
 const MAX_CONVERSATION_HISTORY =
@@ -44,6 +55,10 @@ export const appRouter = router({
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+      // Clear the in-memory session for this user if authenticated.
+      if (ctx.user) {
+        clearSession(ctx.user.id);
+      }
       return {
         success: true,
       } as const;
@@ -98,6 +113,8 @@ export const appRouter = router({
         await assertConversationOwnership(input.id, ctx.user.id);
         const success = await db.deleteConversation(input.id);
         if (!success) throw new TRPCError({ code: "NOT_FOUND" });
+        // Clear the per-conversation session state when the conversation is deleted.
+        clearSession(ctx.user.id, input.id);
         return { success: true };
       }),
 
@@ -122,13 +139,13 @@ export const appRouter = router({
   // Resource management
   resources: router({
     getAll: publicProcedure.query(async () => {
-      return await db.getAllResources();
+      return await getCachedAllResources();
     }),
 
     search: publicProcedure
       .input(z.object({ query: z.string().max(500) }))
       .query(async ({ input }) => {
-        return await db.searchResources(input.query);
+        return await getCachedSearchResources(input.query);
       }),
 
     getByType: publicProcedure
@@ -173,6 +190,7 @@ export const appRouter = router({
           keywords: input.keywords ? JSON.stringify(input.keywords) : null,
         });
         if (!resource) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        invalidateResourceCache();
         return resource;
       }),
 
@@ -208,6 +226,7 @@ export const appRouter = router({
             : undefined,
         });
         if (!resource) throw new TRPCError({ code: "NOT_FOUND" });
+        invalidateResourceCache();
         return resource;
       }),
 
@@ -216,6 +235,7 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         const success = await db.deleteResource(input.id);
         if (!success) throw new TRPCError({ code: "NOT_FOUND" });
+        invalidateResourceCache();
         return { success: true };
       }),
 
@@ -227,7 +247,7 @@ export const appRouter = router({
   // Contact management
   contacts: router({
     getAll: publicProcedure.query(async () => {
-      return await db.getAllContacts();
+      return await getCachedAllContacts();
     }),
 
     create: adminProcedure
@@ -252,6 +272,7 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         const contact = await db.createContact(input);
         if (!contact) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        invalidateContactCache();
         return contact;
       }),
 
@@ -281,6 +302,7 @@ export const appRouter = router({
         const { id, ...updateData } = input;
         const contact = await db.updateContact(id, updateData);
         if (!contact) throw new TRPCError({ code: "NOT_FOUND" });
+        invalidateContactCache();
         return contact;
       }),
 
@@ -289,6 +311,7 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         const success = await db.deleteContact(input.id);
         if (!success) throw new TRPCError({ code: "NOT_FOUND" });
+        invalidateContactCache();
         return { success: true };
       }),
   }),
@@ -298,11 +321,11 @@ export const appRouter = router({
     get: publicProcedure
       .input(z.object({ key: z.string().max(200) }))
       .query(async ({ input }) => {
-        return await db.getLibraryInfo(input.key);
+        return await getCachedLibraryInfo(input.key);
       }),
 
     getAll: adminProcedure.query(async () => {
-      return await db.getAllLibraryInfo();
+      return await getCachedAllLibraryInfo();
     }),
 
     set: adminProcedure
@@ -322,6 +345,7 @@ export const appRouter = router({
           input.valueRu
         );
         if (!info) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        invalidateInfoCache();
         return info;
       }),
   }),
