@@ -40,6 +40,13 @@ vi.mock("./patchedFetch", () => ({
   createPatchedFetch: vi.fn(() => fetch),
 }));
 
+vi.mock("./env", () => ({
+  ENV: {
+    forgeApiUrl: "https://api.openai.com",
+    forgeApiKey: "test-key",
+  },
+}));
+
 vi.mock("./sdk", () => ({
   sdk: {
     authenticateRequest: vi.fn(),

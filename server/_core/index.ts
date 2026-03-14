@@ -47,18 +47,18 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 
 async function startServer() {
   // Validate critical environment variables before starting.
-  // BUILT_IN_FORGE_API_KEY is always required in production.
+  // AI key can be provided via BUILT_IN_FORGE_API_KEY, FORGE_API_KEY, or OPENAI_API_KEY.
   // DATABASE_URL is optional: when absent the server runs in mock-data mode.
   if (!ENV.forgeApiKey) {
     if (ENV.isProduction) {
       logger.error(
-        "Missing required environment variable(s): BUILT_IN_FORGE_API_KEY. " +
+        "Missing required environment variable(s): BUILT_IN_FORGE_API_KEY (or FORGE_API_KEY / OPENAI_API_KEY). " +
           "Set them in your .env file or deployment environment and restart the server."
       );
       process.exit(1);
     } else {
       logger.warn(
-        "Missing environment variable(s): BUILT_IN_FORGE_API_KEY. " +
+        "Missing environment variable(s): BUILT_IN_FORGE_API_KEY (or FORGE_API_KEY / OPENAI_API_KEY). " +
           "Running in development mode with mock data. Set these in your .env file for full functionality."
       );
     }
@@ -74,7 +74,7 @@ async function startServer() {
   if (ENV.isProduction) {
     const required: Array<[string, string]> = [
       ["JWT_SECRET", ENV.cookieSecret],
-      ["BUILT_IN_FORGE_API_URL", ENV.forgeApiUrl],
+      ["BUILT_IN_FORGE_API_URL (or FORGE_API_URL)", ENV.forgeApiUrl],
       ["OWNER_OPEN_ID", ENV.ownerOpenId],
     ];
     const missing = required.filter(([, v]) => !v).map(([k]) => k);
@@ -269,7 +269,9 @@ async function startServer() {
   // Readiness probe — succeeds only when the AI API key is present
   app.get("/api/ready", (_req, res) => {
     const missing: string[] = [];
-    if (!ENV.forgeApiKey) missing.push("BUILT_IN_FORGE_API_KEY");
+    if (!ENV.forgeApiKey) {
+      missing.push("BUILT_IN_FORGE_API_KEY (or FORGE_API_KEY / OPENAI_API_KEY)");
+    }
     if (missing.length > 0) {
       res.status(503).json({ ready: false, missing });
       return;

@@ -11,6 +11,9 @@ const envSchema = z.object({
   NODE_ENV: z.string().default("development"),
   BUILT_IN_FORGE_API_URL: z.string().default(""),
   BUILT_IN_FORGE_API_KEY: z.string().default(""),
+  FORGE_API_URL: z.string().default(""),
+  FORGE_API_KEY: z.string().default(""),
+  OPENAI_API_KEY: z.string().default(""),
 });
 
 const parsed = envSchema.parse({
@@ -22,6 +25,9 @@ const parsed = envSchema.parse({
   NODE_ENV: process.env.NODE_ENV,
   BUILT_IN_FORGE_API_URL: process.env.BUILT_IN_FORGE_API_URL,
   BUILT_IN_FORGE_API_KEY: process.env.BUILT_IN_FORGE_API_KEY,
+  FORGE_API_URL: process.env.FORGE_API_URL,
+  FORGE_API_KEY: process.env.FORGE_API_KEY,
+  OPENAI_API_KEY: process.env.OPENAI_API_KEY,
 });
 
 export const ENV = {
@@ -31,7 +37,10 @@ export const ENV = {
   oAuthServerUrl: parsed.OAUTH_SERVER_URL,
   ownerOpenId: parsed.OWNER_OPEN_ID,
   isProduction: parsed.NODE_ENV === "production",
-  forgeApiUrl: parsed.BUILT_IN_FORGE_API_URL,
-  forgeApiKey: parsed.BUILT_IN_FORGE_API_KEY,
+  forgeApiUrl: parsed.BUILT_IN_FORGE_API_URL || parsed.FORGE_API_URL,
+  forgeApiKey:
+    parsed.BUILT_IN_FORGE_API_KEY ||
+    parsed.FORGE_API_KEY ||
+    parsed.OPENAI_API_KEY,
   port: PORT,
 };
