@@ -270,7 +270,7 @@ async function startServer() {
   app.get("/api/ready", (_req, res) => {
     const missing: string[] = [];
     if (!ENV.forgeApiKey) {
-      missing.push("BUILT_IN_FORGE_API_KEY|FORGE_API_KEY|OPENAI_API_KEY");
+      missing.push("BUILT_IN_FORGE_API_KEY (or FORGE_API_KEY / OPENAI_API_KEY)");
     }
     if (missing.length > 0) {
       res.status(503).json({ ready: false, missing });
