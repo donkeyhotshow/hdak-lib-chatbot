@@ -22,6 +22,14 @@ jobs:
           node-version: 20
           cache: pnpm
 
+      - name: Check line endings
+        run: |
+          if git ls-files --eol | grep -q 'i/crlf'; then
+            echo "CRLF line endings detected"
+            git ls-files --eol | grep 'i/crlf'
+            exit 1
+          fi
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
