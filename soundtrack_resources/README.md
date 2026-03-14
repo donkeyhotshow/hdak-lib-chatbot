@@ -182,6 +182,22 @@ Examples:
 - **AIVA** (aiva.ai) - Recommended for orchestral music
 - **Suno AI** (suno.com) - Flexible prompting alternative
 
+### Avoid SEO-clone generators for this project
+
+These services are not recommended for soundtrack production quality:
+
+- MakebestMusic (makebestmusic)
+- MusicHero (musichero.ai)
+- DeepSong (deepsong.ai)
+- GeGe (gege.studio)
+- Melogen (melogen.app)
+
+Why:
+
+- Minimal product differentiation and mostly SEO-oriented landing flows
+- Commonly priced at around $5–15/month each
+- Inferior practical results versus Suno for this use case
+
 ### Audio Editing
 
 - **BandLab** (bandlab.com) - Free, browser-based
