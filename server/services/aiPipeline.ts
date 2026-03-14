@@ -82,7 +82,26 @@ export function sanitizeUntrustedContent(text: string): string {
     return !hasInjection;
   });
 
-  const result = filtered.join("\n").trim();
+  let result = filtered.join("\n");
+
+  // Repair a known copy/paste corruption pattern for JieLi app recommendations
+  // where a duplicated paragraph is inserted inside an APKPure URL.
+  result = result.replace(
+    /Приложение для JieLi[\s\S]*?https:\/\/apkpure\.com\/earphones\/com\.jieli\.earphones[\r\n]+re\.com\/jl-tws\/com\.jieli\.jl_tws[\s\S]*?https:\/\/apkpure\.com\/earphones\/com\.jieli\.earphones/gi,
+    `Приложение для JieLi
+JL TWS — специально для JieLi чипов:
+→ https://apkpure.com/jl-tws/com.jieli.jl_tws
+Или попробуй EarPhones:
+→ https://apkpure.com/earphones/com.jieli.earphones`
+  );
+
+  // Fallback URL repair for partial corruption cases (e.g. "https://apkpu...re.com/...").
+  result = result.replace(
+    /https:\/\/apkpu[\s\S]*?re\.com\/jl-tws\/com\.jieli\.jl_tws/gi,
+    "https://apkpure.com/jl-tws/com.jieli.jl_tws"
+  );
+
+  result = result.trim();
 
   // Log a summary warning whenever the output differs from the input so that
   // any HTML stripping or injection-line removal is surfaced in monitoring.
