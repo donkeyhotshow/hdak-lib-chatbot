@@ -227,6 +227,22 @@ fairy tale ending
   - Pros: More flexible prompting, good quality
   - Cons: Less orchestral-focused than AIVA
 
+### Avoid SEO-clone generators for this project
+
+The following services are SEO clones of generic text-to-music flows and are not recommended for production soundtrack work:
+
+- MakebestMusic (makebestmusic)
+- MusicHero (musichero.ai)
+- DeepSong (deepsong.ai)
+- GeGe (gege.studio)
+- Melogen (melogen.app)
+
+Notes:
+
+- Typical pricing is around $5–15/month each with little differentiation.
+- They underperform compared to Suno in orchestral control and output quality.
+- They mainly target SEO traffic for queries like "AI music generator".
+
 ### Audio Editing & Mixing
 
 - **BandLab** (bandlab.com) - Free, browser-based

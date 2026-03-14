@@ -19,9 +19,9 @@ describe("security rate limiter", () => {
     expect(ip).toBe("8.8.8.8");
   });
 
-  it("allows requests under limits", () => {
+  it("allows requests under limits", async () => {
     for (let i = 0; i < 10; i++) {
-      enforceSecurityRateLimit({
+      await enforceSecurityRateLimit({
         endpoint: "trpc.conversations",
         ip: "2.2.2.2",
         userId: 1,
@@ -29,20 +29,20 @@ describe("security rate limiter", () => {
     }
   });
 
-  it("throws when per-user limit is exceeded", () => {
+  it("throws when per-user limit is exceeded", async () => {
     for (let i = 0; i < 20; i++) {
-      enforceSecurityRateLimit({
+      await enforceSecurityRateLimit({
         endpoint: "trpc.conversations",
         ip: "3.3.3.3",
         userId: 42,
       });
     }
-    expect(() =>
+    await expect(() =>
       enforceSecurityRateLimit({
         endpoint: "trpc.conversations",
         ip: "3.3.3.3",
         userId: 42,
       })
-    ).toThrow(TRPCError);
+    ).rejects.toThrow(TRPCError);
   });
 });

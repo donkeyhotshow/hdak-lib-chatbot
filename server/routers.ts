@@ -27,13 +27,13 @@ const MAX_CONVERSATION_HISTORY =
   SECURITY_CONFIG.tokenLimits.conversationContextHistory;
 /** Maximum character length allowed for a single user message. */
 const MAX_MESSAGE_LENGTH = SECURITY_CONFIG.tokenLimits.maxMessageChars;
-const conversationProcedure = protectedProcedure.use(({ ctx, next }) => {
-  enforceSecurityRateLimit({
+const conversationProcedure = protectedProcedure.use(async ({ ctx, next }) => {
+  await enforceSecurityRateLimit({
     endpoint: "trpc.conversations",
     userId: ctx.user.id,
     ip: getRequestIp(ctx.req),
   });
-  return next();
+  return await next();
 });
 
 export const appRouter = router({

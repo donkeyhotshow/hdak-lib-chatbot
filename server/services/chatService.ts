@@ -18,6 +18,12 @@ import {
   trimPromptToTokenLimit,
   trimResponseLength,
 } from "./security/tokenLimits";
+import { runAiOrchestration } from "./aiOrchestrator";
+import {
+  loadConversationHistory,
+  persistConversationMessages,
+} from "./conversationMemory";
+import { logSecurityEvent } from "../observability/securityLogger";
 
 export async function assertConversationOwnership(
   conversationId: number,
@@ -160,4 +166,82 @@ export async function sendConversationMessage(
   if (!assistantMessage) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
   return { ...assistantMessage, source };
+}
+
+type ChatEndpointMessage = { role: "assistant" | "user"; content: string };
+
+export class ChatEndpointError extends Error {
+  constructor(
+    public readonly statusCode: number,
+    message: string
+  ) {
+    super(message);
+    this.name = "ChatEndpointError";
+    Error.captureStackTrace?.(this, ChatEndpointError);
+  }
+}
+
+export async function processChatRequest(input: {
+  messages: ChatEndpointMessage[];
+  language?: "en" | "uk" | "ru";
+  conversationId?: number;
+  userId?: number | null;
+  ip: string;
+}) {
+  const conversationId = input.conversationId ?? null;
+  const context = {
+    endpoint: "/api/chat",
+    userId: input.userId ?? null,
+    ip: input.ip,
+  };
+
+  if (conversationId !== null && input.userId == null) {
+    logSecurityEvent({
+      endpoint: "/api/chat",
+      eventType: "auth_failure",
+      ip: input.ip,
+    });
+    throw new ChatEndpointError(401, "Authentication required");
+  }
+
+  let history: ChatEndpointMessage[] = [];
+  if (conversationId !== null && input.userId != null) {
+    try {
+      history = await loadConversationHistory({
+        conversationId,
+        userId: input.userId,
+        maxHistory: 14,
+        context,
+      });
+    } catch (error) {
+      if (error instanceof TRPCError) {
+        if (error.code === "NOT_FOUND") {
+          throw new ChatEndpointError(404, "Conversation not found");
+        }
+        if (error.code === "FORBIDDEN") {
+          throw new ChatEndpointError(403, "Access denied");
+        }
+      }
+      throw new ChatEndpointError(500, "Failed to load conversation history");
+    }
+  }
+
+  return runAiOrchestration({
+    messages: input.messages,
+    language: input.language,
+    history,
+    context,
+    onFinish: async text => {
+      if (conversationId === null) return;
+      const lastUserMessage =
+        [...input.messages].reverse().find(message => message.role === "user")
+          ?.content ?? null;
+      await persistConversationMessages({
+        conversationId,
+        userMessage: lastUserMessage,
+        assistantMessage: text,
+        context,
+      });
+    },
+  });
 }

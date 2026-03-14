@@ -73,6 +73,8 @@ export type TranscriptionError = {
   details?: string;
 };
 
+const MAX_AUDIO_FILE_BYTES = 16 * 1024 * 1024;
+
 /**
  * Transcribe audio to text using the internal Speech-to-Text service
  *
@@ -113,12 +115,28 @@ export async function transcribeAudio(
         };
       }
 
+      const contentLengthHeader = response.headers.get("content-length");
+      if (contentLengthHeader) {
+        const contentLengthBytes = Number.parseInt(contentLengthHeader, 10);
+        if (
+          Number.isFinite(contentLengthBytes) &&
+          contentLengthBytes > MAX_AUDIO_FILE_BYTES
+        ) {
+          const sizeMB = contentLengthBytes / (1024 * 1024);
+          return {
+            error: "Audio file exceeds maximum size limit",
+            code: "FILE_TOO_LARGE",
+            details: `File size is ${sizeMB.toFixed(2)}MB, maximum allowed is 16MB`,
+          };
+        }
+      }
+
       audioBuffer = Buffer.from(await response.arrayBuffer());
       mimeType = response.headers.get("content-type") || "audio/mpeg";
 
       // Check file size (16MB limit)
       const sizeMB = audioBuffer.length / (1024 * 1024);
-      if (sizeMB > 16) {
+      if (audioBuffer.length > MAX_AUDIO_FILE_BYTES) {
         return {
           error: "Audio file exceeds maximum size limit",
           code: "FILE_TOO_LARGE",

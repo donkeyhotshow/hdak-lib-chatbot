@@ -24,6 +24,8 @@ export const SECURITY_CONFIG = {
       "voiceTranscription",
     ] as const,
     executionTimeoutMs: 5_000,
+    maxOutputChars: 100_000,
+    maxCallsPerRequest: 5,
   },
   tokenLimits: {
     maxPromptTokens: 8_000,
