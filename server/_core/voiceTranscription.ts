@@ -117,12 +117,12 @@ export async function transcribeAudio(
 
       const contentLengthHeader = response.headers.get("content-length");
       if (contentLengthHeader) {
-        const contentLength = Number.parseInt(contentLengthHeader, 10);
+        const contentLengthBytes = Number.parseInt(contentLengthHeader, 10);
         if (
-          Number.isFinite(contentLength) &&
-          contentLength > MAX_AUDIO_FILE_BYTES
+          Number.isFinite(contentLengthBytes) &&
+          contentLengthBytes > MAX_AUDIO_FILE_BYTES
         ) {
-          const sizeMB = contentLength / (1024 * 1024);
+          const sizeMB = contentLengthBytes / (1024 * 1024);
           return {
             error: "Audio file exceeds maximum size limit",
             code: "FILE_TOO_LARGE",
