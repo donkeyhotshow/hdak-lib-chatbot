@@ -164,7 +164,7 @@ server), and serves the app on the port injected by Railway.
 
 Render reads `render.yaml` when you connect your GitHub repository.
 
-#### 0. Prepare before connecting the repository
+#### Prerequisites (prepare before connecting the repository)
 
 Prepare these values first, so the first deploy can start successfully:
 
@@ -188,8 +188,8 @@ Prepare these values first, so the first deploy can start successfully:
 
 #### 2. Fill in Environment Variables
 
-Open Render setup: <https://dashboard.render.com/web/new>  
-Then go to **Service → Environment → Add Environment Variable**.
+Open Render dashboard: <https://dashboard.render.com>  
+Then select your service and go to **Environment → Add Environment Variable**.
 
 Set these values:
 
@@ -207,9 +207,9 @@ Set these values:
 Where to get these values:
 
 - `BUILT_IN_FORGE_API_URL` / `FORGE_API_URL` and API key (`BUILT_IN_FORGE_API_KEY` / `FORGE_API_KEY` / `OPENAI_API_KEY`)
-  - Get both in your LLM provider dashboard (OpenAI-compatible endpoint + key).
+  - Obtain both from your LLM provider dashboard or API settings page (OpenAI-compatible endpoint + key).
   - Example for Gemini OpenAI-compatible endpoint:
-    `https://generativelanguage.googleapis.com/v1beta/openai`
+    `https://generativelanguage.googleapis.com/v1beta/openai`.
 - `OWNER_OPEN_ID`
   - Sign in once via your OAuth provider, then copy your OpenID from the provider profile/token payload.
   - Use the OpenID of the account that should become admin owner.
