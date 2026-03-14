@@ -29,9 +29,11 @@ describe("streamService", () => {
   it("returns timeout response when stream does not finish in time", () => {
     vi.useFakeTimers();
     const res = createMockResponse();
+    const abort = vi.fn();
 
     streamToHttpResponse(
       {
+        abort,
         pipeUIMessageStreamToResponse: () => {
           // Intentionally left hanging to trigger timeout.
         },
@@ -43,15 +45,18 @@ describe("streamService", () => {
 
     expect(res.status).toHaveBeenCalledWith(504);
     expect(res.json).toHaveBeenCalledWith({ error: "Stream timeout" });
+    expect(abort).toHaveBeenCalledTimes(1);
     vi.useRealTimers();
   });
 
   it("clears stream timeout when client disconnects", () => {
     vi.useFakeTimers();
     const res = createMockResponse();
+    const abort = vi.fn();
 
     streamToHttpResponse(
       {
+        abort,
         pipeUIMessageStreamToResponse: () => {
           res.emit("close");
         },
@@ -63,6 +68,7 @@ describe("streamService", () => {
 
     expect(res.status).not.toHaveBeenCalled();
     expect(res.json).not.toHaveBeenCalled();
+    expect(abort).toHaveBeenCalledTimes(1);
     vi.useRealTimers();
   });
 });

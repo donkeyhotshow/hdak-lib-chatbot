@@ -1,4 +1,5 @@
 import { tool } from "ai";
+import { SECURITY_CONFIG } from "../config/security";
 import { executeRegisteredSandboxedTool } from "../security/toolSandbox";
 import {
   getTool,
@@ -13,22 +14,57 @@ const CHAT_TOOL_NAMES = [
   "findUpcomingLibraryEvents",
 ] as const;
 
+type ToolExecutionGovernance = {
+  callCount: number;
+  startedAtMs: number;
+  activeToolNames: Set<string>;
+};
+
 export async function executeTool(options: {
   toolName: string;
   input: unknown;
   context: ToolExecutionContext;
+  governance?: ToolExecutionGovernance;
 }) {
+  if (options.governance) {
+    const elapsedMs = Date.now() - options.governance.startedAtMs;
+    if (elapsedMs > SECURITY_CONFIG.toolSandbox.totalExecutionBudgetMs) {
+      throw new Error("Tool execution budget exceeded");
+    }
+    if (
+      options.governance.callCount >=
+      SECURITY_CONFIG.toolSandbox.maxCallsPerRequest
+    ) {
+      throw new Error("Maximum tool calls exceeded");
+    }
+    if (options.governance.activeToolNames.has(options.toolName)) {
+      throw new Error(`Recursive tool execution is not allowed: ${options.toolName}`);
+    }
+  }
+
   if (!validateToolArgs(options.toolName, options.input)) {
     throw new Error(`Invalid parameters for tool \"${options.toolName}\"`);
   }
-  return executeRegisteredSandboxedTool({
-    toolName: options.toolName,
-    input: options.input,
-    context: options.context,
-  });
+
+  options.governance?.activeToolNames.add(options.toolName);
+  options.governance && (options.governance.callCount += 1);
+  try {
+    return await executeRegisteredSandboxedTool({
+      toolName: options.toolName,
+      input: options.input,
+      context: options.context,
+    });
+  } finally {
+    options.governance?.activeToolNames.delete(options.toolName);
+  }
 }
 
 export function buildAiTools(context: ToolExecutionContext) {
+  const governance: ToolExecutionGovernance = {
+    callCount: 0,
+    startedAtMs: Date.now(),
+    activeToolNames: new Set<string>(),
+  };
   const tools = Object.fromEntries(
     CHAT_TOOL_NAMES.map(name => {
       const definition = getTool(name);
@@ -43,7 +79,8 @@ export function buildAiTools(context: ToolExecutionContext) {
         tool({
           description: definition.description,
           inputSchema: definition.inputSchema,
-          execute: input => executeTool({ toolName: name, input, context }),
+          execute: input =>
+            executeTool({ toolName: name, input, context, governance }),
         }),
       ];
     })

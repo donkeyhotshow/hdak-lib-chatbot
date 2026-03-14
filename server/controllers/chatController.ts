@@ -30,7 +30,7 @@ export function registerChatController(app: Express) {
 
     try {
       try {
-        enforceSecurityRateLimit({ endpoint: "/api/chat", ip: requestIp });
+        await enforceSecurityRateLimit({ endpoint: "/api/chat", ip: requestIp });
       } catch {
         res.status(429).json({ error: "Too many requests" });
         return;
@@ -63,7 +63,7 @@ export function registerChatController(app: Express) {
         const user = await sdk.authenticateRequest(req);
         authUserId = user.id;
         try {
-          enforceSecurityRateLimit({
+          await enforceSecurityRateLimit({
             endpoint: "/api/chat",
             ip: requestIp,
             userId: user.id,

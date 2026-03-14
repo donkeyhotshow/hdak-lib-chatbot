@@ -3,6 +3,7 @@ import { SECURITY_CONFIG } from "../config/security";
 
 type StreamResult = {
   pipeUIMessageStreamToResponse: (res: Response) => void;
+  abort?: () => void;
 };
 type ResponseWriteParams = Parameters<Response["write"]>;
 
@@ -14,9 +15,19 @@ export function streamToHttpResponse(
   const timeoutMs = SECURITY_CONFIG.chat.timeoutMs;
 
   let streamBytes = 0;
+  let aborted = false;
+  const abortStream = () => {
+    if (aborted) return;
+    aborted = true;
+    try {
+      result.abort?.();
+    } catch {
+      // Ignore abort errors to avoid masking the original response lifecycle.
+    }
+  };
   const originalWrite = res.write.bind(res);
   res.write = ((...writeArgs: ResponseWriteParams) => {
-    if (res.writableEnded || res.destroyed) {
+    if (aborted || res.writableEnded || res.destroyed) {
       return false;
     }
     const [chunk, ...args] = writeArgs;
@@ -25,6 +36,7 @@ export function streamToHttpResponse(
       : Buffer.byteLength(String(chunk));
     streamBytes += size;
     if (streamBytes > maxBytes) {
+      abortStream();
       if (!res.headersSent) {
         res.status(413).json({ error: "Stream too large" });
       } else if (!res.writableEnded) {
@@ -36,6 +48,7 @@ export function streamToHttpResponse(
   }) as typeof res.write;
 
   const timeout = setTimeout(() => {
+    abortStream();
     if (!res.headersSent) {
       res.status(504).json({ error: "Stream timeout" });
       return;
@@ -47,7 +60,13 @@ export function streamToHttpResponse(
 
   const clearStreamTimeout = () => clearTimeout(timeout);
   res.once("finish", clearStreamTimeout);
-  res.once("close", clearStreamTimeout);
-  res.once("error", clearStreamTimeout);
+  res.once("close", () => {
+    clearStreamTimeout();
+    abortStream();
+  });
+  res.once("error", () => {
+    clearStreamTimeout();
+    abortStream();
+  });
   result.pipeUIMessageStreamToResponse(res);
 }
