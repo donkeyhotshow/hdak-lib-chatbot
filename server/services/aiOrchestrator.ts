@@ -22,6 +22,11 @@ type ChatMessage = { role: "assistant" | "user"; content: string };
 
 function createLLMProvider() {
   const rawUrl = ENV.forgeApiUrl;
+  if (!rawUrl) {
+    throw new Error(
+      "Missing AI base URL. Set BUILT_IN_FORGE_API_URL or FORGE_API_URL."
+    );
+  }
   const hasVersionedPath =
     rawUrl.includes("/v1beta") ||
     rawUrl.includes("/openai") ||
