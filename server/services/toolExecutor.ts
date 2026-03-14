@@ -16,7 +16,6 @@ const CHAT_TOOL_NAMES = [
 
 type ToolExecutionGovernance = {
   callCount: number;
-  startedAtMs: number;
   activeToolNames: Set<string>;
 };
 
@@ -27,10 +26,6 @@ export async function executeTool(options: {
   governance?: ToolExecutionGovernance;
 }) {
   if (options.governance) {
-    const elapsedMs = Date.now() - options.governance.startedAtMs;
-    if (elapsedMs > SECURITY_CONFIG.toolSandbox.totalExecutionBudgetMs) {
-      throw new Error("Tool execution budget exceeded");
-    }
     if (
       options.governance.callCount >=
       SECURITY_CONFIG.toolSandbox.maxCallsPerRequest
@@ -62,7 +57,6 @@ export async function executeTool(options: {
 export function buildAiTools(context: ToolExecutionContext) {
   const governance: ToolExecutionGovernance = {
     callCount: 0,
-    startedAtMs: Date.now(),
     activeToolNames: new Set<string>(),
   };
   const tools = Object.fromEntries(

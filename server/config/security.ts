@@ -26,7 +26,6 @@ export const SECURITY_CONFIG = {
     executionTimeoutMs: 5_000,
     maxOutputChars: 100_000,
     maxCallsPerRequest: 5,
-    totalExecutionBudgetMs: 15_000,
   },
   tokenLimits: {
     maxPromptTokens: 8_000,
