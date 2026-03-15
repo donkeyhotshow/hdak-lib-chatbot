@@ -1,56 +1,7 @@
-# render.yaml — Render.com deployment configuration for hdak-lib-chatbot
-# Commit this file to your repo; Render will detect it automatically.
-# See: https://render.com/docs/yaml-spec
-#
-# IMPORTANT: This app requires MySQL 8. Render's native database is PostgreSQL,
-# so you must provide an external MySQL connection string via DATABASE_URL
-# (e.g. TiDB Serverless, Railway MySQL, or Aiven).
-# If DATABASE_URL is omitted the app starts in mock mode (no persistence).
-#
-# Render Dashboard quick start:
-# https://dashboard.render.com/web/new
-# Service -> Environment -> Add Environment Variable
+# Deprecated Render blueprint.
+# The project is now deployed on Vercel only.
 
-services:
-  - type: web
-    name: hdak-lib-chatbot
-    runtime: docker
-    dockerfilePath: ./Dockerfile
-    plan: free
-    # Render sets PORT automatically; the app reads it via process.env.PORT.
-    envVars:
-      - key: NODE_ENV
-        value: production
-      # ── AI / LLM ─────────────────────────────────────────────────────────
-      # Base URL: use either BUILT_IN_FORGE_API_URL or FORGE_API_URL.
-      - key: BUILT_IN_FORGE_API_URL
-        sync: false # fill in the Render dashboard
-      - key: FORGE_API_URL
-        sync: false # optional alias for BUILT_IN_FORGE_API_URL
-      # API key: priority is BUILT_IN_FORGE_API_KEY -> FORGE_API_KEY -> OPENAI_API_KEY.
-      - key: BUILT_IN_FORGE_API_KEY
-        sync: false # fill in the Render dashboard (mark as secret)
-      - key: FORGE_API_KEY
-        sync: false # optional alias for BUILT_IN_FORGE_API_KEY
-      - key: OPENAI_API_KEY
-        sync: false # optional alias if using OpenAI-style key naming
-      # ── Auth ─────────────────────────────────────────────────────────────
-      - key: JWT_SECRET
-        generateValue: true # Render generates a secure random value
-      - key: VITE_APP_ID
-        sync: false
-      - key: OAUTH_SERVER_URL
-        sync: false
-      - key: OWNER_OPEN_ID
-        sync: false
-      - key: VITE_OAUTH_PORTAL_URL
-        sync: false
-      # ── Database ─────────────────────────────────────────────────────────
-      # Provide an external MySQL 8 connection string.
-      # Format: mysql://user:password@host:3306/dbname
-      # If omitted, the app runs in mock mode (chat works but no persistence).
-      - key: DATABASE_URL
-        sync: false
-
-    healthCheckPath: /api/health
-    # Migrations run inside docker-entrypoint.sh on every deploy
+vercel:
+  framework: nextjs
+  devCommand: npm run dev
+  buildCommand: npm run build
