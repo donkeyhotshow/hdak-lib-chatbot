@@ -1,5 +1,4 @@
 import { COOKIE_NAME } from "@shared/const";
-import { serialize } from "cookie";
 import type { Request as ExpressRequest, Response as ExpressResponse } from "express";
 import { getSessionCookieOptions } from "./cookies";
 import { logger } from "./logger";
@@ -45,13 +44,21 @@ function toExpressLikeRequest(req: Request): ExpressLikeRequest {
 }
 
 function createExpressLikeResponse(resHeaders: Headers): ExpressLikeResponse {
+  const buildExpiredCookie = (
+    name: string,
+    options: ReturnType<typeof getSessionCookieOptions>
+  ) =>
+    `${name}=; Path=/; Max-Age=0; Expires=${new Date(0).toUTCString()}; HttpOnly; SameSite=${options.sameSite}${options.secure ? "; Secure" : ""}`;
+
   return {
     clearCookie(name, options) {
-      const cookieValue = serialize(name, "", {
+      const cookieValue = buildExpiredCookie(name, {
+        httpOnly: true,
         path: "/",
-        expires: new Date(0),
-        maxAge: 0,
-        ...options,
+        sameSite:
+          (options?.sameSite as ReturnType<typeof getSessionCookieOptions>["sameSite"]) ??
+          "lax",
+        secure: Boolean(options?.secure),
       });
       resHeaders.append("set-cookie", cookieValue);
       return this as ExpressResponse;
@@ -88,12 +95,7 @@ export async function authenticateUserFromRequest(req: Request) {
 export function appendExpiredSessionCookie(req: Request, resHeaders: Headers) {
   const requestLike = toExpressLikeRequest(req);
   const cookieOptions = getSessionCookieOptions(requestLike as ExpressRequest);
-  const expired = serialize(COOKIE_NAME, "", {
-    ...cookieOptions,
-    path: "/",
-    expires: new Date(0),
-    maxAge: 0,
-  });
+  const expired = `${COOKIE_NAME}=; Path=/; Max-Age=0; Expires=${new Date(0).toUTCString()}; HttpOnly; SameSite=${cookieOptions.sameSite}${cookieOptions.secure ? "; Secure" : ""}`;
   resHeaders.append("set-cookie", expired);
 }
 

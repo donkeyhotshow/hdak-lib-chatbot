@@ -20,7 +20,7 @@
  */
 
 import NodeCache from "node-cache";
-import type { LibraryResource, LibraryContact, LibraryInfo } from "../../drizzle/schema";
+import type { LibraryResource, LibraryContact, LibraryInfo } from "../../../drizzle/schema";
 import * as db from "../db";
 import { logger } from "../_core/logger";
 

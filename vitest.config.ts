@@ -19,6 +19,7 @@ export default defineConfig({
       "lib/server/_core/chat.test.ts",
       "lib/server/_core/bodyLimit.test.ts",
       "lib/server/_core/metrics.test.ts",
+      "lib/server/_core/rateLimiter.test.ts",
     ],
     coverage: {
       provider: "v8",

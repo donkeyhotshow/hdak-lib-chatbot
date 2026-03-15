@@ -1,12 +1,23 @@
 {
-  "include": ["next-env.d.ts", "app/**/*", "components/**/*", "contexts/**/*", "hooks/**/*", "lib/**/*", "_core/**/*", "shared/**/*"],
+  "include": [
+    "_core/**/*",
+    "app/**/*",
+    "components/**/*",
+    "contexts/**/*",
+    "hooks/**/*",
+    "lib/**/*",
+    "next-env.d.ts",
+    "shared/**/*",
+    ".next/types/**/*.ts"
+  ],
   "exclude": [
     "node_modules",
     "build",
     "dist",
     "**/*.test.ts",
     "lib/server/_core/index.ts",
-    "lib/server/_core/vite.ts"
+    "lib/server/_core/vite.ts",
+    "lib/server/_core/rateLimiter.ts"
   ],
   "compilerOptions": {
     "incremental": true,
@@ -14,17 +25,36 @@
     "noEmit": true,
     "module": "ESNext",
     "strict": true,
-    "lib": ["esnext", "dom", "dom.iterable"],
+    "lib": [
+      "esnext",
+      "dom",
+      "dom.iterable"
+    ],
     "jsx": "preserve",
     "esModuleInterop": true,
     "skipLibCheck": true,
     "allowImportingTsExtensions": true,
     "moduleResolution": "bundler",
     "baseUrl": ".",
-    "types": ["node"],
+    "types": [
+      "node"
+    ],
     "paths": {
-      "@/*": ["./*"],
-      "@shared/*": ["./shared/*"]
-    }
+      "@/*": [
+        "./*"
+      ],
+      "@shared/*": [
+        "./shared/*"
+      ]
+    },
+    "target": "ES2017",
+    "allowJs": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
   }
 }

@@ -6,7 +6,7 @@ import {
   isSyncing,
   CATALOG_URL,
 } from "./syncService";
-import type { LibraryResource } from "../../drizzle/schema";
+import type { LibraryResource } from "../../../drizzle/schema";
 import * as db from "../db";
 
 afterEach(() => {

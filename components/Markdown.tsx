@@ -155,9 +155,9 @@ const components = {
   ),
 
   // Media
-  img: ({ src, alt }: { src?: string; alt?: string }) => (
+  img: ({ src, alt }: { src?: string | Blob; alt?: string }) => (
     <img
-      src={src}
+      src={typeof src === "string" ? src : undefined}
       alt={alt || ""}
       className="max-w-full h-auto rounded-lg my-4"
     />

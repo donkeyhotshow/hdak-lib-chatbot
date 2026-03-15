@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import type { Message } from "../../drizzle/schema";
+import type { Message } from "../../../drizzle/schema";
 import { SECURITY_CONFIG } from "../config/security";
 import * as db from "../db";
 import { logger } from "../_core/logger";

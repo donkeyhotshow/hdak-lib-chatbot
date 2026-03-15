@@ -6,7 +6,7 @@ import {
   DocumentChunk,
   InsertDocumentChunk,
   InsertDocumentMetadata,
-} from "../drizzle/schema";
+} from "../../drizzle/schema";
 
 /**
  * RAG Service - Handles PDF processing, chunking, and embedding generation

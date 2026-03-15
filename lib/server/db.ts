@@ -27,7 +27,7 @@ import {
   documentMetadata,
   DocumentMetadata,
   InsertDocumentMetadata,
-} from "../drizzle/schema";
+} from "../../drizzle/schema";
 import { ENV } from "./_core/env";
 import { logger } from "./_core/logger";
 
