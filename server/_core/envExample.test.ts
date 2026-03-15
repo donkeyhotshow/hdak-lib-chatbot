@@ -1,10 +1,8 @@
 import { readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const CURRENT_DIR = dirname(fileURLToPath(import.meta.url));
-const ENV_EXAMPLE_PATH = resolve(CURRENT_DIR, "../../.env.example");
+const ENV_EXAMPLE_PATH = resolve(process.cwd(), ".env.example");
 
 const EXPECTED_ENV_KEYS = [
   "VITE_APP_ID",
