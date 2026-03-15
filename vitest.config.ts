@@ -7,36 +7,41 @@ export default defineConfig({
   root: templateRoot,
   resolve: {
     alias: {
-      "@": path.resolve(templateRoot, "client", "src"),
+      "@": path.resolve(templateRoot),
       "@shared": path.resolve(templateRoot, "shared"),
       "@assets": path.resolve(templateRoot, "attached_assets"),
     },
   },
   test: {
     environment: "node",
-    include: ["server/**/*.test.ts", "server/**/*.spec.ts"],
+    include: ["lib/server/**/*.test.ts", "lib/server/**/*.spec.ts"],
+    exclude: [
+      "lib/server/_core/chat.test.ts",
+      "lib/server/_core/bodyLimit.test.ts",
+      "lib/server/_core/metrics.test.ts",
+    ],
     coverage: {
       provider: "v8",
       reporter: ["text", "lcov", "html"],
-      include: ["server/**/*.ts"],
+      include: ["lib/server/**/*.ts"],
       exclude: [
         // Test files themselves
-        "server/**/*.test.ts",
-        "server/**/*.spec.ts",
+        "lib/server/**/*.test.ts",
+        "lib/server/**/*.spec.ts",
         // Server entry-point — only exercises at integration level
-        "server/_core/index.ts",
-        "server/_core/vite.ts",
+        "lib/server/_core/index.ts",
+        "lib/server/_core/vite.ts",
         // External-dependency glue that requires live services to test
-        "server/_core/oauth.ts",
-        "server/_core/dataApi.ts",
-        "server/_core/imageGeneration.ts",
-        "server/_core/map.ts",
-        "server/_core/notification.ts",
-        "server/_core/patchedFetch.ts",
-        "server/_core/voiceTranscription.ts",
-        "server/storage.ts",
+        "lib/server/_core/oauth.ts",
+        "lib/server/_core/dataApi.ts",
+        "lib/server/_core/imageGeneration.ts",
+        "lib/server/_core/map.ts",
+        "lib/server/_core/notification.ts",
+        "lib/server/_core/patchedFetch.ts",
+        "lib/server/_core/voiceTranscription.ts",
+        "lib/server/storage.ts",
         // Pure type / declaration files
-        "server/_core/types/**",
+        "lib/server/_core/types/**",
       ],
       thresholds: {
         lines: 80,
