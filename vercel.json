@@ -1,0 +1,17 @@
+{
+  "framework": "nextjs",
+  "installCommand": "corepack enable && pnpm install --frozen-lockfile",
+  "buildCommand": "pnpm run build",
+  "devCommand": "pnpm dev",
+  "functions": {
+    "app/api/chat/route.ts": {
+      "maxDuration": 60
+    },
+    "app/api/trpc/[trpc]/route.ts": {
+      "maxDuration": 60
+    },
+    "app/api/admin/process-pdf/route.ts": {
+      "maxDuration": 60
+    }
+  }
+}

@@ -49,6 +49,20 @@ Use `.env.example` as the source of truth. Existing variable names are preserved
 
 This project is configured for **Vercel-only** deployment.
 
-- Build command: `npm run build`
-- Dev command: `npm run dev`
-- Output: standard Next.js app
+1. Push repository to GitHub.
+2. In Vercel: **Add New → Project** and import this repository.
+3. Vercel settings are already defined in `vercel.json`:
+   - Install: `corepack enable && pnpm install --frozen-lockfile`
+   - Build: `pnpm run build`
+   - Dev: `pnpm dev`
+4. Add required Environment Variables in Vercel Project Settings:
+   - `JWT_SECRET`
+   - `OWNER_OPEN_ID`
+   - `BUILT_IN_FORGE_API_URL` (or `FORGE_API_URL`)
+   - `BUILT_IN_FORGE_API_KEY` (or `FORGE_API_KEY` / `OPENAI_API_KEY`)
+   - `VITE_APP_ID`
+   - `VITE_OAUTH_PORTAL_URL`
+   - `OAUTH_SERVER_URL`
+   - `DATABASE_URL` (required for persistent chat/history and admin CRUD)
+
+Use `.env.example` as the full variable reference.
