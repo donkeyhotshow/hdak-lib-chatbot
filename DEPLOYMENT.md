@@ -50,7 +50,8 @@ platforms — Railway, Render, and Fly.io — using the included Docker setup.
 | `PORT`                   | No             | HTTP port (default `3000`; set automatically by platforms) |
 
 > **Never commit secrets to source control.** Use platform secret stores.
-> No `OPENAI_API_KEY` is used — this project uses `BUILT_IN_FORGE_API_KEY` exclusively.
+> AI key aliases are supported. Priority:
+> `BUILT_IN_FORGE_API_KEY` → `FORGE_API_KEY` → `OPENAI_API_KEY`.
 
 ---
 
@@ -388,8 +389,8 @@ Or `/api/ready` returns `503 {"ready":false,"missing":["BUILT_IN_FORGE_API_KEY"]
 2. Redeploy / restart the service.
 3. Re-check `/api/ready` — it should now return `{"ready":true}`.
 
-> Note: This project never uses `OPENAI_API_KEY`. The only AI key variable is
-> `BUILT_IN_FORGE_API_KEY`.
+> Note: AI key aliases are supported. If `BUILT_IN_FORGE_API_KEY` is empty,
+> the app falls back to `FORGE_API_KEY` and then `OPENAI_API_KEY`.
 
 ---
 

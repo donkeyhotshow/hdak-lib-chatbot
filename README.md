@@ -41,6 +41,8 @@ Use `.env.example` as the source of truth. Existing variable names are preserved
 - `BUILT_IN_FORGE_API_URL` / `FORGE_API_URL`
 - `BUILT_IN_FORGE_API_KEY` / `FORGE_API_KEY` / `OPENAI_API_KEY`
 - `DATABASE_URL`
+- `REDIS_URL` (optional)
+- `CHAT_PROVIDER_API_KEY` (optional)
 - `JWT_SECRET`
 - `OWNER_OPEN_ID`
 - `VITE_APP_ID`, `VITE_OAUTH_PORTAL_URL`
