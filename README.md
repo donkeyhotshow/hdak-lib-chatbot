@@ -193,8 +193,14 @@ DATABASE_URL=          # mysql://user:password@host:3306/dbname
                        # Conversations/messages are unavailable without a real DB.
 
 # ─── AI / LLM ──────────────────────────────────────────────────────────────
-BUILT_IN_FORGE_API_URL= # Base URL of the OpenAI-compatible API endpoint
-BUILT_IN_FORGE_API_KEY= # API key for the above endpoint
+BUILT_IN_FORGE_API_URL=   # Preferred: OpenAI-compatible endpoint base URL
+FORGE_API_URL=            # Alias for BUILT_IN_FORGE_API_URL
+BUILT_IN_FORGE_API_KEY=   # Preferred API key
+FORGE_API_KEY=            # Alias (fallback) API key
+OPENAI_API_KEY=           # Alias (fallback) API key
+VITE_FRONTEND_FORGE_API_URL= # Optional browser-side maps proxy base URL
+VITE_FRONTEND_FORGE_API_KEY= # Optional browser-side maps proxy API key
+AI_MODEL_NAME=gemini-2.0-flash # Optional model override
 
 # ─── Server ────────────────────────────────────────────────────────────────
 PORT=3000              # HTTP port (default 3000; auto-increments if busy)
