@@ -167,7 +167,7 @@ const RESOURCES = [
     ico: "🗂️",
     name: "Електронний каталог",
     sub: "Пошук книг, авторів, тем",
-    url: "https://library-service.com.ua:8443/khkhdak/DocumentSearchForm",
+    url: "https://lib-hdak.in.ua/e-catalog.html",
     vpn: false,
   },
   {

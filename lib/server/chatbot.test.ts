@@ -299,9 +299,7 @@ describe("Chatbot Database Functions", () => {
     it("should include the Electronic Catalog with correct URL", () => {
       const catalog = hdakResources.find(r => r.name === "Електронний каталог");
       expect(catalog).toBeDefined();
-      expect(catalog?.url).toBe(
-        "https://library-service.com.ua:8443/khkhdak/DocumentSearchForm"
-      );
+      expect(catalog?.url).toBe("https://lib-hdak.in.ua/e-catalog.html");
     });
 
     it("should include the HDAK Repository with open access", () => {
@@ -365,9 +363,7 @@ describe("Chatbot Database Functions", () => {
         { searchTerm: "Шевченко", searchType: "author" },
         {} as any
       );
-      expect(result.catalogUrl).toBe(
-        "https://library-service.com.ua:8443/khkhdak/DocumentSearchForm"
-      );
+      expect(result.catalogUrl).toBe("https://lib-hdak.in.ua/e-catalog.html");
       expect(result.searchTerm).toBe("Шевченко");
       expect(result.searchType).toBe("author");
       expect(Array.isArray(result.steps)).toBe(true);

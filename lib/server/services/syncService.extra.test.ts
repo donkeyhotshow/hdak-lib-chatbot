@@ -30,7 +30,7 @@ afterEach(() => {
 
 // Minimal catalog HTML that yields exactly one catalog-type resource.
 const HTML_ONE_CATALOG = `
-  <a href="https://library-service.com.ua:8443/khkhdak/DocumentSearchForm">
+  <a href="https://lib-hdak.in.ua/e-catalog.html">
     Електронний каталог
   </a>`;
 
@@ -110,7 +110,7 @@ describe("syncService extra — runSync success path", () => {
       descriptionUk: null,
       descriptionRu: null,
       type: "catalog" as const,
-      url: "https://library-service.com.ua:8443/khkhdak/DocumentSearchForm",
+      url: "https://lib-hdak.in.ua/e-catalog.html",
       keywords: null,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -139,7 +139,7 @@ describe("syncService extra — runSync success path", () => {
       descriptionUk: null,
       descriptionRu: null,
       type: "catalog" as const,
-      url: "https://library-service.com.ua:8443/khkhdak/DocumentSearchForm",
+      url: "https://lib-hdak.in.ua/e-catalog.html",
       keywords: null,
       createdAt: new Date(),
       updatedAt: new Date(),

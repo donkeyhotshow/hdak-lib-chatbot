@@ -73,8 +73,7 @@ export const dataTools = [
         keyword: "Ключові слова / Keywords",
       };
       return {
-        catalogUrl:
-          "https://library-service.com.ua:8443/khkhdak/DocumentSearchForm",
+        catalogUrl: "https://lib-hdak.in.ua/e-catalog.html",
         catalogPageUrl: "https://lib-hdak.in.ua/e-catalog.html",
         repositoryUrl: "https://repository.ac.kharkov.ua/home",
         searchTerm,
@@ -82,7 +81,7 @@ export const dataTools = [
         searchFieldLabel: fieldLabel[searchType] ?? fieldLabel.author,
         steps: [
           "Відкрийте електронний каталог ХДАК: https://lib-hdak.in.ua/e-catalog.html",
-          'Натисніть кнопку "Пошук" або перейдіть за посиланням: https://library-service.com.ua:8443/khkhdak/DocumentSearchForm',
+          'Натисніть кнопку "Пошук" або перейдіть за посиланням: https://lib-hdak.in.ua/e-catalog.html',
           `У полі "${fieldLabel[searchType]}" введіть: ${searchTerm}`,
           "Натисніть кнопку пошуку та перегляньте результати.",
         ],

@@ -104,7 +104,7 @@ function ensureMockState() {
       descriptionRu:
         "Поиск документов библиотечного фонда ХГАК по автору, названию, тематике. Начат в 1997 г. на базе CDS/ISIS, с 2008 г. — АИБС «УФД/Библиотека».",
       type: "catalog",
-      url: "https://library-service.com.ua:8443/khkhdak/DocumentSearchForm",
+      url: "https://lib-hdak.in.ua/e-catalog.html",
       keywords: ["catalog", "books", "journals", "search", "каталог", "книги"],
       createdAt: now,
       updatedAt: now,
