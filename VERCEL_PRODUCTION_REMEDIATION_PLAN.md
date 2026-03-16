@@ -169,31 +169,31 @@ POST /api/chat
 
 ### HIGH
 
-1. **Potential weak JWT signing if `JWT_SECRET` left empty**  
+1. **Potential weak JWT signing if `JWT_SECRET` left empty**
    - **File:** `lib/server/_core/env.ts` (default empty), `lib/server/_core/sdk.ts` (JWT sign/verify uses ENV secret)
    - **Risk:** predictable/empty signing key can allow token forgery in misconfigured deployments.
    - **Exact fix:** enforce non-empty minimum-length `JWT_SECRET` in production and fail boot if absent.
 
 ### MEDIUM
 
-1. **Rate limiting not shared across serverless instances**  
+1. **Rate limiting not shared across serverless instances**
    - **File:** `lib/server/security/rateLimiter.ts`
    - **Risk:** attackers can bypass limits by spreading load across warm instances.
    - **Exact fix:** back rate limiter with Redis (`REDIS_URL`) and atomic increments/expirations.
 
-2. **Regex-only prompt injection protection**  
+2. **Regex-only prompt injection protection**
    - **File:** `lib/server/security/promptGuard.ts`, `lib/server/config/security.ts`
    - **Risk:** obfuscated prompt injection may bypass line-pattern matching.
    - **Exact fix:** add normalization + structural policy checks (tool call policy, instruction hierarchy, content provenance tags).
 
-3. **Readiness endpoint is minimal**  
+3. **Readiness endpoint is minimal**
    - **File:** `app/api/ready/route.ts`
    - **Risk:** can report ready while DB/OAuth downstreams are unavailable.
    - **Exact fix:** add optional deep checks for DB ping and provider connectivity.
 
 ### LOW
 
-1. **Legacy Express server still present**  
+1. **Legacy Express server still present**
    - **File:** `lib/server/_core/index.ts`
    - **Risk:** operational confusion and drift from deployed Next.js runtime.
    - **Exact fix:** either remove/deprecate or explicitly mark as legacy non-Vercel path in docs.
@@ -236,7 +236,7 @@ Remediation extensions (recommended):
 
 ## PHASE 8 — Vercel Deployment Guide (exact commands)
 
-1) Fork and clone
+1. Fork and clone
 
 ```bash
 git clone https://github.com/<your-user>/hdak-lib-chatbot.git
@@ -245,13 +245,13 @@ corepack enable pnpm
 pnpm install --frozen-lockfile
 ```
 
-2) Connect repo to Vercel
+2. Connect repo to Vercel
 
 - Vercel Dashboard → **Add New Project** → import your fork
 - Framework auto-detected as Next.js
 - Confirm project uses `vercel.json`
 
-3) Configure env vars in Vercel (Production + Preview as needed)
+3. Configure env vars in Vercel (Production + Preview as needed)
 
 - `JWT_SECRET`
 - `DATABASE_URL`
@@ -263,7 +263,7 @@ pnpm install --frozen-lockfile
 - `VITE_OAUTH_PORTAL_URL`
 - Optional: `REDIS_URL`, `CHAT_PROVIDER_API_KEY`
 
-4) Deploy
+4. Deploy
 
 ```bash
 pnpm run build
@@ -271,7 +271,7 @@ pnpm run build
 
 Expected output includes successful Next.js build completion and generated route artifacts.
 
-5) Validate endpoints
+5. Validate endpoints
 
 ```bash
 curl -sS https://<your-app>.vercel.app/api/health
@@ -348,4 +348,3 @@ Expected output:
 - Upstash Redis for distributed rate-limits + ephemeral chat/session caches
 - External observability (Sentry + metrics backend)
 - Provider-side quota management and fallback model strategy
-

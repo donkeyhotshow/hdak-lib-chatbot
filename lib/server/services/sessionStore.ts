@@ -136,10 +136,7 @@ export function setSessionState(
  * Returns `true` when the session existed and its TTL was reset,
  * or `false` when no session was found for the given key.
  */
-export function touchSession(
-  userId: number,
-  conversationId?: number
-): boolean {
+export function touchSession(userId: number, conversationId?: number): boolean {
   const key = makeSessionKey(userId, conversationId);
   return sessionCache.ttl(key, SESSION_TTL_SECONDS);
 }
@@ -147,10 +144,7 @@ export function touchSession(
 /**
  * Delete the session for a user (e.g. on logout or conversation deletion).
  */
-export function clearSession(
-  userId: number,
-  conversationId?: number
-): void {
+export function clearSession(userId: number, conversationId?: number): void {
   const key = makeSessionKey(userId, conversationId);
   sessionCache.del(key);
   logger.debug("[sessionStore] Session cleared", { userId, conversationId });

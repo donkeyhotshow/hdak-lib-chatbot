@@ -57,18 +57,24 @@ export async function loadConversationHistory(params: {
   // slicing are applied on every call so that different callers with
   // different maxHistory values all get correctly bounded results from the
   // same shared cache entry.
-  const messages = cached !== undefined
-    ? cached
-    : await (async () => {
-        const dbMessages = await db.getMessages(params.conversationId);
-        const mapped = dbMessages
-          .filter(m => m.role === "assistant" || m.role === "user")
-          .map(m => ({ role: m.role as "assistant" | "user", content: m.content }));
-        historyCache.set(cacheKey, mapped);
-        return mapped;
-      })();
+  const messages =
+    cached !== undefined
+      ? cached
+      : await (async () => {
+          const dbMessages = await db.getMessages(params.conversationId);
+          const mapped = dbMessages
+            .filter(m => m.role === "assistant" || m.role === "user")
+            .map(m => ({
+              role: m.role as "assistant" | "user",
+              content: m.content,
+            }));
+          historyCache.set(cacheKey, mapped);
+          return mapped;
+        })();
 
-  return trimHistoryMessages(messages, params.context).slice(-params.maxHistory);
+  return trimHistoryMessages(messages, params.context).slice(
+    -params.maxHistory
+  );
 }
 
 export async function persistConversationMessages(params: {

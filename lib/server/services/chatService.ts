@@ -174,8 +174,7 @@ export async function sendConversationMessage(
       conversationId,
       dialogState: {
         sessionLanguage: language,
-        messageCount:
-          (messages.filter(m => m.role === "user").length + 1),
+        messageCount: messages.filter(m => m.role === "user").length + 1,
         lastActiveAt: new Date().toISOString(),
         context: {},
       },

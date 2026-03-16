@@ -227,7 +227,9 @@ re.com/jl-tws/com.jieli.jl_tws
     const result = sanitizeUntrustedContent(text);
 
     expect(result).toContain("https://apkpure.com/jl-tws/com.jieli.jl_tws");
-    expect(result).toContain("https://apkpure.com/earphones/com.jieli.earphones");
+    expect(result).toContain(
+      "https://apkpure.com/earphones/com.jieli.earphones"
+    );
     expect(result).not.toContain("https://apkpuПриложение");
   });
 });
