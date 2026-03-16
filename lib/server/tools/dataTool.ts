@@ -75,7 +75,7 @@ export const dataTools = [
       return {
         catalogUrl: "https://lib-hdak.in.ua/e-catalog.html",
         catalogPageUrl: "https://lib-hdak.in.ua/e-catalog.html",
-        repositoryUrl: "https://repository.ac.kharkov.ua/home",
+        repositoryUrl: "https://lib-hdak.in.ua/scientists-publications.html",
         searchTerm,
         searchType,
         searchFieldLabel: fieldLabel[searchType] ?? fieldLabel.author,
@@ -86,7 +86,7 @@ export const dataTools = [
           "Натисніть кнопку пошуку та перегляньте результати.",
         ],
         repositoryNote:
-          "Якщо шукаєте публікації вчених ХДАК — скористайтесь репозитарієм: https://repository.ac.kharkov.ua/home",
+          "Якщо шукаєте публікації вчених ХДАК — скористайтесь репозитарієм: https://lib-hdak.in.ua/scientists-publications.html",
       };
     },
   } satisfies ToolRegistryEntry<typeof getCatalogSearchLinkSchema>,

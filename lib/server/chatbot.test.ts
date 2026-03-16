@@ -355,7 +355,9 @@ describe("Chatbot Database Functions", () => {
         (r: any) => r.name === "Scopus"
       );
       expect(scopusEntry).toBeDefined();
-      expect(scopusEntry.url).toBe("https://www.scopus.com/");
+      expect(scopusEntry.url).toBe(
+        "https://lib-hdak.in.ua/search-scientific-info.html"
+      );
     });
 
     it("getCatalogSearchLink tool: returns catalog URL and steps for author search", async () => {
@@ -369,7 +371,7 @@ describe("Chatbot Database Functions", () => {
       expect(Array.isArray(result.steps)).toBe(true);
       expect(result.steps.length).toBeGreaterThan(0);
       expect(result.repositoryUrl).toBe(
-        "https://repository.ac.kharkov.ua/home"
+        "https://lib-hdak.in.ua/scientists-publications.html"
       );
     });
 

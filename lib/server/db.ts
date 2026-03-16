@@ -121,7 +121,7 @@ function ensureMockState() {
       descriptionRu:
         "Полнотекстовые публикации учёных академии: учебники, монографии, статьи, квалификационные работы. Запущен 29 марта 2019 г.",
       type: "repository",
-      url: "https://repository.ac.kharkov.ua/home",
+      url: "https://lib-hdak.in.ua/scientists-publications.html",
       keywords: [
         "repository",
         "publications",
@@ -144,7 +144,7 @@ function ensureMockState() {
       descriptionRu:
         "Ресурс Национальной парламентской библиотеки Украины с полнотекстовыми изданиями. Открытый доступ.",
       type: "electronic_library",
-      url: "http://elib.nplu.org/",
+      url: "https://lib-hdak.in.ua/helpful-links.html",
       keywords: [
         "culture",
         "Ukraine",
@@ -167,7 +167,7 @@ function ensureMockState() {
       descriptionRu:
         "Международная наукометрическая база данных. Публикации учёных ХГАК в Scopus: 13 статей. Корпоративный доступ (только из сети академии или через VPN).",
       type: "database",
-      url: "https://www.scopus.com/",
+      url: "https://lib-hdak.in.ua/search-scientific-info.html",
       keywords: [
         "Scopus",
         "citations",
@@ -190,7 +190,7 @@ function ensureMockState() {
       descriptionRu:
         "Международная наукометрическая база данных. Публикации учёных ХГАК в Web of Science: 10 статей. Корпоративный доступ.",
       type: "database",
-      url: "https://www.webofscience.com/",
+      url: "https://lib-hdak.in.ua/search-scientific-info.html",
       keywords: ["Web of Science", "citations", "international", "VPN"],
       createdAt: now,
       updatedAt: now,
@@ -207,7 +207,7 @@ function ensureMockState() {
       descriptionRu:
         "Полнотекстовые статьи журналов Elsevier. Корпоративный доступ (только из сети академии или через VPN).",
       type: "database",
-      url: "https://www.sciencedirect.com/",
+      url: "https://lib-hdak.in.ua/search-scientific-info.html",
       keywords: ["Elsevier", "ScienceDirect", "journals", "VPN"],
       createdAt: now,
       updatedAt: now,
@@ -224,7 +224,7 @@ function ensureMockState() {
       descriptionRu:
         "Полнотекстовые ресурсы портала Springer. Корпоративный доступ.",
       type: "database",
-      url: "https://link.springer.com/",
+      url: "https://lib-hdak.in.ua/search-scientific-info.html",
       keywords: ["Springer", "journals", "books", "VPN"],
       createdAt: now,
       updatedAt: now,
@@ -241,7 +241,7 @@ function ensureMockState() {
       descriptionRu:
         "Международная программа доступа к научной и медицинской литературе. Корпоративный доступ.",
       type: "database",
-      url: "https://login.research4life.org/tacsgr1portal_research4life_org/",
+      url: "https://lib-hdak.in.ua/search-scientific-info.html",
       keywords: ["Research 4 Life", "medical", "scientific literature"],
       createdAt: now,
       updatedAt: now,

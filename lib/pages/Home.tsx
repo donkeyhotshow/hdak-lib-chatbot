@@ -175,7 +175,7 @@ const RESOURCES = [
     ico: "🏛️",
     name: "Репозитарій ХДАК",
     sub: "Наукові праці академії",
-    url: "https://repository.ac.kharkov.ua/home",
+    url: "https://lib-hdak.in.ua/scientists-publications.html",
     vpn: false,
   },
   {
@@ -183,7 +183,7 @@ const RESOURCES = [
     ico: "🎭",
     name: "Культура України",
     sub: "Електронна бібліотека",
-    url: "http://elib.nplu.org/",
+    url: "https://lib-hdak.in.ua/helpful-links.html",
     vpn: false,
   },
   {
@@ -191,7 +191,7 @@ const RESOURCES = [
     ico: "🔬",
     name: "Scopus",
     sub: "Реферативна база Elsevier",
-    url: "https://www.scopus.com/",
+    url: "https://lib-hdak.in.ua/search-scientific-info.html",
     vpn: true,
   },
   {
@@ -199,7 +199,7 @@ const RESOURCES = [
     ico: "🔭",
     name: "Web of Science",
     sub: "Наукові цитування Clarivate",
-    url: "https://www.webofscience.com/",
+    url: "https://lib-hdak.in.ua/search-scientific-info.html",
     vpn: true,
   },
   {
@@ -207,7 +207,7 @@ const RESOURCES = [
     ico: "📰",
     name: "ScienceDirect",
     sub: "Журнали та книги Elsevier",
-    url: "https://www.sciencedirect.com/",
+    url: "https://lib-hdak.in.ua/search-scientific-info.html",
     vpn: true,
   },
   {
@@ -215,7 +215,7 @@ const RESOURCES = [
     ico: "🔗",
     name: "Springer Link",
     sub: "Видання Springer Nature",
-    url: "https://link.springer.com/",
+    url: "https://lib-hdak.in.ua/search-scientific-info.html",
     vpn: true,
   },
   {
@@ -223,7 +223,7 @@ const RESOURCES = [
     ico: "🌍",
     name: "Research 4 Life",
     sub: "Міжнародний доступ для освіти",
-    url: "https://login.research4life.org/",
+    url: "https://lib-hdak.in.ua/search-scientific-info.html",
     vpn: true,
   },
   {
@@ -239,7 +239,7 @@ const RESOURCES = [
     ico: "📜",
     name: "УкрІНТЕІ",
     sub: "Автореферати дисертацій",
-    url: "http://nrat.ukrintei.ua/",
+    url: "https://lib-hdak.in.ua/search-scientific-info.html",
     vpn: false,
   },
   {
@@ -890,7 +890,7 @@ export default function Home() {
                       )}
                       {RESOURCES.filter(r => r.group === group).map(res => (
                         <a
-                          key={res.url}
+                          key={`${res.name}-${res.url}`}
                           href={res.url}
                           target="_blank"
                           rel="noopener noreferrer"
