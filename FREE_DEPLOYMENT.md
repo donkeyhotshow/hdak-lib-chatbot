@@ -340,7 +340,7 @@ curl -X POST https://YOUR_APP_URL/api/chat \
 | `AI_MODEL_NAME`         | `gemini-2.0-flash` | Модель LLM               |
 | `DATABASE_URL`          | _(пусто = mock)_   | MySQL строка подключения |
 | `NODE_ENV`              | `development`      | Режим работы             |
-| `PORT`                  | `7860`             | HTTP порт                |
+| `PORT`                  | `3000`             | HTTP порт                |
 | `OAUTH_SERVER_URL`      | _(пусто)_          | URL OAuth-сервера        |
 | `VITE_APP_ID`           | _(пусто)_          | ID приложения OAuth      |
 | `VITE_OAUTH_PORTAL_URL` | _(пусто)_          | URL страницы входа OAuth |
