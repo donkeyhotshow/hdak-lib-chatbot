@@ -161,92 +161,43 @@ function getMessageText(msg: DisplayMessage): string {
   return "";
 }
 
-const RESOURCES = [
+export const RESOURCES = [
   {
     group: 1,
     ico: "🗂️",
-    name: "Електронний каталог",
-    sub: "Пошук книг, авторів, тем",
+    name: "Электронный каталог",
+    sub: "https://lib-hdak.in.ua/e-catalog.html",
     url: "https://lib-hdak.in.ua/e-catalog.html",
     vpn: false,
   },
   {
     group: 1,
-    ico: "🏛️",
-    name: "Репозитарій ХДАК",
-    sub: "Наукові праці академії",
-    url: "https://lib-hdak.in.ua/scientists-publications.html",
+    ico: "🗺️",
+    name: "Карта сайта",
+    sub: "https://lib-hdak.in.ua/site-map.html",
+    url: "https://lib-hdak.in.ua/site-map.html",
     vpn: false,
   },
   {
     group: 1,
-    ico: "🎭",
-    name: "Культура України",
-    sub: "Електронна бібліотека",
+    ico: "🔎",
+    name: "Поиск научной информации",
+    sub: "https://lib-hdak.in.ua/search-scientific-info.html",
+    url: "https://lib-hdak.in.ua/search-scientific-info.html",
+    vpn: false,
+  },
+  {
+    ico: "🔗",
+    name: "Полезные ссылки",
+    sub: "https://lib-hdak.in.ua/helpful-links.html",
     url: "https://lib-hdak.in.ua/helpful-links.html",
     vpn: false,
   },
   {
-    group: 2,
-    ico: "🔬",
-    name: "Scopus",
-    sub: "Реферативна база Elsevier",
-    url: "https://lib-hdak.in.ua/search-scientific-info.html",
-    vpn: true,
-  },
-  {
-    group: 2,
-    ico: "🔭",
-    name: "Web of Science",
-    sub: "Наукові цитування Clarivate",
-    url: "https://lib-hdak.in.ua/search-scientific-info.html",
-    vpn: true,
-  },
-  {
-    group: 2,
-    ico: "📰",
-    name: "ScienceDirect",
-    sub: "Журнали та книги Elsevier",
-    url: "https://lib-hdak.in.ua/search-scientific-info.html",
-    vpn: true,
-  },
-  {
-    group: 2,
-    ico: "🔗",
-    name: "Springer Link",
-    sub: "Видання Springer Nature",
-    url: "https://lib-hdak.in.ua/search-scientific-info.html",
-    vpn: true,
-  },
-  {
-    group: 2,
-    ico: "🌍",
-    name: "Research 4 Life",
-    sub: "Міжнародний доступ для освіти",
-    url: "https://lib-hdak.in.ua/search-scientific-info.html",
-    vpn: true,
-  },
-  {
-    group: 3,
-    ico: "📖",
-    name: "DOAJ",
-    sub: "Відкритий доступ до журналів",
-    url: "https://lib-hdak.in.ua/catalog-doaj.html",
-    vpn: false,
-  },
-  {
-    group: 3,
-    ico: "📜",
-    name: "УкрІНТЕІ",
-    sub: "Автореферати дисертацій",
-    url: "https://lib-hdak.in.ua/search-scientific-info.html",
-    vpn: false,
-  },
-  {
-    group: 3,
+    group: 1,
     ico: "🏠",
-    name: "Сайт бібліотеки",
-    sub: "lib-hdak.in.ua",
+    name: "Сайт библиотеки",
+    sub: "https://lib-hdak.in.ua/",
     url: "https://lib-hdak.in.ua/",
     vpn: false,
   },
@@ -877,83 +828,70 @@ export default function Home() {
                   >
                     {t.officialResources}
                   </div>
-                  {[1, 2, 3].map(group => (
-                    <div key={group}>
-                      {group > 1 && (
+                  {RESOURCES.map(res => (
+                    <a
+                      key={`${res.name}-${res.url}`}
+                      href={res.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hdak-res-row"
+                      style={{
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: 10,
+                        padding: "8px 10px",
+                        borderRadius: 8,
+                        textDecoration: "none",
+                        transition: "background 0.15s",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: 16,
+                          width: 22,
+                          textAlign: "center",
+                          flexShrink: 0,
+                          paddingTop: 1,
+                        }}
+                      >
+                        {res.ico}
+                      </span>
+                      <div>
                         <div
                           style={{
-                            height: 1,
-                            background: "rgba(180,148,80,0.14)",
-                            margin: "5px 0",
-                          }}
-                        />
-                      )}
-                      {RESOURCES.filter(r => r.group === group).map(res => (
-                        <a
-                          key={`${res.name}-${res.url}`}
-                          href={res.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="hdak-res-row"
-                          style={{
-                            display: "flex",
-                            alignItems: "flex-start",
-                            gap: 10,
-                            padding: "8px 10px",
-                            borderRadius: 8,
-                            textDecoration: "none",
-                            transition: "background 0.15s",
-                            cursor: "pointer",
+                            fontSize: 12,
+                            color: "#ede3d0",
+                            fontWeight: 500,
+                            lineHeight: 1.3,
                           }}
                         >
-                          <span
-                            style={{
-                              fontSize: 16,
-                              width: 22,
-                              textAlign: "center",
-                              flexShrink: 0,
-                              paddingTop: 1,
-                            }}
-                          >
-                            {res.ico}
-                          </span>
-                          <div>
-                            <div
+                          {res.name}
+                          {res.vpn && (
+                            <span
                               style={{
-                                fontSize: 12,
-                                color: "#ede3d0",
-                                fontWeight: 500,
-                                lineHeight: 1.3,
+                                fontSize: 10,
+                                color: "#c8a84b",
+                                opacity: 0.75,
+                                marginLeft: 4,
                               }}
                             >
-                              {res.name}
-                              {res.vpn && (
-                                <span
-                                  style={{
-                                    fontSize: 10,
-                                    color: "#c8a84b",
-                                    opacity: 0.75,
-                                    marginLeft: 4,
-                                  }}
-                                >
-                                  🔒 VPN
-                                </span>
-                              )}
-                            </div>
-                            <div
-                              style={{
-                                fontSize: 11,
-                                color: "#566070",
-                                lineHeight: 1.3,
-                                marginTop: 1,
-                              }}
-                            >
-                              {res.sub}
-                            </div>
-                          </div>
-                        </a>
-                      ))}
-                    </div>
+                              🔒 VPN
+                            </span>
+                          )}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 11,
+                            color: "#566070",
+                            lineHeight: 1.3,
+                            marginTop: 1,
+                          }}
+                        >
+                          {res.sub}
+                        </div>
+                      </div>
+                    </a>
                   ))}
                 </div>
               )}
