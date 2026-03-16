@@ -1,5 +1,8 @@
 # Code Improvements and Recommendations
 
+> Status (2026-03-16): **historical recommendations** (many already implemented,
+> some intentionally postponed). Verify against current code before applying.
+
 ## Architecture Improvements
 
 ### 1. Error Handling Strategy

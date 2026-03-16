@@ -1,5 +1,9 @@
 # Issues Found and Fixed in hdak-lib-chatbot
 
+> Status (2026-03-16): **partially outdated**.  
+> This file is historical. Current source of truth is the code + tests +
+> `README.md` + `DEPLOYMENT.md`.
+
 ## 1. TypeScript Errors in `client/src/pages/Home.tsx`
 
 ### Problem

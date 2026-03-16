@@ -18,7 +18,7 @@ import {
   oauthRateLimiter,
   adminRateLimiter,
 } from "./rateLimiter";
-import { ENV } from "./env";
+import { ENV, getMissingCriticalEnvVars } from "./env";
 import { sdk } from "./sdk";
 import { processDocument } from "../rag-service";
 import { getMetrics, startMemoryMonitoring } from "./metrics";
@@ -49,17 +49,16 @@ async function startServer() {
   // Validate critical environment variables before starting.
   // AI key can be provided via BUILT_IN_FORGE_API_KEY, FORGE_API_KEY, or OPENAI_API_KEY.
   // DATABASE_URL is optional: when absent the server runs in mock-data mode.
-  if (!ENV.forgeApiKey) {
+  const criticalMissing = getMissingCriticalEnvVars({ forProductionBoot: false });
+  if (criticalMissing.length > 0) {
     if (ENV.isProduction) {
       logger.error(
-        "Missing required environment variable(s): BUILT_IN_FORGE_API_KEY (or FORGE_API_KEY / OPENAI_API_KEY). " +
-          "Set them in your .env file or deployment environment and restart the server."
+        `Missing required environment variable(s): ${criticalMissing.join(", ")}`
       );
       process.exit(1);
     } else {
       logger.warn(
-        "Missing environment variable(s): BUILT_IN_FORGE_API_KEY (or FORGE_API_KEY / OPENAI_API_KEY). " +
-          "Running in development mode with mock data. Set these in your .env file for full functionality."
+        `Missing environment variable(s): ${criticalMissing.join(", ")}. Running in development mode with partial functionality.`
       );
     }
   }
@@ -72,12 +71,7 @@ async function startServer() {
   }
 
   if (ENV.isProduction) {
-    const required: Array<[string, string]> = [
-      ["JWT_SECRET", ENV.cookieSecret],
-      ["BUILT_IN_FORGE_API_URL (or FORGE_API_URL)", ENV.forgeApiUrl],
-      ["OWNER_OPEN_ID", ENV.ownerOpenId],
-    ];
-    const missing = required.filter(([, v]) => !v).map(([k]) => k);
+    const missing = getMissingCriticalEnvVars({ forProductionBoot: true });
     if (missing.length > 0) {
       logger.error(
         `Missing required environment variables: ${missing.join(", ")}`
@@ -96,7 +90,7 @@ async function startServer() {
 
   // In production, enforce strict CSP without unsafe-inline.
   // In development, Vite HMR injects inline scripts and styles so unsafe-inline is kept.
-  const isDev = process.env.NODE_ENV !== "production";
+  const isDev = ENV.nodeEnv !== "production";
   // Security headers
   app.use(
     helmet({
@@ -311,13 +305,13 @@ async function startServer() {
     })
   );
   // development mode uses Vite, production mode uses static files
-  if (process.env.NODE_ENV === "development") {
+  if (ENV.nodeEnv === "development") {
     await setupVite(app, server);
   } else {
     serveStatic(app);
   }
 
-  const preferredPort = parseInt(process.env.PORT || "3000");
+  const preferredPort = ENV.port;
   const port = await findAvailablePort(preferredPort);
 
   if (port !== preferredPort) {
@@ -326,12 +320,12 @@ async function startServer() {
 
   server.listen(port, () => {
     logger.milestone(`Server started on http://localhost:${port}/`, {
-      env: process.env.NODE_ENV ?? "development",
+      env: ENV.nodeEnv,
     });
     // Start periodic memory monitoring for the /api/metrics endpoint
     startMemoryMonitoring();
     // Start periodic catalog sync (only outside test environments)
-    if (process.env.NODE_ENV !== "test") {
+    if (ENV.nodeEnv !== "test") {
       startSyncScheduler();
     }
   });

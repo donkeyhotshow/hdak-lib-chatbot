@@ -5,6 +5,7 @@ import type { LibraryResource } from "../../../drizzle/schema";
 import { SECURITY_CONFIG } from "../config/security";
 import * as db from "../db";
 import { logger } from "../_core/logger";
+import { ENV } from "../_core/env";
 import { getRagContext } from "./rag/retriever";
 import { buildRagPromptSection } from "./rag/promptBuilder";
 import {
@@ -20,7 +21,7 @@ const AI_TIMEOUT_MS = 30_000;
 export const AI_TEMPERATURE = 0.7;
 
 /** Default chat model name, centralised here so both pathways stay in sync. */
-export const AI_MODEL_NAME = process.env.AI_MODEL_NAME || "gemini-2.0-flash";
+export const AI_MODEL_NAME = ENV.aiModelName;
 
 /** Cache for AI conversation replies: key = hash of (prompt+lang+history), TTL = 24h. */
 const replyCache = new NodeCache({
