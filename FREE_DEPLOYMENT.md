@@ -12,6 +12,7 @@
 
 - [Обзор архитектуры](#обзор-архитектуры)
 - [Что нужно (бесплатно)](#что-нужно-бесплатно)
+- [Шаг 0 — Получите всё необходимое](#шаг-0--получите-всё-необходимое)
 - [Шаг 1 — Бесплатный AI-ключ (Google Gemini)](#шаг-1--бесплатный-ai-ключ-google-gemini)
 - [Шаг 2 — Выберите платформу для деплоя](#шаг-2--выберите-платформу-для-деплоя)
   - [Вариант A — Render.com (рекомендуется)](#вариант-a--rendercom-рекомендуется)
@@ -66,6 +67,26 @@
 
 ---
 
+## Шаг 0 — Получите всё необходимое
+
+Перед деплоем подготовьте это (чтобы первый запуск прошёл без ошибок):
+
+| Что нужно                    | Где получить                                                                                                   |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| GitHub-аккаунт               | [github.com/signup](https://github.com/signup)                                                                 |
+| Хостинг-аккаунт              | [render.com](https://render.com), [huggingface.co](https://huggingface.co), [railway.app](https://railway.app) |
+| `BUILT_IN_FORGE_API_URL`     | Для Gemini: `https://generativelanguage.googleapis.com/v1beta/openai`                                          |
+| `BUILT_IN_FORGE_API_KEY`     | [Google AI Studio](https://aistudio.google.com/apikey)                                                         |
+| `JWT_SECRET`                 | Сгенерируйте: `openssl rand -hex 32`                                                                           |
+| `OWNER_OPEN_ID`              | Любой уникальный стабильный ID админа (например `your-telegram-id` или `your-google-openid`)                   |
+| `DATABASE_URL` (опционально) | [TiDB Serverless](https://tidbcloud.com) (см. Шаг 3)                                                           |
+
+> Если деплоите в production (`NODE_ENV=production`), для старта обязательны:
+> `BUILT_IN_FORGE_API_URL` (или `FORGE_API_URL`), `BUILT_IN_FORGE_API_KEY`
+> (или `FORGE_API_KEY` / `OPENAI_API_KEY`), `JWT_SECRET`, `OWNER_OPEN_ID`.
+
+---
+
 ## Шаг 1 — Бесплатный AI-ключ (Google Gemini)
 
 Приложение по умолчанию использует модель `gemini-2.0-flash` — бесплатную и
@@ -109,14 +130,16 @@ AI_MODEL_NAME          = gemini-2.0-flash
 
 В дашборде Render → ваш сервис → **Environment**:
 
-| Переменная               | Значение                                                  |
-| ------------------------ | --------------------------------------------------------- |
-| `BUILT_IN_FORGE_API_URL` | `https://generativelanguage.googleapis.com/v1beta/openai` |
-| `BUILT_IN_FORGE_API_KEY` | Ваш Gemini API ключ (пометьте как Secret)                 |
-| `DATABASE_URL`           | _(оставьте пустым для mock-режима, или см. Шаг 3)_        |
+| Переменная               | Обязательно | Значение / как получить                                                  |
+| ------------------------ | ----------- | ------------------------------------------------------------------------ |
+| `BUILT_IN_FORGE_API_URL` | Да          | `https://generativelanguage.googleapis.com/v1beta/openai`                |
+| `BUILT_IN_FORGE_API_KEY` | Да          | Ваш Gemini API ключ (пометьте как Secret)                                |
+| `JWT_SECRET`             | Да          | Render обычно генерирует сам; или вставьте `openssl rand -hex 32`        |
+| `OWNER_OPEN_ID`          | Да          | Ваш уникальный ID админа (строка, которую будете использовать постоянно) |
+| `DATABASE_URL`           | Нет         | _(оставьте пустым для mock-режима, или см. Шаг 3)_                       |
 
-Остальные переменные (`JWT_SECRET`, OAuth) — опциональны для базового
-использования. `JWT_SECRET` генерируется автоматически.
+OAuth-переменные (`OAUTH_SERVER_URL`, `VITE_APP_ID`, `VITE_OAUTH_PORTAL_URL`)
+нужны только если хотите OAuth-вход.
 
 #### A.3. Деплой
 
@@ -301,26 +324,26 @@ curl -X POST https://YOUR_APP_URL/api/chat \
 
 ## Переменные окружения (справка)
 
-### Обязательные (для работы чата)
+### Обязательные для production-запуска
 
-| Переменная               | Описание            | Пример                                                    |
-| ------------------------ | ------------------- | --------------------------------------------------------- |
-| `BUILT_IN_FORGE_API_KEY` | API-ключ для LLM    | `AIzaSy...`                                               |
-| `BUILT_IN_FORGE_API_URL` | Базовый URL LLM API | `https://generativelanguage.googleapis.com/v1beta/openai` |
+| Переменная               | Описание                        | Пример                                                    |
+| ------------------------ | ------------------------------- | --------------------------------------------------------- |
+| `BUILT_IN_FORGE_API_KEY` | API-ключ для LLM                | `AIzaSy...`                                               |
+| `BUILT_IN_FORGE_API_URL` | Базовый URL LLM API             | `https://generativelanguage.googleapis.com/v1beta/openai` |
+| `JWT_SECRET`             | Секрет для подписи cookie/JWT   | `openssl rand -hex 32`                                    |
+| `OWNER_OPEN_ID`          | Стабильный ID владельца (admin) | `my-admin-open-id`                                        |
 
 ### Опциональные
 
-| Переменная              | По умолчанию       | Описание                  |
-| ----------------------- | ------------------ | ------------------------- |
-| `AI_MODEL_NAME`         | `gemini-2.0-flash` | Модель LLM                |
-| `DATABASE_URL`          | _(пусто = mock)_   | MySQL строка подключения  |
-| `JWT_SECRET`            | _(пусто)_          | Секрет для подписи cookie |
-| `NODE_ENV`              | `development`      | Режим работы              |
-| `PORT`                  | `7860`             | HTTP порт                 |
-| `OWNER_OPEN_ID`         | _(пусто)_          | OpenID администратора     |
-| `OAUTH_SERVER_URL`      | _(пусто)_          | URL OAuth-сервера         |
-| `VITE_APP_ID`           | _(пусто)_          | ID приложения OAuth       |
-| `VITE_OAUTH_PORTAL_URL` | _(пусто)_          | URL страницы входа OAuth  |
+| Переменная              | По умолчанию       | Описание                 |
+| ----------------------- | ------------------ | ------------------------ |
+| `AI_MODEL_NAME`         | `gemini-2.0-flash` | Модель LLM               |
+| `DATABASE_URL`          | _(пусто = mock)_   | MySQL строка подключения |
+| `NODE_ENV`              | `development`      | Режим работы             |
+| `PORT`                  | `7860`             | HTTP порт                |
+| `OAUTH_SERVER_URL`      | _(пусто)_          | URL OAuth-сервера        |
+| `VITE_APP_ID`           | _(пусто)_          | ID приложения OAuth      |
+| `VITE_OAUTH_PORTAL_URL` | _(пусто)_          | URL страницы входа OAuth |
 
 ---
 
