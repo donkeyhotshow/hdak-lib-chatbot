@@ -2,12 +2,12 @@
 
 ## What is officially supported
 
-| Platform | Status | Build | Start | Notes |
-| --- | --- | --- | --- | --- |
-| **Vercel** | **Recommended** | `pnpm run build` | Vercel Next.js runtime | Uses `vercel.json` |
-| **Railway** | Alternative | `pnpm run build` | `pnpm start` | Uses `railway.json` (Nixpacks) |
-| **Render** | Alternative | `pnpm run build` | `pnpm start` | Uses `render.yaml` |
-| Fly.io | Optional | Buildpacks | `pnpm start` | Uses `fly.toml`; verify in your region |
+| Platform    | Status          | Build            | Start                  | Notes                                  |
+| ----------- | --------------- | ---------------- | ---------------------- | -------------------------------------- |
+| **Vercel**  | **Recommended** | `pnpm run build` | Vercel Next.js runtime | Uses `vercel.json`                     |
+| **Railway** | Alternative     | `pnpm run build` | `pnpm start`           | Uses `railway.json` (Nixpacks)         |
+| **Render**  | Alternative     | `pnpm run build` | `pnpm start`           | Uses `render.yaml`                     |
+| Fly.io      | Optional        | Buildpacks       | `pnpm start`           | Uses `fly.toml`; verify in your region |
 
 ---
 

@@ -15,7 +15,9 @@ const envSchema = z.object({
   REDIS_URL: optionalString,
   OAUTH_SERVER_URL: optionalString,
   OWNER_OPEN_ID: optionalString,
-  NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
+  NODE_ENV: z
+    .enum(["development", "production", "test"])
+    .default("development"),
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
   AI_MODEL_NAME: z.string().min(1).default("gemini-2.0-flash"),
   BUILT_IN_FORGE_API_URL: optionalString,

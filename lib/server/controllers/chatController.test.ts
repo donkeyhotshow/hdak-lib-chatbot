@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  chatRequestSchema,
-  MAX_CHAT_MESSAGE_LENGTH,
-} from "./chatController";
+import { chatRequestSchema, MAX_CHAT_MESSAGE_LENGTH } from "./chatController";
 
 describe("chatRequestSchema", () => {
   it("accepts valid chat payload", () => {
@@ -17,7 +14,9 @@ describe("chatRequestSchema", () => {
 
   it("rejects oversized messages", () => {
     const result = chatRequestSchema.safeParse({
-      messages: [{ role: "user", content: "a".repeat(MAX_CHAT_MESSAGE_LENGTH + 1) }],
+      messages: [
+        { role: "user", content: "a".repeat(MAX_CHAT_MESSAGE_LENGTH + 1) },
+      ],
     });
 
     expect(result.success).toBe(false);

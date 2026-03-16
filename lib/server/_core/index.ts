@@ -22,6 +22,7 @@ import { ENV, getMissingCriticalEnvVars } from "./env";
 import { sdk } from "./sdk";
 import { processDocument } from "../rag-service";
 import { getMetrics, startMemoryMonitoring } from "./metrics";
+import { getDb } from "../db";
 
 /** Maximum time (ms) to wait for in-flight requests before forcing shutdown. */
 const SHUTDOWN_TIMEOUT_MS = 10_000;
@@ -49,7 +50,9 @@ async function startServer() {
   // Validate critical environment variables before starting.
   // AI key can be provided via BUILT_IN_FORGE_API_KEY, FORGE_API_KEY, or OPENAI_API_KEY.
   // DATABASE_URL is optional: when absent the server runs in mock-data mode.
-  const criticalMissing = getMissingCriticalEnvVars({ forProductionBoot: false });
+  const criticalMissing = getMissingCriticalEnvVars({
+    forProductionBoot: false,
+  });
   if (criticalMissing.length > 0) {
     if (ENV.isProduction) {
       logger.error(
@@ -257,17 +260,25 @@ async function startServer() {
   // Enable gzip/deflate compression for all responses
   app.use(compression());
   // Health check endpoint
-  app.get("/api/health", (_req, res) => {
-    res.json({ status: "ok", timestamp: new Date().toISOString() });
+  app.get("/api/health", async (_req, res) => {
+    const db = await getDb();
+    const database = {
+      configured: Boolean(ENV.databaseUrl),
+      status: ENV.databaseUrl
+        ? db
+          ? "connected"
+          : "unavailable"
+        : "mock_mode",
+    };
+    res.json({
+      status: database.status === "unavailable" ? "degraded" : "ok",
+      timestamp: new Date().toISOString(),
+      database,
+    });
   });
-  // Readiness probe — succeeds only when the AI API key is present
+  // Readiness probe — succeeds only when critical env vars are configured
   app.get("/api/ready", (_req, res) => {
-    const missing: string[] = [];
-    if (!ENV.forgeApiKey) {
-      missing.push(
-        "BUILT_IN_FORGE_API_KEY (or FORGE_API_KEY / OPENAI_API_KEY)"
-      );
-    }
+    const missing = getMissingCriticalEnvVars();
     if (missing.length > 0) {
       res.status(503).json({ ready: false, missing });
       return;

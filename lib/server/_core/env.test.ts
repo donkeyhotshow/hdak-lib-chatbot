@@ -89,4 +89,23 @@ describe("ENV forge aliases", () => {
       "BUILT_IN_FORGE_API_KEY (or FORGE_API_KEY / OPENAI_API_KEY)",
     ]);
   });
+
+  it("reports production boot requirements when requested", async () => {
+    delete process.env.BUILT_IN_FORGE_API_URL;
+    delete process.env.FORGE_API_URL;
+    delete process.env.BUILT_IN_FORGE_API_KEY;
+    delete process.env.FORGE_API_KEY;
+    delete process.env.OPENAI_API_KEY;
+    delete process.env.JWT_SECRET;
+    delete process.env.OWNER_OPEN_ID;
+
+    const { getMissingCriticalEnvVars } = await importEnvModule();
+
+    expect(getMissingCriticalEnvVars({ forProductionBoot: true })).toEqual([
+      "BUILT_IN_FORGE_API_URL (or FORGE_API_URL)",
+      "BUILT_IN_FORGE_API_KEY (or FORGE_API_KEY / OPENAI_API_KEY)",
+      "JWT_SECRET",
+      "OWNER_OPEN_ID",
+    ]);
+  });
 });
