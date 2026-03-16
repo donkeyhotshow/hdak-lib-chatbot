@@ -95,6 +95,25 @@ Use `.env.example` as the source of truth.
 - Alternatives: **Railway**, **Render**
 - Fly.io: доступен как дополнительный вариант (см. `fly.toml`)
 
+### Что нужно для деплоя
+
+Минимально обязательно для старта в production:
+
+- `BUILT_IN_FORGE_API_URL` (или `FORGE_API_URL`)
+- `BUILT_IN_FORGE_API_KEY` (или `FORGE_API_KEY` / `OPENAI_API_KEY`)
+- `JWT_SECRET`
+- `OWNER_OPEN_ID`
+
+Опционально, но нужно для полноценного режима:
+
+- `DATABASE_URL` — для постоянной истории чатов и админ-CRUD (без него будет mock-режим)
+- `OAUTH_SERVER_URL`, `VITE_APP_ID`, `VITE_OAUTH_PORTAL_URL` — если нужен OAuth-вход
+
+После деплоя проверьте:
+
+- `GET /api/health` — сервис запущен
+- `GET /api/ready` — все критичные env выставлены
+
 Пошаговые инструкции и env-матрица: **[DEPLOYMENT.md](./DEPLOYMENT.md)**.
 
 ## Limits / caveats
