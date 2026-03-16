@@ -42,10 +42,12 @@
 ```
 
 **Минимальные требования для работы:**
+
 - Веб-сервис (Docker-контейнер)
 - AI API ключ (Google Gemini — бесплатно)
 
 **Опционально:**
+
 - MySQL-база для сохранения разговоров (без неё работает mock-режим)
 - OAuth для авторизации пользователей
 
@@ -53,12 +55,12 @@
 
 ## Что нужно (бесплатно)
 
-| Компонент | Бесплатный сервис | Лимиты |
-|-----------|-------------------|--------|
-| **AI/LLM** | Google Gemini API | 15 запросов/мин, 1500/день (бесплатный уровень) |
-| **Хостинг** | Render.com / HF Spaces | 750 ч/мес (Render) или безлимит (HF) |
-| **База данных** | TiDB Serverless | 5 ГБ хранения, 50M запросов/мес |
-| **GitHub** | GitHub Actions | Keep-alive пинги |
+| Компонент       | Бесплатный сервис      | Лимиты                                          |
+| --------------- | ---------------------- | ----------------------------------------------- |
+| **AI/LLM**      | Google Gemini API      | 15 запросов/мин, 1500/день (бесплатный уровень) |
+| **Хостинг**     | Render.com / HF Spaces | 750 ч/мес (Render) или безлимит (HF)            |
+| **База данных** | TiDB Serverless        | 5 ГБ хранения, 50M запросов/мес                 |
+| **GitHub**      | GitHub Actions         | Keep-alive пинги                                |
 
 **Общая стоимость: $0/мес**
 
@@ -107,11 +109,11 @@ AI_MODEL_NAME          = gemini-2.0-flash
 
 В дашборде Render → ваш сервис → **Environment**:
 
-| Переменная | Значение |
-|------------|----------|
+| Переменная               | Значение                                                  |
+| ------------------------ | --------------------------------------------------------- |
 | `BUILT_IN_FORGE_API_URL` | `https://generativelanguage.googleapis.com/v1beta/openai` |
-| `BUILT_IN_FORGE_API_KEY` | Ваш Gemini API ключ (пометьте как Secret) |
-| `DATABASE_URL` | _(оставьте пустым для mock-режима, или см. Шаг 3)_ |
+| `BUILT_IN_FORGE_API_KEY` | Ваш Gemini API ключ (пометьте как Secret)                 |
+| `DATABASE_URL`           | _(оставьте пустым для mock-режима, или см. Шаг 3)_        |
 
 Остальные переменные (`JWT_SECRET`, OAuth) — опциональны для базового
 использования. `JWT_SECRET` генерируется автоматически.
@@ -158,10 +160,10 @@ git push hf main
 
 В настройках Space → **Settings** → **Repository secrets**:
 
-| Секрет | Значение |
-|--------|----------|
+| Секрет                   | Значение                                                  |
+| ------------------------ | --------------------------------------------------------- |
 | `BUILT_IN_FORGE_API_URL` | `https://generativelanguage.googleapis.com/v1beta/openai` |
-| `BUILT_IN_FORGE_API_KEY` | Ваш Gemini API ключ |
+| `BUILT_IN_FORGE_API_KEY` | Ваш Gemini API ключ                                       |
 
 > **Порт:** Dockerfile уже использует порт 7860 — стандарт HF Spaces.
 > README.md содержит метаданные HF Spaces (sdk: docker, app_port: 7860).
@@ -230,11 +232,11 @@ railway up
 
 ### Альтернативы
 
-| Сервис | Бесплатный план | Ограничения |
-|--------|-----------------|-------------|
-| [TiDB Serverless](https://tidbcloud.com) | 5 ГБ, 50M запросов/мес | MySQL-совместимый |
-| [Clever Cloud](https://clever-cloud.com) | 500 МБ MySQL | Ограничение соединений |
-| [Railway MySQL](https://railway.app) | В рамках $5 кредитов | Пробный период |
+| Сервис                                   | Бесплатный план        | Ограничения            |
+| ---------------------------------------- | ---------------------- | ---------------------- |
+| [TiDB Serverless](https://tidbcloud.com) | 5 ГБ, 50M запросов/мес | MySQL-совместимый      |
+| [Clever Cloud](https://clever-cloud.com) | 500 МБ MySQL           | Ограничение соединений |
+| [Railway MySQL](https://railway.app)     | В рамках $5 кредитов   | Пробный период         |
 
 ---
 
@@ -301,24 +303,24 @@ curl -X POST https://YOUR_APP_URL/api/chat \
 
 ### Обязательные (для работы чата)
 
-| Переменная | Описание | Пример |
-|------------|----------|--------|
-| `BUILT_IN_FORGE_API_KEY` | API-ключ для LLM | `AIzaSy...` |
+| Переменная               | Описание            | Пример                                                    |
+| ------------------------ | ------------------- | --------------------------------------------------------- |
+| `BUILT_IN_FORGE_API_KEY` | API-ключ для LLM    | `AIzaSy...`                                               |
 | `BUILT_IN_FORGE_API_URL` | Базовый URL LLM API | `https://generativelanguage.googleapis.com/v1beta/openai` |
 
 ### Опциональные
 
-| Переменная | По умолчанию | Описание |
-|------------|-------------|----------|
-| `AI_MODEL_NAME` | `gemini-2.0-flash` | Модель LLM |
-| `DATABASE_URL` | _(пусто = mock)_ | MySQL строка подключения |
-| `JWT_SECRET` | _(пусто)_ | Секрет для подписи cookie |
-| `NODE_ENV` | `development` | Режим работы |
-| `PORT` | `7860` | HTTP порт |
-| `OWNER_OPEN_ID` | _(пусто)_ | OpenID администратора |
-| `OAUTH_SERVER_URL` | _(пусто)_ | URL OAuth-сервера |
-| `VITE_APP_ID` | _(пусто)_ | ID приложения OAuth |
-| `VITE_OAUTH_PORTAL_URL` | _(пусто)_ | URL страницы входа OAuth |
+| Переменная              | По умолчанию       | Описание                  |
+| ----------------------- | ------------------ | ------------------------- |
+| `AI_MODEL_NAME`         | `gemini-2.0-flash` | Модель LLM                |
+| `DATABASE_URL`          | _(пусто = mock)_   | MySQL строка подключения  |
+| `JWT_SECRET`            | _(пусто)_          | Секрет для подписи cookie |
+| `NODE_ENV`              | `development`      | Режим работы              |
+| `PORT`                  | `7860`             | HTTP порт                 |
+| `OWNER_OPEN_ID`         | _(пусто)_          | OpenID администратора     |
+| `OAUTH_SERVER_URL`      | _(пусто)_          | URL OAuth-сервера         |
+| `VITE_APP_ID`           | _(пусто)_          | ID приложения OAuth       |
+| `VITE_OAUTH_PORTAL_URL` | _(пусто)_          | URL страницы входа OAuth  |
 
 ---
 
@@ -327,6 +329,7 @@ curl -X POST https://YOUR_APP_URL/api/chat \
 ### Можно ли использовать без базы данных?
 
 **Да.** Если `DATABASE_URL` не указан, приложение запускается в mock-режиме:
+
 - ✅ Чат с AI работает
 - ✅ Поиск ресурсов работает
 - ✅ Каталог и навигация работают
@@ -337,11 +340,11 @@ curl -X POST https://YOUR_APP_URL/api/chat \
 
 **Да.** Любой OpenAI-совместимый API:
 
-| Провайдер | URL | Модель | Бесплатно? |
-|-----------|-----|--------|-----------|
-| Google Gemini | `https://generativelanguage.googleapis.com/v1beta/openai` | `gemini-2.0-flash` | ✅ 15 req/min |
-| OpenRouter | `https://openrouter.ai/api/v1` | `google/gemini-2.0-flash-exp:free` | ✅ Лимитировано |
-| Groq | `https://api.groq.com/openai/v1` | `llama-3.3-70b-versatile` | ✅ 30 req/min |
+| Провайдер     | URL                                                       | Модель                             | Бесплатно?      |
+| ------------- | --------------------------------------------------------- | ---------------------------------- | --------------- |
+| Google Gemini | `https://generativelanguage.googleapis.com/v1beta/openai` | `gemini-2.0-flash`                 | ✅ 15 req/min   |
+| OpenRouter    | `https://openrouter.ai/api/v1`                            | `google/gemini-2.0-flash-exp:free` | ✅ Лимитировано |
+| Groq          | `https://api.groq.com/openai/v1`                          | `llama-3.3-70b-versatile`          | ✅ 30 req/min   |
 
 Установите `BUILT_IN_FORGE_API_URL` и `BUILT_IN_FORGE_API_KEY` для выбранного
 провайдера, и `AI_MODEL_NAME` для нужной модели.
@@ -350,18 +353,19 @@ curl -X POST https://YOUR_APP_URL/api/chat \
 
 **Да.** Без OAuth все пользователи — гости с ролью `user`. Чат и поиск
 работают, admin-панель недоступна. OAuth нужен только для:
+
 - Идентификации пользователей
 - Admin-доступа (CRUD, метрики, загрузка документов)
 
 ### Сколько стоит в месяц?
 
-| Компонент | Стоимость |
-|-----------|-----------|
-| Render.com (веб) | $0 |
-| Google Gemini API | $0 |
-| TiDB Serverless (MySQL) | $0 |
-| GitHub Actions (keep-alive) | $0 |
-| **Итого** | **$0/мес** |
+| Компонент                   | Стоимость  |
+| --------------------------- | ---------- |
+| Render.com (веб)            | $0         |
+| Google Gemini API           | $0         |
+| TiDB Serverless (MySQL)     | $0         |
+| GitHub Actions (keep-alive) | $0         |
+| **Итого**                   | **$0/мес** |
 
 ### Как запустить локально (для разработки)?
 

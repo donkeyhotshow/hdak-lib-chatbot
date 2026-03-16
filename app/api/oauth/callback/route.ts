@@ -27,7 +27,10 @@ export async function GET(req: Request) {
   const state = searchParams.get("state");
 
   if (!code || !state) {
-    return Response.json({ error: "code and state are required" }, { status: 400 });
+    return Response.json(
+      { error: "code and state are required" },
+      { status: 400 }
+    );
   }
 
   try {
@@ -35,7 +38,10 @@ export async function GET(req: Request) {
     const userInfo = await sdk.getUserInfo(tokenResponse.accessToken);
 
     if (!userInfo.openId) {
-      return Response.json({ error: "openId missing from user info" }, { status: 400 });
+      return Response.json(
+        { error: "openId missing from user info" },
+        { status: 400 }
+      );
     }
 
     await db.upsertUser({

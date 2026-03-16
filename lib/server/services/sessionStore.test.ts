@@ -20,7 +20,12 @@ describe("sessionStore", () => {
 
   it("creates a new session and retrieves it by userId", () => {
     const entry = setSessionState(1, {
-      dialogState: { sessionLanguage: "uk", messageCount: 1, lastActiveAt: "", context: {} },
+      dialogState: {
+        sessionLanguage: "uk",
+        messageCount: 1,
+        lastActiveAt: "",
+        context: {},
+      },
     });
 
     expect(entry.userId).toBe(1);
@@ -34,12 +39,26 @@ describe("sessionStore", () => {
 
   it("creates a separate session entry when conversationId is provided", () => {
     setSessionState(1, {
-      dialogState: { sessionLanguage: "uk", messageCount: 1, lastActiveAt: "", context: {} },
+      dialogState: {
+        sessionLanguage: "uk",
+        messageCount: 1,
+        lastActiveAt: "",
+        context: {},
+      },
     });
-    setSessionState(1, {
-      conversationId: 5,
-      dialogState: { sessionLanguage: "en", messageCount: 2, lastActiveAt: "", context: {} },
-    }, 5);
+    setSessionState(
+      1,
+      {
+        conversationId: 5,
+        dialogState: {
+          sessionLanguage: "en",
+          messageCount: 2,
+          lastActiveAt: "",
+          context: {},
+        },
+      },
+      5
+    );
 
     const global = getSessionState(1);
     const conv = getSessionState(1, 5);
@@ -101,10 +120,14 @@ describe("sessionStore", () => {
     setSessionState(11, {
       dialogState: { messageCount: 1, lastActiveAt: "", context: {} },
     });
-    setSessionState(11, {
-      conversationId: 20,
-      dialogState: { messageCount: 2, lastActiveAt: "", context: {} },
-    }, 20);
+    setSessionState(
+      11,
+      {
+        conversationId: 20,
+        dialogState: { messageCount: 2, lastActiveAt: "", context: {} },
+      },
+      20
+    );
 
     clearSession(11, 20);
 
@@ -114,13 +137,19 @@ describe("sessionStore", () => {
 
   it("getActiveSessionCount reflects the number of live sessions", () => {
     expect(getActiveSessionCount()).toBe(0);
-    setSessionState(20, { dialogState: { messageCount: 0, lastActiveAt: "", context: {} } });
-    setSessionState(21, { dialogState: { messageCount: 0, lastActiveAt: "", context: {} } });
+    setSessionState(20, {
+      dialogState: { messageCount: 0, lastActiveAt: "", context: {} },
+    });
+    setSessionState(21, {
+      dialogState: { messageCount: 0, lastActiveAt: "", context: {} },
+    });
     expect(getActiveSessionCount()).toBe(2);
   });
 
   it("touchSession returns true for existing session and false for missing one", () => {
-    setSessionState(30, { dialogState: { messageCount: 0, lastActiveAt: "", context: {} } });
+    setSessionState(30, {
+      dialogState: { messageCount: 0, lastActiveAt: "", context: {} },
+    });
     expect(touchSession(30)).toBe(true);
     expect(touchSession(99)).toBe(false);
   });

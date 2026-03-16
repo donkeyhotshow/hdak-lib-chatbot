@@ -64,11 +64,18 @@ export async function POST(req: Request) {
     }
 
     const validLangs = ["en", "uk", "ru"] as const;
-    const validSources = ["catalog", "repository", "database", "other"] as const;
+    const validSources = [
+      "catalog",
+      "repository",
+      "database",
+      "other",
+    ] as const;
     const lang = validLangs.includes(language as (typeof validLangs)[number])
       ? (language as (typeof validLangs)[number])
       : "uk";
-    const src = validSources.includes(sourceType as (typeof validSources)[number])
+    const src = validSources.includes(
+      sourceType as (typeof validSources)[number]
+    )
       ? (sourceType as (typeof validSources)[number])
       : "other";
 

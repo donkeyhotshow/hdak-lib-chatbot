@@ -184,7 +184,7 @@ function DashboardLayoutContent({
           </SidebarHeader>
 
           <SidebarContent className="gap-0">
-              <SidebarMenu className="px-2 py-1">
+            <SidebarMenu className="px-2 py-1">
               {menuItems.map(item => {
                 const isActive = pathname === item.path;
                 return (

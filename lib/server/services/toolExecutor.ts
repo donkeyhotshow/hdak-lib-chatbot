@@ -33,7 +33,9 @@ export async function executeTool(options: {
       throw new Error("Maximum tool calls exceeded");
     }
     if (options.governance.activeToolNames.has(options.toolName)) {
-      throw new Error(`Recursive tool execution is not allowed: ${options.toolName}`);
+      throw new Error(
+        `Recursive tool execution is not allowed: ${options.toolName}`
+      );
     }
   }
 

@@ -1,5 +1,8 @@
 import { COOKIE_NAME } from "@shared/const";
-import type { Request as ExpressRequest, Response as ExpressResponse } from "express";
+import type {
+  Request as ExpressRequest,
+  Response as ExpressResponse,
+} from "express";
 import { getSessionCookieOptions } from "./cookies";
 import { logger } from "./logger";
 import { sdk } from "./sdk";
@@ -56,8 +59,9 @@ function createExpressLikeResponse(resHeaders: Headers): ExpressLikeResponse {
         httpOnly: true,
         path: "/",
         sameSite:
-          (options?.sameSite as ReturnType<typeof getSessionCookieOptions>["sameSite"]) ??
-          "lax",
+          (options?.sameSite as ReturnType<
+            typeof getSessionCookieOptions
+          >["sameSite"]) ?? "lax",
         secure: Boolean(options?.secure),
       });
       resHeaders.append("set-cookie", cookieValue);

@@ -6,6 +6,8 @@ const ENV_KEYS = [
   "BUILT_IN_FORGE_API_KEY",
   "FORGE_API_KEY",
   "OPENAI_API_KEY",
+  "REDIS_URL",
+  "CHAT_PROVIDER_API_KEY",
 ] as const;
 
 const originalValues = new Map<string, string | undefined>(
@@ -53,5 +55,15 @@ describe("ENV forge aliases", () => {
     const { ENV } = await importEnvModule();
 
     expect(ENV.forgeApiKey).toBe("openai-key");
+  });
+
+  it("exposes optional REDIS_URL and CHAT_PROVIDER_API_KEY", async () => {
+    process.env.REDIS_URL = "redis://example.test:6379";
+    process.env.CHAT_PROVIDER_API_KEY = "provider-key";
+
+    const { ENV } = await importEnvModule();
+
+    expect(ENV.redisUrl).toBe("redis://example.test:6379");
+    expect(ENV.chatProviderApiKey).toBe("provider-key");
   });
 });

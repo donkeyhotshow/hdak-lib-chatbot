@@ -546,6 +546,7 @@ vitest.config.ts
 8. In tRPC path (`conversations.sendMessage`), flow is different: save user message -> `generateConversationReply` -> (searchResources + logUserQuery + optional RAG via embeddings) -> save assistant message.
 
 External APIs called at:
+
 - `@ai-sdk/openai` chat and embeddings (`chat.ts`, `aiPipeline.ts`, `rag-service.ts`)
 - OAuth server (`sdk.ts`/`oauth.ts`)
 - catalog sync HTTP fetch (`syncService.ts`)
@@ -605,11 +606,13 @@ Current architecture is a **hybrid monolith**:
 ## STAGE 6 — Design Patterns
 
 Patterns present:
+
 - **Adapter-like wrappers**: `sdk.ts`, `dataApi.ts`, `map.ts`, `storage.ts`, `notification.ts`.
 - **Repository-lite**: `db.ts` centralizes data access (but too broad).
 - **Tool registry**: `tools` object in `chat.ts` (primitive plugin concept).
 
 Patterns missing/weak:
+
 - No real **dependency injection**; module singletons + direct imports dominate.
 - No strategy abstraction for model/provider/tool selection.
 - No observer/event bus for domain events.
@@ -685,11 +688,13 @@ Patterns missing/weak:
 - Mocking: extensive mocking of DB/AI/OAuth in unit tests.
 
 Gaps:
+
 - No client/UI tests.
 - No end-to-end tests for auth and streaming route authorization boundaries.
 - Security regression tests incomplete for conversation ownership in `/api/chat`.
 
 CI/CD:
+
 - `ci.yml` runs typecheck, format check, coverage, build, codeql, docker build.
 - keep-alive workflow pings health endpoint on schedule.
 
@@ -698,10 +703,12 @@ CI/CD:
 ## STAGE 10 — Documentation
 
 Strengths:
+
 - `README.md` is detailed and broad.
 - Deployment docs are extensive (`DEPLOYMENT.md`, `FREE_DEPLOYMENT.md`).
 
 Gaps:
+
 - Documentation overstates coherent auth while code currently runs split/no-auth tRPC mode.
 - No formal architecture decision records.
 - No explicit dependency boundary documentation.
@@ -793,11 +800,13 @@ Current implementation is a custom app bot with direct SDK wiring, not an extens
 ## Requested Output Format
 
 ### 1) Architecture summary
+
 - Single service full-stack app (React + Express + tRPC + MySQL + AI SDK).
 - Two chat paths (streaming REST, non-streaming tRPC) with partially divergent behavior.
 - Strong functionality breadth, weak separation and security boundary consistency.
 
 ### 2) Dependency graph
+
 - Main chains:
   - `Home.tsx -> /api/chat -> chat.ts -> db.ts + ai sdk`
   - `tRPC -> routers.ts -> aiPipeline.ts -> rag-service.ts -> db.ts`
@@ -805,6 +814,7 @@ Current implementation is a custom app bot with direct SDK wiring, not an extens
 - Tight coupling concentrated in `routers.ts`, `chat.ts`, `Home.tsx`, `Admin.tsx`.
 
 ### 3) Execution flow
+
 - Startup in `index.ts`; route wiring + middleware + schedulers.
 - Message enters via `/api/chat` or `conversations.sendMessage`.
 - Sanitization/language detection/context retrieval/tool calls.
@@ -812,6 +822,7 @@ Current implementation is a custom app bot with direct SDK wiring, not an extens
 - Persistence in `messages` + analytics logging.
 
 ### 4) Major problems
+
 - Broken/placeholder auth model in tRPC context.
 - Authorization gap in `/api/chat` for conversation access.
 - Public `system.notifyOwner` due no-op admin procedure.
@@ -819,23 +830,27 @@ Current implementation is a custom app bot with direct SDK wiring, not an extens
 - Repeated source-of-truth data.
 
 ### 5) Security issues
+
 - Critical: auth bypass model in tRPC (`context.ts`, `trpc.ts`).
 - Critical: conversation ID trust in `/api/chat` (`chat.ts`).
 - Critical: open notifyOwner mutation (`systemRouter.ts` + `trpc.ts`).
 - Medium: potential SSRF in transcription helper if exposed.
 
 ### 6) Code smells
+
 - God components/functions (`Home.tsx`, `Admin.tsx`, `index.ts`, `routers.ts`).
 - Hidden global mutable state (`db.ts`, `syncService.ts`, `metrics.ts`, `aiPipeline.ts`).
 - Duplicate data declarations and backup files in source tree.
 
 ### 7) Good design decisions
+
 - Extensive server-side tests with coverage gates.
 - Defensive input validation in many routes (`zod`, body limits, rate limits).
 - Prompt sanitization attempts + logging in AI pipeline.
 - Operational metrics and health/readiness endpoints.
 
 ### 8) Refactor roadmap
+
 - Rebuild auth/authorization first.
 - Modularize routers/services by bounded context.
 - Introduce DI-style interfaces for adapters.
@@ -843,4 +858,5 @@ Current implementation is a custom app bot with direct SDK wiring, not an extens
 - Add e2e security tests and vector retrieval scalability improvements.
 
 ### 9) Final rating
+
 - **5.3 / 10**

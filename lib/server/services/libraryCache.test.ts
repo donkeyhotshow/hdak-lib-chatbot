@@ -61,7 +61,9 @@ afterEach(() => {
 
 describe("libraryCache — resources", () => {
   it("calls db.getAllResources once and serves subsequent calls from cache", async () => {
-    (db.getAllResources as ReturnType<typeof vi.fn>).mockResolvedValue([mockResource]);
+    (db.getAllResources as ReturnType<typeof vi.fn>).mockResolvedValue([
+      mockResource,
+    ]);
 
     const first = await getCachedAllResources();
     const second = await getCachedAllResources();
@@ -72,7 +74,9 @@ describe("libraryCache — resources", () => {
   });
 
   it("calls db.searchResources once per unique query, caches per query", async () => {
-    (db.searchResources as ReturnType<typeof vi.fn>).mockResolvedValue([mockResource]);
+    (db.searchResources as ReturnType<typeof vi.fn>).mockResolvedValue([
+      mockResource,
+    ]);
 
     await getCachedSearchResources("library");
     await getCachedSearchResources("library");
@@ -84,7 +88,9 @@ describe("libraryCache — resources", () => {
   });
 
   it("invalidateResourceCache forces fresh fetch on next call", async () => {
-    (db.getAllResources as ReturnType<typeof vi.fn>).mockResolvedValue([mockResource]);
+    (db.getAllResources as ReturnType<typeof vi.fn>).mockResolvedValue([
+      mockResource,
+    ]);
 
     await getCachedAllResources();
     invalidateResourceCache();
@@ -96,7 +102,9 @@ describe("libraryCache — resources", () => {
 
 describe("libraryCache — contacts", () => {
   it("calls db.getAllContacts once and serves subsequent calls from cache", async () => {
-    (db.getAllContacts as ReturnType<typeof vi.fn>).mockResolvedValue([mockContact]);
+    (db.getAllContacts as ReturnType<typeof vi.fn>).mockResolvedValue([
+      mockContact,
+    ]);
 
     await getCachedAllContacts();
     await getCachedAllContacts();
@@ -105,7 +113,9 @@ describe("libraryCache — contacts", () => {
   });
 
   it("invalidateContactCache forces fresh fetch on next call", async () => {
-    (db.getAllContacts as ReturnType<typeof vi.fn>).mockResolvedValue([mockContact]);
+    (db.getAllContacts as ReturnType<typeof vi.fn>).mockResolvedValue([
+      mockContact,
+    ]);
 
     await getCachedAllContacts();
     invalidateContactCache();
@@ -137,7 +147,9 @@ describe("libraryCache — libraryInfo", () => {
   });
 
   it("calls db.getAllLibraryInfo once and caches the result", async () => {
-    (db.getAllLibraryInfo as ReturnType<typeof vi.fn>).mockResolvedValue([mockInfo]);
+    (db.getAllLibraryInfo as ReturnType<typeof vi.fn>).mockResolvedValue([
+      mockInfo,
+    ]);
 
     await getCachedAllLibraryInfo();
     await getCachedAllLibraryInfo();
@@ -146,7 +158,9 @@ describe("libraryCache — libraryInfo", () => {
   });
 
   it("invalidateInfoCache forces fresh fetch on next call", async () => {
-    (db.getAllLibraryInfo as ReturnType<typeof vi.fn>).mockResolvedValue([mockInfo]);
+    (db.getAllLibraryInfo as ReturnType<typeof vi.fn>).mockResolvedValue([
+      mockInfo,
+    ]);
 
     await getCachedAllLibraryInfo();
     invalidateInfoCache();

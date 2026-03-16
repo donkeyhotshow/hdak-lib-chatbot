@@ -88,7 +88,10 @@ export async function POST(req: Request) {
     return serviceResult.stream.toUIMessageStreamResponse();
   } catch (error) {
     if (error instanceof ChatEndpointError) {
-      return Response.json({ error: error.message }, { status: error.statusCode });
+      return Response.json(
+        { error: error.message },
+        { status: error.statusCode }
+      );
     }
 
     logger.error("[/api/chat] Controller error", {
