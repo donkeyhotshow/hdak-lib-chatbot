@@ -28,6 +28,27 @@ pnpm dev
 
 App will be available at `http://localhost:3000`.
 
+## Что нужно ещё для работы проекта
+
+Минимум, без которого чат не заработает:
+
+- `BUILT_IN_FORGE_API_URL` (или `FORGE_API_URL`)
+- `BUILT_IN_FORGE_API_KEY` (или `FORGE_API_KEY` / `OPENAI_API_KEY`)
+
+Для прод-старта дополнительно обязательны:
+
+- `JWT_SECRET`
+- `OWNER_OPEN_ID`
+
+Опционально, но важно для полноценной работы:
+
+- `DATABASE_URL` — постоянная история чатов и CRUD админки (без него включается mock-режим)
+- `REDIS_URL` — распределённый кэш/rate-limit backend
+
+Проверка готовности:
+
+- `GET /api/ready` покажет, каких переменных не хватает
+
 ## Build
 
 ```bash
