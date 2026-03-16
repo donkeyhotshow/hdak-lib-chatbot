@@ -21,13 +21,11 @@ describe("syncService — parseResourcesFromHtml", () => {
   });
 
   it("detects a catalog link", () => {
-    const html = `<a href="https://library-service.com.ua:8443/khkhdak/DocumentSearchForm">Електронний каталог</a>`;
+    const html = `<a href="https://lib-hdak.in.ua/e-catalog.html">Електронний каталог</a>`;
     const results = parseResourcesFromHtml(html);
     expect(results).toHaveLength(1);
     expect(results[0].type).toBe("catalog");
-    expect(results[0].url).toBe(
-      "https://library-service.com.ua:8443/khkhdak/DocumentSearchForm"
-    );
+    expect(results[0].url).toBe("https://lib-hdak.in.ua/e-catalog.html");
     expect(results[0].nameUk).toBe("Електронний каталог");
   });
 
@@ -65,7 +63,7 @@ describe("syncService — parseResourcesFromHtml", () => {
 
   it("parses multiple resources from a page", () => {
     const html = `
-      <a href="https://library-service.com.ua:8443/khkhdak/DocumentSearchForm">Каталог</a>
+      <a href="https://lib-hdak.in.ua/e-catalog.html">Каталог</a>
       <a href="https://repository.ac.kharkov.ua/home">Репозитарій</a>
       <a href="https://www.scopus.com/">Scopus</a>
     `;
@@ -87,9 +85,7 @@ describe("syncService — parseResourcesFromHtml", () => {
 
 describe("syncService — CATALOG_URL", () => {
   it("points to the HDAK catalog search form", () => {
-    expect(CATALOG_URL).toBe(
-      "https://library-service.com.ua:8443/khkhdak/DocumentSearchForm"
-    );
+    expect(CATALOG_URL).toBe("https://lib-hdak.in.ua/e-catalog.html");
   });
 });
 

@@ -16,8 +16,7 @@ import { clearReplyCache } from "./aiPipeline";
 import { invalidateResourceCache } from "./libraryCache";
 
 /** Public catalog/resource endpoint. Exported for testing. */
-export const CATALOG_URL =
-  "https://library-service.com.ua:8443/khkhdak/DocumentSearchForm";
+export const CATALOG_URL = "https://lib-hdak.in.ua/e-catalog.html";
 
 /** How often (ms) to re-sync.  Default: every 6 hours. */
 const DEFAULT_INTERVAL_MS = 6 * 60 * 60 * 1000;

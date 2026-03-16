@@ -299,9 +299,7 @@ describe("Chatbot Database Functions", () => {
     it("should include the Electronic Catalog with correct URL", () => {
       const catalog = hdakResources.find(r => r.name === "Електронний каталог");
       expect(catalog).toBeDefined();
-      expect(catalog?.url).toBe(
-        "https://library-service.com.ua:8443/khkhdak/DocumentSearchForm"
-      );
+      expect(catalog?.url).toBe("https://lib-hdak.in.ua/e-catalog.html");
     });
 
     it("should include the HDAK Repository with open access", () => {
@@ -357,7 +355,9 @@ describe("Chatbot Database Functions", () => {
         (r: any) => r.name === "Scopus"
       );
       expect(scopusEntry).toBeDefined();
-      expect(scopusEntry.url).toBe("https://www.scopus.com/");
+      expect(scopusEntry.url).toBe(
+        "https://lib-hdak.in.ua/search-scientific-info.html"
+      );
     });
 
     it("getCatalogSearchLink tool: returns catalog URL and steps for author search", async () => {
@@ -365,15 +365,13 @@ describe("Chatbot Database Functions", () => {
         { searchTerm: "Шевченко", searchType: "author" },
         {} as any
       );
-      expect(result.catalogUrl).toBe(
-        "https://library-service.com.ua:8443/khkhdak/DocumentSearchForm"
-      );
+      expect(result.catalogUrl).toBe("https://lib-hdak.in.ua/e-catalog.html");
       expect(result.searchTerm).toBe("Шевченко");
       expect(result.searchType).toBe("author");
       expect(Array.isArray(result.steps)).toBe(true);
       expect(result.steps.length).toBeGreaterThan(0);
       expect(result.repositoryUrl).toBe(
-        "https://repository.ac.kharkov.ua/home"
+        "https://lib-hdak.in.ua/scientists-publications.html"
       );
     });
 
