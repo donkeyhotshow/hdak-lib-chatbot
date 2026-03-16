@@ -1,5 +1,8 @@
 # Security Improvements for hdak-lib-chatbot
 
+> Status (2026-03-16): **mixed актуально/исправлено**.  
+> Keep as audit notes; validate each item against current implementation and tests.
+
 ## 1. Content Security Policy (CSP) - HIGH PRIORITY
 
 ### Current Issue

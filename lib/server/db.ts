@@ -322,8 +322,9 @@ function ensureMockState() {
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
-  if (!_db && process.env.DATABASE_URL) {
-    const url = process.env.DATABASE_URL;
+  const databaseUrl = ENV.databaseUrl || process.env.DATABASE_URL || "";
+  if (!_db && databaseUrl) {
+    const url = databaseUrl;
     if (!url.startsWith("mysql://") && !url.startsWith("mysql2://")) {
       logger.warn(
         "[Database] DATABASE_URL is not a MySQL URL — running without database",

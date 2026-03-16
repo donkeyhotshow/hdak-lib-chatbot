@@ -1,7 +1,13 @@
-# Deprecated Render blueprint.
-# The project is now deployed on Vercel only.
-
-vercel:
-  framework: nextjs
-  devCommand: npm run dev
-  buildCommand: npm run build
+services:
+  - type: web
+    name: hdak-lib-chatbot
+    runtime: node
+    plan: free
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm run build
+    startCommand: pnpm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true

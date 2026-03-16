@@ -1,6 +1,9 @@
 # hdak-lib-chatbot
 
-Next.js 15 (App Router) + tRPC chatbot for HDAK Library.
+AI-чатбот для бібліотеки ХДАК / KSAC на Next.js + TypeScript + Drizzle.
+Проєкт відповідає на запити користувачів, підмішує бібліотечний контекст
+(ресурси, контакти, довідкова інформація), підтримує історію діалогів та
+адмін-інструменти для RAG-документів.
 
 ## Stack
 
@@ -13,11 +16,38 @@ Next.js 15 (App Router) + tRPC chatbot for HDAK Library.
 ## Run locally
 
 ```bash
+cp .env.example .env
+# заполните минимум: BUILT_IN_FORGE_API_URL/FORGE_API_URL,
+# BUILT_IN_FORGE_API_KEY/FORGE_API_KEY/OPENAI_API_KEY
+
 pnpm install
+pnpm run db:push    # опционально, если используете MySQL
+pnpm run db:seed    # опционально, чтобы заполнить справочники
 pnpm dev
 ```
 
 App will be available at `http://localhost:3000`.
+
+## Что нужно ещё для работы проекта
+
+Минимум, без которого чат не заработает:
+
+- `BUILT_IN_FORGE_API_URL` (или `FORGE_API_URL`)
+- `BUILT_IN_FORGE_API_KEY` (или `FORGE_API_KEY` / `OPENAI_API_KEY`)
+
+Для прод-старта дополнительно обязательны:
+
+- `JWT_SECRET`
+- `OWNER_OPEN_ID`
+
+Опционально, но важно для полноценной работы:
+
+- `DATABASE_URL` — постоянная история чатов и CRUD админки (без него включается mock-режим)
+- `REDIS_URL` — распределённый кэш/rate-limit backend
+
+Проверка готовности:
+
+- `GET /api/ready` покажет, каких переменных не хватает
 
 ## Build
 
@@ -33,38 +63,63 @@ pnpm start
 - `app/api/admin/process-pdf/route.ts` — admin RAG ingestion endpoint
 - `app/api/oauth/callback/route.ts` — OAuth callback + JWT session cookie
 - `app/api/auth/me/route.ts`, `app/api/auth/logout/route.ts` — auth helpers
+- `app/api/health/route.ts`, `app/api/ready/route.ts` — liveness/readiness probes
+
+## How it works
+
+1. **UI (`app/page.tsx` + `lib/pages/Home`)** отправляет сообщения в `/api/chat`.
+2. **API (`app/api/chat/route.ts`)** валидирует вход, применяет rate-limit и auth.
+3. **LLM orchestration (`lib/server/services/aiOrchestrator.ts`)** собирает промпт,
+   добавляет инструментальные вызовы (ресурсы/события/каталог), делает стрим-ответ.
+4. **DB layer (`lib/server/db.ts`, Drizzle schema в `drizzle/schema.ts`)** хранит
+   пользователей, диалоги, сообщения, библиотечные сущности и RAG chunks.
+5. **Ответ** стримится обратно в UI, при наличии `conversationId` сохраняется история.
 
 ## Environment variables
 
-Use `.env.example` as the source of truth. Existing variable names are preserved, including:
+Use `.env.example` as the source of truth.
 
-- `BUILT_IN_FORGE_API_URL` / `FORGE_API_URL`
-- `BUILT_IN_FORGE_API_KEY` / `FORGE_API_KEY` / `OPENAI_API_KEY`
-- `DATABASE_URL`
-- `REDIS_URL` (optional)
-- `CHAT_PROVIDER_API_KEY` (optional)
-- `JWT_SECRET`
-- `OWNER_OPEN_ID`
-- `VITE_APP_ID`, `VITE_OAUTH_PORTAL_URL`
+- **Server-only critical**: `BUILT_IN_FORGE_API_URL|FORGE_API_URL`,
+  `BUILT_IN_FORGE_API_KEY|FORGE_API_KEY|OPENAI_API_KEY`
+- **Production critical**: `JWT_SECRET`, `OWNER_OPEN_ID`
+- **Client-safe**: `VITE_APP_ID`, `VITE_OAUTH_PORTAL_URL`,
+  `VITE_FRONTEND_FORGE_API_URL`, `VITE_FRONTEND_FORGE_API_KEY`
+- **Optional infra**: `DATABASE_URL`, `REDIS_URL`, `CHAT_PROVIDER_API_KEY`
+
+Приложение возвращает понятные ошибки (`503`) на критичных API, если ключевые env
+не заданы, вместо неявных падений с `undefined`.
 
 ## Deployment
 
-This project is configured for **Vercel-only** deployment.
+- Recommended: **Vercel**
+- Alternatives: **Railway**, **Render**
+- Fly.io: доступен как дополнительный вариант (см. `fly.toml`)
 
-1. Push repository to GitHub.
-2. In Vercel: **Add New → Project** and import this repository.
-3. Vercel settings are already defined in `vercel.json`:
-   - Install: `corepack enable && pnpm install --frozen-lockfile`
-   - Build: `pnpm run build`
-   - Dev: `pnpm dev`
-4. Add required Environment Variables in Vercel Project Settings:
-   - `JWT_SECRET`
-   - `OWNER_OPEN_ID`
-   - `BUILT_IN_FORGE_API_URL` (or `FORGE_API_URL`)
-   - `BUILT_IN_FORGE_API_KEY` (or `FORGE_API_KEY` / `OPENAI_API_KEY`)
-   - `VITE_APP_ID`
-   - `VITE_OAUTH_PORTAL_URL`
-   - `OAUTH_SERVER_URL`
-   - `DATABASE_URL` (required for persistent chat/history and admin CRUD)
+### Что нужно для деплоя
 
-Use `.env.example` as the full variable reference.
+Минимально обязательно для старта в production:
+
+- `BUILT_IN_FORGE_API_URL` (или `FORGE_API_URL`)
+- `BUILT_IN_FORGE_API_KEY` (или `FORGE_API_KEY` / `OPENAI_API_KEY`)
+- `JWT_SECRET`
+- `OWNER_OPEN_ID`
+
+Опционально, но нужно для полноценного режима:
+
+- `DATABASE_URL` — для постоянной истории чатов и админ-CRUD (без него будет mock-режим)
+- `OAUTH_SERVER_URL`, `VITE_APP_ID`, `VITE_OAUTH_PORTAL_URL` — если нужен OAuth-вход
+
+После деплоя проверьте:
+
+- `GET /api/health` — сервис запущен
+- `GET /api/ready` — все критичные env выставлены
+
+Пошаговые инструкции и env-матрица: **[DEPLOYMENT.md](./DEPLOYMENT.md)**.
+
+## Limits / caveats
+
+- Качество ответов зависит от внешнего LLM и качества данных библиотеки.
+- При отсутствии `DATABASE_URL` приложение работает в mock-режиме (без персистентной истории).
+- Есть rate-limiting и таймауты, но лимиты провайдера LLM и стоимость запросов
+  контролируются внешним сервисом.
+- Не храните секреты в репозитории; используйте secret stores платформ.

@@ -1,11 +1,20 @@
 import { drizzle } from "drizzle-orm/mysql2";
+import { createPool } from "mysql2/promise";
 import {
   libraryResources,
   libraryContacts,
   libraryInfo,
 } from "./drizzle/schema.js";
 
-const db = drizzle(process.env.DATABASE_URL);
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl) {
+  throw new Error(
+    "DATABASE_URL is required to seed the database. Set it in your environment before running `pnpm run db:seed`."
+  );
+}
+
+const pool = createPool(databaseUrl);
+const db = drizzle(pool);
 
 async function seed() {
   console.log("Starting database seed...");
@@ -223,8 +232,12 @@ async function seed() {
     console.log("\n✅ Database seed completed successfully!");
   } catch (error) {
     console.error("❌ Error seeding database:", error);
-    process.exit(1);
+    throw error;
+  } finally {
+    await pool.end();
   }
 }
 
-seed();
+seed().catch(() => {
+  process.exitCode = 1;
+});

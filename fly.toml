@@ -6,7 +6,10 @@ app = "hdak-lib-chatbot"
 primary_region = "fra"          # Frankfurt — change to the region nearest your users
 
 [build]
-  dockerfile = "Dockerfile"
+  builder = "paketobuildpacks/builder:base"
+
+[processes]
+  app = "pnpm start"
 
 [env]
   NODE_ENV  = "production"

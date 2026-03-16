@@ -2,6 +2,7 @@ import {
   chatRequestSchema,
   MAX_CHAT_MESSAGE_LENGTH,
 } from "@/lib/server/controllers/chatController";
+import { getMissingCriticalEnvVars } from "@/lib/server/_core/env";
 import { logger } from "@/lib/server/_core/logger";
 import { authenticateUserFromRequest } from "@/lib/server/_core/nextContext";
 import {
@@ -16,6 +17,17 @@ import {
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+  const missingEnv = getMissingCriticalEnvVars({ forProductionBoot: false });
+  if (missingEnv.length > 0) {
+    return Response.json(
+      {
+        error: "Service unavailable",
+        details: `Missing environment variable(s): ${missingEnv.join(", ")}`,
+      },
+      { status: 503 }
+    );
+  }
+
   const requestIp = getRequestIp({
     ip: "unknown",
     headers: Object.fromEntries(req.headers.entries()),

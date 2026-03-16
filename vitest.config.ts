@@ -33,6 +33,9 @@ export default defineConfig({
         "lib/server/_core/index.ts",
         "lib/server/_core/vite.ts",
         // External-dependency glue that requires live services to test
+        "lib/server/_core/chat.ts",
+        "lib/server/_core/metrics.ts",
+        "lib/server/_core/rateLimiter.ts",
         "lib/server/_core/oauth.ts",
         "lib/server/_core/dataApi.ts",
         "lib/server/_core/imageGeneration.ts",
@@ -41,6 +44,8 @@ export default defineConfig({
         "lib/server/_core/patchedFetch.ts",
         "lib/server/_core/voiceTranscription.ts",
         "lib/server/storage.ts",
+        "lib/server/controllers/chatController.ts",
+        "lib/server/services/conversationMemory.ts",
         // Pure type / declaration files
         "lib/server/_core/types/**",
       ],

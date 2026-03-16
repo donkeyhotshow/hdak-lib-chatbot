@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const ENV_KEYS = [
+  "NODE_ENV",
+  "PORT",
   "BUILT_IN_FORGE_API_URL",
   "FORGE_API_URL",
   "BUILT_IN_FORGE_API_KEY",
@@ -65,5 +67,45 @@ describe("ENV forge aliases", () => {
 
     expect(ENV.redisUrl).toBe("redis://example.test:6379");
     expect(ENV.chatProviderApiKey).toBe("provider-key");
+  });
+
+  it("parses PORT as number with a stable default", async () => {
+    delete process.env.PORT;
+    const { ENV } = await importEnvModule();
+    expect(ENV.port).toBe(3000);
+  });
+
+  it("reports missing critical env vars for runtime", async () => {
+    delete process.env.BUILT_IN_FORGE_API_URL;
+    delete process.env.FORGE_API_URL;
+    delete process.env.BUILT_IN_FORGE_API_KEY;
+    delete process.env.FORGE_API_KEY;
+    delete process.env.OPENAI_API_KEY;
+
+    const { getMissingCriticalEnvVars } = await importEnvModule();
+
+    expect(getMissingCriticalEnvVars({ forProductionBoot: false })).toEqual([
+      "BUILT_IN_FORGE_API_URL (or FORGE_API_URL)",
+      "BUILT_IN_FORGE_API_KEY (or FORGE_API_KEY / OPENAI_API_KEY)",
+    ]);
+  });
+
+  it("reports production boot requirements when requested", async () => {
+    delete process.env.BUILT_IN_FORGE_API_URL;
+    delete process.env.FORGE_API_URL;
+    delete process.env.BUILT_IN_FORGE_API_KEY;
+    delete process.env.FORGE_API_KEY;
+    delete process.env.OPENAI_API_KEY;
+    delete process.env.JWT_SECRET;
+    delete process.env.OWNER_OPEN_ID;
+
+    const { getMissingCriticalEnvVars } = await importEnvModule();
+
+    expect(getMissingCriticalEnvVars({ forProductionBoot: true })).toEqual([
+      "BUILT_IN_FORGE_API_URL (or FORGE_API_URL)",
+      "BUILT_IN_FORGE_API_KEY (or FORGE_API_KEY / OPENAI_API_KEY)",
+      "JWT_SECRET",
+      "OWNER_OPEN_ID",
+    ]);
   });
 });
