@@ -18,6 +18,7 @@ export type LibraryFaqEntry = {
   answer: string;
   bullets: string[];
   links: string[];
+  sourceBadge: "quick" | "official-rule";
 };
 
 export type InstantAnswer = {
@@ -37,6 +38,7 @@ function toFaqEntry(topic: LibraryKnowledgeTopic): LibraryFaqEntry {
     answer: topic.shortFacts[0] ?? topic.topic,
     bullets: [...topic.shortFacts, ...topic.policySnippets].slice(0, 3),
     links: topic.sourceUrls,
+    sourceBadge: topic.sourceBadge,
   };
 }
 
@@ -145,15 +147,7 @@ export function getInstantAnswer(
       title: faq.title,
       answer: formatFaqAnswer(faq, language),
       links: faq.links,
-      sourceBadge:
-        faq.id === "library-rules" ||
-        faq.id === "reading-room-rules" ||
-        faq.id === "ask-librarian" ||
-        faq.id === "signup-library" ||
-        faq.id === "reader-card" ||
-        faq.id === "vpn-access"
-          ? "official-rule"
-          : "quick",
+      sourceBadge: faq.sourceBadge,
       action:
         faq.id === "catalog" || faq.id === "find-book"
           ? (catalogAction ?? undefined)

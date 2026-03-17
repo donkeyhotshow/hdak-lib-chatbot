@@ -133,14 +133,18 @@ const translations: Record<Language, Record<string, string>> = {
 };
 
 function createGuestId(): string {
-  return (
-    globalThis.crypto?.randomUUID?.() ??
-    `${Date.now()}-${Math.random().toString(16).slice(2)}`
-  );
+  return generateFallbackLocalId();
 }
 
 function getGuestHistoryKey(guestId: string) {
   return `${GUEST_HISTORY_STORAGE_PREFIX}${guestId}`;
+}
+
+function generateFallbackLocalId(): string {
+  return (
+    globalThis.crypto?.randomUUID?.() ??
+    `${Date.now()}-${Math.random().toString(16).slice(2)}`
+  );
 }
 
 function getMessageText(msg: DisplayMessage): string {
@@ -163,12 +167,8 @@ function createLocalUiMessage(
   role: "user" | "assistant",
   text: string
 ): UIMessage {
-  const randomId =
-    globalThis.crypto?.randomUUID?.() ??
-    `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-
   return {
-    id: randomId,
+    id: generateFallbackLocalId(),
     role,
     parts: [{ type: "text", text }],
   };
@@ -288,9 +288,9 @@ export default function Home() {
     guestIdRef.current = guestId;
 
     const historyKey = getGuestHistoryKey(guestId);
-    const saved =
-      window.localStorage.getItem(historyKey) ??
-      window.localStorage.getItem(GUEST_HISTORY_STORAGE_KEY);
+    const savedCurrent = window.localStorage.getItem(historyKey);
+    const savedLegacy = window.localStorage.getItem(GUEST_HISTORY_STORAGE_KEY);
+    const saved = savedCurrent ?? savedLegacy;
     if (!saved) return;
     try {
       const parsed = JSON.parse(saved) as {
@@ -306,6 +306,9 @@ export default function Home() {
       );
       guestConversationIdRef.current = maxConversationId;
       window.localStorage.setItem(historyKey, saved);
+      if (!savedCurrent && savedLegacy) {
+        window.localStorage.removeItem(GUEST_HISTORY_STORAGE_KEY);
+      }
     } catch {
       window.localStorage.removeItem(historyKey);
       window.localStorage.removeItem(GUEST_HISTORY_STORAGE_KEY);
@@ -609,14 +612,13 @@ export default function Home() {
 
   const t = translations[language];
 
-  const chips = useMemo(
-    () =>
-      QUICK_PROMPTS[language].slice(0, 4).map((text, index) => ({
-        emoji: ["⚡", "📚", "📘", "📞"][index] ?? "💬",
-        text,
-      })),
-    [language]
-  );
+  const chips = useMemo(() => {
+    const chipEmojis = ["⚡", "📚", "📘", "📞"];
+    return QUICK_PROMPTS[language].slice(0, 4).map((text, index) => ({
+      emoji: chipEmojis[index % chipEmojis.length],
+      text,
+    }));
+  }, [language]);
 
   const showEmpty =
     !currentConversationId &&

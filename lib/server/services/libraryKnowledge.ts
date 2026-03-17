@@ -269,6 +269,12 @@ export function buildLibraryKnowledgeContext(
       : language === "ru"
         ? "Справочный контекст библиотеки"
         : "Довідковий контекст бібліотеки";
+  const closingInstruction =
+    language === "en"
+      ? "Use this context as authoritative and prefer official links only."
+      : language === "ru"
+        ? "Используйте этот контекст как авторитетный и отдавайте приоритет только официальным ссылкам."
+        : "Використовуйте цей контекст як авторитетний і надавайте пріоритет лише офіційним посиланням.";
 
-  return `${header} (${topic.topic}):\nFacts:\n${facts}\nPolicy snippets:\n${snippets}\nSources:\n${sources}\nUse this context as authoritative and prefer official links only.`;
+  return `${header} (${topic.topic}):\nFacts:\n${facts}\nPolicy snippets:\n${snippets}\nSources:\n${sources}\n${closingInstruction}`;
 }
