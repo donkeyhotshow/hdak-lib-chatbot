@@ -12,4 +12,22 @@ describe("safeRequest", () => {
     const parsed = validateExternalUrl("https://example.com/file.mp3");
     expect(parsed.hostname).toBe("example.com");
   });
+
+  it("rejects URLs with embedded credentials", () => {
+    expect(() =>
+      validateExternalUrl("https://user:pass@example.com/file.mp3")
+    ).toThrow("Credentials in URL are not allowed");
+  });
+
+  it("rejects invalid hostnames and encoded control chars", () => {
+    expect(() => validateExternalUrl("https://-bad.example.com")).toThrow(
+      "Invalid hostname"
+    );
+    expect(() =>
+      validateExternalUrl("https://example.com/path%0Ainject")
+    ).toThrow("URL contains forbidden encoded characters");
+    expect(() =>
+      validateExternalUrl("https://example.com/path%09inject")
+    ).toThrow("URL contains forbidden encoded characters");
+  });
 });

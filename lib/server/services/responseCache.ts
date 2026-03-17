@@ -14,6 +14,7 @@ export type CachedResponse = {
 };
 
 const DEFAULT_TTL_MS = 5 * 60 * 1000;
+const MAX_CACHE_ENTRIES = 30;
 const cache = new Map<string, CachedResponse>();
 
 export function normalizeResponseCacheQuery(query: string): string {
@@ -57,6 +58,10 @@ export function setCachedResponse(
   ttlMs = DEFAULT_TTL_MS,
   now = Date.now()
 ) {
+  if (!cache.has(key) && cache.size >= MAX_CACHE_ENTRIES) {
+    const oldestKey = cache.keys().next().value;
+    if (oldestKey) cache.delete(oldestKey);
+  }
   cache.set(key, {
     ...response,
     createdAt: now,

@@ -38,4 +38,32 @@ describe("responseCache", () => {
     expect(isSafeCacheableResponseType("knowledge-fallback")).toBe(true);
     expect(isSafeCacheableResponseType("llm")).toBe(false);
   });
+
+  it("keeps at most 30 cache entries", () => {
+    clearResponseCache();
+    for (let i = 0; i < 31; i++) {
+      const key = buildResponseCacheKey({
+        query: `q-${i}`,
+        language: "uk",
+        responseType: "instant",
+      });
+      setCachedResponse(key, {
+        text: `response-${i}`,
+        sourceBadge: "quick",
+        responseType: "instant",
+      });
+    }
+    const oldestKey = buildResponseCacheKey({
+      query: "q-0",
+      language: "uk",
+      responseType: "instant",
+    });
+    const newestKey = buildResponseCacheKey({
+      query: "q-30",
+      language: "uk",
+      responseType: "instant",
+    });
+    expect(getCachedResponse(oldestKey)).toBeNull();
+    expect(getCachedResponse(newestKey)?.text).toBe("response-30");
+  });
 });

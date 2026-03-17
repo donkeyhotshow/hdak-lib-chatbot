@@ -244,6 +244,16 @@ describe("Chatbot Database Functions", () => {
       expect(customEntry).toBeDefined();
       expect(customEntry?.valueEn).toBe("Custom EN");
     });
+
+    it("seeds editable knowledge entries in libraryInfo", async () => {
+      const seeded = await db.getLibraryInfo("editable-knowledge-entries-v1");
+      expect(seeded).toBeDefined();
+      const parsed = JSON.parse(seeded?.valueUk ?? "[]");
+      expect(Array.isArray(parsed)).toBe(true);
+      expect(parsed.length).toBeGreaterThan(0);
+      expect(parsed[0]).toHaveProperty("topic");
+      expect(parsed[0]).toHaveProperty("sourceUrls");
+    });
   });
 
   describe("User Query Logging", () => {

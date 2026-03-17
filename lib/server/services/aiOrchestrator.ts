@@ -20,6 +20,11 @@ const MAX_TOOL_CALLS = 5;
 
 type ChatMessage = { role: "assistant" | "user"; content: string };
 
+function buildModelAttemptOrder(primaryModel: string): string[] {
+  const fallbacks = ENV.openRouterFallbackModels ?? [];
+  return [...new Set([primaryModel, ...fallbacks])];
+}
+
 function createLLMProvider() {
   const rawUrl = ENV.forgeApiUrl;
   if (!rawUrl) {
@@ -32,18 +37,24 @@ function createLLMProvider() {
     rawUrl.includes("/openai") ||
     rawUrl.endsWith("/v1");
   const baseURL = hasVersionedPath ? rawUrl : `${rawUrl}/v1`;
+  const providerName = baseURL.includes("openrouter.ai")
+    ? "openrouter"
+    : "openai-compatible";
 
-  return createOpenAI({
-    baseURL,
-    apiKey: ENV.forgeApiKey,
-    headers: {
-      ...(ENV.openRouterHttpReferer
-        ? { "HTTP-Referer": ENV.openRouterHttpReferer }
-        : {}),
-      ...(ENV.openRouterXTitle ? { "X-Title": ENV.openRouterXTitle } : {}),
-    },
-    fetch: createPatchedFetch(fetch),
-  });
+  return {
+    providerName,
+    provider: createOpenAI({
+      baseURL,
+      apiKey: ENV.forgeApiKey,
+      headers: {
+        ...(ENV.openRouterHttpReferer
+          ? { "HTTP-Referer": ENV.openRouterHttpReferer }
+          : {}),
+        ...(ENV.openRouterXTitle ? { "X-Title": ENV.openRouterXTitle } : {}),
+      },
+      fetch: createPatchedFetch(fetch),
+    }),
+  };
 }
 
 export async function runAiOrchestration(params: {
@@ -53,7 +64,16 @@ export async function runAiOrchestration(params: {
   history: ChatMessage[];
   knowledgeContext?: string | null;
   context: { endpoint: string; userId?: number | null; ip?: string | null };
-  onFinish?: (text: string) => Promise<void>;
+  onFinish?: (payload: {
+    text: string;
+    usage?: {
+      inputTokens?: number;
+      outputTokens?: number;
+      totalTokens?: number;
+    } | null;
+    model: string;
+    provider: string;
+  }) => Promise<void>;
   onError?: (error: unknown) => void;
 }) {
   const guardedMessages = params.messages.map(message => {
@@ -90,29 +110,54 @@ export async function runAiOrchestration(params: {
     [...params.history, ...messages],
     params.context
   );
-  const provider = createLLMProvider();
-  const modelName = params.model ?? ENV.aiModelName ?? AI_MODEL_NAME;
+  const { provider, providerName } = createLLMProvider();
+  const primaryModel = params.model ?? ENV.aiModelName ?? AI_MODEL_NAME;
+  const modelAttempts = buildModelAttemptOrder(primaryModel);
   const systemPrompt = params.knowledgeContext
     ? `${getOfficialSystemPrompt(language)}\n\n${params.knowledgeContext}`
     : getOfficialSystemPrompt(language);
+  let stream: unknown = null;
+  let selectedModel = primaryModel;
+  let lastError: unknown = null;
 
-  const stream = streamText({
-    model: provider.chat(modelName),
-    system: systemPrompt,
-    messages: messagesForAi,
-    tools: buildAiTools(params.context),
-    temperature: AI_TEMPERATURE,
-    stopWhen: stepCountIs(MAX_TOOL_CALLS),
-    timeout: SECURITY_CONFIG.chat.timeoutMs,
-    onFinish: async ({ text }) => {
-      if (params.onFinish) await params.onFinish(text);
-    },
-    onError: ({ error }) => params.onError?.(error),
-  });
+  for (const candidateModel of modelAttempts) {
+    try {
+      // Fallback retries handle model initialization errors (e.g., unsupported
+      // model identifier). Runtime stream failures are surfaced via onError.
+      selectedModel = candidateModel;
+      stream = streamText({
+        model: provider.chat(candidateModel),
+        system: systemPrompt,
+        messages: messagesForAi,
+        tools: buildAiTools(params.context),
+        temperature: AI_TEMPERATURE,
+        stopWhen: stepCountIs(MAX_TOOL_CALLS),
+        timeout: SECURITY_CONFIG.chat.timeoutMs,
+        onFinish: async ({ text, usage }) => {
+          if (params.onFinish) {
+            await params.onFinish({
+              text,
+              usage: usage ?? null,
+              model: selectedModel,
+              provider: providerName,
+            });
+          }
+        },
+        onError: ({ error }) => params.onError?.(error),
+      });
+      break;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  if (!stream) {
+    throw lastError instanceof Error ? lastError : new Error(String(lastError));
+  }
 
   return {
     flagged: false as const,
-    stream,
+    stream: stream as ReturnType<typeof streamText>,
     language,
   };
 }

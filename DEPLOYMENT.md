@@ -87,6 +87,29 @@ Railway provides `PORT` automatically.
 
 Set secrets in Render dashboard (`JWT_SECRET`, AI keys, etc.).
 
+### Render production checklist
+
+1. **Service setup**
+   - URL: `https://hdak-lib-chatbot.onrender.com`
+   - Build: `corepack enable && pnpm install --frozen-lockfile && pnpm run build`
+   - Start: `pnpm start`
+2. **Custom domain + SSL**
+   - Add CNAME for your domain to `hdak-lib-chatbot.onrender.com`
+   - Enable automatic TLS certificate in Render
+   - Enable HTTP → HTTPS redirect
+3. **Monitoring**
+   - Configure Log Drains (Slack/Email integrations via your alerting stack)
+   - Configure webhook alerts for 5xx spikes and healthcheck failures
+   - Monitor `/api/metrics` and the admin **Performance** dashboard
+4. **OpenRouter controls**
+   - Configure `AI_MODEL_NAME` to a primary model
+   - Optionally set `OPENROUTER_FALLBACK_MODELS` (comma-separated) for fallback
+   - Use `/api/metrics` + OpenRouter dashboard for token/cost tracking
+5. **Launch operations**
+   - Onboard first 10 librarians/admin users
+   - Collect feedback from real library queries
+   - Monitor quality and performance dashboards daily during early launch
+
 ---
 
 ## Fly.io (optional)

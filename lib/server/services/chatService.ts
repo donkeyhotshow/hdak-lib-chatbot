@@ -51,6 +51,12 @@ import {
   buildSafeLlmUnavailableFallback,
 } from "./fallbackSuggestions";
 import { emitChatAnalyticsEvent } from "./chatAnalytics";
+import {
+  recordLatency,
+  recordRecommendationImpression,
+  recordModelUsage,
+  recordStreamOutcome,
+} from "../_core/metrics";
 
 export async function assertConversationOwnership(
   conversationId: number,
@@ -262,6 +268,17 @@ export async function processChatRequest(input: {
   ip: string;
 }) {
   const requestStartedAt = Date.now();
+  let streamOutcomeRecorded = false;
+  const recordOutcome = (outcome: "success" | "error" | "timeout") => {
+    if (streamOutcomeRecorded) return;
+    streamOutcomeRecorded = true;
+    recordLatency(Date.now() - requestStartedAt);
+    recordStreamOutcome(outcome);
+  };
+  const safeToken = (value: unknown): number =>
+    typeof value === "number" && Number.isFinite(value)
+      ? Math.max(0, Math.floor(value))
+      : 0;
   const conversationId = input.conversationId ?? null;
   const mode = input.userId == null ? "guest" : "auth";
   const context = {
@@ -340,6 +357,7 @@ export async function processChatRequest(input: {
         query: lastUserMessage,
       },
     });
+    recordOutcome("success");
     return {
       flagged: false as const,
       stream: createInstantAnswerStream(cachedInstant.text),
@@ -356,6 +374,9 @@ export async function processChatRequest(input: {
   });
 
   if (instantAnswer) {
+    if ((instantAnswer.suggestedFollowUps?.length ?? 0) > 0) {
+      recordRecommendationImpression(1);
+    }
     setCachedResponse(instantCacheKey, {
       text: instantAnswer.answer,
       sourceBadge:
@@ -391,6 +412,7 @@ export async function processChatRequest(input: {
         context,
       });
     }
+    recordOutcome("success");
 
     return {
       flagged: false as const,
@@ -455,6 +477,7 @@ export async function processChatRequest(input: {
           query: lastUserMessage,
         },
       });
+      recordOutcome("success");
       return {
         flagged: false as const,
         stream: createInstantAnswerStream(cachedFallback.text),
@@ -489,6 +512,7 @@ export async function processChatRequest(input: {
         context,
       });
     }
+    recordOutcome("success");
     return {
       flagged: false as const,
       stream: createInstantAnswerStream(knowledgeFallback.answer),
@@ -516,7 +540,7 @@ export async function processChatRequest(input: {
       history,
       knowledgeContext,
       context,
-      onFinish: async text => {
+      onFinish: async ({ text, usage, model, provider }) => {
         emitChatAnalyticsEvent({
           name: "llm_fallback_used",
           mode,
@@ -541,6 +565,14 @@ export async function processChatRequest(input: {
             },
           });
         }
+        recordModelUsage({
+          provider,
+          model,
+          inputTokens: safeToken(usage?.inputTokens),
+          outputTokens: safeToken(usage?.outputTokens),
+          totalTokens: safeToken(usage?.totalTokens),
+        });
+        recordOutcome("success");
         if (conversationId === null) return;
         await persistConversationMessages({
           conversationId,
@@ -548,6 +580,19 @@ export async function processChatRequest(input: {
           assistantMessage: text,
           context,
         });
+      },
+      onError: error => {
+        const errorText =
+          error instanceof Error ? error.message.toLowerCase() : String(error);
+        if (
+          errorText.includes("timeout") ||
+          errorText.includes("timed out") ||
+          errorText.includes("abort")
+        ) {
+          recordOutcome("timeout");
+          return;
+        }
+        recordOutcome("error");
       },
     });
   } catch (error) {
@@ -573,6 +618,7 @@ export async function processChatRequest(input: {
         context,
       });
     }
+    recordOutcome("success");
     return {
       flagged: false as const,
       stream: createInstantAnswerStream(safeFallback),

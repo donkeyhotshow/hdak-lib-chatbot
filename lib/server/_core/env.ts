@@ -28,7 +28,43 @@ const envSchema = z.object({
   CHAT_PROVIDER_API_KEY: optionalString,
   OPENROUTER_HTTP_REFERER: optionalString,
   OPENROUTER_X_TITLE: optionalString,
+  OPENROUTER_FALLBACK_MODELS: optionalString,
+  LOG_LEVEL: optionalString,
+  SERVICES_ENABLED: optionalString,
+  SERVICE_DATA_API_ENABLED: optionalString,
+  SERVICE_IMAGE_ENABLED: optionalString,
+  SERVICE_MAP_ENABLED: optionalString,
+  SERVICE_VOICE_ENABLED: optionalString,
+  GITHUB_STARS_LIMIT: optionalString,
+  CIRCUIT_BREAKER_FAILURE_THRESHOLD: optionalString,
+  CIRCUIT_BREAKER_RESET_TIMEOUT_MS: optionalString,
 });
+
+function parseBooleanSetting(
+  value: string,
+  defaultValue: boolean
+): boolean | undefined {
+  if (value === "") return undefined;
+  if (/^(1|true|yes|on)$/i.test(value)) return true;
+  if (/^(0|false|no|off)$/i.test(value)) return false;
+  return defaultValue;
+}
+
+function parsePositiveIntSetting(value: string, defaultValue: number): number {
+  if (!value) return defaultValue;
+  const parsedValue = Number.parseInt(value, 10);
+  return Number.isFinite(parsedValue) && parsedValue > 0
+    ? parsedValue
+    : defaultValue;
+}
+
+function parseCsvSetting(value: string): string[] {
+  if (!value) return [];
+  return value
+    .split(",")
+    .map(item => item.trim())
+    .filter(Boolean);
+}
 
 const parsed = envSchema.parse({
   VITE_APP_ID: process.env.VITE_APP_ID,
@@ -48,6 +84,18 @@ const parsed = envSchema.parse({
   CHAT_PROVIDER_API_KEY: process.env.CHAT_PROVIDER_API_KEY,
   OPENROUTER_HTTP_REFERER: process.env.OPENROUTER_HTTP_REFERER,
   OPENROUTER_X_TITLE: process.env.OPENROUTER_X_TITLE,
+  OPENROUTER_FALLBACK_MODELS: process.env.OPENROUTER_FALLBACK_MODELS,
+  LOG_LEVEL: process.env.LOG_LEVEL,
+  SERVICES_ENABLED: process.env.SERVICES_ENABLED,
+  SERVICE_DATA_API_ENABLED: process.env.SERVICE_DATA_API_ENABLED,
+  SERVICE_IMAGE_ENABLED: process.env.SERVICE_IMAGE_ENABLED,
+  SERVICE_MAP_ENABLED: process.env.SERVICE_MAP_ENABLED,
+  SERVICE_VOICE_ENABLED: process.env.SERVICE_VOICE_ENABLED,
+  GITHUB_STARS_LIMIT: process.env.GITHUB_STARS_LIMIT,
+  CIRCUIT_BREAKER_FAILURE_THRESHOLD:
+    process.env.CIRCUIT_BREAKER_FAILURE_THRESHOLD,
+  CIRCUIT_BREAKER_RESET_TIMEOUT_MS:
+    process.env.CIRCUIT_BREAKER_RESET_TIMEOUT_MS,
   VITE_OAUTH_PORTAL_URL: process.env.VITE_OAUTH_PORTAL_URL,
   VITE_FRONTEND_FORGE_API_URL: process.env.VITE_FRONTEND_FORGE_API_URL,
   VITE_FRONTEND_FORGE_API_KEY: process.env.VITE_FRONTEND_FORGE_API_KEY,
@@ -74,6 +122,30 @@ export const ENV = {
   chatProviderApiKey: parsed.CHAT_PROVIDER_API_KEY,
   openRouterHttpReferer: parsed.OPENROUTER_HTTP_REFERER,
   openRouterXTitle: parsed.OPENROUTER_X_TITLE,
+  openRouterFallbackModels: parseCsvSetting(parsed.OPENROUTER_FALLBACK_MODELS),
+  logLevel:
+    parsed.LOG_LEVEL === "debug" ||
+    parsed.LOG_LEVEL === "info" ||
+    parsed.LOG_LEVEL === "warn" ||
+    parsed.LOG_LEVEL === "error"
+      ? parsed.LOG_LEVEL
+      : "debug",
+  servicesEnabled: parseBooleanSetting(parsed.SERVICES_ENABLED, true) ?? true,
+  serviceEnabled: {
+    dataApi: parseBooleanSetting(parsed.SERVICE_DATA_API_ENABLED, true),
+    image: parseBooleanSetting(parsed.SERVICE_IMAGE_ENABLED, true),
+    map: parseBooleanSetting(parsed.SERVICE_MAP_ENABLED, true),
+    voice: parseBooleanSetting(parsed.SERVICE_VOICE_ENABLED, true),
+  },
+  githubStarsLimit: parsePositiveIntSetting(parsed.GITHUB_STARS_LIMIT, 100),
+  circuitBreakerFailureThreshold: parsePositiveIntSetting(
+    parsed.CIRCUIT_BREAKER_FAILURE_THRESHOLD,
+    5
+  ),
+  circuitBreakerResetTimeoutMs: parsePositiveIntSetting(
+    parsed.CIRCUIT_BREAKER_RESET_TIMEOUT_MS,
+    30_000
+  ),
   port: parsed.PORT,
 };
 

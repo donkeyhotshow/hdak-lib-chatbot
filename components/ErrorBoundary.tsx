@@ -1,3 +1,5 @@
+"use client";
+
 import { cn } from "@/lib/utils";
 import { AlertTriangle, RotateCcw } from "lucide-react";
 import { Component, ReactNode } from "react";
@@ -21,6 +23,12 @@ class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error };
   }
 
+  componentDidCatch(error: Error) {
+    console.error("[ErrorBoundary] UI render error", {
+      message: error.message,
+    });
+  }
+
   render() {
     if (this.state.hasError) {
       return (
@@ -35,7 +43,9 @@ class ErrorBoundary extends Component<Props, State> {
 
             <div className="p-4 w-full rounded bg-muted overflow-auto mb-6">
               <pre className="text-sm text-muted-foreground whitespace-break-spaces">
-                {this.state.error?.stack}
+                {process.env.NODE_ENV === "production"
+                  ? this.state.error?.message
+                  : this.state.error?.stack}
               </pre>
             </div>
 

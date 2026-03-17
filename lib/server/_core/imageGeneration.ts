@@ -18,6 +18,7 @@
 import { storagePut } from "../storage";
 import { ENV } from "./env";
 import { fetchWithSecurity } from "../services/security/safeRequest";
+import { isServiceEnabled } from "./serviceAvailability";
 
 export type GenerateImageOptions = {
   prompt: string;
@@ -35,6 +36,9 @@ export type GenerateImageResponse = {
 export async function generateImage(
   options: GenerateImageOptions
 ): Promise<GenerateImageResponse> {
+  if (!isServiceEnabled("image")) {
+    throw new Error("Image service is disabled by configuration");
+  }
   if (!ENV.forgeApiUrl) {
     throw new Error("BUILT_IN_FORGE_API_URL is not configured");
   }

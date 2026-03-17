@@ -30,6 +30,7 @@ import {
 } from "../../drizzle/schema";
 import { ENV } from "./_core/env";
 import { logger } from "./_core/logger";
+import initialEditableKnowledgeEntriesBase from "./services/initialEditableKnowledgeEntries.json";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -281,6 +282,14 @@ function ensureMockState() {
     },
   ];
 
+  const initialEditableKnowledgeEntries = JSON.stringify(
+    initialEditableKnowledgeEntriesBase.map(entry => ({
+      ...entry,
+      updatedAt: now.toISOString(),
+      overrideBuiltInId: null,
+    }))
+  );
+
   const seedInfo: LibraryInfo[] = [
     {
       id: nextInfoId(),
@@ -309,6 +318,15 @@ function ensureMockState() {
       valueEn: "Bursatskyi Uzviz St., 4, Kharkiv, Ukraine",
       valueUk: "вул. Бурсацький узвіз, 4, Харків, Україна",
       valueRu: "ул. Бурсацкий узвоз, 4, Харьков, Украина",
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: nextInfoId(),
+      key: "editable-knowledge-entries-v1",
+      valueEn: initialEditableKnowledgeEntries,
+      valueUk: initialEditableKnowledgeEntries,
+      valueRu: initialEditableKnowledgeEntries,
       createdAt: now,
       updatedAt: now,
     },

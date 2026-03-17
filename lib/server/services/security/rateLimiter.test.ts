@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   clearSecurityRateLimitBuckets,
   enforceSecurityRateLimit,
@@ -9,6 +9,7 @@ import {
 describe("security rate limiter", () => {
   afterEach(() => {
     clearSecurityRateLimitBuckets();
+    vi.restoreAllMocks();
   });
 
   it("extracts request IP from x-forwarded-for", () => {
@@ -30,18 +31,38 @@ describe("security rate limiter", () => {
   });
 
   it("throws when per-user limit is exceeded", async () => {
+    let nowMs = 1_700_000_000_000;
+    vi.spyOn(Date, "now").mockImplementation(() => nowMs);
     for (let i = 0; i < 20; i++) {
       await enforceSecurityRateLimit({
         endpoint: "trpc.conversations",
         ip: "3.3.3.3",
         userId: 42,
       });
+      nowMs += 1_000;
     }
     await expect(() =>
       enforceSecurityRateLimit({
         endpoint: "trpc.conversations",
         ip: "3.3.3.3",
         userId: 42,
+      })
+    ).rejects.toThrow(TRPCError);
+  });
+
+  it("throws when short burst threshold is exceeded", async () => {
+    for (let i = 0; i < 12; i++) {
+      await enforceSecurityRateLimit({
+        endpoint: "trpc.conversations",
+        ip: "4.4.4.4",
+        userId: 7,
+      });
+    }
+    await expect(() =>
+      enforceSecurityRateLimit({
+        endpoint: "trpc.conversations",
+        ip: "4.4.4.4",
+        userId: 7,
       })
     ).rejects.toThrow(TRPCError);
   });

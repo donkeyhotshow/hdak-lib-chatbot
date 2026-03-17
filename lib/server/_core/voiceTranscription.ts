@@ -30,6 +30,7 @@ import {
   fetchWithSecurity,
   validateExternalUrl,
 } from "../services/security/safeRequest";
+import { isServiceEnabled } from "./serviceAvailability";
 
 export type TranscribeOptions = {
   audioUrl: string; // URL to the audio file (e.g., S3 URL)
@@ -85,6 +86,13 @@ export async function transcribeAudio(
   options: TranscribeOptions
 ): Promise<TranscriptionResponse | TranscriptionError> {
   try {
+    if (!isServiceEnabled("voice")) {
+      return {
+        error: "Voice transcription service is disabled",
+        code: "SERVICE_ERROR",
+        details: "SERVICE_VOICE_ENABLED=false",
+      };
+    }
     // Step 1: Validate environment configuration
     if (!ENV.forgeApiUrl) {
       return {
