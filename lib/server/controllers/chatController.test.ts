@@ -7,6 +7,7 @@ describe("chatRequestSchema", () => {
       messages: [{ role: "user", content: "Привіт!" }],
       language: "uk",
       conversationId: 1,
+      model: "openrouter/free",
     });
 
     expect(result.success).toBe(true);

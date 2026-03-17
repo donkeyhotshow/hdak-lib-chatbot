@@ -202,6 +202,7 @@ export async function processChatRequest(input: {
   messages: ChatEndpointMessage[];
   language?: "en" | "uk" | "ru";
   conversationId?: number;
+  model?: string;
   userId?: number | null;
   ip: string;
 }) {
@@ -246,6 +247,7 @@ export async function processChatRequest(input: {
   return runAiOrchestration({
     messages: input.messages,
     language: input.language,
+    model: input.model,
     history,
     context,
     onFinish: async text => {

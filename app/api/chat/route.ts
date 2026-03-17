@@ -67,7 +67,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { messages, language, conversationId } = parseResult.data;
+    const { messages, language, conversationId, model } = parseResult.data;
     const authUser = await authenticateUserFromRequest(req);
 
     if (authUser) {
@@ -86,6 +86,7 @@ export async function POST(req: Request) {
       messages,
       language,
       conversationId,
+      model,
       userId: authUser?.id ?? null,
       ip: requestIp,
     });

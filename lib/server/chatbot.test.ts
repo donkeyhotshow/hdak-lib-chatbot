@@ -406,6 +406,7 @@ describe("Chat API — request validation", () => {
       messages: [validMessage],
       language: "uk",
       conversationId: 42,
+      model: "openrouter/free",
     });
     expect(result.success).toBe(true);
   });
