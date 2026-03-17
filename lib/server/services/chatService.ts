@@ -33,6 +33,16 @@ import { logSecurityEvent } from "../observability/securityLogger";
 import { setSessionState } from "./sessionStore";
 import { getInstantAnswer } from "./instantAnswers";
 import { buildLibraryKnowledgeContext } from "./libraryKnowledge";
+import {
+  buildResponseCacheKey,
+  getCachedResponse,
+  setCachedResponse,
+} from "./responseCache";
+import {
+  buildKnowledgeAssistedFallback,
+  buildSafeLlmUnavailableFallback,
+} from "./fallbackSuggestions";
+import { emitChatAnalyticsEvent } from "./chatAnalytics";
 
 export async function assertConversationOwnership(
   conversationId: number,
@@ -195,6 +205,13 @@ export async function sendConversationMessage(
 
 type ChatEndpointMessage = { role: "assistant" | "user"; content: string };
 
+function findLastUserMessage(messages: ChatEndpointMessage[]): string {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    if (messages[index].role === "user") return messages[index].content;
+  }
+  return "";
+}
+
 function createInstantAnswerStream(answerText: string) {
   const stream = createUIMessageStream({
     execute: ({ writer }) => {
@@ -236,7 +253,9 @@ export async function processChatRequest(input: {
   userId?: number | null;
   ip: string;
 }) {
+  const requestStartedAt = Date.now();
   const conversationId = input.conversationId ?? null;
+  const mode = input.userId == null ? "guest" : "auth";
   const context = {
     endpoint: "/api/chat",
     userId: input.userId ?? null,
@@ -274,9 +293,7 @@ export async function processChatRequest(input: {
     }
   }
 
-  const lastUserMessage =
-    [...input.messages].reverse().find(message => message.role === "user")
-      ?.content ?? "";
+  const lastUserMessage = findLastUserMessage(input.messages);
   const requestedLanguage = normalizeLanguage(input.language);
   const instantAnswer = getInstantAnswer(lastUserMessage, requestedLanguage);
   const knowledgeContext = buildLibraryKnowledgeContext(
@@ -284,7 +301,63 @@ export async function processChatRequest(input: {
     requestedLanguage
   );
 
+  const instantType =
+    instantAnswer?.sourceBadge === "catalog" ? "catalog" : "instant";
+  const instantCacheKey = buildResponseCacheKey({
+    query: lastUserMessage,
+    language: requestedLanguage,
+    responseType: instantType,
+  });
+  const cachedInstant = getCachedResponse(instantCacheKey);
+  if (cachedInstant) {
+    emitChatAnalyticsEvent({
+      name: "cache_hit",
+      mode,
+      sourceBadge: cachedInstant.sourceBadge,
+      latencyBucket: "instant",
+      metadata: { responseType: cachedInstant.responseType },
+    });
+    return {
+      flagged: false as const,
+      stream: createInstantAnswerStream(cachedInstant.text),
+      language: requestedLanguage,
+    };
+  }
+
+  emitChatAnalyticsEvent({
+    name: "cache_miss",
+    mode,
+    sourceBadge: instantAnswer?.sourceBadge ?? "unknown",
+    latencyBucket: "instant",
+    metadata: { responseType: instantType },
+  });
+
   if (instantAnswer) {
+    setCachedResponse(instantCacheKey, {
+      text: instantAnswer.answer,
+      sourceBadge:
+        instantAnswer.sourceBadge === "official-rule"
+          ? "official-rule"
+          : instantAnswer.sourceBadge === "catalog"
+            ? "catalog"
+            : "quick",
+      responseType: instantType,
+    });
+    emitChatAnalyticsEvent({
+      name: "instant_answer_hit",
+      mode,
+      sourceBadge: instantAnswer.sourceBadge ?? "quick",
+      latencyBucket: "instant",
+    });
+    if (instantAnswer.sourceBadge === "catalog") {
+      emitChatAnalyticsEvent({
+        name: "catalog_intent_hit",
+        mode,
+        sourceBadge: "catalog",
+        latencyBucket: "instant",
+      });
+    }
+
     if (conversationId !== null) {
       await persistConversationMessages({
         conversationId,
@@ -301,24 +374,124 @@ export async function processChatRequest(input: {
     };
   }
 
-  return runAiOrchestration({
-    messages: input.messages,
-    language: input.language,
-    model: input.model,
-    history,
-    knowledgeContext,
-    context,
-    onFinish: async text => {
-      if (conversationId === null) return;
-      const lastUserMessage =
-        [...input.messages].reverse().find(message => message.role === "user")
-          ?.content ?? null;
+  const knowledgeFallback = buildKnowledgeAssistedFallback(
+    lastUserMessage,
+    requestedLanguage
+  );
+  if (knowledgeFallback) {
+    const fallbackCacheKey = buildResponseCacheKey({
+      query: lastUserMessage,
+      language: requestedLanguage,
+      responseType: "knowledge-fallback",
+    });
+    const cachedFallback = getCachedResponse(fallbackCacheKey);
+    if (cachedFallback) {
+      emitChatAnalyticsEvent({
+        name: "cache_hit",
+        mode,
+        sourceBadge: "generated",
+        latencyBucket: "instant",
+        metadata: { responseType: "knowledge-fallback" },
+      });
+      return {
+        flagged: false as const,
+        stream: createInstantAnswerStream(cachedFallback.text),
+        language: requestedLanguage,
+      };
+    }
+
+    emitChatAnalyticsEvent({
+      name: "cache_miss",
+      mode,
+      sourceBadge: "generated",
+      latencyBucket: "instant",
+      metadata: { responseType: "knowledge-fallback" },
+    });
+    setCachedResponse(fallbackCacheKey, {
+      text: knowledgeFallback.answer,
+      sourceBadge: "generated",
+      responseType: "knowledge-fallback",
+    });
+    emitChatAnalyticsEvent({
+      name: "knowledge_fallback_hit",
+      mode,
+      sourceBadge: "generated",
+      latencyBucket: "instant",
+    });
+    if (conversationId !== null) {
       await persistConversationMessages({
         conversationId,
         userMessage: lastUserMessage,
-        assistantMessage: text,
+        assistantMessage: knowledgeFallback.answer,
         context,
       });
-    },
+    }
+    return {
+      flagged: false as const,
+      stream: createInstantAnswerStream(knowledgeFallback.answer),
+      language: requestedLanguage,
+    };
+  }
+
+  emitChatAnalyticsEvent({
+    name: "llm_fallback_used",
+    mode,
+    sourceBadge: "llm-fallback",
+    latencyBucket: "streamed",
   });
+
+  try {
+    return await runAiOrchestration({
+      messages: input.messages,
+      language: input.language,
+      model: input.model,
+      history,
+      knowledgeContext,
+      context,
+      onFinish: async text => {
+        emitChatAnalyticsEvent({
+          name: "llm_fallback_used",
+          mode,
+          sourceBadge: "llm-fallback",
+          latencyBucket:
+            Date.now() - requestStartedAt < 250 ? "instant" : "streamed",
+          metadata: { completed: true },
+        });
+        if (conversationId === null) return;
+        await persistConversationMessages({
+          conversationId,
+          userMessage: findLastUserMessage(input.messages) || null,
+          assistantMessage: text,
+          context,
+        });
+      },
+    });
+  } catch (error) {
+    logger.warn(
+      "[chatService] LLM orchestration unavailable, using safe fallback",
+      {
+        error: error instanceof Error ? error.message : String(error),
+      }
+    );
+    emitChatAnalyticsEvent({
+      name: "llm_safe_fallback_used",
+      mode,
+      sourceBadge: "llm-fallback",
+      latencyBucket: "instant",
+    });
+    const safeFallback = buildSafeLlmUnavailableFallback(requestedLanguage);
+    if (conversationId !== null) {
+      await persistConversationMessages({
+        conversationId,
+        userMessage: lastUserMessage,
+        assistantMessage: safeFallback,
+        context,
+      });
+    }
+    return {
+      flagged: false as const,
+      stream: createInstantAnswerStream(safeFallback),
+      language: requestedLanguage,
+    };
+  }
 }

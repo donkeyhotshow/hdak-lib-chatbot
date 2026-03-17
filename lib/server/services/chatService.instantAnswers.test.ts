@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const runAiOrchestrationMock = vi.fn();
 const loadConversationHistoryMock = vi.fn();
@@ -31,8 +31,16 @@ describe("processChatRequest instant answers", () => {
     persistConversationMessagesMock.mockResolvedValue(undefined);
   });
 
+  afterEach(async () => {
+    const { clearResponseCache } = await import("./responseCache");
+    const { clearChatAnalyticsEvents } = await import("./chatAnalytics");
+    clearResponseCache();
+    clearChatAnalyticsEvents();
+  });
+
   it("returns instant FAQ answer without LLM call for typical question", async () => {
     const { processChatRequest } = await import("./chatService");
+    const { listChatAnalyticsEvents } = await import("./chatAnalytics");
 
     const result = await processChatRequest({
       messages: [{ role: "user", content: "Як записатися до бібліотеки?" }],
@@ -43,6 +51,11 @@ describe("processChatRequest instant answers", () => {
     expect(result.flagged).toBe(false);
     expect(runAiOrchestrationMock).not.toHaveBeenCalled();
     expect(typeof result.stream.toUIMessageStreamResponse).toBe("function");
+    expect(
+      listChatAnalyticsEvents().some(
+        event => event.name === "instant_answer_hit" && event.mode === "guest"
+      )
+    ).toBe(true);
   });
 
   it("falls back to normal LLM orchestration for non-FAQ question", async () => {
@@ -83,5 +96,38 @@ describe("processChatRequest instant answers", () => {
 
     expect(persistConversationMessagesMock).toHaveBeenCalledTimes(1);
     expect(runAiOrchestrationMock).not.toHaveBeenCalled();
+  });
+
+  it("uses knowledge-assisted fallback before LLM for nearby library query", async () => {
+    const { processChatRequest } = await import("./chatService");
+
+    const result = await processChatRequest({
+      messages: [
+        {
+          role: "user",
+          content: "потрібна допомога з правилами бібліотеки, куди дивитися?",
+        },
+      ],
+      userId: null,
+      ip: "127.0.0.1",
+    });
+
+    expect(result.flagged).toBe(false);
+    expect(runAiOrchestrationMock).not.toHaveBeenCalled();
+  });
+
+  it("returns safe fallback when LLM orchestration throws", async () => {
+    runAiOrchestrationMock.mockRejectedValueOnce(new Error("OpenRouter down"));
+    const { processChatRequest } = await import("./chatService");
+
+    const result = await processChatRequest({
+      messages: [{ role: "user", content: "Поясни незвичну тему" }],
+      userId: null,
+      ip: "127.0.0.1",
+    });
+
+    const response = result.stream.toUIMessageStreamResponse();
+    expect(response).toBeInstanceOf(Response);
+    expect(result.flagged).toBe(false);
   });
 });

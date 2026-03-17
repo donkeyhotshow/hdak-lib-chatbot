@@ -17,6 +17,16 @@ import {
   OFFICIAL_CATALOG_URL,
 } from "@/lib/server/services/catalogIntent";
 import { findLibraryKnowledgeTopic } from "@/lib/server/services/libraryKnowledge";
+import {
+  appendFeedbackPayload,
+  appendTelemetryEvent,
+  CHAT_TELEMETRY_STORAGE_KEY,
+  createFeedbackPayload,
+  FEEDBACK_STORAGE_KEY,
+  type ChatFeedbackPayload,
+  type ChatTelemetryEvent,
+  type ChatFeedbackValue,
+} from "@/lib/pages/homeFeedback";
 import { RefreshCw } from "lucide-react";
 
 type RouterOutput = inferRouterOutputs<AppRouter>;
@@ -83,6 +93,10 @@ const translations: Record<Language, Record<string, string>> = {
     badgeGenerated: "Generated from reference data",
     sourcesLabel: "Sources",
     viewSource: "View source",
+    feedbackUp: "👍 Helpful",
+    feedbackDown: "👎 Didn’t help",
+    feedbackSaved: "Thanks for feedback",
+    followUpLabel: "Similar questions",
   },
   uk: {
     title: "Помічник бібліотеки ХДАК",
@@ -131,6 +145,10 @@ const translations: Record<Language, Record<string, string>> = {
     badgeGenerated: "Згенеровано на основі довідкових даних",
     sourcesLabel: "Джерела",
     viewSource: "Переглянути джерело",
+    feedbackUp: "👍 Корисно",
+    feedbackDown: "👎 Не допомогло",
+    feedbackSaved: "Дякуємо за відгук",
+    followUpLabel: "Схожі запитання",
   },
 };
 
@@ -245,6 +263,9 @@ export default function Home() {
   const [openDropdown, setOpenDropdown] = useState<
     "hist" | "res" | "lang" | null
   >(null);
+  const [feedbackByResponseId, setFeedbackByResponseId] = useState<
+    Record<string, ChatFeedbackValue>
+  >({});
   const userHasDeselected = useRef(false);
   const pendingPromptRef = useRef<string | null>(null);
   const guestConversationIdRef = useRef(Date.now() * 1000);
@@ -608,6 +629,92 @@ export default function Home() {
   };
 
   const t = translations[language];
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raw = window.localStorage.getItem(FEEDBACK_STORAGE_KEY);
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw) as Array<{
+        responseId?: string;
+        feedbackValue?: ChatFeedbackValue;
+      }>;
+      const next = parsed.reduce<Record<string, ChatFeedbackValue>>(
+        (acc, item) => {
+          if (
+            item.responseId &&
+            (item.feedbackValue === "up" || item.feedbackValue === "down")
+          ) {
+            acc[item.responseId] = item.feedbackValue;
+          }
+          return acc;
+        },
+        {}
+      );
+      setFeedbackByResponseId(next);
+    } catch {
+      window.localStorage.removeItem(FEEDBACK_STORAGE_KEY);
+    }
+  }, []);
+
+  const saveFeedback = (
+    responseId: string,
+    sourceBadge:
+      | "quick"
+      | "catalog"
+      | "official-rule"
+      | "generated"
+      | "llm-fallback"
+      | "unknown",
+    userQuery: string,
+    value: ChatFeedbackValue
+  ) => {
+    setFeedbackByResponseId(prev => ({ ...prev, [responseId]: value }));
+    if (typeof window === "undefined") return;
+    const conversationId = currentConversationId ?? undefined;
+    const payload = createFeedbackPayload({
+      responseId,
+      sourceBadge,
+      userQuery,
+      feedbackValue: value,
+      conversationId,
+      guestId: guestIdRef.current ?? undefined,
+    });
+    let existing: ChatFeedbackPayload[] = [];
+    try {
+      const existingRaw = window.localStorage.getItem(FEEDBACK_STORAGE_KEY);
+      existing = existingRaw
+        ? (JSON.parse(existingRaw) as ChatFeedbackPayload[])
+        : [];
+    } catch {
+      existing = [];
+    }
+    const next = appendFeedbackPayload(existing, payload);
+    window.localStorage.setItem(FEEDBACK_STORAGE_KEY, JSON.stringify(next));
+
+    let telemetryExisting: ChatTelemetryEvent[] = [];
+    try {
+      const telemetryRaw = window.localStorage.getItem(
+        CHAT_TELEMETRY_STORAGE_KEY
+      );
+      telemetryExisting = telemetryRaw
+        ? (JSON.parse(telemetryRaw) as ChatTelemetryEvent[])
+        : [];
+    } catch {
+      telemetryExisting = [];
+    }
+    const telemetryNext = appendTelemetryEvent(telemetryExisting, {
+      name: "feedback_submitted",
+      timestamp: new Date().toISOString(),
+      mode: isAuthenticated ? "auth" : "guest",
+      sourceBadge,
+      responseLatency: "instant",
+    });
+    window.localStorage.setItem(
+      CHAT_TELEMETRY_STORAGE_KEY,
+      JSON.stringify(telemetryNext)
+    );
+  };
 
   const chips = useMemo(() => {
     const chipEmojis = ["⚡", "📚", "📘", "📞"];
@@ -1362,11 +1469,38 @@ export default function Home() {
                         : knowledgeTopic
                           ? t.badgeGenerated
                           : null;
+                const sourceBadgeType = isUser
+                  ? "unknown"
+                  : instantAnswerMeta?.sourceBadge === "official-rule"
+                    ? "official-rule"
+                    : instantAnswerMeta?.sourceBadge === "catalog"
+                      ? "catalog"
+                      : instantAnswerMeta?.sourceBadge === "quick"
+                        ? "quick"
+                        : knowledgeTopic
+                          ? "generated"
+                          : "llm-fallback";
                 const sourceLinks = isUser
                   ? []
                   : (instantAnswerMeta?.links ??
                     knowledgeTopic?.sourceUrls ??
                     []);
+                const responseId =
+                  "id" in msg && typeof msg.id !== "undefined"
+                    ? String(msg.id)
+                    : `${idx}-${sourceBadgeType}`;
+                const followUpPrompts =
+                  !isUser && instantAnswerMeta
+                    ? QUICK_PROMPTS[language]
+                        .filter(
+                          prompt =>
+                            prompt.toLowerCase() !==
+                            getMessageText(
+                              previousUserMessage ?? msg
+                            ).toLowerCase()
+                        )
+                        .slice(0, 3)
+                    : [];
                 return (
                   <div
                     key={idx}
@@ -1475,6 +1609,94 @@ export default function Home() {
                             >
                               {t.viewSource}
                             </a>
+                          ))}
+                        </div>
+                      )}
+                      {!isUser && (
+                        <div
+                          style={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: 6,
+                            alignItems: "center",
+                          }}
+                        >
+                          <button
+                            className="hdak-action-btn"
+                            onClick={() =>
+                              saveFeedback(
+                                responseId,
+                                sourceBadgeType,
+                                getMessageText(previousUserMessage ?? msg),
+                                "up"
+                              )
+                            }
+                            style={{
+                              height: 24,
+                              padding: "0 8px",
+                              fontSize: 11,
+                              background:
+                                feedbackByResponseId[responseId] === "up"
+                                  ? "#e7f4ea"
+                                  : "#ffffff",
+                            }}
+                          >
+                            {t.feedbackUp}
+                          </button>
+                          <button
+                            className="hdak-action-btn"
+                            onClick={() =>
+                              saveFeedback(
+                                responseId,
+                                sourceBadgeType,
+                                getMessageText(previousUserMessage ?? msg),
+                                "down"
+                              )
+                            }
+                            style={{
+                              height: 24,
+                              padding: "0 8px",
+                              fontSize: 11,
+                              background:
+                                feedbackByResponseId[responseId] === "down"
+                                  ? "#fcebea"
+                                  : "#ffffff",
+                            }}
+                          >
+                            {t.feedbackDown}
+                          </button>
+                          {feedbackByResponseId[responseId] && (
+                            <span style={{ fontSize: 11, color: "#5d7199" }}>
+                              {t.feedbackSaved}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      {!isUser && followUpPrompts.length > 0 && (
+                        <div
+                          style={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: 6,
+                            alignItems: "center",
+                          }}
+                        >
+                          <span style={{ fontSize: 11, color: "#5d7199" }}>
+                            {t.followUpLabel}:
+                          </span>
+                          {followUpPrompts.map(prompt => (
+                            <button
+                              key={prompt}
+                              className="hdak-action-btn"
+                              style={{
+                                height: 24,
+                                padding: "0 8px",
+                                fontSize: 11,
+                              }}
+                              onClick={() => handleQuickStart(prompt)}
+                            >
+                              {prompt}
+                            </button>
                           ))}
                         </div>
                       )}
