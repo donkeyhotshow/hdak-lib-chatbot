@@ -263,15 +263,15 @@ export default function Home() {
 
   const chatTransport = useMemo(
     () =>
-        new DefaultChatTransport({
-          api: "/api/chat",
-          body: () => ({
-            model: "openrouter/free",
-            language: languageRef.current,
-            conversationId: isAuthenticatedRef.current
-              ? conversationIdRef.current ?? undefined
-              : undefined,
-          }),
+      new DefaultChatTransport({
+        api: "/api/chat",
+        body: () => ({
+          model: "openrouter/free",
+          language: languageRef.current,
+          conversationId: isAuthenticatedRef.current
+            ? (conversationIdRef.current ?? undefined)
+            : undefined,
+        }),
         prepareSendMessagesRequest: ({ messages, body }) => {
           const lastUser = [...messages].reverse().find(m => m.role === "user");
           const lastUserText = lastUser ? getMessageText(lastUser) : "";

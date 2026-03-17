@@ -25,8 +25,12 @@ describe("Home UI language and guest auth guards", () => {
 
   it("includes model in /api/chat request body for OpenRouter compatibility", () => {
     expect(homePageContent).toContain('model: "openrouter/free",');
-    expect(homePageContent).toContain("? conversationIdRef.current ?? undefined");
-    expect(homePageContent).toContain(": undefined,");
+  });
+
+  it("omits guest conversationId instead of sending null", () => {
+    expect(homePageContent).toMatch(
+      /conversationId:\s*isAuthenticatedRef\.current[\s\S]*\?\s*\(conversationIdRef\.current \?\? undefined\)\s*:\s*undefined,/
+    );
   });
 
   it("skips noisy unauthorized query errors in global client logging", () => {
