@@ -105,7 +105,7 @@ const INSTANT_ANSWER_RULES: InstantAnswerRule[] = [
     match: query =>
       includesAny(query, [
         "контакти бібліотеки",
-        "зв язатися з бібліотекарем",
+        "зв'язатися з бібліотекарем",
         "поставити запитання бібліотекарю",
         "contacts",
         "ask librarian",

@@ -570,7 +570,7 @@ export default function Home() {
 
   const chips = useMemo(
     () =>
-      QUICK_PROMPTS[language].slice(0, 5).map((text, index) => ({
+      QUICK_PROMPTS[language].slice(0, 4).map((text, index) => ({
         emoji: ["⚡", "📚", "📘", "📞", "🗺️"][index] ?? "💬",
         text,
       })),
@@ -1472,7 +1472,7 @@ export default function Home() {
                 marginBottom: 10,
               }}
             >
-              {chips.slice(0, 4).map(chip => (
+              {chips.map(chip => (
                 <button
                   key={`inline-chip-${chip.text}`}
                   className="hdak-chip"

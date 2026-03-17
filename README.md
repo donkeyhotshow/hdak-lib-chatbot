@@ -72,9 +72,9 @@ pnpm start
 ## Instant answers (FAQ shortcuts)
 
 - На головній сторінці є quick prompt chips для типових бібліотечних питань.
-- Для guest mode стандартні FAQ-вопросы обрабатываются мгновенно локально
-  через matcher `lib/server/services/instantAnswers.ts`, без ожидания длинного
-  LLM-стриминга.
+- Для гостьового режиму стандартні FAQ-запитання обробляються миттєво локально
+  через matcher `lib/server/services/instantAnswers.ts`, без очікування
+  довгого LLM-стримінгу.
 - Якщо питання не підпадає під FAQ matcher, працює звичайний `/api/chat`.
 
 ## How it works
