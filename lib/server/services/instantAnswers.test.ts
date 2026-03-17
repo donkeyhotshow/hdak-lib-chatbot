@@ -103,4 +103,26 @@ describe("instantAnswers", () => {
   it("returns null when question is not from known FAQ intents", () => {
     expect(getInstantAnswer("Поясни квантову криптографію", "uk")).toBeNull();
   });
+
+  it("uses editable knowledge topics when provided", () => {
+    const answer = getInstantAnswer("коли відкрито медіатеку", "uk", {
+      knowledgeTopics: [
+        {
+          id: "editable-media",
+          topic: "Медіатека",
+          title: "Медіатека",
+          keywords: ["коли відкрито медіатеку", "медіатека"],
+          shortFacts: ["Медіатека працює в будні дні."],
+          policySnippets: ["Уточнюйте графік на офіційній сторінці."],
+          sourceUrls: ["https://lib-hdak.in.ua/site-map.html"],
+          sourceBadge: "quick",
+          suggestedFollowUps: ["Які контакти бібліотеки?"],
+          enabled: true,
+        },
+      ],
+    });
+    expect(answer).not.toBeNull();
+    expect(answer?.intent).toBe("editable-media");
+    expect(answer?.suggestedFollowUps).toContain("Які контакти бібліотеки?");
+  });
 });

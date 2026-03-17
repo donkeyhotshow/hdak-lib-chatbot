@@ -3,11 +3,15 @@ import { OFFICIAL_CATALOG_URL } from "./catalogIntent";
 export type LibraryKnowledgeTopic = {
   id: string;
   topic: string;
+  title?: string;
   shortFacts: string[];
   policySnippets: string[];
   keywords: string[];
   sourceUrls: string[];
   sourceBadge: "quick" | "catalog" | "official-rule";
+  suggestedFollowUps?: string[];
+  enabled?: boolean;
+  updatedAt?: string;
 };
 
 export type LibraryKnowledgeLanguage = "uk" | "en" | "ru";
@@ -238,23 +242,41 @@ export function normalizeLibraryKnowledgeQuery(query: string): string {
 export function findLibraryKnowledgeTopic(
   query: string
 ): LibraryKnowledgeTopic | null {
+  return findLibraryKnowledgeTopicInTopics(query, LIBRARY_KNOWLEDGE_TOPICS);
+}
+
+export function findLibraryKnowledgeTopicInTopics(
+  query: string,
+  topics: LibraryKnowledgeTopic[]
+): LibraryKnowledgeTopic | null {
   const normalizedQuery = normalizeLibraryKnowledgeQuery(query);
   if (!normalizedQuery) return null;
 
   return (
-    LIBRARY_KNOWLEDGE_TOPICS.find(topic =>
-      topic.keywords.some(keyword =>
-        normalizedQuery.includes(normalizeLibraryKnowledgeQuery(keyword))
-      )
+    topics.find(
+      topic =>
+        topic.enabled !== false &&
+        topic.keywords.some(keyword =>
+          normalizedQuery.includes(normalizeLibraryKnowledgeQuery(keyword))
+        )
     ) ?? null
   );
 }
 
 export function buildLibraryKnowledgeContext(
   query: string,
-  language: LibraryKnowledgeLanguage
+  language: LibraryKnowledgeLanguage,
+  topics: LibraryKnowledgeTopic[] = LIBRARY_KNOWLEDGE_TOPICS
 ): string | null {
-  const topic = findLibraryKnowledgeTopic(query);
+  return buildLibraryKnowledgeContextFromTopics(query, language, topics);
+}
+
+export function buildLibraryKnowledgeContextFromTopics(
+  query: string,
+  language: LibraryKnowledgeLanguage,
+  topics: LibraryKnowledgeTopic[]
+): string | null {
+  const topic = findLibraryKnowledgeTopicInTopics(query, topics);
   if (!topic) return null;
 
   const facts = topic.shortFacts.map(fact => `- ${fact}`).join("\n");

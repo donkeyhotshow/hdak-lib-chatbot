@@ -22,4 +22,29 @@ describe("fallbackSuggestions", () => {
     expect(text).toContain("Тимчасова проблема сервісу");
     expect(text).toContain(OFFICIAL_CATALOG_URL);
   });
+
+  it("uses editable knowledge topics for fallback topic match", () => {
+    const fallback = buildKnowledgeAssistedFallback(
+      "режим роботи медіатеки",
+      "uk",
+      {
+        knowledgeTopics: [
+          {
+            id: "editable-media",
+            topic: "Медіатека",
+            title: "Медіатека",
+            keywords: ["режим роботи медіатеки", "медіатека"],
+            shortFacts: ["Медіатека працює за розкладом."],
+            policySnippets: [],
+            sourceUrls: ["https://lib-hdak.in.ua/site-map.html"],
+            sourceBadge: "quick",
+            suggestedFollowUps: [],
+            enabled: true,
+          },
+        ],
+      }
+    );
+    expect(fallback).not.toBeNull();
+    expect(fallback?.answer).toContain("Медіатека працює за розкладом.");
+  });
 });

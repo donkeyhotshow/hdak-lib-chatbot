@@ -16,7 +16,11 @@ import {
   getCatalogIntentAction,
   OFFICIAL_CATALOG_URL,
 } from "@/lib/server/services/catalogIntent";
-import { findLibraryKnowledgeTopic } from "@/lib/server/services/libraryKnowledge";
+import {
+  findLibraryKnowledgeTopic,
+  findLibraryKnowledgeTopicInTopics,
+  type LibraryKnowledgeTopic,
+} from "@/lib/server/services/libraryKnowledge";
 import {
   appendFeedbackPayload,
   appendTelemetryEvent,
@@ -416,6 +420,15 @@ export default function Home() {
       staleTime: 30_000,
     }
   );
+  const { data: runtimeKnowledgeTopicsData } =
+    trpc.knowledge.getRuntime.useQuery(undefined, {
+      staleTime: 5 * 60 * 1000,
+      refetchOnWindowFocus: false,
+    });
+  const runtimeKnowledgeTopics: LibraryKnowledgeTopic[] | undefined =
+    runtimeKnowledgeTopicsData && runtimeKnowledgeTopicsData.length > 0
+      ? runtimeKnowledgeTopicsData
+      : undefined;
 
   const createConversationMutation = trpc.conversations.create.useMutation({
     onSuccess: data => {
@@ -508,7 +521,9 @@ export default function Home() {
     const textToSend = messageText ?? localInput;
     if (!textToSend.trim() || isStreaming) return;
     setSendError(null);
-    const instantAnswer = getInstantAnswer(textToSend.trim(), language);
+    const instantAnswer = getInstantAnswer(textToSend.trim(), language, {
+      knowledgeTopics: runtimeKnowledgeTopics,
+    });
 
     if (!isAuthenticated && instantAnswer) {
       const userMessage = createLocalUiMessage("user", textToSend.trim());
@@ -1465,14 +1480,20 @@ export default function Home() {
                   !isUser && previousUserMessage
                     ? getInstantAnswer(
                         getMessageText(previousUserMessage),
-                        language
+                        language,
+                        { knowledgeTopics: runtimeKnowledgeTopics }
                       )
                     : null;
                 const knowledgeTopic =
                   !isUser && previousUserMessage
-                    ? findLibraryKnowledgeTopic(
-                        getMessageText(previousUserMessage)
-                      )
+                    ? runtimeKnowledgeTopics
+                      ? findLibraryKnowledgeTopicInTopics(
+                          getMessageText(previousUserMessage),
+                          runtimeKnowledgeTopics
+                        )
+                      : findLibraryKnowledgeTopic(
+                          getMessageText(previousUserMessage)
+                        )
                     : null;
                 const extractedOfficialLinks = isUser
                   ? []
@@ -1514,7 +1535,10 @@ export default function Home() {
                     : `${idx}-${sourceBadgeType}`;
                 const followUpPrompts =
                   !isUser && instantAnswerMeta
-                    ? QUICK_PROMPTS[language]
+                    ? (instantAnswerMeta.suggestedFollowUps?.length
+                        ? instantAnswerMeta.suggestedFollowUps
+                        : QUICK_PROMPTS[language]
+                      )
                         .filter(
                           prompt =>
                             prompt.toLowerCase() !==

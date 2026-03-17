@@ -5,7 +5,7 @@ import {
 } from "./catalogIntent";
 import {
   LIBRARY_KNOWLEDGE_TOPICS,
-  findLibraryKnowledgeTopic,
+  findLibraryKnowledgeTopicInTopics,
   type LibraryKnowledgeTopic,
 } from "./libraryKnowledge";
 
@@ -26,6 +26,7 @@ export type InstantAnswer = {
   title: string;
   answer: string;
   links: string[];
+  suggestedFollowUps?: string[];
   action?: CatalogIntentAction;
   sourceBadge?: "quick" | "catalog" | "official-rule";
 };
@@ -34,7 +35,7 @@ function toFaqEntry(topic: LibraryKnowledgeTopic): LibraryFaqEntry {
   return {
     id: topic.id,
     keywords: topic.keywords,
-    title: topic.topic,
+    title: topic.title ?? topic.topic,
     answer: topic.shortFacts[0] ?? topic.topic,
     bullets: [...topic.shortFacts, ...topic.policySnippets].slice(0, 3),
     links: topic.sourceUrls,
@@ -114,17 +115,27 @@ function formatCatalogIntentAnswer(
   return `**${action.title}**\n\n${action.description}\n\n- Шукати можна за автором, назвою або темою.\n- ${queryHint}\n- Якщо потрібна точність — уточніть запит ключовими словами.\n\nОфіційне джерело:\n- ${OFFICIAL_CATALOG_URL}`;
 }
 
-function findMatchingFaq(normalizedQuery: string): LibraryFaqEntry | null {
-  const topic = findLibraryKnowledgeTopic(normalizedQuery);
+function findMatchingFaq(
+  normalizedQuery: string,
+  knowledgeTopics: LibraryKnowledgeTopic[]
+): LibraryFaqEntry | null {
+  const topic = findLibraryKnowledgeTopicInTopics(
+    normalizedQuery,
+    knowledgeTopics
+  );
   return topic ? toFaqEntry(topic) : null;
 }
 
 export function getInstantAnswer(
   query: string,
-  language: InstantAnswerLanguage = "uk"
+  language: InstantAnswerLanguage = "uk",
+  options?: { knowledgeTopics?: LibraryKnowledgeTopic[] }
 ): InstantAnswer | null {
   const normalizedQuery = normalizeInstantAnswerQuery(query);
   if (!normalizedQuery) return null;
+  const knowledgeTopics =
+    options?.knowledgeTopics?.filter(topic => topic.enabled !== false) ??
+    LIBRARY_KNOWLEDGE_TOPICS;
   const catalogAction = getCatalogIntentAction(
     query,
     language === "en" ? "en" : "uk"
@@ -140,13 +151,18 @@ export function getInstantAnswer(
     };
   }
 
-  const faq = findMatchingFaq(normalizedQuery);
+  const faq = findMatchingFaq(normalizedQuery, knowledgeTopics);
+  const matchedTopic = findLibraryKnowledgeTopicInTopics(
+    normalizedQuery,
+    knowledgeTopics
+  );
   if (faq) {
     return {
       intent: faq.id,
       title: faq.title,
       answer: formatFaqAnswer(faq, language),
       links: faq.links,
+      suggestedFollowUps: matchedTopic?.suggestedFollowUps ?? [],
       sourceBadge: faq.sourceBadge,
       action:
         faq.id === "catalog" || faq.id === "find-book"

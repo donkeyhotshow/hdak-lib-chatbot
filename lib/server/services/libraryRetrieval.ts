@@ -1,4 +1,7 @@
-import { LIBRARY_KNOWLEDGE_TOPICS } from "./libraryKnowledge";
+import {
+  LIBRARY_KNOWLEDGE_TOPICS,
+  type LibraryKnowledgeTopic,
+} from "./libraryKnowledge";
 
 export type OfficialRetrievalChunk = {
   sourceId: string;
@@ -18,7 +21,7 @@ type OfficialRetrievalDocument = {
 
 const OFFICIAL_HOST = "lib-hdak.in.ua";
 
-const OFFICIAL_DOCUMENTS: OfficialRetrievalDocument[] = [
+const BUILT_IN_OFFICIAL_DOCUMENTS: OfficialRetrievalDocument[] = [
   {
     id: "rules-library",
     title: "Правила користування бібліотекою",
@@ -85,15 +88,7 @@ const OFFICIAL_DOCUMENTS: OfficialRetrievalDocument[] = [
       "Якщо потрібен офіційний розділ бібліотеки, почніть з карти сайту.",
     ],
   },
-].concat(
-  LIBRARY_KNOWLEDGE_TOPICS.map(topic => ({
-    id: `topic-${topic.id}`,
-    title: topic.topic,
-    url: topic.sourceUrls[0] ?? "https://lib-hdak.in.ua/",
-    keywords: topic.keywords,
-    chunks: [...topic.shortFacts, ...topic.policySnippets].slice(0, 3),
-  }))
-);
+];
 
 function normalizeForRetrieval(value: string): string {
   return value
@@ -130,15 +125,34 @@ function scoreChunk(queryTokens: string[], searchableText: string): number {
 
 export function retrieveOfficialLibraryChunks(
   query: string,
-  options?: { limit?: number; minScore?: number }
+  options?: {
+    limit?: number;
+    minScore?: number;
+    knowledgeTopics?: LibraryKnowledgeTopic[];
+  }
 ): OfficialRetrievalChunk[] {
   const limit = options?.limit ?? 3;
   const minScore = options?.minScore ?? 2;
   const queryTokens = tokenize(query);
   if (queryTokens.length === 0) return [];
 
+  const knowledgeTopics =
+    options?.knowledgeTopics?.filter(topic => topic.enabled !== false) ??
+    LIBRARY_KNOWLEDGE_TOPICS;
+  const runtimeTopicDocuments: OfficialRetrievalDocument[] =
+    knowledgeTopics.map(topic => ({
+      id: `topic-${topic.id}`,
+      title: topic.title ?? topic.topic,
+      url: topic.sourceUrls[0] ?? "https://lib-hdak.in.ua/",
+      keywords: topic.keywords,
+      chunks: [...topic.shortFacts, ...topic.policySnippets].slice(0, 3),
+    }));
+
   const allChunks: OfficialRetrievalChunk[] = [];
-  for (const doc of OFFICIAL_DOCUMENTS) {
+  for (const doc of [
+    ...BUILT_IN_OFFICIAL_DOCUMENTS,
+    ...runtimeTopicDocuments,
+  ]) {
     if (!isOfficialUrl(doc.url)) continue;
     for (const chunk of doc.chunks) {
       const searchable = [doc.title, ...doc.keywords, chunk].join(" ");

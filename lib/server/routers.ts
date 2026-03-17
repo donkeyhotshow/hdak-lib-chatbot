@@ -37,12 +37,36 @@ import {
   listChatAnalyticsEvents,
 } from "./services/chatAnalytics";
 import { buildChatAnalyticsSummary } from "./services/chatAnalyticsSummary";
+import {
+  createEditableKnowledgeEntry,
+  duplicateEditableKnowledgeEntry,
+  listEditableKnowledgeEntries,
+  setEditableKnowledgeEntryEnabled,
+  updateEditableKnowledgeEntry,
+} from "./services/knowledgeRepository";
+import {
+  createKnowledgeEntryDraftFromQuery,
+  getMergedKnowledgeTopics,
+} from "./services/knowledgeAdmin";
 
 /** Maximum number of previous messages included in the AI context window. */
 const MAX_CONVERSATION_HISTORY =
   SECURITY_CONFIG.tokenLimits.conversationContextHistory;
 /** Maximum character length allowed for a single user message. */
 const MAX_MESSAGE_LENGTH = SECURITY_CONFIG.tokenLimits.maxMessageChars;
+const knowledgeEntrySchema = z.object({
+  id: z.string().min(1).max(200).optional(),
+  topic: z.string().min(1).max(300),
+  title: z.string().min(1).max(300),
+  keywords: z.array(z.string().min(1).max(200)).min(1).max(50),
+  shortFacts: z.array(z.string().min(1).max(500)).max(20).default([]),
+  policySnippets: z.array(z.string().min(1).max(500)).max(20).default([]),
+  sourceUrls: z.array(z.string().min(1).max(2048)).min(1).max(20),
+  sourceBadge: z.enum(["quick", "catalog", "official-rule"]),
+  suggestedFollowUps: z.array(z.string().min(1).max(300)).max(20).default([]),
+  enabled: z.boolean().default(true),
+  overrideBuiltInId: z.string().max(200).nullable().optional(),
+});
 const conversationProcedure = protectedProcedure.use(async ({ ctx, next }) => {
   await enforceSecurityRateLimit({
     endpoint: "trpc.conversations",
@@ -352,6 +376,84 @@ export const appRouter = router({
         if (!info) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
         invalidateInfoCache();
         return info;
+      }),
+  }),
+
+  knowledge: router({
+    getRuntime: publicProcedure.query(async () => {
+      return await getMergedKnowledgeTopics();
+    }),
+
+    list: adminProcedure.query(async () => {
+      return await listEditableKnowledgeEntries();
+    }),
+
+    create: adminProcedure
+      .input(knowledgeEntrySchema)
+      .mutation(async ({ input }) => {
+        try {
+          return await createEditableKnowledgeEntry(input);
+        } catch (error) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: error instanceof Error ? error.message : "Invalid entry",
+          });
+        }
+      }),
+
+    update: adminProcedure
+      .input(
+        knowledgeEntrySchema
+          .partial()
+          .extend({ id: z.string().min(1).max(200) })
+      )
+      .mutation(async ({ input }) => {
+        const { id, ...patch } = input;
+        try {
+          return await updateEditableKnowledgeEntry(id, patch);
+        } catch (error) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: error instanceof Error ? error.message : "Invalid update",
+          });
+        }
+      }),
+
+    setEnabled: adminProcedure
+      .input(z.object({ id: z.string().min(1), enabled: z.boolean() }))
+      .mutation(async ({ input }) => {
+        try {
+          return await setEditableKnowledgeEntryEnabled(
+            input.id,
+            input.enabled
+          );
+        } catch (error) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message:
+              error instanceof Error ? error.message : "Failed to update",
+          });
+        }
+      }),
+
+    duplicate: adminProcedure
+      .input(z.object({ id: z.string().min(1) }))
+      .mutation(async ({ input }) => {
+        try {
+          return await duplicateEditableKnowledgeEntry(input.id);
+        } catch (error) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message:
+              error instanceof Error ? error.message : "Failed to duplicate",
+          });
+        }
+      }),
+
+    createDraftFromQuery: adminProcedure
+      .input(z.object({ query: z.string().min(1).max(1000) }))
+      .query(({ input }) => {
+        return createKnowledgeEntryDraftFromQuery(input.query);
       }),
   }),
 

@@ -32,11 +32,15 @@ import {
 import { logSecurityEvent } from "../observability/securityLogger";
 import { setSessionState } from "./sessionStore";
 import { getInstantAnswer } from "./instantAnswers";
-import { buildLibraryKnowledgeContext } from "./libraryKnowledge";
+import {
+  buildLibraryKnowledgeContext,
+  type LibraryKnowledgeTopic,
+} from "./libraryKnowledge";
 import {
   buildOfficialRetrievalContext,
   retrieveOfficialLibraryChunks,
 } from "./libraryRetrieval";
+import { getMergedKnowledgeTopics } from "./knowledgeAdmin";
 import {
   buildResponseCacheKey,
   getCachedResponse,
@@ -299,7 +303,23 @@ export async function processChatRequest(input: {
 
   const lastUserMessage = findLastUserMessage(input.messages);
   const requestedLanguage = normalizeLanguage(input.language);
-  const instantAnswer = getInstantAnswer(lastUserMessage, requestedLanguage);
+  let runtimeKnowledgeTopics: LibraryKnowledgeTopic[] | undefined;
+  try {
+    runtimeKnowledgeTopics = await getMergedKnowledgeTopics();
+  } catch (error) {
+    logger.warn("[chatService] Failed to load editable knowledge entries", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    runtimeKnowledgeTopics = undefined;
+  }
+  const activeKnowledgeTopics =
+    runtimeKnowledgeTopics && runtimeKnowledgeTopics.length > 0
+      ? runtimeKnowledgeTopics
+      : undefined;
+
+  const instantAnswer = getInstantAnswer(lastUserMessage, requestedLanguage, {
+    knowledgeTopics: activeKnowledgeTopics,
+  });
 
   const instantType =
     instantAnswer?.sourceBadge === "catalog" ? "catalog" : "instant";
@@ -382,6 +402,7 @@ export async function processChatRequest(input: {
   const retrievalChunks = retrieveOfficialLibraryChunks(lastUserMessage, {
     limit: 3,
     minScore: 2,
+    knowledgeTopics: activeKnowledgeTopics,
   });
   const retrievalContext = buildOfficialRetrievalContext(retrievalChunks);
   if (retrievalChunks.length > 0) {
@@ -399,7 +420,11 @@ export async function processChatRequest(input: {
   }
 
   const knowledgeContextParts = [
-    buildLibraryKnowledgeContext(lastUserMessage, requestedLanguage),
+    buildLibraryKnowledgeContext(
+      lastUserMessage,
+      requestedLanguage,
+      activeKnowledgeTopics
+    ),
     retrievalContext,
   ].filter(Boolean);
   const knowledgeContext =
@@ -409,7 +434,8 @@ export async function processChatRequest(input: {
 
   const knowledgeFallback = buildKnowledgeAssistedFallback(
     lastUserMessage,
-    requestedLanguage
+    requestedLanguage,
+    { knowledgeTopics: activeKnowledgeTopics }
   );
   if (knowledgeFallback) {
     const fallbackCacheKey = buildResponseCacheKey({

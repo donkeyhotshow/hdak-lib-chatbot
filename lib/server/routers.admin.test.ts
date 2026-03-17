@@ -10,6 +10,8 @@ import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
 import * as db from "./db";
 import * as syncService from "./services/syncService";
+import * as knowledgeRepository from "./services/knowledgeRepository";
+import * as knowledgeAdmin from "./services/knowledgeAdmin";
 import {
   clearChatAnalyticsEvents,
   listChatAnalyticsEvents,
@@ -27,6 +29,18 @@ vi.mock("./db", async importOriginal => {
 vi.mock("./services/syncService", async importOriginal => {
   const actual =
     await importOriginal<typeof import("./services/syncService")>();
+  return { ...actual };
+});
+
+vi.mock("./services/knowledgeRepository", async importOriginal => {
+  const actual =
+    await importOriginal<typeof import("./services/knowledgeRepository")>();
+  return { ...actual };
+});
+
+vi.mock("./services/knowledgeAdmin", async importOriginal => {
+  const actual =
+    await importOriginal<typeof import("./services/knowledgeAdmin")>();
   return { ...actual };
 });
 
@@ -389,6 +403,66 @@ describe("libraryInfo.set — admin procedure", () => {
         valueRu: "r",
       })
     ).rejects.toMatchObject({ code: "INTERNAL_SERVER_ERROR" });
+  });
+});
+
+describe("knowledge router procedures", () => {
+  it("returns runtime merged knowledge for public endpoint", async () => {
+    vi.spyOn(knowledgeAdmin, "getMergedKnowledgeTopics").mockResolvedValueOnce([
+      {
+        id: "catalog",
+        topic: "Електронний каталог",
+        shortFacts: ["Каталог на офіційному сайті"],
+        policySnippets: [],
+        keywords: ["каталог"],
+        sourceUrls: ["https://lib-hdak.in.ua/e-catalog.html"],
+        sourceBadge: "catalog",
+      },
+    ]);
+    const caller = appRouter.createCaller(makeGuestCtx());
+    const result = await caller.knowledge.getRuntime();
+    expect(result[0].id).toBe("catalog");
+  });
+
+  it("creates editable knowledge entry for admin", async () => {
+    vi.spyOn(
+      knowledgeRepository,
+      "createEditableKnowledgeEntry"
+    ).mockResolvedValueOnce({
+      id: "editable-1",
+      topic: "Контакти",
+      title: "Контакти",
+      keywords: ["контакти"],
+      shortFacts: ["Контакти на сайті"],
+      policySnippets: [],
+      sourceUrls: ["https://lib-hdak.in.ua/"],
+      sourceBadge: "quick",
+      suggestedFollowUps: [],
+      enabled: true,
+      updatedAt: new Date().toISOString(),
+      overrideBuiltInId: null,
+    });
+    const caller = appRouter.createCaller(makeCtx("admin"));
+    const result = await caller.knowledge.create({
+      topic: "Контакти",
+      title: "Контакти",
+      keywords: ["контакти"],
+      shortFacts: ["Контакти на сайті"],
+      policySnippets: [],
+      sourceUrls: ["https://lib-hdak.in.ua/"],
+      sourceBadge: "quick",
+      suggestedFollowUps: [],
+      enabled: true,
+      overrideBuiltInId: null,
+    });
+    expect(result.id).toBe("editable-1");
+  });
+
+  it("rejects knowledge admin mutations for non-admin user", async () => {
+    const caller = appRouter.createCaller(makeCtx("user"));
+    await expect(caller.knowledge.list()).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
   });
 });
 

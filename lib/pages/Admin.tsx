@@ -54,13 +54,39 @@ type ContactType =
 type ActiveTab =
   | "resources"
   | "contacts"
+  | "knowledge"
   | "info"
   | "analytics"
   | "documents"
   | "metrics";
+type KnowledgeSourceBadge = "quick" | "catalog" | "official-rule";
 
 /** Auto-refresh interval (ms) for the Performance metrics tab. */
 const METRICS_REFRESH_INTERVAL_MS = 5_000;
+
+const emptyKnowledgeForm = {
+  topic: "",
+  title: "",
+  keywordsText: "",
+  shortFactsText: "",
+  policySnippetsText: "",
+  sourceUrlsText: "https://lib-hdak.in.ua/site-map.html",
+  sourceBadge: "quick" as KnowledgeSourceBadge,
+  suggestedFollowUpsText: "",
+  enabled: true,
+  overrideBuiltInId: "",
+};
+
+function parseLines(value: string): string[] {
+  return value
+    .split(/\r?\n|,/)
+    .map(item => item.trim())
+    .filter(Boolean);
+}
+
+function toLines(values: string[] | null | undefined): string {
+  return (values ?? []).join("\n");
+}
 
 function formatUptime(seconds: number): string {
   const h = Math.floor(seconds / 3600);
@@ -142,6 +168,17 @@ export default function Admin() {
     valueUk: "",
     valueRu: "",
   });
+  const [editingKnowledgeId, setEditingKnowledgeId] = useState<string | null>(
+    null
+  );
+  const [knowledgeForm, setKnowledgeForm] = useState(emptyKnowledgeForm);
+  const [knowledgeSearch, setKnowledgeSearch] = useState("");
+  const [knowledgeBadgeFilter, setKnowledgeBadgeFilter] = useState<
+    KnowledgeSourceBadge | "all"
+  >("all");
+  const [knowledgeEnabledFilter, setKnowledgeEnabledFilter] = useState<
+    "all" | "enabled" | "disabled"
+  >("all");
 
   // PDF document upload state
   const [pdfForm, setPdfForm] = useState({
@@ -174,6 +211,14 @@ export default function Admin() {
     refetch: refetchInfo,
   } = trpc.libraryInfo.getAll.useQuery(undefined, {
     staleTime: 5 * 60 * 1000,
+  });
+  const {
+    data: knowledgeEntries = [],
+    isLoading: knowledgeLoading,
+    refetch: refetchKnowledge,
+  } = trpc.knowledge.list.useQuery(undefined, {
+    enabled: activeTab === "knowledge",
+    staleTime: 60_000,
   });
 
   // Fetch analytics
@@ -256,6 +301,30 @@ export default function Admin() {
   const setInfoMutation = trpc.libraryInfo.set.useMutation({
     onSuccess: () => {
       refetchInfo();
+    },
+  });
+  const createKnowledgeMutation = trpc.knowledge.create.useMutation({
+    onSuccess: () => {
+      setKnowledgeForm(emptyKnowledgeForm);
+      setEditingKnowledgeId(null);
+      refetchKnowledge();
+    },
+  });
+  const updateKnowledgeMutation = trpc.knowledge.update.useMutation({
+    onSuccess: () => {
+      setKnowledgeForm(emptyKnowledgeForm);
+      setEditingKnowledgeId(null);
+      refetchKnowledge();
+    },
+  });
+  const setKnowledgeEnabledMutation = trpc.knowledge.setEnabled.useMutation({
+    onSuccess: () => {
+      refetchKnowledge();
+    },
+  });
+  const duplicateKnowledgeMutation = trpc.knowledge.duplicate.useMutation({
+    onSuccess: () => {
+      refetchKnowledge();
     },
   });
 
@@ -376,6 +445,60 @@ export default function Admin() {
     setEditingId(contact.id);
   };
 
+  const filteredKnowledgeEntries = knowledgeEntries.filter((entry: any) => {
+    const q = knowledgeSearch.trim().toLowerCase();
+    const bySearch =
+      !q ||
+      entry.topic?.toLowerCase().includes(q) ||
+      entry.title?.toLowerCase().includes(q) ||
+      (entry.keywords ?? []).some((keyword: string) =>
+        keyword.toLowerCase().includes(q)
+      );
+    const byBadge =
+      knowledgeBadgeFilter === "all" ||
+      entry.sourceBadge === knowledgeBadgeFilter;
+    const byEnabled =
+      knowledgeEnabledFilter === "all" ||
+      (knowledgeEnabledFilter === "enabled" ? entry.enabled : !entry.enabled);
+    return bySearch && byBadge && byEnabled;
+  });
+
+  const handleEditKnowledge = (entry: any) => {
+    setEditingKnowledgeId(entry.id);
+    setKnowledgeForm({
+      topic: entry.topic ?? "",
+      title: entry.title ?? "",
+      keywordsText: toLines(entry.keywords),
+      shortFactsText: toLines(entry.shortFacts),
+      policySnippetsText: toLines(entry.policySnippets),
+      sourceUrlsText: toLines(entry.sourceUrls),
+      sourceBadge: entry.sourceBadge ?? "quick",
+      suggestedFollowUpsText: toLines(entry.suggestedFollowUps),
+      enabled: Boolean(entry.enabled),
+      overrideBuiltInId: entry.overrideBuiltInId ?? "",
+    });
+  };
+
+  const handleSaveKnowledge = () => {
+    const payload = {
+      topic: knowledgeForm.topic.trim(),
+      title: knowledgeForm.title.trim(),
+      keywords: parseLines(knowledgeForm.keywordsText),
+      shortFacts: parseLines(knowledgeForm.shortFactsText),
+      policySnippets: parseLines(knowledgeForm.policySnippetsText),
+      sourceUrls: parseLines(knowledgeForm.sourceUrlsText),
+      sourceBadge: knowledgeForm.sourceBadge,
+      suggestedFollowUps: parseLines(knowledgeForm.suggestedFollowUpsText),
+      enabled: knowledgeForm.enabled,
+      overrideBuiltInId: knowledgeForm.overrideBuiltInId.trim() || null,
+    };
+    if (editingKnowledgeId) {
+      updateKnowledgeMutation.mutate({ id: editingKnowledgeId, ...payload });
+      return;
+    }
+    createKnowledgeMutation.mutate(payload);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -428,6 +551,18 @@ export default function Admin() {
           >
             <Info className="w-4 h-4 mr-2" />
             Library Info
+          </Button>
+          <Button
+            variant={activeTab === "knowledge" ? "default" : "outline"}
+            onClick={() => setActiveTab("knowledge")}
+            className={
+              activeTab === "knowledge"
+                ? "bg-indigo-600 hover:bg-indigo-700"
+                : ""
+            }
+          >
+            <FileText className="w-4 h-4 mr-2" />
+            Knowledge Base
           </Button>
           <Button
             variant={activeTab === "analytics" ? "default" : "outline"}
@@ -1048,6 +1183,336 @@ export default function Admin() {
           </div>
         )}
 
+        {/* Knowledge Base Tab */}
+        {activeTab === "knowledge" && (
+          <div className="space-y-6">
+            <Card className="p-6">
+              <h2 className="text-lg font-bold mb-4">
+                {editingKnowledgeId
+                  ? "Edit knowledge entry"
+                  : "Create knowledge entry"}
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Topic
+                  </label>
+                  <Input
+                    value={knowledgeForm.topic}
+                    onChange={e =>
+                      setKnowledgeForm({
+                        ...knowledgeForm,
+                        topic: e.target.value,
+                      })
+                    }
+                    placeholder="Наприклад: Правила користування"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Title
+                  </label>
+                  <Input
+                    value={knowledgeForm.title}
+                    onChange={e =>
+                      setKnowledgeForm({
+                        ...knowledgeForm,
+                        title: e.target.value,
+                      })
+                    }
+                    placeholder="Короткий заголовок"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Source badge
+                  </label>
+                  <Select
+                    value={knowledgeForm.sourceBadge}
+                    onValueChange={val =>
+                      setKnowledgeForm({
+                        ...knowledgeForm,
+                        sourceBadge: val as KnowledgeSourceBadge,
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="quick">quick</SelectItem>
+                      <SelectItem value="catalog">catalog</SelectItem>
+                      <SelectItem value="official-rule">
+                        official-rule
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Override built-in topic ID (optional)
+                  </label>
+                  <Input
+                    value={knowledgeForm.overrideBuiltInId}
+                    onChange={e =>
+                      setKnowledgeForm({
+                        ...knowledgeForm,
+                        overrideBuiltInId: e.target.value,
+                      })
+                    }
+                    placeholder="library-rules"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Keywords (comma/new line)
+                  </label>
+                  <textarea
+                    className="w-full min-h-[80px] border rounded-md px-3 py-2 text-sm"
+                    value={knowledgeForm.keywordsText}
+                    onChange={e =>
+                      setKnowledgeForm({
+                        ...knowledgeForm,
+                        keywordsText: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Short facts (one per line)
+                  </label>
+                  <textarea
+                    className="w-full min-h-[80px] border rounded-md px-3 py-2 text-sm"
+                    value={knowledgeForm.shortFactsText}
+                    onChange={e =>
+                      setKnowledgeForm({
+                        ...knowledgeForm,
+                        shortFactsText: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Policy snippets (one per line)
+                  </label>
+                  <textarea
+                    className="w-full min-h-[80px] border rounded-md px-3 py-2 text-sm"
+                    value={knowledgeForm.policySnippetsText}
+                    onChange={e =>
+                      setKnowledgeForm({
+                        ...knowledgeForm,
+                        policySnippetsText: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Source URLs (official only)
+                  </label>
+                  <textarea
+                    className="w-full min-h-[80px] border rounded-md px-3 py-2 text-sm"
+                    value={knowledgeForm.sourceUrlsText}
+                    onChange={e =>
+                      setKnowledgeForm({
+                        ...knowledgeForm,
+                        sourceUrlsText: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Suggested follow-ups (one per line)
+                  </label>
+                  <textarea
+                    className="w-full min-h-[80px] border rounded-md px-3 py-2 text-sm"
+                    value={knowledgeForm.suggestedFollowUpsText}
+                    onChange={e =>
+                      setKnowledgeForm({
+                        ...knowledgeForm,
+                        suggestedFollowUpsText: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={knowledgeForm.enabled}
+                    onChange={e =>
+                      setKnowledgeForm({
+                        ...knowledgeForm,
+                        enabled: e.target.checked,
+                      })
+                    }
+                  />
+                  Enabled
+                </label>
+              </div>
+              {(createKnowledgeMutation.error ||
+                updateKnowledgeMutation.error) && (
+                <p className="text-sm text-red-600 mt-3">
+                  {createKnowledgeMutation.error?.message ??
+                    updateKnowledgeMutation.error?.message}
+                </p>
+              )}
+              <div className="flex gap-2 mt-4">
+                <Button
+                  className="bg-indigo-600 hover:bg-indigo-700"
+                  onClick={handleSaveKnowledge}
+                  disabled={
+                    createKnowledgeMutation.isPending ||
+                    updateKnowledgeMutation.isPending
+                  }
+                >
+                  {editingKnowledgeId ? "Update entry" : "Create entry"}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setEditingKnowledgeId(null);
+                    setKnowledgeForm(emptyKnowledgeForm);
+                  }}
+                >
+                  Reset
+                </Button>
+              </div>
+            </Card>
+
+            <Card className="p-6">
+              <h2 className="text-lg font-bold mb-4">Knowledge entries</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                <Input
+                  placeholder="Search topic / keyword"
+                  value={knowledgeSearch}
+                  onChange={e => setKnowledgeSearch(e.target.value)}
+                />
+                <Select
+                  value={knowledgeBadgeFilter}
+                  onValueChange={val =>
+                    setKnowledgeBadgeFilter(val as KnowledgeSourceBadge | "all")
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All badges</SelectItem>
+                    <SelectItem value="quick">quick</SelectItem>
+                    <SelectItem value="catalog">catalog</SelectItem>
+                    <SelectItem value="official-rule">official-rule</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={knowledgeEnabledFilter}
+                  onValueChange={val =>
+                    setKnowledgeEnabledFilter(
+                      val as "all" | "enabled" | "disabled"
+                    )
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All states</SelectItem>
+                    <SelectItem value="enabled">Enabled</SelectItem>
+                    <SelectItem value="disabled">Disabled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {knowledgeLoading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-indigo-600" />
+                </div>
+              ) : filteredKnowledgeEntries.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">
+                  No knowledge entries
+                </p>
+              ) : (
+                <ScrollArea className="h-96">
+                  <div className="space-y-2">
+                    {filteredKnowledgeEntries.map((entry: any) => {
+                      const hasOnlyOfficialLinks = (
+                        entry.sourceUrls ?? []
+                      ).every((url: string) =>
+                        url.includes("https://lib-hdak.in.ua/")
+                      );
+                      return (
+                        <div
+                          key={entry.id}
+                          className="p-3 bg-gray-50 rounded-lg space-y-2"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <div>
+                              <p className="font-medium text-gray-900">
+                                {entry.title || entry.topic}
+                              </p>
+                              <p className="text-xs text-gray-600">
+                                {entry.topic} · {entry.sourceBadge} ·{" "}
+                                {entry.enabled ? "enabled" : "disabled"}
+                              </p>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEditKnowledge(entry)}
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() =>
+                                  duplicateKnowledgeMutation.mutate({
+                                    id: entry.id,
+                                  })
+                                }
+                              >
+                                Duplicate
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant={
+                                  entry.enabled ? "destructive" : "default"
+                                }
+                                onClick={() =>
+                                  setKnowledgeEnabledMutation.mutate({
+                                    id: entry.id,
+                                    enabled: !entry.enabled,
+                                  })
+                                }
+                              >
+                                {entry.enabled ? "Disable" : "Enable"}
+                              </Button>
+                            </div>
+                          </div>
+                          <p className="text-xs text-gray-600">
+                            Links validation:{" "}
+                            <b
+                              className={
+                                hasOnlyOfficialLinks
+                                  ? "text-green-700"
+                                  : "text-red-700"
+                              }
+                            >
+                              {hasOnlyOfficialLinks ? "official" : "invalid"}
+                            </b>
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </ScrollArea>
+              )}
+            </Card>
+          </div>
+        )}
+
         {/* Analytics Tab */}
         {activeTab === "analytics" && (
           <div className="space-y-6">
@@ -1205,12 +1670,31 @@ export default function Admin() {
                               .map(item => (
                                 <div
                                   key={item.query}
-                                  className="flex justify-between text-sm"
+                                  className="flex items-center justify-between gap-2 text-sm"
                                 >
                                   <span className="truncate mr-3">
                                     {item.query}
                                   </span>
-                                  <b>{item.count}</b>
+                                  <div className="flex items-center gap-2">
+                                    <b>{item.count}</b>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => {
+                                        setActiveTab("knowledge");
+                                        setEditingKnowledgeId(null);
+                                        setKnowledgeForm({
+                                          ...emptyKnowledgeForm,
+                                          topic: item.query,
+                                          title: item.query,
+                                          keywordsText: item.query,
+                                          shortFactsText: `Оновлюваний довідковий запис для запиту: ${item.query}`,
+                                        });
+                                      }}
+                                    >
+                                      Create knowledge entry from query
+                                    </Button>
+                                  </div>
                                 </div>
                               ))}
                           </div>

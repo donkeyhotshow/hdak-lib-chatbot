@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildLibraryKnowledgeContext,
+  findLibraryKnowledgeTopicInTopics,
   findLibraryKnowledgeTopic,
   LIBRARY_KNOWLEDGE_TOPICS,
 } from "./libraryKnowledge";
@@ -60,5 +61,22 @@ describe("libraryKnowledge", () => {
   it("finds topic by keyword query", () => {
     const topic = findLibraryKnowledgeTopic("як звернутися до бібліотекаря");
     expect(topic?.id).toBe("ask-librarian");
+  });
+
+  it("ignores disabled topics when searching in runtime topics", () => {
+    const topic = findLibraryKnowledgeTopicInTopics("режим медіатеки", [
+      {
+        id: "editable-media",
+        topic: "Медіатека",
+        title: "Медіатека",
+        keywords: ["режим медіатеки"],
+        shortFacts: ["Медіатека працює за графіком."],
+        policySnippets: [],
+        sourceUrls: ["https://lib-hdak.in.ua/site-map.html"],
+        sourceBadge: "quick",
+        enabled: false,
+      },
+    ]);
+    expect(topic).toBeNull();
   });
 });

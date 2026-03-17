@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const runAiOrchestrationMock = vi.fn();
 const loadConversationHistoryMock = vi.fn();
 const persistConversationMessagesMock = vi.fn();
+const getMergedKnowledgeTopicsMock = vi.fn();
 
 vi.mock("./aiOrchestrator", () => ({
   runAiOrchestration: runAiOrchestrationMock,
@@ -11,6 +12,10 @@ vi.mock("./aiOrchestrator", () => ({
 vi.mock("./conversationMemory", () => ({
   loadConversationHistory: loadConversationHistoryMock,
   persistConversationMessages: persistConversationMessagesMock,
+}));
+
+vi.mock("./knowledgeAdmin", () => ({
+  getMergedKnowledgeTopics: getMergedKnowledgeTopicsMock,
 }));
 
 describe("processChatRequest instant answers", () => {
@@ -29,6 +34,7 @@ describe("processChatRequest instant answers", () => {
     });
     loadConversationHistoryMock.mockResolvedValue([]);
     persistConversationMessagesMock.mockResolvedValue(undefined);
+    getMergedKnowledgeTopicsMock.mockResolvedValue([]);
   });
 
   afterEach(async () => {
@@ -154,5 +160,32 @@ describe("processChatRequest instant answers", () => {
     const response = result.stream.toUIMessageStreamResponse();
     expect(response).toBeInstanceOf(Response);
     expect(result.flagged).toBe(false);
+  });
+
+  it("uses merged editable knowledge topics for instant answer matching", async () => {
+    getMergedKnowledgeTopicsMock.mockResolvedValueOnce([
+      {
+        id: "editable-hours",
+        topic: "Режим роботи медіатеки",
+        title: "Режим роботи медіатеки",
+        keywords: ["режим медіатеки"],
+        shortFacts: ["Медіатека працює у будні дні."],
+        policySnippets: [],
+        sourceUrls: ["https://lib-hdak.in.ua/site-map.html"],
+        sourceBadge: "quick",
+        suggestedFollowUps: ["Де контакти бібліотеки?"],
+        enabled: true,
+      },
+    ]);
+    const { processChatRequest } = await import("./chatService");
+
+    const result = await processChatRequest({
+      messages: [{ role: "user", content: "режим медіатеки" }],
+      userId: null,
+      ip: "127.0.0.1",
+    });
+
+    expect(result.flagged).toBe(false);
+    expect(runAiOrchestrationMock).not.toHaveBeenCalled();
   });
 });

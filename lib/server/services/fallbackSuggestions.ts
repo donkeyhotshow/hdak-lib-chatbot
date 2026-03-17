@@ -1,7 +1,9 @@
 import {
-  findLibraryKnowledgeTopic,
+  findLibraryKnowledgeTopicInTopics,
+  LIBRARY_KNOWLEDGE_TOPICS,
   normalizeLibraryKnowledgeQuery,
   type LibraryKnowledgeLanguage,
+  type LibraryKnowledgeTopic,
 } from "./libraryKnowledge";
 import { OFFICIAL_CATALOG_URL } from "./catalogIntent";
 
@@ -32,9 +34,13 @@ function hasSoftKnowledgeSignal(query: string): boolean {
 
 export function buildKnowledgeAssistedFallback(
   query: string,
-  language: LibraryKnowledgeLanguage
+  language: LibraryKnowledgeLanguage,
+  options?: { knowledgeTopics?: LibraryKnowledgeTopic[] }
 ): KnowledgeFallback | null {
-  const topic = findLibraryKnowledgeTopic(query);
+  const knowledgeTopics =
+    options?.knowledgeTopics?.filter(topic => topic.enabled !== false) ??
+    LIBRARY_KNOWLEDGE_TOPICS;
+  const topic = findLibraryKnowledgeTopicInTopics(query, knowledgeTopics);
   if (!topic && !hasSoftKnowledgeSignal(query)) {
     return null;
   }

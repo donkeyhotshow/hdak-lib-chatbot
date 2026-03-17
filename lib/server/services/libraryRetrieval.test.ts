@@ -34,4 +34,26 @@ describe("libraryRetrieval", () => {
     expect(context).toContain("Офіційні матеріали бібліотеки (retrieval)");
     expect(context).toContain("https://lib-hdak.in.ua/");
   });
+
+  it("uses editable runtime knowledge topics for retrieval enrichment", () => {
+    const chunks = retrieveOfficialLibraryChunks("режим медіатеки", {
+      knowledgeTopics: [
+        {
+          id: "editable-media",
+          topic: "Режим роботи медіатеки",
+          title: "Режим роботи медіатеки",
+          keywords: ["режим медіатеки"],
+          shortFacts: ["Медіатека працює з понеділка по п’ятницю."],
+          policySnippets: [],
+          sourceUrls: ["https://lib-hdak.in.ua/site-map.html"],
+          sourceBadge: "quick",
+          enabled: true,
+        },
+      ],
+    });
+    expect(chunks.length).toBeGreaterThan(0);
+    expect(
+      chunks.some(chunk => chunk.sourceUrl.includes("site-map.html"))
+    ).toBe(true);
+  });
 });
