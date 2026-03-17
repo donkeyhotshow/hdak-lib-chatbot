@@ -9,6 +9,7 @@
 
 import { ENV } from "./env";
 import { fetchWithSecurity } from "../services/security/safeRequest";
+import { isServiceEnabled } from "./serviceAvailability";
 
 // ============================================================================
 // Configuration
@@ -20,6 +21,9 @@ type MapsConfig = {
 };
 
 function getMapsConfig(): MapsConfig {
+  if (!isServiceEnabled("map")) {
+    throw new Error("Map service is disabled by configuration");
+  }
   const baseUrl = ENV.forgeApiUrl;
   const apiKey = ENV.forgeApiKey;
 

@@ -187,10 +187,19 @@ export interface Metrics {
       lastModel: string | null;
     };
   };
+  recommendations: {
+    impressions: number;
+  };
   memory: {
     current: MemorySnapshot | null;
     history: MemorySnapshot[];
   };
+}
+
+let recommendationImpressions = 0;
+
+export function recordRecommendationImpression(count = 1): void {
+  recommendationImpressions += Math.max(0, Math.floor(count));
 }
 
 interface OpenRouterUsageCounters {
@@ -266,6 +275,9 @@ export function getMetrics(): Metrics {
     usage: {
       openRouter: { ...openRouterUsage },
     },
+    recommendations: {
+      impressions: recommendationImpressions,
+    },
     memory: {
       current: getCurrentMemory(),
       history: getMemorySnapshots(),
@@ -290,6 +302,7 @@ export function _resetMetrics(): void {
   openRouterUsage.totalTokens = 0;
   openRouterUsage.estimatedCostUsd = 0;
   openRouterUsage.lastModel = null;
+  recommendationImpressions = 0;
   memorySnapshots.length = 0;
   stopMemoryMonitoring();
 }

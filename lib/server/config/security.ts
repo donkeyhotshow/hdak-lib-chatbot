@@ -1,3 +1,5 @@
+import { ENV } from "../_core/env";
+
 export const SECURITY_CONFIG = {
   promptInjection: {
     patterns: [
@@ -30,7 +32,7 @@ export const SECURITY_CONFIG = {
   tokenLimits: {
     maxPromptTokens: 8_000,
     maxResponseTokens: 2_000,
-    maxHistoryMessages: 50,
+    maxHistoryMessages: 30,
     maxMessageChars: 10_000,
     conversationContextHistory: 10,
   },
@@ -38,6 +40,8 @@ export const SECURITY_CONFIG = {
     userRequestsPerMinute: 20,
     ipRequestsPerMinute: 60,
     windowMs: 60_000,
+    burstWindowMs: 10_000,
+    ipBurstRequestsPerWindow: 12,
   },
   responseLimits: {
     maxResponseLength: 50_000,
@@ -48,6 +52,13 @@ export const SECURITY_CONFIG = {
   },
   chat: {
     timeoutMs: 30_000,
+  },
+  circuitBreaker: {
+    failureThreshold: ENV.circuitBreakerFailureThreshold,
+    resetTimeoutMs: ENV.circuitBreakerResetTimeoutMs,
+  },
+  contentRepo: {
+    starsLimit: ENV.githubStarsLimit,
   },
 } as const;
 

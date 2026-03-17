@@ -32,8 +32,8 @@ describe("tokenLimits", () => {
       userId: 1,
       ip: "1.1.1.1",
     });
-    expect(trimmed.length).toBe(50);
-    expect(trimmed[0]?.content).toBe("message-20");
+    expect(trimmed.length).toBe(30);
+    expect(trimmed[0]?.content).toBe("message-40");
   });
 
   it("trims oversized responses", () => {

@@ -8,13 +8,36 @@
  * plain console output during a live demonstration.
  */
 
+import { ENV } from "./env";
+
 type LogLevel = "debug" | "info" | "warn" | "error";
+const LOG_PRIORITY: Record<LogLevel, number> = {
+  debug: 10,
+  info: 20,
+  warn: 30,
+  error: 40,
+};
+
+function getConfiguredLogLevel(): LogLevel {
+  const value = (
+    process.env.LOG_LEVEL ||
+    ENV.logLevel ||
+    "debug"
+  ).toLowerCase();
+  if (value === "debug" || value === "info" || value === "warn") return value;
+  return "error";
+}
+
+function shouldLog(level: LogLevel): boolean {
+  return LOG_PRIORITY[level] >= LOG_PRIORITY[getConfiguredLogLevel()];
+}
 
 function log(
   level: LogLevel,
   message: string,
   meta?: Record<string, unknown>
 ): void {
+  if (!shouldLog(level)) return;
   const entry: Record<string, unknown> = {
     time: new Date().toISOString(),
     level,

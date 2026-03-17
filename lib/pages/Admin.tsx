@@ -1529,7 +1529,7 @@ export default function Admin() {
               </div>
             ) : analytics ? (
               <>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                   <Card className="p-4 text-center">
                     <p className="text-3xl font-bold text-indigo-600">
                       {analytics.totalQueries}
@@ -2112,6 +2112,14 @@ export default function Admin() {
                       {(perfMetrics.streaming.errorRate * 100).toFixed(1)}%
                     </p>
                     <p className="text-sm text-gray-600 mt-1">Error Rate</p>
+                  </Card>
+                  <Card className="p-4 text-center">
+                    <p className="text-3xl font-bold text-indigo-600">
+                      {perfMetrics.recommendations?.impressions ?? 0}
+                    </p>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Recommendation impressions
+                    </p>
                   </Card>
                 </div>
 

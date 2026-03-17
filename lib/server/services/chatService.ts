@@ -53,6 +53,7 @@ import {
 import { emitChatAnalyticsEvent } from "./chatAnalytics";
 import {
   recordLatency,
+  recordRecommendationImpression,
   recordModelUsage,
   recordStreamOutcome,
 } from "../_core/metrics";
@@ -373,6 +374,9 @@ export async function processChatRequest(input: {
   });
 
   if (instantAnswer) {
+    if ((instantAnswer.suggestedFollowUps?.length ?? 0) > 0) {
+      recordRecommendationImpression(1);
+    }
     setCachedResponse(instantCacheKey, {
       text: instantAnswer.answer,
       sourceBadge:

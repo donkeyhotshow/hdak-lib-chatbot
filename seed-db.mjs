@@ -44,17 +44,17 @@ async function seed() {
         ]),
       },
       {
-        nameEn: "KSAC Repository",
-        nameUk: "Репозитарій KSAC",
-        nameRu: "Репозиторий KSAC",
+        nameEn: "HDAK Repository",
+        nameUk: "Репозитарій ХДАК",
+        nameRu: "Репозиторий ХДАК",
         descriptionEn:
-          "Full-text publications by faculty members and qualification works of KSAC students",
+          "Full-text publications by HDAK scholars and qualification works",
         descriptionUk:
-          "Повнотекстові видання викладачів та кваліфікаційні роботи здобувачів KSAC",
+          "Повнотекстові видання викладачів та кваліфікаційні роботи здобувачів ХДАК",
         descriptionRu:
-          "Полнотекстовые издания преподавателей и квалификационные работы студентов KSAC",
+          "Полнотекстовые издания преподавателей и квалификационные работы студентов ХДАК",
         type: "repository",
-        url: "https://repo.ksac.edu.sa/",
+        url: "https://lib-hdak.in.ua/scientists-publications.html",
         keywords: JSON.stringify([
           "research",
           "publications",
@@ -73,7 +73,7 @@ async function seed() {
         descriptionRu:
           "Поиск по традиционному фонду библиотеки включая книги, журналы и другие печатные материалы",
         type: "catalog",
-        url: "https://lib.ksac.edu.sa/catalog",
+        url: "https://lib-hdak.in.ua/e-catalog.html",
         keywords: JSON.stringify(["catalog", "books", "journals", "search"]),
       },
       {
@@ -87,7 +87,7 @@ async function seed() {
         descriptionRu:
           "Международная база данных рефератов и цитирований рецензируемой литературы по науке, технологиям, медицине и социальным наукам",
         type: "database",
-        url: "https://www.scopus.com/",
+        url: "https://lib-hdak.in.ua/search-scientific-info.html",
         keywords: JSON.stringify([
           "international",
           "peer-reviewed",
@@ -106,7 +106,7 @@ async function seed() {
         descriptionRu:
           "Мультидисциплинарная исследовательская платформа с доступом к рецензируемым журналам, материалам конференций и другому научному контенту",
         type: "database",
-        url: "https://www.webofscience.com/",
+        url: "https://lib-hdak.in.ua/search-scientific-info.html",
         keywords: JSON.stringify([
           "international",
           "multidisciplinary",
@@ -125,7 +125,7 @@ async function seed() {
         descriptionRu:
           "Бесплатный архив полнотекстовых статей по биомедицине и наукам о жизни в Национальных институтах здоровья США",
         type: "database",
-        url: "https://www.ncbi.nlm.nih.gov/pmc/",
+        url: "https://lib-hdak.in.ua/search-scientific-info.html",
         keywords: JSON.stringify([
           "biomedical",
           "health sciences",
@@ -146,7 +146,7 @@ async function seed() {
     const contacts = [
       {
         type: "email",
-        value: "library@ksac.edu.sa",
+        value: "library@hdak.edu.ua",
         labelEn: "Library Email",
         labelUk: "Електронна пошта бібліотеки",
         labelRu: "Электронная почта библиотеки",
@@ -160,29 +160,28 @@ async function seed() {
       },
       {
         type: "address",
-        value:
-          "King Saud bin Abdulaziz University for Health Sciences, Riyadh, Saudi Arabia",
+        value: "вул. Бурсацький узвіз, 4, Харків, Україна",
         labelEn: "Library Address",
         labelUk: "Адреса бібліотеки",
         labelRu: "Адрес библиотеки",
       },
       {
         type: "telegram",
-        value: "https://t.me/ksac_library",
+        value: "https://lib-hdak.in.ua/contacts.html",
         labelEn: "Telegram Channel",
         labelUk: "Канал Telegram",
         labelRu: "Канал Telegram",
       },
       {
         type: "facebook",
-        value: "https://www.facebook.com/ksac.library",
+        value: "https://lib-hdak.in.ua/contacts.html",
         labelEn: "Facebook Page",
         labelUk: "Сторінка Facebook",
         labelRu: "Страница Facebook",
       },
       {
         type: "instagram",
-        value: "https://www.instagram.com/ksac_library",
+        value: "https://lib-hdak.in.ua/contacts.html",
         labelEn: "Instagram Account",
         labelUk: "Акаунт Instagram",
         labelRu: "Аккаунт Instagram",
@@ -256,11 +255,11 @@ async function seed() {
       {
         key: "about",
         valueEn:
-          "KSAC Library is a modern academic library serving the King Saud bin Abdulaziz University for Health Sciences community with comprehensive collections and services.",
+          "HDAK Library is an academic library of Kharkiv State Academy of Culture with electronic catalog, repository, and official research resources.",
         valueUk:
-          "Бібліотека KSAC - це сучасна академічна бібліотека, яка обслуговує спільноту Університету медичних наук імені короля Сауда бін Абдулазіза з комплексними колекціями та послугами.",
+          "Бібліотека ХДАК — академічна бібліотека Харківської державної академії культури з електронним каталогом, репозитарієм та науковими ресурсами.",
         valueRu:
-          "Библиотека KSAC - это современная академическая библиотека, обслуживающая сообщество Университета медицинских наук имени короля Сауда бин Абдулазиза с комплексными коллекциями и услугами.",
+          "Библиотека ХДАК — академическая библиотека Харьковской государственной академии культуры с электронным каталогом, репозиторием и научными ресурсами.",
       },
       {
         key: "hours",

@@ -6,6 +6,7 @@
  */
 import { ENV } from "./env";
 import { fetchWithSecurity } from "../services/security/safeRequest";
+import { isServiceEnabled } from "./serviceAvailability";
 
 export type DataApiCallOptions = {
   query?: Record<string, unknown>;
@@ -18,6 +19,9 @@ export async function callDataApi(
   apiId: string,
   options: DataApiCallOptions = {}
 ): Promise<unknown> {
+  if (!isServiceEnabled("dataApi")) {
+    throw new Error("Data API service is disabled by configuration");
+  }
   if (!ENV.forgeApiUrl) {
     throw new Error("BUILT_IN_FORGE_API_URL is not configured");
   }

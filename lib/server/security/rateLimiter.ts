@@ -7,6 +7,7 @@ type Bucket = { timestamps: number[] };
 
 const ipBuckets = new Map<string, Bucket>();
 const userBuckets = new Map<string, Bucket>();
+const ipBurstBuckets = new Map<string, Bucket>();
 
 function getBucket(map: Map<string, Bucket>, key: string): Bucket {
   const existing = map.get(key);
@@ -49,8 +50,13 @@ export async function enforceSecurityRateLimit(params: {
   userId?: number | null;
 }): Promise<void> {
   const now = Date.now();
-  const { windowMs, ipRequestsPerMinute, userRequestsPerMinute } =
-    SECURITY_CONFIG.rateLimit;
+  const {
+    windowMs,
+    ipRequestsPerMinute,
+    userRequestsPerMinute,
+    burstWindowMs,
+    ipBurstRequestsPerWindow,
+  } = SECURITY_CONFIG.rateLimit;
 
   const ipBucketKey = `${params.endpoint}:${params.ip}`;
   const ipResult = consume(
@@ -66,6 +72,29 @@ export async function enforceSecurityRateLimit(params: {
       userId: params.userId ?? null,
       ip: params.ip,
       details: { scope: "ip", retryAfterSeconds: ipResult.retryAfterSeconds },
+    });
+    throw new TRPCError({
+      code: "TOO_MANY_REQUESTS",
+      message: "Rate limit exceeded",
+    });
+  }
+
+  const burstResult = consume(
+    getBucket(ipBurstBuckets, ipBucketKey),
+    now,
+    burstWindowMs,
+    ipBurstRequestsPerWindow
+  );
+  if (!burstResult.allowed) {
+    logSecurityEvent({
+      endpoint: params.endpoint,
+      eventType: "rate_limit_violation",
+      userId: params.userId ?? null,
+      ip: params.ip,
+      details: {
+        scope: "ip_burst",
+        retryAfterSeconds: burstResult.retryAfterSeconds,
+      },
     });
     throw new TRPCError({
       code: "TOO_MANY_REQUESTS",
@@ -103,4 +132,5 @@ export async function enforceSecurityRateLimit(params: {
 export function clearSecurityRateLimitBuckets(): void {
   ipBuckets.clear();
   userBuckets.clear();
+  ipBurstBuckets.clear();
 }

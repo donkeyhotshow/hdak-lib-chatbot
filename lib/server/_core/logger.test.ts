@@ -24,6 +24,7 @@ describe("logger — structured JSON output", () => {
   });
 
   afterEach(() => {
+    delete process.env.LOG_LEVEL;
     vi.restoreAllMocks();
   });
 
@@ -52,6 +53,18 @@ describe("logger — structured JSON output", () => {
     const parsed = JSON.parse(stdoutLines[0]);
     expect(parsed.level).toBe("debug");
     expect(parsed.msg).toBe("Debug message");
+  });
+
+  it("respects LOG_LEVEL filtering", () => {
+    process.env.LOG_LEVEL = "warn";
+    logger.debug("Filtered debug");
+    logger.info("Filtered info");
+    logger.warn("Visible warn");
+    expect(stdoutLines).toHaveLength(0);
+    expect(stderrLines).toHaveLength(1);
+    const parsed = JSON.parse(stderrLines[0]);
+    expect(parsed.level).toBe("warn");
+    delete process.env.LOG_LEVEL;
   });
 
   // ── warn ──────────────────────────────────────────────────────────────────
@@ -100,6 +113,7 @@ describe("logger.milestone — banner output", () => {
   });
 
   afterEach(() => {
+    delete process.env.LOG_LEVEL;
     vi.restoreAllMocks();
   });
 

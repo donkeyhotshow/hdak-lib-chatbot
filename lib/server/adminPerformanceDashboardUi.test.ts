@@ -10,6 +10,7 @@ describe("Admin performance dashboard UI guards", () => {
   it("renders performance metrics tab with OpenRouter usage section", () => {
     expect(adminPageContent).toContain("Performance Metrics");
     expect(adminPageContent).toContain("OpenRouter Usage & Cost");
+    expect(adminPageContent).toContain("Recommendation impressions");
     expect(adminPageContent).toContain("estimatedCostUsd");
     expect(adminPageContent).toContain(
       "OPENROUTER_INPUT_COST_USD_PER_1M_TOKENS"

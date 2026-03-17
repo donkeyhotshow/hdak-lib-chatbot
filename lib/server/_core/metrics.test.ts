@@ -21,6 +21,7 @@ import {
   getCurrentMemory,
   getMetrics,
   recordModelUsage,
+  recordRecommendationImpression,
   _resetMetrics,
 } from "./metrics";
 
@@ -213,6 +214,13 @@ describe("getMetrics", () => {
     expect(m.usage.openRouter.totalTokens).toBe(1500);
     expect(m.usage.openRouter.lastModel).toBe("openrouter/free");
     expect(m.usage.openRouter.estimatedCostUsd).toBeCloseTo(0.00275);
+  });
+
+  it("tracks recommendation impressions counter", () => {
+    recordRecommendationImpression();
+    recordRecommendationImpression(2);
+    const m = getMetrics();
+    expect(m.recommendations.impressions).toBe(3);
   });
 });
 

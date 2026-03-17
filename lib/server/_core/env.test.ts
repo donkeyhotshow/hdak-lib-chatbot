@@ -12,6 +12,15 @@ const ENV_KEYS = [
   "CHAT_PROVIDER_API_KEY",
   "OPENROUTER_HTTP_REFERER",
   "OPENROUTER_X_TITLE",
+  "LOG_LEVEL",
+  "SERVICES_ENABLED",
+  "SERVICE_DATA_API_ENABLED",
+  "SERVICE_IMAGE_ENABLED",
+  "SERVICE_MAP_ENABLED",
+  "SERVICE_VOICE_ENABLED",
+  "GITHUB_STARS_LIMIT",
+  "CIRCUIT_BREAKER_FAILURE_THRESHOLD",
+  "CIRCUIT_BREAKER_RESET_TIMEOUT_MS",
 ] as const;
 
 const originalValues = new Map<string, string | undefined>(
@@ -85,6 +94,24 @@ describe("ENV forge aliases", () => {
     delete process.env.PORT;
     const { ENV } = await importEnvModule();
     expect(ENV.port).toBe(3000);
+  });
+
+  it("supports log level, service toggles, stars limit and circuit breaker settings", async () => {
+    process.env.LOG_LEVEL = "warn";
+    process.env.SERVICES_ENABLED = "false";
+    process.env.SERVICE_VOICE_ENABLED = "true";
+    process.env.GITHUB_STARS_LIMIT = "250";
+    process.env.CIRCUIT_BREAKER_FAILURE_THRESHOLD = "8";
+    process.env.CIRCUIT_BREAKER_RESET_TIMEOUT_MS = "45000";
+
+    const { ENV } = await importEnvModule();
+
+    expect(ENV.logLevel).toBe("warn");
+    expect(ENV.servicesEnabled).toBe(false);
+    expect(ENV.serviceEnabled.voice).toBe(true);
+    expect(ENV.githubStarsLimit).toBe(250);
+    expect(ENV.circuitBreakerFailureThreshold).toBe(8);
+    expect(ENV.circuitBreakerResetTimeoutMs).toBe(45000);
   });
 
   it("reports missing critical env vars for runtime", async () => {
