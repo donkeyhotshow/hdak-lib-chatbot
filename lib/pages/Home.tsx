@@ -78,6 +78,7 @@ const translations: Record<Language, Record<string, string>> = {
     langCode: "ENG",
     quickAnswer: "Quick answer",
     badgeQuick: "Quick answer",
+    badgeCatalog: "Catalog",
     badgeOfficialRule: "Official rule",
     badgeGenerated: "Generated from reference data",
     sourcesLabel: "Sources",
@@ -125,16 +126,13 @@ const translations: Record<Language, Record<string, string>> = {
     langCode: "УКР",
     quickAnswer: "Швидка відповідь",
     badgeQuick: "Швидка відповідь",
+    badgeCatalog: "Каталог",
     badgeOfficialRule: "Офіційне правило",
     badgeGenerated: "Згенеровано на основі довідкових даних",
     sourcesLabel: "Джерела",
     viewSource: "Переглянути джерело",
   },
 };
-
-function createGuestId(): string {
-  return generateFallbackLocalId();
-}
 
 function getGuestHistoryKey(guestId: string) {
   return `${GUEST_HISTORY_STORAGE_PREFIX}${guestId}`;
@@ -281,10 +279,9 @@ export default function Home() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const existingGuestId = window.localStorage.getItem(GUEST_ID_STORAGE_KEY);
-    const guestId = existingGuestId ?? createGuestId();
-    if (!existingGuestId) {
+    const guestId = existingGuestId ?? generateFallbackLocalId();
+    if (!existingGuestId)
       window.localStorage.setItem(GUEST_ID_STORAGE_KEY, guestId);
-    }
     guestIdRef.current = guestId;
 
     const historyKey = getGuestHistoryKey(guestId);
@@ -1358,11 +1355,13 @@ export default function Home() {
                   ? null
                   : instantAnswerMeta?.sourceBadge === "official-rule"
                     ? t.badgeOfficialRule
-                    : instantAnswerMeta
-                      ? t.badgeQuick
-                      : knowledgeTopic
-                        ? t.badgeGenerated
-                        : null;
+                    : instantAnswerMeta?.sourceBadge === "catalog"
+                      ? t.badgeCatalog
+                      : instantAnswerMeta
+                        ? t.badgeQuick
+                        : knowledgeTopic
+                          ? t.badgeGenerated
+                          : null;
                 const sourceLinks = isUser
                   ? []
                   : (instantAnswerMeta?.links ??

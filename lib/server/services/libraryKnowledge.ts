@@ -7,7 +7,7 @@ export type LibraryKnowledgeTopic = {
   policySnippets: string[];
   keywords: string[];
   sourceUrls: string[];
-  sourceBadge: "quick" | "official-rule";
+  sourceBadge: "quick" | "catalog" | "official-rule";
 };
 
 export type LibraryKnowledgeLanguage = "uk" | "en" | "ru";
@@ -109,7 +109,7 @@ export const LIBRARY_KNOWLEDGE_TOPICS: LibraryKnowledgeTopic[] = [
       "пошук книги",
     ],
     sourceUrls: [OFFICIAL_CATALOG_URL, "https://lib-hdak.in.ua/site-map.html"],
-    sourceBadge: "quick",
+    sourceBadge: "catalog",
   },
   {
     id: "find-book",
@@ -131,7 +131,7 @@ export const LIBRARY_KNOWLEDGE_TOPICS: LibraryKnowledgeTopic[] = [
       "пошук за назвою",
     ],
     sourceUrls: [OFFICIAL_CATALOG_URL],
-    sourceBadge: "quick",
+    sourceBadge: "catalog",
   },
   {
     id: "contacts",

@@ -17,6 +17,7 @@ describe("Home guestId and source provenance guards", () => {
 
   it("renders compact source badge and source links for assistant messages", () => {
     expect(homePageContent).toContain("sourceBadge");
+    expect(homePageContent).toContain("badgeCatalog");
     expect(homePageContent).toContain("sourceLinks");
     expect(homePageContent).toContain("t.sourcesLabel");
     expect(homePageContent).toContain("t.viewSource");

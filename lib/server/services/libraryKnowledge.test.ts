@@ -26,6 +26,17 @@ describe("libraryKnowledge", () => {
     );
   });
 
+  it("marks catalog-related topics with catalog source badge", () => {
+    const catalogTopic = LIBRARY_KNOWLEDGE_TOPICS.find(
+      topic => topic.id === "catalog"
+    );
+    const findBookTopic = LIBRARY_KNOWLEDGE_TOPICS.find(
+      topic => topic.id === "find-book"
+    );
+    expect(catalogTopic?.sourceBadge).toBe("catalog");
+    expect(findBookTopic?.sourceBadge).toBe("catalog");
+  });
+
   it("keeps official library domain links only", () => {
     for (const topic of LIBRARY_KNOWLEDGE_TOPICS) {
       for (const url of topic.sourceUrls) {

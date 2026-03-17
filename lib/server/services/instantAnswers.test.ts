@@ -56,6 +56,7 @@ describe("instantAnswers", () => {
     expect(answer?.action?.type).toBe("catalog");
     expect(answer?.action?.searchType).toBe("generic");
     expect(answer?.action?.url).toBe(OFFICIAL_CATALOG_URL);
+    expect(answer?.sourceBadge).toBe("catalog");
   });
 
   it("returns catalog instant answer for author search query", () => {
@@ -65,6 +66,7 @@ describe("instantAnswers", () => {
     expect(answer?.action?.searchType).toBe("author");
     expect(answer?.action?.searchQuery).toBe("шевченко");
     expect(answer?.action?.url).toContain(OFFICIAL_CATALOG_URL);
+    expect(answer?.sourceBadge).toBe("catalog");
   });
 
   it("returns catalog instant answer for subject query", () => {
@@ -74,14 +76,14 @@ describe("instantAnswers", () => {
     expect(answer?.action?.searchType).toBe("subject");
     expect(answer?.action?.searchQuery).toBe("режисури");
     expect(answer?.links).toEqual([OFFICIAL_CATALOG_URL]);
-    expect(answer?.sourceBadge).toBe("quick");
+    expect(answer?.sourceBadge).toBe("catalog");
   });
 
   it("returns quick instant answer for how to find a book", () => {
     const answer = getInstantAnswer("як знайти книгу", "uk");
     expect(answer).not.toBeNull();
     expect(answer?.intent).toBe("find-book");
-    expect(answer?.sourceBadge).toBe("quick");
+    expect(answer?.sourceBadge).toBe("catalog");
   });
 
   it("uses official catalog URL for catalog instant answers", () => {

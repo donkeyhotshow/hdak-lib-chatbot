@@ -18,7 +18,7 @@ export type LibraryFaqEntry = {
   answer: string;
   bullets: string[];
   links: string[];
-  sourceBadge: "quick" | "official-rule";
+  sourceBadge: "quick" | "catalog" | "official-rule";
 };
 
 export type InstantAnswer = {
@@ -27,7 +27,7 @@ export type InstantAnswer = {
   answer: string;
   links: string[];
   action?: CatalogIntentAction;
-  sourceBadge?: "quick" | "official-rule";
+  sourceBadge?: "quick" | "catalog" | "official-rule";
 };
 
 function toFaqEntry(topic: LibraryKnowledgeTopic): LibraryFaqEntry {
@@ -136,7 +136,7 @@ export function getInstantAnswer(
       answer: formatCatalogIntentAnswer(catalogAction, language),
       links: [OFFICIAL_CATALOG_URL],
       action: catalogAction,
-      sourceBadge: "quick",
+      sourceBadge: "catalog",
     };
   }
 
@@ -163,6 +163,6 @@ export function getInstantAnswer(
     answer: formatCatalogIntentAnswer(catalogAction, language),
     links: [OFFICIAL_CATALOG_URL],
     action: catalogAction,
-    sourceBadge: "quick",
+    sourceBadge: "catalog",
   };
 }
