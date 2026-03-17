@@ -23,7 +23,7 @@ const CHAT_TITLE_MAX_LENGTH = 50;
 const SEND_DEBOUNCE_MS = 350;
 const GUEST_HISTORY_STORAGE_KEY = "hdak-guest-history-v1";
 
-type Language = "en" | "uk" | "ru";
+type Language = "en" | "uk";
 
 const translations: Record<Language, Record<string, string>> = {
   en: {
@@ -43,7 +43,6 @@ const translations: Record<Language, Record<string, string>> = {
     selectLanguage: "Select Language",
     english: "English",
     ukrainian: "Українська",
-    russian: "Русский",
     overviewGreeting: "How can I help?",
     overviewDesc:
       "Find books in the catalog, learn about databases, navigate the HDAK library website.",
@@ -83,7 +82,6 @@ const translations: Record<Language, Record<string, string>> = {
     selectLanguage: "Виберіть мову",
     english: "English",
     ukrainian: "Українська",
-    russian: "Русский",
     overviewGreeting: "Чим можу допомогти?",
     overviewDesc:
       "Знайду книги в каталозі, розповім про бази даних, допоможу орієнтуватися на сайті бібліотеки ХДАК.",
@@ -107,47 +105,6 @@ const translations: Record<Language, Record<string, string>> = {
     hint: "Enter — надіслати · Shift+Enter — новий рядок",
     langCode: "УКР",
   },
-  ru: {
-    title: "Помощник библиотеки ХДАК",
-    subtitle: "Ваш AI-помощник библиотеки ХДАК",
-    newChat: "Новый чат",
-    language: "Язык",
-    logout: "Выход",
-    login: "Вход",
-    sendMessage: "Отправить",
-    typeMessage: "Введите свой вопрос...",
-    loading: "Загрузка...",
-    error: "Ошибка",
-    noConversations: "Нет разговоров.",
-    startChat: "Начать чат",
-    conversations: "Разговоры",
-    selectLanguage: "Выберите язык",
-    english: "English",
-    ukrainian: "Українська",
-    russian: "Русский",
-    overviewGreeting: "Чем могу помочь?",
-    overviewDesc:
-      "Найду книги в каталоге, расскажу о базах данных, помогу ориентироваться на сайте библиотеки ХДАК.",
-    examplesTitle: "Попробуйте спросить:",
-    ex1: "Как записаться в библиотеку?",
-    ex2: "Есть ли доступ к Scopus?",
-    ex3: "Книги Тараса Шевченко",
-    ex4: "Что такое репозиторий ХДАК?",
-    ex5: "Где найти институциональный репозиторий?",
-    deleteConversation: "Удалить",
-    sendFailed: "Ошибка отправки. Попробуйте ещё раз.",
-    streamError: "Ошибка стриминга. Попробуйте ещё раз.",
-    streamErrorTooLarge:
-      "Сообщение слишком длинное (максимум 10 000 символов).",
-    actionFindCatalog: "Найти в каталоге",
-    actionWriteLetter: "Написать письмо",
-    actionShare: "Поделиться",
-    interfaceLang: "Язык интерфейса",
-    officialResources: "Официальные ресурсы библиотеки",
-    historyLabel: "Разговоры",
-    hint: "Enter — отправить · Shift+Enter — новая строка",
-    langCode: "РУС",
-  },
 };
 
 function getMessageText(msg: DisplayMessage): string {
@@ -170,7 +127,7 @@ export const RESOURCES = [
   {
     group: 1,
     ico: "🗂️",
-    name: "Электронный каталог",
+    name: "Електронний каталог",
     sub: "https://lib-hdak.in.ua/e-catalog.html",
     url: "https://lib-hdak.in.ua/e-catalog.html",
     vpn: false,
@@ -178,7 +135,7 @@ export const RESOURCES = [
   {
     group: 1,
     ico: "🗺️",
-    name: "Карта сайта",
+    name: "Карта сайту",
     sub: "https://lib-hdak.in.ua/site-map.html",
     url: "https://lib-hdak.in.ua/site-map.html",
     vpn: false,
@@ -186,14 +143,14 @@ export const RESOURCES = [
   {
     group: 1,
     ico: "🔎",
-    name: "Поиск научной информации",
+    name: "Пошук наукової інформації",
     sub: "https://lib-hdak.in.ua/search-scientific-info.html",
     url: "https://lib-hdak.in.ua/search-scientific-info.html",
     vpn: false,
   },
   {
     ico: "🔗",
-    name: "Полезные ссылки",
+    name: "Корисні посилання",
     sub: "https://lib-hdak.in.ua/helpful-links.html",
     url: "https://lib-hdak.in.ua/helpful-links.html",
     vpn: false,
@@ -201,7 +158,7 @@ export const RESOURCES = [
   {
     group: 1,
     ico: "🏠",
-    name: "Сайт библиотеки",
+    name: "Сайт бібліотеки",
     sub: "https://lib-hdak.in.ua/",
     url: "https://lib-hdak.in.ua/",
     vpn: false,
@@ -350,6 +307,9 @@ export default function Home() {
     undefined,
     {
       enabled: isAuthenticated,
+      retry: false,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
       staleTime: 5 * 60 * 1000,
     }
   );
@@ -358,6 +318,9 @@ export default function Home() {
     { conversationId: currentConversationId! },
     {
       enabled: isAuthenticated && currentConversationId !== null,
+      retry: false,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
       staleTime: 30_000,
     }
   );
@@ -563,7 +526,6 @@ export default function Home() {
 
   const langLabels: Record<Language, string> = {
     uk: "УКР",
-    ru: "РУС",
     en: "ENG",
   };
 
@@ -592,7 +554,7 @@ export default function Home() {
         }
         .hdak-body {
           font-family: 'DM Sans', system-ui, sans-serif;
-          background: #0b0f18;
+          background: #121a2b;
           color: #ede3d0;
           height: 100vh;
           overflow: hidden;
@@ -652,7 +614,7 @@ export default function Home() {
             padding: "0 20px",
             gap: 10,
             borderBottom: "1px solid rgba(180,148,80,0.14)",
-            background: "#131929",
+            background: "#1a2338",
             flexShrink: 0,
           }}
         >
@@ -700,7 +662,7 @@ export default function Home() {
                   position: "absolute",
                   top: 38,
                   left: 0,
-                  background: "#131929",
+                  background: "#1a2338",
                   border: "1px solid rgba(180,148,80,0.14)",
                   borderRadius: 12,
                   padding: 6,
@@ -926,7 +888,7 @@ export default function Home() {
                     position: "absolute",
                     top: 38,
                     right: 0,
-                    background: "#131929",
+                    background: "#1a2338",
                     border: "1px solid rgba(180,148,80,0.14)",
                     borderRadius: 12,
                     padding: 6,
@@ -1052,7 +1014,7 @@ export default function Home() {
                     position: "absolute",
                     top: 38,
                     right: 0,
-                    background: "#131929",
+                    background: "#1a2338",
                     border: "1px solid rgba(180,148,80,0.14)",
                     borderRadius: 12,
                     padding: 6,
@@ -1075,7 +1037,7 @@ export default function Home() {
                   >
                     {t.interfaceLang}
                   </div>
-                  {(["uk", "ru", "en"] as Language[]).map(lang => (
+                  {(["uk", "en"] as Language[]).map(lang => (
                     <div
                       key={lang}
                       className="hdak-lang-row"
@@ -1095,11 +1057,7 @@ export default function Home() {
                         gap: 8,
                       }}
                     >
-                      {lang === "uk"
-                        ? "🇺🇦 Українська"
-                        : lang === "ru"
-                          ? "🇷🇺 Русский"
-                          : "🇬🇧 English"}
+                      {lang === "uk" ? "🇺🇦 Українська" : "🇬🇧 English"}
                     </div>
                   ))}
                 </div>
@@ -1223,7 +1181,7 @@ export default function Home() {
                     onClick={() => handleQuickStart(chip.text)}
                     style={{
                       padding: "8px 16px",
-                      background: "#131929",
+                      background: "#1a2338",
                       border: "1px solid rgba(180,148,80,0.14)",
                       borderRadius: 22,
                       fontSize: 12,
@@ -1309,7 +1267,7 @@ export default function Home() {
                             : "1px solid rgba(180,148,80,0.14)",
                           fontSize: 14,
                           lineHeight: 1.7,
-                          background: isUser ? "#1c1505" : "#131929",
+                          background: isUser ? "#1c1505" : "#1a2338",
                           borderTopRightRadius: isUser ? 3 : 13,
                           borderTopLeftRadius: isUser ? 13 : 3,
                           color: "#ede3d0",
@@ -1443,7 +1401,7 @@ export default function Home() {
                       borderRadius: 13,
                       borderTopLeftRadius: 3,
                       border: "1px solid rgba(180,148,80,0.14)",
-                      background: "#131929",
+                      background: "#1a2338",
                     }}
                   >
                     <div
@@ -1518,11 +1476,7 @@ export default function Home() {
                     }}
                   >
                     <RefreshCw size={12} />
-                    {language === "uk"
-                      ? "Повторити"
-                      : language === "ru"
-                        ? "Повторить"
-                        : "Retry"}
+                    {language === "uk" ? "Повторити" : "Retry"}
                   </button>
                 )}
               </div>
@@ -1534,7 +1488,7 @@ export default function Home() {
                 display: "flex",
                 alignItems: "flex-end",
                 gap: 8,
-                background: "#131929",
+                background: "#1a2338",
                 border: "1px solid rgba(180,148,80,0.14)",
                 borderRadius: 14,
                 padding: "10px 12px",

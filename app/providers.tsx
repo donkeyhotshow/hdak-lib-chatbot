@@ -15,6 +15,15 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
     client.getQueryCache().subscribe(event => {
       if (event.type === "updated" && event.action.type === "error") {
+        const queryError = event.query.state.error as
+          | { data?: { code?: string }; message?: string }
+          | undefined;
+        if (
+          queryError?.data?.code === "UNAUTHORIZED" ||
+          queryError?.message === "Authentication required"
+        ) {
+          return;
+        }
         console.error("[API Query Error]", event.query.state.error);
       }
     });
