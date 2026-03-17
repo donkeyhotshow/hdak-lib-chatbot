@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { OFFICIAL_CATALOG_URL } from "./catalogIntent";
 import {
   buildKnowledgeAssistedFallback,
   buildSafeLlmUnavailableFallback,
@@ -19,6 +20,6 @@ describe("fallbackSuggestions", () => {
   it("builds safe fallback text when LLM is unavailable", () => {
     const text = buildSafeLlmUnavailableFallback("uk");
     expect(text).toContain("Тимчасова проблема сервісу");
-    expect(text).toContain("https://lib-hdak.in.ua/e-catalog.html");
+    expect(text).toContain(OFFICIAL_CATALOG_URL);
   });
 });
