@@ -51,6 +51,7 @@ export async function runAiOrchestration(params: {
   language?: "en" | "uk" | "ru";
   model?: string;
   history: ChatMessage[];
+  knowledgeContext?: string | null;
   context: { endpoint: string; userId?: number | null; ip?: string | null };
   onFinish?: (text: string) => Promise<void>;
   onError?: (error: unknown) => void;
@@ -91,10 +92,13 @@ export async function runAiOrchestration(params: {
   );
   const provider = createLLMProvider();
   const modelName = params.model ?? ENV.aiModelName ?? AI_MODEL_NAME;
+  const systemPrompt = params.knowledgeContext
+    ? `${getOfficialSystemPrompt(language)}\n\n${params.knowledgeContext}`
+    : getOfficialSystemPrompt(language);
 
   const stream = streamText({
     model: provider.chat(modelName),
-    system: getOfficialSystemPrompt(language),
+    system: systemPrompt,
     messages: messagesForAi,
     tools: buildAiTools(params.context),
     temperature: AI_TEMPERATURE,

@@ -32,6 +32,7 @@ import {
 import { logSecurityEvent } from "../observability/securityLogger";
 import { setSessionState } from "./sessionStore";
 import { getInstantAnswer } from "./instantAnswers";
+import { buildLibraryKnowledgeContext } from "./libraryKnowledge";
 
 export async function assertConversationOwnership(
   conversationId: number,
@@ -278,6 +279,10 @@ export async function processChatRequest(input: {
       ?.content ?? "";
   const requestedLanguage = normalizeLanguage(input.language);
   const instantAnswer = getInstantAnswer(lastUserMessage, requestedLanguage);
+  const knowledgeContext = buildLibraryKnowledgeContext(
+    lastUserMessage,
+    requestedLanguage
+  );
 
   if (instantAnswer) {
     if (conversationId !== null) {
@@ -301,6 +306,7 @@ export async function processChatRequest(input: {
     language: input.language,
     model: input.model,
     history,
+    knowledgeContext,
     context,
     onFinish: async text => {
       if (conversationId === null) return;

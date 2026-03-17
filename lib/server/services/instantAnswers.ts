@@ -3,6 +3,11 @@ import {
   OFFICIAL_CATALOG_URL,
   type CatalogIntentAction,
 } from "./catalogIntent";
+import {
+  LIBRARY_KNOWLEDGE_TOPICS,
+  findLibraryKnowledgeTopic,
+  type LibraryKnowledgeTopic,
+} from "./libraryKnowledge";
 
 export type InstantAnswerLanguage = "uk" | "en" | "ru";
 
@@ -21,212 +26,22 @@ export type InstantAnswer = {
   answer: string;
   links: string[];
   action?: CatalogIntentAction;
+  sourceBadge?: "quick" | "official-rule";
 };
 
-export const LIBRARY_FAQ: LibraryFaqEntry[] = [
-  {
-    id: "signup-library",
-    keywords: [
-      "як записатися до бібліотеки",
-      "записатися до бібліотеки",
-      "як зареєструватися в бібліотеці",
-      "реєстрація в бібліотеці",
-      "читач бібліотеки",
-    ],
-    title: "Як записатися до бібліотеки?",
-    answer:
-      "Щоб записатися до бібліотеки, ознайомтеся з інформацією про проєкт «Єдина картка читача» та правилами користування бібліотекою.",
-    bullets: [
-      "Перегляньте сторінку проєкту «Єдина картка читача».",
-      "Ознайомтеся з правилами користування бібліотекою.",
-      "За потреби зверніться до бібліотеки через офіційні контакти.",
-    ],
-    links: [
-      "https://lib-hdak.in.ua/project-unified-reader-card.html",
-      "https://lib-hdak.in.ua/rules-library.html",
-    ],
-  },
-  {
-    id: "reader-card",
-    keywords: [
-      "єдина картка читача",
-      "читацький квиток",
-      "читательский билет",
-      "картка читача",
-      "як отримати читацький квиток",
-    ],
-    title: "Як отримати читацький квиток?",
-    answer:
-      "Інформація про оформлення читацького документа подана на сторінці проєкту «Єдина картка читача».",
-    bullets: [
-      "Відкрийте сторінку проєкту.",
-      "Перевірте умови оформлення та використання.",
-      "Уточніть деталі через контакти бібліотеки за потреби.",
-    ],
-    links: [
-      "https://lib-hdak.in.ua/project-unified-reader-card.html",
-      "https://lib-hdak.in.ua/",
-    ],
-  },
-  {
-    id: "library-rules",
-    keywords: [
-      "правила бібліотеки",
-      "правила користування бібліотекою",
-      "як користуватися бібліотекою",
-      "умови користування бібліотекою",
-    ],
-    title: "Які правила користування бібліотекою?",
-    answer:
-      "Основні правила користування бібліотекою зібрані на окремій офіційній сторінці.",
-    bullets: [
-      "Перейдіть на сторінку правил бібліотеки.",
-      "Перевірте права та обов’язки користувача.",
-      "За потреби уточніть конкретний пункт у бібліотекаря.",
-    ],
-    links: ["https://lib-hdak.in.ua/rules-library.html"],
-  },
-  {
-    id: "reading-room-rules",
-    keywords: [
-      "правила е-читальної зали",
-      "електронна читальна зала",
-      "е-читальна зала",
-      "правила читальної зали",
-    ],
-    title: "Які правила е-читальної зали?",
-    answer:
-      "Правила користування електронною читальною залою винесені на окрему сторінку сайту бібліотеки.",
-    bullets: [
-      "Відкрийте сторінку правил е-читальної зали.",
-      "Перевірте умови доступу до електронних ресурсів.",
-      "Зверніть увагу на можливі обмеження використання.",
-    ],
-    links: ["https://lib-hdak.in.ua/rules-library-e-reading-room.html"],
-  },
-  {
-    id: "catalog",
-    keywords: [
-      "де електронний каталог",
-      "електронний каталог",
-      "каталог бібліотеки",
-      "знайти книгу",
-      "пошук книги",
-    ],
-    title: "Де електронний каталог?",
-    answer:
-      "Електронний каталог бібліотеки доступний на окремій сторінці офіційного сайту.",
-    bullets: [
-      "Відкрийте сторінку електронного каталогу.",
-      "Скористайтеся пошуком за автором, назвою або темою.",
-      "Для ширшої навігації використайте карту сайту.",
-    ],
-    links: [
-      "https://lib-hdak.in.ua/e-catalog.html",
-      "https://lib-hdak.in.ua/site-map.html",
-    ],
-  },
-  {
-    id: "find-book",
-    keywords: [
-      "як знайти книгу",
-      "знайти книгу",
-      "як шукати книгу",
-      "пошук у каталозі",
-    ],
-    title: "Як знайти книгу?",
-    answer: "Найзручніше шукати книгу через електронний каталог бібліотеки.",
-    bullets: [
-      "Перейдіть в електронний каталог.",
-      "Введіть автора, назву або тему.",
-      "За потреби уточніть запит більш конкретними словами.",
-    ],
-    links: ["https://lib-hdak.in.ua/e-catalog.html"],
-  },
-  {
-    id: "contacts",
-    keywords: [
-      "контакти бібліотеки",
-      "адреса бібліотеки",
-      "email бібліотеки",
-      "як зв'язатися з бібліотекою",
-      "як звернутися до бібліотекаря",
-      "поставити запитання бібліотекарю",
-    ],
-    title: "Де контакти бібліотеки?",
-    answer:
-      "Контактну інформацію бібліотеки найкраще перевіряти на офіційному сайті.",
-    bullets: [
-      "Відкрийте головну сторінку бібліотеки.",
-      "За потреби скористайтеся картою сайту.",
-      "Уточніть потрібний розділ через навігацію сайту.",
-    ],
-    links: ["https://lib-hdak.in.ua/", "https://lib-hdak.in.ua/site-map.html"],
-  },
-  {
-    id: "scientific-resources",
-    keywords: [
-      "наукові ресурси",
-      "де scopus",
-      "де web of science",
-      "де science direct",
-      "де springer",
-      "де корисні посилання",
-    ],
-    title: "Де знайти наукові ресурси?",
-    answer:
-      "Наукові ресурси та корисні посилання зібрані на офіційних сторінках бібліотеки.",
-    bullets: [
-      "Перегляньте сторінку пошуку наукової інформації.",
-      "Також відкрийте сторінку корисних посилань.",
-      "Для окремих баз перевірте умови доступу.",
-    ],
-    links: [
-      "https://lib-hdak.in.ua/search-scientific-info.html",
-      "https://lib-hdak.in.ua/helpful-links.html",
-    ],
-  },
-  {
-    id: "vpn-access",
-    keywords: [
-      "чи потрібен vpn",
-      "доступ до scopus",
-      "доступ до web of science",
-      "корпоративний доступ",
-      "доступ до баз даних",
-    ],
-    title: "Чи потрібен VPN або корпоративний доступ?",
-    answer:
-      "Для частини міжнародних наукових баз доступ може бути обмежений корпоративною мережею або правилами установи.",
-    bullets: [
-      "Перевірте сторінку наукових ресурсів.",
-      "Зверніть увагу на умови доступу до конкретної бази.",
-      "За потреби уточніть деталі в бібліотеці.",
-    ],
-    links: [
-      "https://lib-hdak.in.ua/search-scientific-info.html",
-      "https://lib-hdak.in.ua/helpful-links.html",
-    ],
-  },
-  {
-    id: "site-map",
-    keywords: [
-      "карта сайту",
-      "де карта сайту",
-      "структура сайту",
-      "розділи сайту бібліотеки",
-    ],
-    title: "Де карта сайту?",
-    answer:
-      "Карта сайту допоможе швидко знайти потрібний розділ бібліотеки, включно з правилами, каталогом та ресурсами.",
-    bullets: [
-      "Відкрийте карту сайту.",
-      "Скористайтеся нею для переходу до потрібного розділу.",
-      "Через карту сайту зручно шукати сторінки правил і ресурсів.",
-    ],
-    links: ["https://lib-hdak.in.ua/site-map.html"],
-  },
-];
+function toFaqEntry(topic: LibraryKnowledgeTopic): LibraryFaqEntry {
+  return {
+    id: topic.id,
+    keywords: topic.keywords,
+    title: topic.topic,
+    answer: topic.shortFacts[0] ?? topic.topic,
+    bullets: [...topic.shortFacts, ...topic.policySnippets].slice(0, 3),
+    links: topic.sourceUrls,
+  };
+}
+
+export const LIBRARY_FAQ: LibraryFaqEntry[] =
+  LIBRARY_KNOWLEDGE_TOPICS.map(toFaqEntry);
 
 export const SUGGESTED_PROMPTS = [
   "Як записатися до бібліотеки?",
@@ -298,13 +113,8 @@ function formatCatalogIntentAnswer(
 }
 
 function findMatchingFaq(normalizedQuery: string): LibraryFaqEntry | null {
-  return (
-    LIBRARY_FAQ.find(faq =>
-      faq.keywords.some(keyword =>
-        normalizedQuery.includes(normalizeInstantAnswerQuery(keyword))
-      )
-    ) ?? null
-  );
+  const topic = findLibraryKnowledgeTopic(normalizedQuery);
+  return topic ? toFaqEntry(topic) : null;
 }
 
 export function getInstantAnswer(
@@ -317,6 +127,16 @@ export function getInstantAnswer(
     query,
     language === "en" ? "en" : "uk"
   );
+  if (catalogAction && catalogAction.searchType !== "generic") {
+    return {
+      intent: "catalog-intent",
+      title: catalogAction.title,
+      answer: formatCatalogIntentAnswer(catalogAction, language),
+      links: [OFFICIAL_CATALOG_URL],
+      action: catalogAction,
+      sourceBadge: "quick",
+    };
+  }
 
   const faq = findMatchingFaq(normalizedQuery);
   if (faq) {
@@ -325,6 +145,15 @@ export function getInstantAnswer(
       title: faq.title,
       answer: formatFaqAnswer(faq, language),
       links: faq.links,
+      sourceBadge:
+        faq.id === "library-rules" ||
+        faq.id === "reading-room-rules" ||
+        faq.id === "ask-librarian" ||
+        faq.id === "signup-library" ||
+        faq.id === "reader-card" ||
+        faq.id === "vpn-access"
+          ? "official-rule"
+          : "quick",
       action:
         faq.id === "catalog" || faq.id === "find-book"
           ? (catalogAction ?? undefined)
@@ -340,5 +169,6 @@ export function getInstantAnswer(
     answer: formatCatalogIntentAnswer(catalogAction, language),
     links: [OFFICIAL_CATALOG_URL],
     action: catalogAction,
+    sourceBadge: "quick",
   };
 }

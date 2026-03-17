@@ -16,6 +16,7 @@ import {
   getCatalogIntentAction,
   OFFICIAL_CATALOG_URL,
 } from "@/lib/server/services/catalogIntent";
+import { findLibraryKnowledgeTopic } from "@/lib/server/services/libraryKnowledge";
 import { RefreshCw } from "lucide-react";
 
 type RouterOutput = inferRouterOutputs<AppRouter>;
@@ -30,6 +31,8 @@ type LocalConversation = {
 const CHAT_TITLE_MAX_LENGTH = 50;
 const SEND_DEBOUNCE_MS = 350;
 const GUEST_HISTORY_STORAGE_KEY = "hdak-guest-history-v1";
+const GUEST_HISTORY_STORAGE_PREFIX = "hdak-guest-history-v1:";
+const GUEST_ID_STORAGE_KEY = "hdak-guest-id";
 
 type Language = "en" | "uk";
 
@@ -74,6 +77,11 @@ const translations: Record<Language, Record<string, string>> = {
     hint: "Enter — send · Shift+Enter — new line",
     langCode: "ENG",
     quickAnswer: "Quick answer",
+    badgeQuick: "Quick answer",
+    badgeOfficialRule: "Official rule",
+    badgeGenerated: "Generated from reference data",
+    sourcesLabel: "Sources",
+    viewSource: "View source",
   },
   uk: {
     title: "Помічник бібліотеки ХДАК",
@@ -116,8 +124,24 @@ const translations: Record<Language, Record<string, string>> = {
     hint: "Enter — надіслати · Shift+Enter — новий рядок",
     langCode: "УКР",
     quickAnswer: "Швидка відповідь",
+    badgeQuick: "Швидка відповідь",
+    badgeOfficialRule: "Офіційне правило",
+    badgeGenerated: "Згенеровано на основі довідкових даних",
+    sourcesLabel: "Джерела",
+    viewSource: "Переглянути джерело",
   },
 };
+
+function createGuestId(): string {
+  return (
+    globalThis.crypto?.randomUUID?.() ??
+    `${Date.now()}-${Math.random().toString(16).slice(2)}`
+  );
+}
+
+function getGuestHistoryKey(guestId: string) {
+  return `${GUEST_HISTORY_STORAGE_PREFIX}${guestId}`;
+}
 
 function getMessageText(msg: DisplayMessage): string {
   if ("content" in msg && typeof msg.content === "string") return msg.content;
@@ -226,6 +250,7 @@ export default function Home() {
   const userHasDeselected = useRef(false);
   const pendingPromptRef = useRef<string | null>(null);
   const guestConversationIdRef = useRef(Date.now() * 1000);
+  const guestIdRef = useRef<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const prevMessageCountRef = useRef(0);
   const lastSendTimeRef = useRef(0);
@@ -255,7 +280,17 @@ export default function Home() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const saved = window.localStorage.getItem(GUEST_HISTORY_STORAGE_KEY);
+    const existingGuestId = window.localStorage.getItem(GUEST_ID_STORAGE_KEY);
+    const guestId = existingGuestId ?? createGuestId();
+    if (!existingGuestId) {
+      window.localStorage.setItem(GUEST_ID_STORAGE_KEY, guestId);
+    }
+    guestIdRef.current = guestId;
+
+    const historyKey = getGuestHistoryKey(guestId);
+    const saved =
+      window.localStorage.getItem(historyKey) ??
+      window.localStorage.getItem(GUEST_HISTORY_STORAGE_KEY);
     if (!saved) return;
     try {
       const parsed = JSON.parse(saved) as {
@@ -270,15 +305,17 @@ export default function Home() {
         guestConversationIdRef.current
       );
       guestConversationIdRef.current = maxConversationId;
+      window.localStorage.setItem(historyKey, saved);
     } catch {
+      window.localStorage.removeItem(historyKey);
       window.localStorage.removeItem(GUEST_HISTORY_STORAGE_KEY);
     }
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || !guestIdRef.current) return;
     window.localStorage.setItem(
-      GUEST_HISTORY_STORAGE_KEY,
+      getGuestHistoryKey(guestIdRef.current),
       JSON.stringify({
         conversations: guestConversations,
         messagesByConversation: guestMessagesByConversation,
@@ -1302,6 +1339,33 @@ export default function Home() {
                         language
                       )
                     : null;
+                const instantAnswerMeta =
+                  !isUser && previousUserMessage
+                    ? getInstantAnswer(
+                        getMessageText(previousUserMessage),
+                        language
+                      )
+                    : null;
+                const knowledgeTopic =
+                  !isUser && previousUserMessage
+                    ? findLibraryKnowledgeTopic(
+                        getMessageText(previousUserMessage)
+                      )
+                    : null;
+                const sourceBadge = isUser
+                  ? null
+                  : instantAnswerMeta?.sourceBadge === "official-rule"
+                    ? t.badgeOfficialRule
+                    : instantAnswerMeta
+                      ? t.badgeQuick
+                      : knowledgeTopic
+                        ? t.badgeGenerated
+                        : null;
+                const sourceLinks = isUser
+                  ? []
+                  : (instantAnswerMeta?.links ??
+                    knowledgeTopic?.sourceUrls ??
+                    []);
                 return (
                   <div
                     key={idx}
@@ -1341,6 +1405,22 @@ export default function Home() {
                       }}
                     >
                       {/* Bubble */}
+                      {!isUser && sourceBadge && (
+                        <span
+                          style={{
+                            alignSelf: "flex-start",
+                            fontSize: 11,
+                            color: "#2a5aba",
+                            background: "#eef4ff",
+                            border: "1px solid rgba(73,95,151,0.24)",
+                            borderRadius: 999,
+                            padding: "2px 8px",
+                            lineHeight: 1.4,
+                          }}
+                        >
+                          {sourceBadge}
+                        </span>
+                      )}
                       <div
                         className="hdak-bubble"
                         style={{
@@ -1367,6 +1447,36 @@ export default function Home() {
                           </div>
                         )}
                       </div>
+                      {!isUser && sourceLinks.length > 0 && (
+                        <div
+                          style={{
+                            fontSize: 11,
+                            color: "#5d7199",
+                            paddingLeft: 2,
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 3,
+                          }}
+                        >
+                          <span style={{ fontWeight: 500 }}>
+                            {t.sourcesLabel}:
+                          </span>
+                          {sourceLinks.map(link => (
+                            <a
+                              key={link}
+                              href={link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                color: "#2a5aba",
+                                textDecoration: "none",
+                              }}
+                            >
+                              {t.viewSource}
+                            </a>
+                          ))}
+                        </div>
+                      )}
 
                       {/* Quick actions under last assistant message */}
                       {isLastAssistant && (

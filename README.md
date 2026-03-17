@@ -82,6 +82,11 @@ pnpm start
   автора ...", "книги з теми ...") додатково обробляються окремим intent-ом
   `lib/server/services/catalogIntent.ts`, який повертає структуровану
   catalog action (тип пошуку + query + URL + CTA label).
+- Бібліотечні правила та процедури винесені в окремий knowledge-layer
+  `lib/server/services/libraryKnowledge.ts`, який використовується для швидких
+  відповідей і як довідковий контекст для fallback LLM-відповідей.
+- У guest mode використовується персистентний `hdak-guest-id`; локальна історія
+  зберігається у guest-scoped ключі `hdak-guest-history-v1:<guestId>`.
 - Якщо питання не підпадає під FAQ matcher, працює звичайний OpenRouter/LLM
   стримінг через `/api/chat`.
 - Щоб розширити базу FAQ, додайте новий елемент до `LIBRARY_FAQ` (keywords,

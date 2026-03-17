@@ -17,7 +17,7 @@ describe("instantAnswers", () => {
   });
 
   it("covers all required FAQ topics with official links", () => {
-    expect(LIBRARY_FAQ).toHaveLength(10);
+    expect(LIBRARY_FAQ.length).toBeGreaterThanOrEqual(11);
     for (const faq of LIBRARY_FAQ) {
       expect(faq.links.length).toBeGreaterThan(0);
       for (const link of faq.links) {
@@ -42,6 +42,7 @@ describe("instantAnswers", () => {
     );
     expect(answer).not.toBeNull();
     expect(answer?.intent).toBe("library-rules");
+    expect(answer?.sourceBadge).toBe("official-rule");
     expect(answer?.answer).toContain(
       "https://lib-hdak.in.ua/rules-library.html"
     );
@@ -73,6 +74,14 @@ describe("instantAnswers", () => {
     expect(answer?.action?.searchType).toBe("subject");
     expect(answer?.action?.searchQuery).toBe("режисури");
     expect(answer?.links).toEqual([OFFICIAL_CATALOG_URL]);
+    expect(answer?.sourceBadge).toBe("quick");
+  });
+
+  it("returns quick instant answer for how to find a book", () => {
+    const answer = getInstantAnswer("як знайти книгу", "uk");
+    expect(answer).not.toBeNull();
+    expect(answer?.intent).toBe("find-book");
+    expect(answer?.sourceBadge).toBe("quick");
   });
 
   it("uses official catalog URL for catalog instant answers", () => {
