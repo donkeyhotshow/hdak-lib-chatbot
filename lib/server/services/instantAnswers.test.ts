@@ -7,6 +7,7 @@ import {
   QUICK_PROMPTS,
   SUGGESTED_PROMPTS,
 } from "./instantAnswers";
+import { OFFICIAL_CATALOG_URL } from "./catalogIntent";
 
 describe("instantAnswers", () => {
   it("normalizes user query for simple intent matching", () => {
@@ -50,10 +51,10 @@ describe("instantAnswers", () => {
     const answer = getInstantAnswer("Де електронний каталог?", "uk");
     expect(answer).not.toBeNull();
     expect(answer?.intent).toBe("catalog");
-    expect(answer?.answer).toContain("https://lib-hdak.in.ua/e-catalog.html");
+    expect(answer?.answer).toContain(OFFICIAL_CATALOG_URL);
     expect(answer?.action?.type).toBe("catalog");
     expect(answer?.action?.searchType).toBe("generic");
-    expect(answer?.action?.url).toBe("https://lib-hdak.in.ua/e-catalog.html");
+    expect(answer?.action?.url).toBe(OFFICIAL_CATALOG_URL);
   });
 
   it("returns catalog instant answer for author search query", () => {
@@ -62,7 +63,7 @@ describe("instantAnswers", () => {
     expect(answer?.intent).toBe("catalog-intent");
     expect(answer?.action?.searchType).toBe("author");
     expect(answer?.action?.searchQuery).toBe("шевченко");
-    expect(answer?.action?.url).toContain("https://lib-hdak.in.ua/e-catalog.html");
+    expect(answer?.action?.url).toContain(OFFICIAL_CATALOG_URL);
   });
 
   it("returns catalog instant answer for subject query", () => {
@@ -71,14 +72,14 @@ describe("instantAnswers", () => {
     expect(answer?.intent).toBe("catalog-intent");
     expect(answer?.action?.searchType).toBe("subject");
     expect(answer?.action?.searchQuery).toBe("режисури");
-    expect(answer?.links).toEqual(["https://lib-hdak.in.ua/e-catalog.html"]);
+    expect(answer?.links).toEqual([OFFICIAL_CATALOG_URL]);
   });
 
-  it("does not include legacy library-service URL in catalog answers", () => {
+  it("uses official catalog URL for catalog instant answers", () => {
     const answer = getInstantAnswer("пошук у каталозі", "uk");
     expect(answer).not.toBeNull();
-    expect(answer?.answer.includes("library-service.com.ua")).toBe(false);
-    expect(answer?.action?.url.includes("library-service.com.ua")).toBe(false);
+    expect(answer?.answer).toContain(OFFICIAL_CATALOG_URL);
+    expect(answer?.action?.url).toContain(OFFICIAL_CATALOG_URL);
   });
 
   it("keeps suggested prompts and quick prompts in expected size range", () => {

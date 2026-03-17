@@ -29,6 +29,10 @@ const GENERIC_CATALOG_KEYWORDS = [
 ];
 
 function stripPunctuation(value: string) {
+  /**
+   * Keeps only Unicode letters (\p{L}), numbers (\p{N}) and whitespace.
+   * This makes intent matching resilient to punctuation noise in user queries.
+   */
   return value.replace(/[^\p{L}\p{N}\s]/gu, " ");
 }
 
@@ -41,7 +45,10 @@ function buildCatalogUrl(searchQuery: string): string {
   return `${OFFICIAL_CATALOG_URL}#query=${encodeURIComponent(searchQuery.trim())}`;
 }
 
-function extractSearchQuery(normalizedQuery: string, patterns: RegExp[]): string {
+function extractSearchQuery(
+  normalizedQuery: string,
+  patterns: RegExp[]
+): string {
   for (const pattern of patterns) {
     const matched = normalizedQuery.match(pattern);
     const extracted = matched?.[1]?.trim();
@@ -123,8 +130,7 @@ export function getCatalogIntentAction(
   return {
     type: "catalog",
     title: "Електронний каталог ХДАК",
-    description:
-      "У каталозі можна шукати книги за автором, назвою або темою.",
+    description: "У каталозі можна шукати книги за автором, назвою або темою.",
     searchType: "generic",
     searchQuery: "",
     url: OFFICIAL_CATALOG_URL,

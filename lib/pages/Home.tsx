@@ -1381,7 +1381,9 @@ export default function Home() {
                             <button
                               className={`hdak-action-btn${catalogAction ? " hdak-action-btn--catalog" : ""}`}
                             >
-                              📖 {catalogAction?.buttonLabel ?? t.actionFindCatalog}
+                              📖{" "}
+                              {catalogAction?.buttonLabel ??
+                                t.actionFindCatalog}
                             </button>
                           </a>
                           <a

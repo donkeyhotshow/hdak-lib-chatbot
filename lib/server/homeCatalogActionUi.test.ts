@@ -17,8 +17,7 @@ describe("Home catalog action button guards", () => {
 
   it("uses emphasized catalog CTA style when catalog intent is detected", () => {
     expect(homePageContent).toContain("hdak-action-btn--catalog");
-    expect(homePageContent).toContain(
-      "catalogAction?.buttonLabel ?? t.actionFindCatalog"
-    );
+    expect(homePageContent).toContain("catalogAction?.buttonLabel");
+    expect(homePageContent).toContain("t.actionFindCatalog");
   });
 });

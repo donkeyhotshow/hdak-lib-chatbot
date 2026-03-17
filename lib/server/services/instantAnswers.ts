@@ -273,7 +273,24 @@ function formatFaqAnswer(
   return `**${faq.title}**\n\n${faq.answer}\n\n${bulletList}\n\n${toSourceLabel(language)}:\n${links}`;
 }
 
-function formatCatalogIntentAnswer(action: CatalogIntentAction): string {
+function formatCatalogIntentAnswer(
+  action: CatalogIntentAction,
+  language: InstantAnswerLanguage
+): string {
+  if (language === "en") {
+    const queryHint = action.searchQuery
+      ? `Search query: **${action.searchQuery}**.`
+      : "If needed, enter an author, title, or subject in the search field.";
+    return `**${action.title}**\n\n${action.description}\n\n- You can search by author, title, or subject.\n- ${queryHint}\n- For better precision, refine the query with keywords.\n\nOfficial source:\n- ${OFFICIAL_CATALOG_URL}`;
+  }
+
+  if (language === "ru") {
+    const queryHint = action.searchQuery
+      ? `Поисковый запрос: **${action.searchQuery}**.`
+      : "При необходимости введите автора, название или тему в поле поиска.";
+    return `**${action.title}**\n\n${action.description}\n\n- В каталоге можно искать по автору, названию или теме.\n- ${queryHint}\n- Для точности уточняйте запрос ключевыми словами.\n\nОфициальный источник:\n- ${OFFICIAL_CATALOG_URL}`;
+  }
+
   const queryHint = action.searchQuery
     ? `Пошуковий запит: **${action.searchQuery}**.`
     : "За потреби введіть автора, назву або тему у полі пошуку.";
@@ -309,7 +326,9 @@ export function getInstantAnswer(
       answer: formatFaqAnswer(faq, language),
       links: faq.links,
       action:
-        faq.id === "catalog" || faq.id === "find-book" ? catalogAction ?? undefined : undefined,
+        faq.id === "catalog" || faq.id === "find-book"
+          ? (catalogAction ?? undefined)
+          : undefined,
     };
   }
 
@@ -318,7 +337,7 @@ export function getInstantAnswer(
   return {
     intent: "catalog-intent",
     title: catalogAction.title,
-    answer: formatCatalogIntentAnswer(catalogAction),
+    answer: formatCatalogIntentAnswer(catalogAction, language),
     links: [OFFICIAL_CATALOG_URL],
     action: catalogAction,
   };

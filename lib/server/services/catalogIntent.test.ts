@@ -35,9 +35,9 @@ describe("catalogIntent", () => {
     expect(action?.searchQuery).toBe("режисури");
   });
 
-  it("never returns old library-service URL", () => {
+  it("uses official catalog fallback URL", () => {
     const action = getCatalogIntentAction("відкрий каталог", "uk");
     expect(action).not.toBeNull();
-    expect(action?.url.includes("library-service.com.ua")).toBe(false);
+    expect(action?.url).toBe(OFFICIAL_CATALOG_URL);
   });
 });
