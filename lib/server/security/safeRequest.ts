@@ -19,7 +19,7 @@ type CircuitBreakerState = {
 const circuitBreakerStateByHost = new Map<string, CircuitBreakerState>();
 
 function hasForbiddenEncodedControls(value: string): boolean {
-  return /%(0[0-9a-f]|1[0-f]|7f)/i.test(value);
+  return /%(0[0-9a-f]|1[0-9a-f]|7f)/i.test(value);
 }
 
 function getCircuitBreakerState(hostname: string): CircuitBreakerState {
