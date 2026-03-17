@@ -28,6 +28,7 @@ const envSchema = z.object({
   CHAT_PROVIDER_API_KEY: optionalString,
   OPENROUTER_HTTP_REFERER: optionalString,
   OPENROUTER_X_TITLE: optionalString,
+  OPENROUTER_FALLBACK_MODELS: optionalString,
   LOG_LEVEL: optionalString,
   SERVICES_ENABLED: optionalString,
   SERVICE_DATA_API_ENABLED: optionalString,
@@ -57,6 +58,14 @@ function parsePositiveIntSetting(value: string, defaultValue: number): number {
     : defaultValue;
 }
 
+function parseCsvSetting(value: string): string[] {
+  if (!value) return [];
+  return value
+    .split(",")
+    .map(item => item.trim())
+    .filter(Boolean);
+}
+
 const parsed = envSchema.parse({
   VITE_APP_ID: process.env.VITE_APP_ID,
   JWT_SECRET: process.env.JWT_SECRET,
@@ -75,6 +84,7 @@ const parsed = envSchema.parse({
   CHAT_PROVIDER_API_KEY: process.env.CHAT_PROVIDER_API_KEY,
   OPENROUTER_HTTP_REFERER: process.env.OPENROUTER_HTTP_REFERER,
   OPENROUTER_X_TITLE: process.env.OPENROUTER_X_TITLE,
+  OPENROUTER_FALLBACK_MODELS: process.env.OPENROUTER_FALLBACK_MODELS,
   LOG_LEVEL: process.env.LOG_LEVEL,
   SERVICES_ENABLED: process.env.SERVICES_ENABLED,
   SERVICE_DATA_API_ENABLED: process.env.SERVICE_DATA_API_ENABLED,
@@ -112,6 +122,7 @@ export const ENV = {
   chatProviderApiKey: parsed.CHAT_PROVIDER_API_KEY,
   openRouterHttpReferer: parsed.OPENROUTER_HTTP_REFERER,
   openRouterXTitle: parsed.OPENROUTER_X_TITLE,
+  openRouterFallbackModels: parseCsvSetting(parsed.OPENROUTER_FALLBACK_MODELS),
   logLevel:
     parsed.LOG_LEVEL === "debug" ||
     parsed.LOG_LEVEL === "info" ||

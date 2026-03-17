@@ -30,6 +30,7 @@ import {
 } from "../../drizzle/schema";
 import { ENV } from "./_core/env";
 import { logger } from "./_core/logger";
+import initialEditableKnowledgeEntriesBase from "./services/initialEditableKnowledgeEntries.json";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -281,56 +282,13 @@ function ensureMockState() {
     },
   ];
 
-  const initialEditableKnowledgeEntries = JSON.stringify([
-    {
-      id: "seed-library-rules",
-      topic: "Правила користування бібліотекою",
-      title: "Правила користування бібліотекою ХДАК",
-      keywords: [
-        "правила бібліотеки",
-        "користування бібліотекою",
-        "бібліотечні правила",
-      ],
-      shortFacts: [
-        "Для актуальних умов користування перевіряйте офіційний сайт бібліотеки.",
-        "Користувачі мають дотримуватися правил роботи читальних залів.",
-      ],
-      policySnippets: [
-        "Порядок обслуговування та доступ до фондів визначаються правилами бібліотеки.",
-      ],
-      sourceUrls: ["https://lib-hdak.in.ua/pravila-bibliotekoyu.html"],
-      sourceBadge: "official-rule",
-      suggestedFollowUps: [
-        "Як оформити читацький квиток?",
-        "Які правила в електронній читальній залі?",
-      ],
-      enabled: true,
+  const initialEditableKnowledgeEntries = JSON.stringify(
+    initialEditableKnowledgeEntriesBase.map(entry => ({
+      ...entry,
       updatedAt: now.toISOString(),
       overrideBuiltInId: null,
-    },
-    {
-      id: "seed-catalog-help",
-      topic: "Пошук книг в електронному каталозі",
-      title: "Як шукати книги в е-каталозі",
-      keywords: ["електронний каталог", "як знайти книгу", "пошук за автором"],
-      shortFacts: [
-        "Е-каталог доступний на офіційному сайті бібліотеки ХДАК.",
-        "Пошук можна виконувати за автором, назвою або ключовими словами.",
-      ],
-      policySnippets: [
-        "Для тематичного пошуку уточнюйте ключові слова або тему запиту.",
-      ],
-      sourceUrls: ["https://lib-hdak.in.ua/e-catalog.html"],
-      sourceBadge: "catalog",
-      suggestedFollowUps: [
-        "Покажи посилання на каталог",
-        "Як знайти книги конкретного автора?",
-      ],
-      enabled: true,
-      updatedAt: now.toISOString(),
-      overrideBuiltInId: null,
-    },
-  ]);
+    }))
+  );
 
   const seedInfo: LibraryInfo[] = [
     {

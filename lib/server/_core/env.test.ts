@@ -12,6 +12,7 @@ const ENV_KEYS = [
   "CHAT_PROVIDER_API_KEY",
   "OPENROUTER_HTTP_REFERER",
   "OPENROUTER_X_TITLE",
+  "OPENROUTER_FALLBACK_MODELS",
   "LOG_LEVEL",
   "SERVICES_ENABLED",
   "SERVICE_DATA_API_ENABLED",
@@ -83,11 +84,17 @@ describe("ENV forge aliases", () => {
   it("exposes optional OpenRouter metadata headers", async () => {
     process.env.OPENROUTER_HTTP_REFERER = "https://example.test";
     process.env.OPENROUTER_X_TITLE = "HDAK Chat";
+    process.env.OPENROUTER_FALLBACK_MODELS =
+      "openrouter/auto, openai/gpt-4o-mini:free";
 
     const { ENV } = await importEnvModule();
 
     expect(ENV.openRouterHttpReferer).toBe("https://example.test");
     expect(ENV.openRouterXTitle).toBe("HDAK Chat");
+    expect(ENV.openRouterFallbackModels).toEqual([
+      "openrouter/auto",
+      "openai/gpt-4o-mini:free",
+    ]);
   });
 
   it("parses PORT as number with a stable default", async () => {

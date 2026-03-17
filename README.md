@@ -201,6 +201,7 @@ Use `.env.example` as the source of truth.
 - `pnpm run db:seed` теперь заполняет `libraryInfo` ключ `editable-knowledge-entries-v1` стартовыми editable knowledge entries.
 - В in-memory fallback (когда нет `DATABASE_URL`) тот же ключ предзаполнен, чтобы админский Knowledge Base имел стартовые записи.
 - Админ может сразу редактировать эти записи во вкладке **Knowledge Base** без изменения кода.
+- Готовый JSON для импорта в knowledge editor: `lib/server/services/initialEditableKnowledgeEntries.json` (20 записей).
 
 ## OpenRouter cost monitoring
 
@@ -212,7 +213,16 @@ Use `.env.example` as the source of truth.
 - Для оценки стоимости укажите (опционально):
   - `OPENROUTER_INPUT_COST_USD_PER_1M_TOKENS`
   - `OPENROUTER_OUTPUT_COST_USD_PER_1M_TOKENS`
+  - `OPENROUTER_FALLBACK_MODELS` (comma-separated fallback models, e.g. `openrouter/auto,openai/gpt-4o-mini:free`)
 - Без этих env стоимость считается как `0` (токены и usage всё равно собираются).
+
+## Render launch checklist
+
+1. Render service: `hdak-lib-chatbot.onrender.com`
+2. Domain: CNAME → `hdak-lib-chatbot.onrender.com`
+3. SSL/TLS: включить сертификат и HTTPS redirect
+4. Monitoring: log drains (Slack/Email), webhook alerts для 5xx, metrics dashboard
+5. Launch: onboard первых 10 библиотекарей + ежедневный feedback review в `/admin`
 
 ## Limits / caveats
 
