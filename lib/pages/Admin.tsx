@@ -2179,6 +2179,74 @@ export default function Admin() {
                   </div>
                 </Card>
 
+                <Card className="p-6">
+                  <h3 className="text-base font-semibold mb-4">
+                    OpenRouter Usage & Cost
+                  </h3>
+                  {perfMetrics.usage?.openRouter ? (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      <div className="text-center bg-gray-50 rounded-lg p-4">
+                        <p className="text-2xl font-bold text-indigo-600">
+                          {perfMetrics.usage.openRouter.requests}
+                        </p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          LLM requests
+                        </p>
+                      </div>
+                      <div className="text-center bg-gray-50 rounded-lg p-4">
+                        <p className="text-2xl font-bold text-indigo-600">
+                          {perfMetrics.usage.openRouter.totalTokens}
+                        </p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Total tokens
+                        </p>
+                      </div>
+                      <div className="text-center bg-gray-50 rounded-lg p-4">
+                        <p className="text-2xl font-bold text-indigo-600">
+                          $
+                          {perfMetrics.usage.openRouter.estimatedCostUsd.toFixed(
+                            4
+                          )}
+                        </p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Estimated USD
+                        </p>
+                      </div>
+                      <div className="text-center bg-gray-50 rounded-lg p-4">
+                        <p className="text-2xl font-bold text-indigo-600">
+                          {perfMetrics.usage.openRouter.inputTokens}
+                        </p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Input tokens
+                        </p>
+                      </div>
+                      <div className="text-center bg-gray-50 rounded-lg p-4">
+                        <p className="text-2xl font-bold text-indigo-600">
+                          {perfMetrics.usage.openRouter.outputTokens}
+                        </p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Output tokens
+                        </p>
+                      </div>
+                      <div className="text-center bg-gray-50 rounded-lg p-4">
+                        <p className="text-sm font-bold text-indigo-600 break-words">
+                          {perfMetrics.usage.openRouter.lastModel ?? "—"}
+                        </p>
+                        <p className="text-sm text-gray-500 mt-1">Last model</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">
+                      No OpenRouter usage recorded yet
+                    </p>
+                  )}
+                  <p className="text-xs text-gray-500 mt-3">
+                    Cost estimate uses env values
+                    OPENROUTER_INPUT_COST_USD_PER_1M_TOKENS and
+                    OPENROUTER_OUTPUT_COST_USD_PER_1M_TOKENS.
+                  </p>
+                </Card>
+
                 {/* Memory */}
                 {perfMetrics.memory.current && (
                   <Card className="p-6">

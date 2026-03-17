@@ -71,6 +71,10 @@ const translations: Record<Language, Record<string, string>> = {
     overviewGreeting: "How can I help?",
     overviewDesc:
       "Find books in the catalog, learn about databases, navigate the HDAK library website.",
+    onboardingTitle: "Start in 3 steps",
+    onboardingStep1: "1) Choose a ready prompt below",
+    onboardingStep2: "2) Refine your query (author/topic/keyword)",
+    onboardingStep3: "3) Open official links in the response",
     examplesTitle: "Try asking:",
     ex1: "How do I register as a library reader?",
     ex2: "Does the library have access to Scopus?",
@@ -122,6 +126,10 @@ const translations: Record<Language, Record<string, string>> = {
     overviewGreeting: "Чим можу допомогти?",
     overviewDesc:
       "Знайду книги в каталозі, розповім про бази даних, допоможу орієнтуватися на сайті бібліотеки ХДАК.",
+    onboardingTitle: "Почніть у 3 кроки",
+    onboardingStep1: "1) Оберіть готовий запит нижче",
+    onboardingStep2: "2) Уточніть тему (автор/предмет/ключові слова)",
+    onboardingStep3: "3) Відкрийте офіційні посилання у відповіді",
     examplesTitle: "Спробуйте запитати:",
     ex1: "Як записатися до бібліотеки?",
     ex2: "Чи є доступ до Scopus?",
@@ -1380,6 +1388,38 @@ export default function Home() {
               >
                 {t.overviewDesc}
               </p>
+
+              <div
+                style={{
+                  width: "100%",
+                  maxWidth: 520,
+                  background: "#ffffff",
+                  border: "1px solid rgba(73,95,151,0.18)",
+                  borderRadius: 14,
+                  padding: "12px 14px",
+                  marginBottom: 18,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: "#3767cc",
+                    fontWeight: 600,
+                    marginBottom: 7,
+                    letterSpacing: "0.04em",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {t.onboardingTitle}
+                </div>
+                <div
+                  style={{ fontSize: 12, color: "#5d7199", lineHeight: 1.55 }}
+                >
+                  <div>{t.onboardingStep1}</div>
+                  <div>{t.onboardingStep2}</div>
+                  <div>{t.onboardingStep3}</div>
+                </div>
+              </div>
 
               {/* Decorative divider */}
               <div

@@ -197,6 +197,61 @@ async function seed() {
     // Seed library info
     console.log("Seeding library information...");
 
+    const initialEditableKnowledgeEntries = JSON.stringify([
+      {
+        id: "seed-library-rules",
+        topic: "Правила користування бібліотекою",
+        title: "Правила користування бібліотекою ХДАК",
+        keywords: [
+          "правила бібліотеки",
+          "користування бібліотекою",
+          "бібліотечні правила",
+        ],
+        shortFacts: [
+          "Для актуальних умов користування перевіряйте офіційний сайт бібліотеки.",
+          "Користувачі мають дотримуватися правил роботи читальних залів.",
+        ],
+        policySnippets: [
+          "Порядок обслуговування та доступ до фондів визначаються правилами бібліотеки.",
+        ],
+        sourceUrls: ["https://lib-hdak.in.ua/pravila-bibliotekoyu.html"],
+        sourceBadge: "official-rule",
+        suggestedFollowUps: [
+          "Як оформити читацький квиток?",
+          "Які правила в електронній читальній залі?",
+        ],
+        enabled: true,
+        updatedAt: new Date().toISOString(),
+        overrideBuiltInId: null,
+      },
+      {
+        id: "seed-catalog-help",
+        topic: "Пошук книг в електронному каталозі",
+        title: "Як шукати книги в е-каталозі",
+        keywords: [
+          "електронний каталог",
+          "як знайти книгу",
+          "пошук за автором",
+        ],
+        shortFacts: [
+          "Е-каталог доступний на офіційному сайті бібліотеки ХДАК.",
+          "Пошук можна виконувати за автором, назвою або ключовими словами.",
+        ],
+        policySnippets: [
+          "Для тематичного пошуку уточнюйте ключові слова або тему запиту.",
+        ],
+        sourceUrls: ["https://lib-hdak.in.ua/e-catalog.html"],
+        sourceBadge: "catalog",
+        suggestedFollowUps: [
+          "Покажи посилання на каталог",
+          "Як знайти книги конкретного автора?",
+        ],
+        enabled: true,
+        updatedAt: new Date().toISOString(),
+        overrideBuiltInId: null,
+      },
+    ]);
+
     const libraryInfoData = [
       {
         key: "about",
@@ -221,6 +276,12 @@ async function seed() {
         valueEn: "https://forms.gle/example",
         valueUk: "https://forms.gle/example",
         valueRu: "https://forms.gle/example",
+      },
+      {
+        key: "editable-knowledge-entries-v1",
+        valueEn: initialEditableKnowledgeEntries,
+        valueUk: initialEditableKnowledgeEntries,
+        valueRu: initialEditableKnowledgeEntries,
       },
     ];
 

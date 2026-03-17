@@ -32,18 +32,24 @@ function createLLMProvider() {
     rawUrl.includes("/openai") ||
     rawUrl.endsWith("/v1");
   const baseURL = hasVersionedPath ? rawUrl : `${rawUrl}/v1`;
+  const providerName = baseURL.includes("openrouter.ai")
+    ? "openrouter"
+    : "openai-compatible";
 
-  return createOpenAI({
-    baseURL,
-    apiKey: ENV.forgeApiKey,
-    headers: {
-      ...(ENV.openRouterHttpReferer
-        ? { "HTTP-Referer": ENV.openRouterHttpReferer }
-        : {}),
-      ...(ENV.openRouterXTitle ? { "X-Title": ENV.openRouterXTitle } : {}),
-    },
-    fetch: createPatchedFetch(fetch),
-  });
+  return {
+    providerName,
+    provider: createOpenAI({
+      baseURL,
+      apiKey: ENV.forgeApiKey,
+      headers: {
+        ...(ENV.openRouterHttpReferer
+          ? { "HTTP-Referer": ENV.openRouterHttpReferer }
+          : {}),
+        ...(ENV.openRouterXTitle ? { "X-Title": ENV.openRouterXTitle } : {}),
+      },
+      fetch: createPatchedFetch(fetch),
+    }),
+  };
 }
 
 export async function runAiOrchestration(params: {
@@ -53,7 +59,16 @@ export async function runAiOrchestration(params: {
   history: ChatMessage[];
   knowledgeContext?: string | null;
   context: { endpoint: string; userId?: number | null; ip?: string | null };
-  onFinish?: (text: string) => Promise<void>;
+  onFinish?: (payload: {
+    text: string;
+    usage?: {
+      inputTokens?: number;
+      outputTokens?: number;
+      totalTokens?: number;
+    } | null;
+    model: string;
+    provider: string;
+  }) => Promise<void>;
   onError?: (error: unknown) => void;
 }) {
   const guardedMessages = params.messages.map(message => {
@@ -90,7 +105,7 @@ export async function runAiOrchestration(params: {
     [...params.history, ...messages],
     params.context
   );
-  const provider = createLLMProvider();
+  const { provider, providerName } = createLLMProvider();
   const modelName = params.model ?? ENV.aiModelName ?? AI_MODEL_NAME;
   const systemPrompt = params.knowledgeContext
     ? `${getOfficialSystemPrompt(language)}\n\n${params.knowledgeContext}`
@@ -104,8 +119,15 @@ export async function runAiOrchestration(params: {
     temperature: AI_TEMPERATURE,
     stopWhen: stepCountIs(MAX_TOOL_CALLS),
     timeout: SECURITY_CONFIG.chat.timeoutMs,
-    onFinish: async ({ text }) => {
-      if (params.onFinish) await params.onFinish(text);
+    onFinish: async ({ text, usage }) => {
+      if (params.onFinish) {
+        await params.onFinish({
+          text,
+          usage: usage ?? null,
+          model: modelName,
+          provider: providerName,
+        });
+      }
     },
     onError: ({ error }) => params.onError?.(error),
   });

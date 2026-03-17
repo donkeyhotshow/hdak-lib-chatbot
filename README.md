@@ -162,6 +162,58 @@ Use `.env.example` as the source of truth.
 
 Пошаговые инструкции и env-матрица: **[DEPLOYMENT.md](./DEPLOYMENT.md)**.
 
+## Production deploy checklist
+
+Перед переключением трафика убедитесь, что:
+
+- [ ] Выставлены критичные env (`BUILT_IN_FORGE_API_URL|FORGE_API_URL`, `BUILT_IN_FORGE_API_KEY|FORGE_API_KEY|OPENAI_API_KEY`, `JWT_SECRET`, `OWNER_OPEN_ID`)
+- [ ] Подключён production `DATABASE_URL` (без него будет in-memory mock и неперсистентная история)
+- [ ] При необходимости включён OAuth (`OAUTH_SERVER_URL`, `VITE_APP_ID`, `VITE_OAUTH_PORTAL_URL`)
+- [ ] Применены миграции/инициализация (`pnpm run db:push`, `pnpm run db:seed`)
+- [ ] Проверены `/api/health` (liveness) и `/api/ready` (critical env readiness)
+- [ ] Проверен вход админа и доступ к `/admin` табам **Analytics**, **Knowledge Base**, **Performance**
+- [ ] Проверены rate limits (`/api/chat` и `/api/trpc`) и отсутствие 429/5xx всплесков после прогрева
+
+## Production monitoring & alerting setup
+
+Минимальная схема мониторинга для запуска:
+
+- **Liveness/Readiness probes**: `GET /api/health`, `GET /api/ready`
+- **Admin metrics endpoint**: `GET /api/metrics` (только admin)
+- **Performance dashboard**: вкладка **Performance** в `/admin`
+- **Quality dashboard**: вкладка **Analytics** в `/admin`
+
+Рекомендуемые алерты:
+
+- `ready.status != 200` дольше 2 минут
+- `streaming.errorRate > 0.10` (по `/api/metrics`)
+- `latency.p95Ms > 8000` стабильно 5+ минут
+- резкий рост 429/5xx в platform logs
+
+## User onboarding (production UX)
+
+- На Home в empty-state есть onboarding-блок "Start in 3 steps" + quick prompt chips.
+- Для библиотечных FAQ сначала используются fast instant answers (без LLM-вызова), что ускоряет первый опыт.
+- Для неизвестных вопросов включается fallback на LLM с официальными источниками и бейджами происхождения ответа.
+
+## Initial editable knowledge seeding
+
+- `pnpm run db:seed` теперь заполняет `libraryInfo` ключ `editable-knowledge-entries-v1` стартовыми editable knowledge entries.
+- В in-memory fallback (когда нет `DATABASE_URL`) тот же ключ предзаполнен, чтобы админский Knowledge Base имел стартовые записи.
+- Админ может сразу редактировать эти записи во вкладке **Knowledge Base** без изменения кода.
+
+## OpenRouter cost monitoring
+
+- `/api/metrics` и вкладка **Performance** показывают:
+  - количество OpenRouter LLM requests
+  - input/output/total tokens
+  - estimated USD cost
+  - last model
+- Для оценки стоимости укажите (опционально):
+  - `OPENROUTER_INPUT_COST_USD_PER_1M_TOKENS`
+  - `OPENROUTER_OUTPUT_COST_USD_PER_1M_TOKENS`
+- Без этих env стоимость считается как `0` (токены и usage всё равно собираются).
+
 ## Limits / caveats
 
 - Качество ответов зависит от внешнего LLM и качества данных библиотеки.

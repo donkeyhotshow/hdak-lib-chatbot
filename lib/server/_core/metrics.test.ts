@@ -20,10 +20,13 @@ import {
   getMemorySnapshots,
   getCurrentMemory,
   getMetrics,
+  recordModelUsage,
   _resetMetrics,
 } from "./metrics";
 
 beforeEach(() => {
+  delete process.env.OPENROUTER_INPUT_COST_USD_PER_1M_TOKENS;
+  delete process.env.OPENROUTER_OUTPUT_COST_USD_PER_1M_TOKENS;
   _resetMetrics();
 });
 
@@ -183,6 +186,33 @@ describe("getMetrics", () => {
     expect(m.latency.samples).toBe(0);
     expect(m.streaming.total).toBe(0);
     expect(m.memory.history).toHaveLength(0);
+  });
+
+  it("tracks OpenRouter usage and estimated cost", () => {
+    process.env.OPENROUTER_INPUT_COST_USD_PER_1M_TOKENS = "1.5";
+    process.env.OPENROUTER_OUTPUT_COST_USD_PER_1M_TOKENS = "2.5";
+    recordModelUsage({
+      provider: "openrouter",
+      model: "openrouter/free",
+      inputTokens: 1000,
+      outputTokens: 500,
+      totalTokens: 1500,
+    });
+    recordModelUsage({
+      provider: "openai-compatible",
+      model: "gpt-4o-mini",
+      inputTokens: 999,
+      outputTokens: 999,
+      totalTokens: 1998,
+    });
+
+    const m = getMetrics();
+    expect(m.usage.openRouter.requests).toBe(1);
+    expect(m.usage.openRouter.inputTokens).toBe(1000);
+    expect(m.usage.openRouter.outputTokens).toBe(500);
+    expect(m.usage.openRouter.totalTokens).toBe(1500);
+    expect(m.usage.openRouter.lastModel).toBe("openrouter/free");
+    expect(m.usage.openRouter.estimatedCostUsd).toBeCloseTo(0.00275);
   });
 });
 

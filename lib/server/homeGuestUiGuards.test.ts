@@ -33,6 +33,12 @@ describe("Home UI language and guest auth guards", () => {
     );
   });
 
+  it("shows onboarding helper content in empty chat state", () => {
+    expect(homePageContent).toContain("onboardingTitle");
+    expect(homePageContent).toContain("Start in 3 steps");
+    expect(homePageContent).toContain("Почніть у 3 кроки");
+  });
+
   it("skips noisy unauthorized query errors in global client logging", () => {
     expect(providersContent).toContain(
       'queryError?.data?.code === "UNAUTHORIZED"'

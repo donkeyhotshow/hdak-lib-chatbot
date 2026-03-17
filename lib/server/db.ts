@@ -281,6 +281,57 @@ function ensureMockState() {
     },
   ];
 
+  const initialEditableKnowledgeEntries = JSON.stringify([
+    {
+      id: "seed-library-rules",
+      topic: "Правила користування бібліотекою",
+      title: "Правила користування бібліотекою ХДАК",
+      keywords: [
+        "правила бібліотеки",
+        "користування бібліотекою",
+        "бібліотечні правила",
+      ],
+      shortFacts: [
+        "Для актуальних умов користування перевіряйте офіційний сайт бібліотеки.",
+        "Користувачі мають дотримуватися правил роботи читальних залів.",
+      ],
+      policySnippets: [
+        "Порядок обслуговування та доступ до фондів визначаються правилами бібліотеки.",
+      ],
+      sourceUrls: ["https://lib-hdak.in.ua/pravila-bibliotekoyu.html"],
+      sourceBadge: "official-rule",
+      suggestedFollowUps: [
+        "Як оформити читацький квиток?",
+        "Які правила в електронній читальній залі?",
+      ],
+      enabled: true,
+      updatedAt: now.toISOString(),
+      overrideBuiltInId: null,
+    },
+    {
+      id: "seed-catalog-help",
+      topic: "Пошук книг в електронному каталозі",
+      title: "Як шукати книги в е-каталозі",
+      keywords: ["електронний каталог", "як знайти книгу", "пошук за автором"],
+      shortFacts: [
+        "Е-каталог доступний на офіційному сайті бібліотеки ХДАК.",
+        "Пошук можна виконувати за автором, назвою або ключовими словами.",
+      ],
+      policySnippets: [
+        "Для тематичного пошуку уточнюйте ключові слова або тему запиту.",
+      ],
+      sourceUrls: ["https://lib-hdak.in.ua/e-catalog.html"],
+      sourceBadge: "catalog",
+      suggestedFollowUps: [
+        "Покажи посилання на каталог",
+        "Як знайти книги конкретного автора?",
+      ],
+      enabled: true,
+      updatedAt: now.toISOString(),
+      overrideBuiltInId: null,
+    },
+  ]);
+
   const seedInfo: LibraryInfo[] = [
     {
       id: nextInfoId(),
@@ -309,6 +360,15 @@ function ensureMockState() {
       valueEn: "Bursatskyi Uzviz St., 4, Kharkiv, Ukraine",
       valueUk: "вул. Бурсацький узвіз, 4, Харків, Україна",
       valueRu: "ул. Бурсацкий узвоз, 4, Харьков, Украина",
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: nextInfoId(),
+      key: "editable-knowledge-entries-v1",
+      valueEn: initialEditableKnowledgeEntries,
+      valueUk: initialEditableKnowledgeEntries,
+      valueRu: initialEditableKnowledgeEntries,
       createdAt: now,
       updatedAt: now,
     },

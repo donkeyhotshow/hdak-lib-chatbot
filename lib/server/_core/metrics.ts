@@ -177,10 +177,83 @@ export interface Metrics {
   uptime: { uptimeSeconds: number };
   latency: LatencyStats;
   streaming: StreamingStats;
+  usage: {
+    openRouter: {
+      requests: number;
+      inputTokens: number;
+      outputTokens: number;
+      totalTokens: number;
+      estimatedCostUsd: number;
+      lastModel: string | null;
+    };
+  };
   memory: {
     current: MemorySnapshot | null;
     history: MemorySnapshot[];
   };
+}
+
+interface OpenRouterUsageCounters {
+  requests: number;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  estimatedCostUsd: number;
+  lastModel: string | null;
+}
+
+const openRouterUsage: OpenRouterUsageCounters = {
+  requests: 0,
+  inputTokens: 0,
+  outputTokens: 0,
+  totalTokens: 0,
+  estimatedCostUsd: 0,
+  lastModel: null,
+};
+
+function readPriceFromEnv(key: string): number {
+  const raw = process.env[key];
+  if (!raw) return 0;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+}
+
+function estimateOpenRouterCostUsd(inputTokens: number, outputTokens: number) {
+  const inputCostPer1M = readPriceFromEnv(
+    "OPENROUTER_INPUT_COST_USD_PER_1M_TOKENS"
+  );
+  const outputCostPer1M = readPriceFromEnv(
+    "OPENROUTER_OUTPUT_COST_USD_PER_1M_TOKENS"
+  );
+  return (
+    (inputTokens / 1_000_000) * inputCostPer1M +
+    (outputTokens / 1_000_000) * outputCostPer1M
+  );
+}
+
+export function recordModelUsage(params: {
+  provider: string;
+  model: string;
+  inputTokens?: number | null;
+  outputTokens?: number | null;
+  totalTokens?: number | null;
+}) {
+  if (params.provider !== "openrouter") return;
+  const inputTokens = Math.max(0, Math.floor(params.inputTokens ?? 0));
+  const outputTokens = Math.max(0, Math.floor(params.outputTokens ?? 0));
+  const totalTokens = Math.max(
+    Math.floor(params.totalTokens ?? 0),
+    inputTokens + outputTokens
+  );
+  openRouterUsage.requests += 1;
+  openRouterUsage.inputTokens += inputTokens;
+  openRouterUsage.outputTokens += outputTokens;
+  openRouterUsage.totalTokens += totalTokens;
+  openRouterUsage.estimatedCostUsd += estimateOpenRouterCostUsd(
+    inputTokens,
+    outputTokens
+  );
+  openRouterUsage.lastModel = params.model || null;
 }
 
 /** Return a full metrics snapshot. */
@@ -190,6 +263,9 @@ export function getMetrics(): Metrics {
     uptime: { uptimeSeconds: Math.floor(process.uptime()) },
     latency: getLatencyStats(),
     streaming: getStreamingStats(),
+    usage: {
+      openRouter: { ...openRouterUsage },
+    },
     memory: {
       current: getCurrentMemory(),
       history: getMemorySnapshots(),
@@ -208,6 +284,12 @@ export function _resetMetrics(): void {
   streamCounters.success = 0;
   streamCounters.error = 0;
   streamCounters.timeout = 0;
+  openRouterUsage.requests = 0;
+  openRouterUsage.inputTokens = 0;
+  openRouterUsage.outputTokens = 0;
+  openRouterUsage.totalTokens = 0;
+  openRouterUsage.estimatedCostUsd = 0;
+  openRouterUsage.lastModel = null;
   memorySnapshots.length = 0;
   stopMemoryMonitoring();
 }
