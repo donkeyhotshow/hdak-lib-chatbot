@@ -128,4 +128,29 @@ describe("runAiOrchestration env requirements", () => {
       })
     );
   });
+
+  it("uses request model when provided", async () => {
+    const chatMock = vi.fn(() => "model");
+    createOpenAIMock.mockReturnValue({ chat: chatMock });
+    vi.doMock("../_core/env", () => ({
+      ENV: {
+        forgeApiUrl: "https://openrouter.ai/api/v1",
+        forgeApiKey: "test-key",
+        aiModelName: "gpt-4o-mini",
+        openRouterHttpReferer: "",
+        openRouterXTitle: "",
+      },
+    }));
+
+    const { runAiOrchestration } = await import("./aiOrchestrator");
+
+    await runAiOrchestration({
+      messages: [{ role: "user", content: "hello" }],
+      history: [],
+      model: "openrouter/free",
+      context: { endpoint: "/api/chat", userId: 1, ip: "127.0.0.1" },
+    });
+
+    expect(chatMock).toHaveBeenCalledWith("openrouter/free");
+  });
 });

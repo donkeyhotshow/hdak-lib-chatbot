@@ -8,6 +8,29 @@ import type { inferRouterOutputs } from "@trpc/server";
 import { Markdown } from "@/components/Markdown";
 import { trpc } from "@/lib/trpc";
 import type { AppRouter } from "@/lib/server/routers";
+import {
+  getInstantAnswer,
+  QUICK_PROMPTS,
+} from "@/lib/server/services/instantAnswers";
+import {
+  getCatalogIntentAction,
+  OFFICIAL_CATALOG_URL,
+} from "@/lib/server/services/catalogIntent";
+import {
+  findLibraryKnowledgeTopic,
+  findLibraryKnowledgeTopicInTopics,
+  type LibraryKnowledgeTopic,
+} from "@/lib/server/services/libraryKnowledge";
+import {
+  appendFeedbackPayload,
+  appendTelemetryEvent,
+  CHAT_TELEMETRY_STORAGE_KEY,
+  createFeedbackPayload,
+  FEEDBACK_STORAGE_KEY,
+  type ChatFeedbackPayload,
+  type ChatTelemetryEvent,
+  type ChatFeedbackValue,
+} from "@/lib/pages/homeFeedback";
 import { RefreshCw } from "lucide-react";
 
 type RouterOutput = inferRouterOutputs<AppRouter>;
@@ -22,6 +45,8 @@ type LocalConversation = {
 const CHAT_TITLE_MAX_LENGTH = 50;
 const SEND_DEBOUNCE_MS = 350;
 const GUEST_HISTORY_STORAGE_KEY = "hdak-guest-history-v1";
+const GUEST_HISTORY_STORAGE_PREFIX = "hdak-guest-history-v1:";
+const GUEST_ID_STORAGE_KEY = "hdak-guest-id";
 
 type Language = "en" | "uk";
 
@@ -65,6 +90,17 @@ const translations: Record<Language, Record<string, string>> = {
     historyLabel: "Conversations",
     hint: "Enter — send · Shift+Enter — new line",
     langCode: "ENG",
+    quickAnswer: "Quick answer",
+    badgeQuick: "Quick answer",
+    badgeCatalog: "Catalog",
+    badgeOfficialRule: "Official rule",
+    badgeGenerated: "Generated from reference data",
+    sourcesLabel: "Sources",
+    viewSource: "View source",
+    feedbackUp: "👍 Helpful",
+    feedbackDown: "👎 Didn’t help",
+    feedbackSaved: "Thanks for feedback",
+    followUpLabel: "Similar questions",
   },
   uk: {
     title: "Помічник бібліотеки ХДАК",
@@ -106,8 +142,30 @@ const translations: Record<Language, Record<string, string>> = {
     historyLabel: "Розмови",
     hint: "Enter — надіслати · Shift+Enter — новий рядок",
     langCode: "УКР",
+    quickAnswer: "Швидка відповідь",
+    badgeQuick: "Швидка відповідь",
+    badgeCatalog: "Каталог",
+    badgeOfficialRule: "Офіційне правило",
+    badgeGenerated: "Згенеровано на основі довідкових даних",
+    sourcesLabel: "Джерела",
+    viewSource: "Переглянути джерело",
+    feedbackUp: "👍 Корисно",
+    feedbackDown: "👎 Не допомогло",
+    feedbackSaved: "Дякуємо за відгук",
+    followUpLabel: "Схожі запитання",
   },
 };
+
+function getGuestHistoryKey(guestId: string) {
+  return `${GUEST_HISTORY_STORAGE_PREFIX}${guestId}`;
+}
+
+function generateFallbackLocalId(): string {
+  return (
+    globalThis.crypto?.randomUUID?.() ??
+    `${Date.now()}-${Math.random().toString(16).slice(2)}`
+  );
+}
 
 function getMessageText(msg: DisplayMessage): string {
   if ("content" in msg && typeof msg.content === "string") return msg.content;
@@ -123,6 +181,23 @@ function getMessageText(msg: DisplayMessage): string {
       .join("");
   }
   return "";
+}
+
+function extractOfficialSourceLinksFromText(text: string): string[] {
+  if (!text) return [];
+  const matches = text.match(/https?:\/\/lib-hdak\.in\.ua\/[^\s)]+/g) ?? [];
+  return [...new Set(matches)];
+}
+
+function createLocalUiMessage(
+  role: "user" | "assistant",
+  text: string
+): UIMessage {
+  return {
+    id: generateFallbackLocalId(),
+    role,
+    parts: [{ type: "text", text }],
+  };
 }
 
 export const RESOURCES = [
@@ -198,9 +273,13 @@ export default function Home() {
   const [openDropdown, setOpenDropdown] = useState<
     "hist" | "res" | "lang" | null
   >(null);
+  const [feedbackByResponseId, setFeedbackByResponseId] = useState<
+    Record<string, ChatFeedbackValue>
+  >({});
   const userHasDeselected = useRef(false);
   const pendingPromptRef = useRef<string | null>(null);
   const guestConversationIdRef = useRef(Date.now() * 1000);
+  const guestIdRef = useRef<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const prevMessageCountRef = useRef(0);
   const lastSendTimeRef = useRef(0);
@@ -230,7 +309,16 @@ export default function Home() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const saved = window.localStorage.getItem(GUEST_HISTORY_STORAGE_KEY);
+    const existingGuestId = window.localStorage.getItem(GUEST_ID_STORAGE_KEY);
+    const guestId = existingGuestId ?? generateFallbackLocalId();
+    if (!existingGuestId)
+      window.localStorage.setItem(GUEST_ID_STORAGE_KEY, guestId);
+    guestIdRef.current = guestId;
+
+    const historyKey = getGuestHistoryKey(guestId);
+    const savedCurrent = window.localStorage.getItem(historyKey);
+    const savedLegacy = window.localStorage.getItem(GUEST_HISTORY_STORAGE_KEY);
+    const saved = savedCurrent ?? savedLegacy;
     if (!saved) return;
     try {
       const parsed = JSON.parse(saved) as {
@@ -245,15 +333,20 @@ export default function Home() {
         guestConversationIdRef.current
       );
       guestConversationIdRef.current = maxConversationId;
+      window.localStorage.setItem(historyKey, saved);
+      if (!savedCurrent && savedLegacy) {
+        window.localStorage.removeItem(GUEST_HISTORY_STORAGE_KEY);
+      }
     } catch {
+      window.localStorage.removeItem(historyKey);
       window.localStorage.removeItem(GUEST_HISTORY_STORAGE_KEY);
     }
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || !guestIdRef.current) return;
     window.localStorage.setItem(
-      GUEST_HISTORY_STORAGE_KEY,
+      getGuestHistoryKey(guestIdRef.current),
       JSON.stringify({
         conversations: guestConversations,
         messagesByConversation: guestMessagesByConversation,
@@ -327,6 +420,15 @@ export default function Home() {
       staleTime: 30_000,
     }
   );
+  const { data: runtimeKnowledgeTopicsData } =
+    trpc.knowledge.getRuntime.useQuery(undefined, {
+      staleTime: 5 * 60 * 1000,
+      refetchOnWindowFocus: false,
+    });
+  const runtimeKnowledgeTopics: LibraryKnowledgeTopic[] | undefined =
+    runtimeKnowledgeTopicsData && runtimeKnowledgeTopicsData.length > 0
+      ? runtimeKnowledgeTopicsData
+      : undefined;
 
   const createConversationMutation = trpc.conversations.create.useMutation({
     onSuccess: data => {
@@ -355,6 +457,7 @@ export default function Home() {
       utils.conversations.list.invalidate();
     },
   });
+  const submitFeedbackMutation = trpc.analytics.submitFeedback.useMutation();
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -418,6 +521,50 @@ export default function Home() {
     const textToSend = messageText ?? localInput;
     if (!textToSend.trim() || isStreaming) return;
     setSendError(null);
+    const instantAnswer = getInstantAnswer(textToSend.trim(), language, {
+      knowledgeTopics: runtimeKnowledgeTopics,
+    });
+
+    if (!isAuthenticated && instantAnswer) {
+      const userMessage = createLocalUiMessage("user", textToSend.trim());
+      const assistantMessage = createLocalUiMessage(
+        "assistant",
+        `**${t.quickAnswer}**\n\n${instantAnswer.answer}`
+      );
+      const now = new Date().toISOString();
+
+      if (currentConversationId) {
+        setStreamedMessages(prev => [...prev, userMessage, assistantMessage]);
+        setGuestConversations(prev =>
+          prev.map(conversation =>
+            conversation.id === currentConversationId
+              ? { ...conversation, updatedAt: now }
+              : conversation
+          )
+        );
+      } else {
+        guestConversationIdRef.current += 1;
+        const localConversationId = guestConversationIdRef.current;
+        setCurrentConversationId(localConversationId);
+        setGuestConversations(prev => [
+          {
+            id: localConversationId,
+            title: textToSend.slice(0, CHAT_TITLE_MAX_LENGTH),
+            updatedAt: now,
+          },
+          ...prev,
+        ]);
+        setGuestMessagesByConversation(prev => ({
+          ...prev,
+          [localConversationId]: [userMessage, assistantMessage],
+        }));
+        setStreamedMessages([userMessage, assistantMessage]);
+      }
+
+      setLocalInput("");
+      return;
+    }
+
     if (currentConversationId) {
       setLocalInput("");
       void sendMessage({ text: textToSend });
@@ -505,15 +652,108 @@ export default function Home() {
 
   const t = translations[language];
 
-  const chips = useMemo(
-    () => [
-      { emoji: "📋", text: t.ex1 },
-      { emoji: "🔬", text: t.ex2 },
-      { emoji: "📚", text: t.ex3 },
-      { emoji: "🏛️", text: t.ex4 },
-    ],
-    [t]
-  );
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raw = window.localStorage.getItem(FEEDBACK_STORAGE_KEY);
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw) as Array<{
+        responseId?: string;
+        feedbackValue?: ChatFeedbackValue;
+      }>;
+      const next = parsed.reduce<Record<string, ChatFeedbackValue>>(
+        (acc, item) => {
+          if (
+            item.responseId &&
+            (item.feedbackValue === "up" || item.feedbackValue === "down")
+          ) {
+            acc[item.responseId] = item.feedbackValue;
+          }
+          return acc;
+        },
+        {}
+      );
+      setFeedbackByResponseId(next);
+    } catch {
+      window.localStorage.removeItem(FEEDBACK_STORAGE_KEY);
+    }
+  }, []);
+
+  const saveFeedback = (
+    responseId: string,
+    sourceBadge:
+      | "quick"
+      | "catalog"
+      | "official-rule"
+      | "generated"
+      | "llm-fallback"
+      | "unknown",
+    userQuery: string,
+    value: ChatFeedbackValue
+  ) => {
+    setFeedbackByResponseId(prev => ({ ...prev, [responseId]: value }));
+    if (typeof window === "undefined") return;
+    const conversationId = currentConversationId ?? undefined;
+    const payload = createFeedbackPayload({
+      responseId,
+      sourceBadge,
+      userQuery,
+      feedbackValue: value,
+      conversationId,
+      guestId: guestIdRef.current ?? undefined,
+    });
+    let existing: ChatFeedbackPayload[] = [];
+    try {
+      const existingRaw = window.localStorage.getItem(FEEDBACK_STORAGE_KEY);
+      existing = existingRaw
+        ? (JSON.parse(existingRaw) as ChatFeedbackPayload[])
+        : [];
+    } catch {
+      existing = [];
+    }
+    const next = appendFeedbackPayload(existing, payload);
+    window.localStorage.setItem(FEEDBACK_STORAGE_KEY, JSON.stringify(next));
+
+    let telemetryExisting: ChatTelemetryEvent[] = [];
+    try {
+      const telemetryRaw = window.localStorage.getItem(
+        CHAT_TELEMETRY_STORAGE_KEY
+      );
+      telemetryExisting = telemetryRaw
+        ? (JSON.parse(telemetryRaw) as ChatTelemetryEvent[])
+        : [];
+    } catch {
+      telemetryExisting = [];
+    }
+    const telemetryNext = appendTelemetryEvent(telemetryExisting, {
+      name: "feedback_submitted",
+      timestamp: new Date().toISOString(),
+      mode: isAuthenticated ? "auth" : "guest",
+      sourceBadge,
+      responseLatency: "instant",
+    });
+    window.localStorage.setItem(
+      CHAT_TELEMETRY_STORAGE_KEY,
+      JSON.stringify(telemetryNext)
+    );
+
+    submitFeedbackMutation.mutate({
+      responseId,
+      sourceBadge,
+      userQuery,
+      feedbackValue: value,
+      conversationId,
+      guestId: guestIdRef.current ?? undefined,
+    });
+  };
+
+  const chips = useMemo(() => {
+    const chipEmojis = ["⚡", "📚", "📘", "📞"];
+    return QUICK_PROMPTS[language].slice(0, 4).map((text, index) => ({
+      emoji: chipEmojis[index % chipEmojis.length],
+      text,
+    }));
+  }, [language]);
 
   const showEmpty =
     !currentConversationId &&
@@ -557,8 +797,8 @@ export default function Home() {
         }
         .hdak-body {
           font-family: 'DM Sans', system-ui, sans-serif;
-          background: #121a2b;
-          color: #ede3d0;
+          background: #eef3fb;
+          color: #1f2a44;
           height: 100vh;
           overflow: hidden;
           display: flex;
@@ -575,25 +815,29 @@ export default function Home() {
         }
         .hdak-serif { font-family: 'Playfair Display', Georgia, serif; }
         .hdak-dd-scroll::-webkit-scrollbar { width: 3px; }
-        .hdak-dd-scroll::-webkit-scrollbar-thumb { background: rgba(180,148,80,0.14); border-radius: 3px; }
+        .hdak-dd-scroll::-webkit-scrollbar-thumb { background: rgba(73,95,151,0.2); border-radius: 3px; }
         .hdak-msg-scroll::-webkit-scrollbar { width: 3px; }
-        .hdak-msg-scroll::-webkit-scrollbar-thumb { background: rgba(180,148,80,0.14); border-radius: 3px; }
-        .hdak-textarea { resize: none; background: transparent; border: none; outline: none; color: #ede3d0; font-family: 'DM Sans', system-ui, sans-serif; font-size: 14px; line-height: 1.55; min-height: 22px; max-height: 100px; width: 100%; }
-        .hdak-textarea::placeholder { color: #566070; }
-        .hdak-bubble a { color: #c8a84b; text-underline-offset: 3px; }
-        .hdak-bubble strong { color: #f2e8d5; font-weight: 500; }
-        .hdak-bubble code { background: rgba(255,255,255,0.06); padding: 1px 5px; border-radius: 4px; font-size: 12.5px; }
-        .hdak-bubble ul { padding-left: 18px; margin-top: 4px; }
-        .hdak-bubble li { margin-bottom: 3px; }
-        .hdak-bubble p { margin-bottom: 6px; }
-        .hdak-chip:hover { border-color: #c8a84b; color: #ede3d0; background: rgba(200,168,75,0.10); transform: translateY(-1px); }
-        .hdak-res-row:hover { background: rgba(200,168,75,0.10); }
-        .hdak-hist-row:hover { background: rgba(200,168,75,0.10); }
-        .hdak-lang-row:hover { background: rgba(200,168,75,0.10); color: #ede3d0; }
-        .hdak-tb-btn:hover, .hdak-tb-btn.active { border-color: rgba(180,148,80,0.35); color: #ede3d0; background: rgba(200,168,75,0.10); }
-        .hdak-send:hover:not(:disabled) { background: #d9b85a; transform: scale(1.07); box-shadow: 0 4px 14px rgba(200,168,75,.4); }
-        .hdak-send:disabled { background: #1a2236; color: #566070; cursor: default; transform: none; box-shadow: none; }
-        .hdak-input-row:focus-within { border-color: rgba(200,168,75,.38); box-shadow: 0 0 0 4px rgba(200,168,75,.06); }
+        .hdak-msg-scroll::-webkit-scrollbar-thumb { background: rgba(73,95,151,0.2); border-radius: 3px; }
+        .hdak-textarea { resize: none; background: transparent; border: none; outline: none; color: #1f2a44; font-family: 'DM Sans', system-ui, sans-serif; font-size: 14px; line-height: 1.62; min-height: 22px; max-height: 100px; width: 100%; }
+        .hdak-textarea::placeholder { color: #6f81a8; opacity: 1; }
+        .hdak-bubble a { color: #2a5aba; text-underline-offset: 3px; font-weight: 500; }
+        .hdak-bubble strong { color: #1f2a44; font-weight: 600; }
+        .hdak-bubble code { background: #edf2fc; padding: 1px 5px; border-radius: 4px; font-size: 12.5px; }
+        .hdak-bubble ul { padding-left: 20px; margin-top: 6px; }
+        .hdak-bubble li { margin-bottom: 5px; }
+        .hdak-bubble p { margin-bottom: 9px; line-height: 1.72; }
+        .hdak-chip:hover { border-color: #3767cc; color: #1f2a44; background: #eef4ff; transform: translateY(-1px); }
+        .hdak-res-row:hover { background: #eef4ff; }
+        .hdak-hist-row:hover { background: #eef4ff; }
+        .hdak-lang-row:hover { background: #eef4ff; color: #1f2a44; }
+        .hdak-tb-btn:hover, .hdak-tb-btn.active { border-color: rgba(73,95,151,0.38); color: #1f2a44; background: #eef4ff; }
+        .hdak-send:hover:not(:disabled) { background: #2a5aba; transform: scale(1.04); box-shadow: 0 6px 14px rgba(42,90,186,.28); }
+        .hdak-send:disabled { background: #dbe4f6; color: #6f81a8; cursor: default; transform: none; box-shadow: none; }
+        .hdak-input-row:focus-within { border-color: rgba(42,90,186,.45); box-shadow: 0 0 0 4px rgba(42,90,186,.1); }
+        .hdak-action-btn { height: 30px; padding: 0 12px; background: #f4f7ff; border: 1px solid rgba(73,95,151,0.25); border-radius: 8px; color: #2a5aba; font-size: 12px; cursor: pointer; font-family: 'DM Sans', system-ui, sans-serif; transition: all 0.15s; display: inline-flex; align-items: center; gap: 4px; }
+        .hdak-action-btn:hover { background: #e9f0ff; border-color: rgba(42,90,186,.42); color: #204690; }
+        .hdak-action-btn--catalog { background: #e3eeff; border-color: rgba(42,90,186,.5); color: #1f4a9a; font-weight: 600; }
+        .hdak-action-btn--catalog:hover { background: #d7e6ff; border-color: rgba(32,70,144,.58); }
         @media (max-width: 480px) { .tb-label { display: none; } }
       `}</style>
 
@@ -616,8 +860,8 @@ export default function Home() {
             alignItems: "center",
             padding: "0 20px",
             gap: 10,
-            borderBottom: "1px solid rgba(180,148,80,0.14)",
-            background: "#1a2338",
+            borderBottom: "1px solid rgba(73,95,151,0.2)",
+            background: "#ffffff",
             flexShrink: 0,
           }}
         >
@@ -630,9 +874,9 @@ export default function Home() {
                 height: 30,
                 padding: "0 11px",
                 background: "transparent",
-                border: "1px solid rgba(180,148,80,0.14)",
+                border: "1px solid rgba(73,95,151,0.2)",
                 borderRadius: 7,
-                color: "#566070",
+                color: "#6f81a8",
                 fontFamily: "'DM Sans', system-ui, sans-serif",
                 fontSize: 12,
                 fontWeight: 400,
@@ -665,8 +909,8 @@ export default function Home() {
                   position: "absolute",
                   top: 38,
                   left: 0,
-                  background: "#1a2338",
-                  border: "1px solid rgba(180,148,80,0.14)",
+                  background: "#ffffff",
+                  border: "1px solid rgba(73,95,151,0.2)",
                   borderRadius: 12,
                   padding: 6,
                   zIndex: 200,
@@ -685,7 +929,7 @@ export default function Home() {
                     fontWeight: 500,
                     letterSpacing: "0.1em",
                     textTransform: "uppercase",
-                    color: "#566070",
+                    color: "#6f81a8",
                     padding: "5px 9px 9px",
                   }}
                 >
@@ -697,10 +941,10 @@ export default function Home() {
                     width: "100%",
                     padding: "8px 10px",
                     marginBottom: 5,
-                    background: "rgba(200,168,75,0.10)",
-                    border: "1px solid rgba(180,148,80,0.14)",
+                    background: "#eef4ff",
+                    border: "1px solid rgba(73,95,151,0.2)",
                     borderRadius: 8,
-                    color: "#c8a84b",
+                    color: "#3767cc",
                     fontFamily: "'DM Sans', system-ui, sans-serif",
                     fontSize: 12,
                     fontWeight: 500,
@@ -728,7 +972,7 @@ export default function Home() {
                     style={{
                       padding: "8px 10px",
                       fontSize: 12,
-                      color: "#566070",
+                      color: "#6f81a8",
                     }}
                   >
                     {t.noConversations}
@@ -749,11 +993,11 @@ export default function Home() {
                         transition: "background 0.15s",
                         borderLeft:
                           currentConversationId === conv.id
-                            ? "2px solid #c8a84b"
+                            ? "2px solid #3767cc"
                             : "2px solid transparent",
                         background:
                           currentConversationId === conv.id
-                            ? "rgba(200,168,75,0.10)"
+                            ? "#eef4ff"
                             : "transparent",
                       }}
                     >
@@ -761,7 +1005,7 @@ export default function Home() {
                         style={{
                           flex: 1,
                           fontSize: 13,
-                          color: "#ede3d0",
+                          color: "#1f2a44",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
                           whiteSpace: "nowrap",
@@ -772,7 +1016,7 @@ export default function Home() {
                       <span
                         style={{
                           fontSize: 11,
-                          color: "#566070",
+                          color: "#6f81a8",
                           flexShrink: 0,
                         }}
                       >
@@ -783,7 +1027,7 @@ export default function Home() {
                         style={{
                           background: "none",
                           border: "none",
-                          color: "#566070",
+                          color: "#6f81a8",
                           cursor: "pointer",
                           fontSize: 12,
                           padding: "2px 3px",
@@ -794,7 +1038,7 @@ export default function Home() {
                           (e.currentTarget.style.color = "#e05555")
                         }
                         onMouseLeave={e =>
-                          (e.currentTarget.style.color = "#566070")
+                          (e.currentTarget.style.color = "#6f81a8")
                         }
                         title={t.deleteConversation}
                       >
@@ -823,7 +1067,7 @@ export default function Home() {
               style={{
                 width: 28,
                 height: 28,
-                background: "rgba(200,168,75,0.10)",
+                background: "#eef4ff",
                 border: "1px solid rgba(180,148,80,0.35)",
                 borderRadius: 7,
                 display: "flex",
@@ -838,7 +1082,7 @@ export default function Home() {
               className="hdak-serif"
               style={{
                 fontSize: 15,
-                color: "#ede3d0",
+                color: "#1f2a44",
                 letterSpacing: "0.01em",
               }}
             >
@@ -857,9 +1101,9 @@ export default function Home() {
                   height: 30,
                   padding: "0 11px",
                   background: "transparent",
-                  border: "1px solid rgba(180,148,80,0.14)",
+                  border: "1px solid rgba(73,95,151,0.2)",
                   borderRadius: 7,
-                  color: "#566070",
+                  color: "#6f81a8",
                   fontFamily: "'DM Sans', system-ui, sans-serif",
                   fontSize: 12,
                   cursor: "pointer",
@@ -891,8 +1135,8 @@ export default function Home() {
                     position: "absolute",
                     top: 38,
                     right: 0,
-                    background: "#1a2338",
-                    border: "1px solid rgba(180,148,80,0.14)",
+                    background: "#ffffff",
+                    border: "1px solid rgba(73,95,151,0.2)",
                     borderRadius: 12,
                     padding: 6,
                     zIndex: 200,
@@ -911,7 +1155,7 @@ export default function Home() {
                       fontWeight: 500,
                       letterSpacing: "0.1em",
                       textTransform: "uppercase",
-                      color: "#566070",
+                      color: "#6f81a8",
                       padding: "5px 9px 9px",
                     }}
                   >
@@ -950,7 +1194,7 @@ export default function Home() {
                         <div
                           style={{
                             fontSize: 12,
-                            color: "#ede3d0",
+                            color: "#1f2a44",
                             fontWeight: 500,
                             lineHeight: 1.3,
                           }}
@@ -960,7 +1204,7 @@ export default function Home() {
                             <span
                               style={{
                                 fontSize: 10,
-                                color: "#c8a84b",
+                                color: "#3767cc",
                                 opacity: 0.75,
                                 marginLeft: 4,
                               }}
@@ -972,7 +1216,7 @@ export default function Home() {
                         <div
                           style={{
                             fontSize: 11,
-                            color: "#566070",
+                            color: "#6f81a8",
                             lineHeight: 1.3,
                             marginTop: 1,
                           }}
@@ -995,9 +1239,9 @@ export default function Home() {
                   height: 30,
                   padding: "0 11px",
                   background: "transparent",
-                  border: "1px solid rgba(180,148,80,0.14)",
+                  border: "1px solid rgba(73,95,151,0.2)",
                   borderRadius: 7,
-                  color: "#566070",
+                  color: "#6f81a8",
                   fontFamily: "'DM Sans', system-ui, sans-serif",
                   fontSize: 12,
                   cursor: "pointer",
@@ -1017,8 +1261,8 @@ export default function Home() {
                     position: "absolute",
                     top: 38,
                     right: 0,
-                    background: "#1a2338",
-                    border: "1px solid rgba(180,148,80,0.14)",
+                    background: "#ffffff",
+                    border: "1px solid rgba(73,95,151,0.2)",
                     borderRadius: 12,
                     padding: 6,
                     zIndex: 200,
@@ -1034,7 +1278,7 @@ export default function Home() {
                       fontWeight: 500,
                       letterSpacing: "0.1em",
                       textTransform: "uppercase",
-                      color: "#566070",
+                      color: "#6f81a8",
                       padding: "5px 9px 9px",
                     }}
                   >
@@ -1053,7 +1297,7 @@ export default function Home() {
                         borderRadius: 8,
                         cursor: "pointer",
                         fontSize: 13,
-                        color: language === lang ? "#c8a84b" : "#566070",
+                        color: language === lang ? "#3767cc" : "#6f81a8",
                         transition: "background 0.15s, color 0.15s",
                         display: "flex",
                         alignItems: "center",
@@ -1101,7 +1345,7 @@ export default function Home() {
                 style={{
                   width: 64,
                   height: 64,
-                  background: "rgba(200,168,75,0.10)",
+                  background: "#eef4ff",
                   border: "1px solid rgba(180,148,80,0.35)",
                   borderRadius: 16,
                   display: "flex",
@@ -1119,7 +1363,7 @@ export default function Home() {
                 style={{
                   fontSize: 26,
                   fontWeight: 600,
-                  color: "#ede3d0",
+                  color: "#1f2a44",
                   marginBottom: 10,
                 }}
               >
@@ -1128,7 +1372,7 @@ export default function Home() {
               <p
                 style={{
                   fontSize: 13,
-                  color: "#a8997f",
+                  color: "#5d7199",
                   maxWidth: 320,
                   lineHeight: 1.65,
                   marginBottom: 30,
@@ -1152,17 +1396,17 @@ export default function Home() {
                   style={{
                     flex: 1,
                     height: 1,
-                    background: "rgba(180,148,80,0.14)",
+                    background: "rgba(73,95,151,0.2)",
                   }}
                 />
-                <span style={{ fontSize: 12, color: "#c8a84b", opacity: 0.5 }}>
+                <span style={{ fontSize: 12, color: "#3767cc", opacity: 0.5 }}>
                   ✦
                 </span>
                 <div
                   style={{
                     flex: 1,
                     height: 1,
-                    background: "rgba(180,148,80,0.14)",
+                    background: "rgba(73,95,151,0.2)",
                   }}
                 />
               </div>
@@ -1184,11 +1428,11 @@ export default function Home() {
                     onClick={() => handleQuickStart(chip.text)}
                     style={{
                       padding: "8px 16px",
-                      background: "#1a2338",
-                      border: "1px solid rgba(180,148,80,0.14)",
+                      background: "#ffffff",
+                      border: "1px solid rgba(73,95,151,0.2)",
                       borderRadius: 22,
                       fontSize: 12,
-                      color: "#a8997f",
+                      color: "#5d7199",
                       cursor: "pointer",
                       transition: "all 0.2s",
                       fontFamily: "'DM Sans', system-ui, sans-serif",
@@ -1219,6 +1463,91 @@ export default function Home() {
                   msg.role === "assistant" &&
                   idx === allMessages.length - 1 &&
                   !isStreaming;
+                const previousUserMessage = !isUser
+                  ? [...allMessages]
+                      .slice(0, idx)
+                      .reverse()
+                      .find(prevMessage => prevMessage.role === "user")
+                  : null;
+                const catalogAction =
+                  isLastAssistant && previousUserMessage
+                    ? getCatalogIntentAction(
+                        getMessageText(previousUserMessage),
+                        language
+                      )
+                    : null;
+                const instantAnswerMeta =
+                  !isUser && previousUserMessage
+                    ? getInstantAnswer(
+                        getMessageText(previousUserMessage),
+                        language,
+                        { knowledgeTopics: runtimeKnowledgeTopics }
+                      )
+                    : null;
+                const knowledgeTopic =
+                  !isUser && previousUserMessage
+                    ? runtimeKnowledgeTopics
+                      ? findLibraryKnowledgeTopicInTopics(
+                          getMessageText(previousUserMessage),
+                          runtimeKnowledgeTopics
+                        )
+                      : findLibraryKnowledgeTopic(
+                          getMessageText(previousUserMessage)
+                        )
+                    : null;
+                const extractedOfficialLinks = isUser
+                  ? []
+                  : extractOfficialSourceLinksFromText(getMessageText(msg));
+                const sourceBadge = isUser
+                  ? null
+                  : instantAnswerMeta?.sourceBadge === "official-rule"
+                    ? t.badgeOfficialRule
+                    : instantAnswerMeta?.sourceBadge === "catalog"
+                      ? t.badgeCatalog
+                      : instantAnswerMeta
+                        ? t.badgeQuick
+                        : knowledgeTopic
+                          ? t.badgeGenerated
+                          : extractedOfficialLinks.length > 0
+                            ? t.badgeGenerated
+                            : null;
+                const sourceBadgeType = isUser
+                  ? "unknown"
+                  : instantAnswerMeta?.sourceBadge === "official-rule"
+                    ? "official-rule"
+                    : instantAnswerMeta?.sourceBadge === "catalog"
+                      ? "catalog"
+                      : instantAnswerMeta?.sourceBadge === "quick"
+                        ? "quick"
+                        : knowledgeTopic
+                          ? "generated"
+                          : extractedOfficialLinks.length > 0
+                            ? "generated"
+                            : "llm-fallback";
+                const sourceLinks = isUser
+                  ? []
+                  : (instantAnswerMeta?.links ??
+                    knowledgeTopic?.sourceUrls ??
+                    extractedOfficialLinks);
+                const responseId =
+                  "id" in msg && typeof msg.id !== "undefined"
+                    ? String(msg.id)
+                    : `${idx}-${sourceBadgeType}`;
+                const followUpPrompts =
+                  !isUser && instantAnswerMeta
+                    ? (instantAnswerMeta.suggestedFollowUps?.length
+                        ? instantAnswerMeta.suggestedFollowUps
+                        : QUICK_PROMPTS[language]
+                      )
+                        .filter(
+                          prompt =>
+                            prompt.toLowerCase() !==
+                            getMessageText(
+                              previousUserMessage ?? msg
+                            ).toLowerCase()
+                        )
+                        .slice(0, 3)
+                    : [];
                 return (
                   <div
                     key={idx}
@@ -1242,10 +1571,8 @@ export default function Home() {
                         justifyContent: "center",
                         fontSize: 14,
                         marginTop: 2,
-                        border: "1px solid rgba(180,148,80,0.14)",
-                        background: isUser
-                          ? "#1c1505"
-                          : "rgba(200,168,75,0.10)",
+                        border: "1px solid rgba(73,95,151,0.2)",
+                        background: isUser ? "#f4f8ff" : "#eef4ff",
                       }}
                     >
                       {isUser ? "👤" : "📚"}
@@ -1260,20 +1587,36 @@ export default function Home() {
                       }}
                     >
                       {/* Bubble */}
+                      {!isUser && sourceBadge && (
+                        <span
+                          style={{
+                            alignSelf: "flex-start",
+                            fontSize: 11,
+                            color: "#2a5aba",
+                            background: "#eef4ff",
+                            border: "1px solid rgba(73,95,151,0.24)",
+                            borderRadius: 999,
+                            padding: "2px 8px",
+                            lineHeight: 1.4,
+                          }}
+                        >
+                          {sourceBadge}
+                        </span>
+                      )}
                       <div
                         className="hdak-bubble"
                         style={{
                           padding: "11px 15px",
                           borderRadius: 13,
                           border: isUser
-                            ? "1px solid rgba(200,168,75,0.18)"
-                            : "1px solid rgba(180,148,80,0.14)",
+                            ? "1px solid rgba(73,95,151,0.24)"
+                            : "1px solid rgba(73,95,151,0.2)",
                           fontSize: 14,
                           lineHeight: 1.7,
-                          background: isUser ? "#1c1505" : "#1a2338",
+                          background: isUser ? "#f4f8ff" : "#ffffff",
                           borderTopRightRadius: isUser ? 3 : 13,
                           borderTopLeftRadius: isUser ? 13 : 3,
-                          color: "#ede3d0",
+                          color: "#1f2a44",
                         }}
                       >
                         {isUser ? (
@@ -1286,6 +1629,124 @@ export default function Home() {
                           </div>
                         )}
                       </div>
+                      {!isUser && sourceLinks.length > 0 && (
+                        <div
+                          style={{
+                            fontSize: 11,
+                            color: "#5d7199",
+                            paddingLeft: 2,
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 3,
+                          }}
+                        >
+                          <span style={{ fontWeight: 500 }}>
+                            {t.sourcesLabel}:
+                          </span>
+                          {sourceLinks.map(link => (
+                            <a
+                              key={link}
+                              href={link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                color: "#2a5aba",
+                                textDecoration: "none",
+                              }}
+                            >
+                              {t.viewSource}
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                      {!isUser && (
+                        <div
+                          style={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: 6,
+                            alignItems: "center",
+                          }}
+                        >
+                          <button
+                            className="hdak-action-btn"
+                            onClick={() =>
+                              saveFeedback(
+                                responseId,
+                                sourceBadgeType,
+                                getMessageText(previousUserMessage ?? msg),
+                                "up"
+                              )
+                            }
+                            style={{
+                              height: 24,
+                              padding: "0 8px",
+                              fontSize: 11,
+                              background:
+                                feedbackByResponseId[responseId] === "up"
+                                  ? "#e7f4ea"
+                                  : "#ffffff",
+                            }}
+                          >
+                            {t.feedbackUp}
+                          </button>
+                          <button
+                            className="hdak-action-btn"
+                            onClick={() =>
+                              saveFeedback(
+                                responseId,
+                                sourceBadgeType,
+                                getMessageText(previousUserMessage ?? msg),
+                                "down"
+                              )
+                            }
+                            style={{
+                              height: 24,
+                              padding: "0 8px",
+                              fontSize: 11,
+                              background:
+                                feedbackByResponseId[responseId] === "down"
+                                  ? "#fcebea"
+                                  : "#ffffff",
+                            }}
+                          >
+                            {t.feedbackDown}
+                          </button>
+                          {feedbackByResponseId[responseId] && (
+                            <span style={{ fontSize: 11, color: "#5d7199" }}>
+                              {t.feedbackSaved}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      {!isUser && followUpPrompts.length > 0 && (
+                        <div
+                          style={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: 6,
+                            alignItems: "center",
+                          }}
+                        >
+                          <span style={{ fontSize: 11, color: "#5d7199" }}>
+                            {t.followUpLabel}:
+                          </span>
+                          {followUpPrompts.map(prompt => (
+                            <button
+                              key={prompt}
+                              className="hdak-action-btn"
+                              style={{
+                                height: 24,
+                                padding: "0 8px",
+                                fontSize: 11,
+                              }}
+                              onClick={() => handleQuickStart(prompt)}
+                            >
+                              {prompt}
+                            </button>
+                          ))}
+                        </div>
+                      )}
 
                       {/* Quick actions under last assistant message */}
                       {isLastAssistant && (
@@ -1293,45 +1754,23 @@ export default function Home() {
                           style={{ display: "flex", flexWrap: "wrap", gap: 6 }}
                         >
                           <a
-                            href="https://lib-hdak.in.ua/e-catalog.html"
+                            href={catalogAction?.url ?? OFFICIAL_CATALOG_URL}
                             target="_blank"
                             rel="noopener noreferrer"
                           >
                             <button
-                              style={{
-                                height: 26,
-                                padding: "0 10px",
-                                background: "transparent",
-                                border: "1px solid rgba(180,148,80,0.14)",
-                                borderRadius: 6,
-                                color: "#c8a84b",
-                                fontSize: 11,
-                                cursor: "pointer",
-                                fontFamily: "'DM Sans', system-ui, sans-serif",
-                                transition: "background 0.15s",
-                              }}
+                              className={`hdak-action-btn${catalogAction ? " hdak-action-btn--catalog" : ""}`}
                             >
-                              📖 {t.actionFindCatalog}
+                              📖{" "}
+                              {catalogAction?.buttonLabel ??
+                                t.actionFindCatalog}
                             </button>
                           </a>
                           <a
                             href="mailto:library@hdak.edu.ua"
                             rel="noopener noreferrer"
                           >
-                            <button
-                              style={{
-                                height: 26,
-                                padding: "0 10px",
-                                background: "transparent",
-                                border: "1px solid rgba(180,148,80,0.14)",
-                                borderRadius: 6,
-                                color: "#c8a84b",
-                                fontSize: 11,
-                                cursor: "pointer",
-                                fontFamily: "'DM Sans', system-ui, sans-serif",
-                                transition: "background 0.15s",
-                              }}
-                            >
+                            <button className="hdak-action-btn">
                               ✉️ {t.actionWriteLetter}
                             </button>
                           </a>
@@ -1356,18 +1795,7 @@ export default function Home() {
                                   .catch(() => {});
                               }
                             }}
-                            style={{
-                              height: 26,
-                              padding: "0 10px",
-                              background: "transparent",
-                              border: "1px solid rgba(180,148,80,0.14)",
-                              borderRadius: 6,
-                              color: "#c8a84b",
-                              fontSize: 11,
-                              cursor: "pointer",
-                              fontFamily: "'DM Sans', system-ui, sans-serif",
-                              transition: "background 0.15s",
-                            }}
+                            className="hdak-action-btn"
                           >
                             🔗 {t.actionShare}
                           </button>
@@ -1392,8 +1820,8 @@ export default function Home() {
                       justifyContent: "center",
                       fontSize: 14,
                       marginTop: 2,
-                      border: "1px solid rgba(180,148,80,0.14)",
-                      background: "rgba(200,168,75,0.10)",
+                      border: "1px solid rgba(73,95,151,0.2)",
+                      background: "#eef4ff",
                     }}
                   >
                     📚
@@ -1403,8 +1831,8 @@ export default function Home() {
                       padding: "11px 15px",
                       borderRadius: 13,
                       borderTopLeftRadius: 3,
-                      border: "1px solid rgba(180,148,80,0.14)",
-                      background: "#1a2338",
+                      border: "1px solid rgba(73,95,151,0.2)",
+                      background: "#ffffff",
                     }}
                   >
                     <div
@@ -1422,7 +1850,7 @@ export default function Home() {
                             width: 7,
                             height: 7,
                             borderRadius: "50%",
-                            background: "#c8a84b",
+                            background: "#3767cc",
                             opacity: 0.4,
                             animation: `dotPulse 1.3s ease-in-out ${delay}s infinite`,
                           }}
@@ -1439,6 +1867,35 @@ export default function Home() {
 
           {/* ── INPUT BAR ── */}
           <div style={{ padding: "12px 0 22px", flexShrink: 0 }}>
+            <div
+              style={{
+                display: "flex",
+                gap: 8,
+                flexWrap: "wrap",
+                marginBottom: 10,
+              }}
+            >
+              {chips.map(chip => (
+                <button
+                  key={`inline-chip-${chip.text}`}
+                  className="hdak-chip"
+                  onClick={() => handleQuickStart(chip.text)}
+                  style={{
+                    padding: "7px 12px",
+                    background: "#f8fbff",
+                    border: "1px solid rgba(73,95,151,0.2)",
+                    borderRadius: 18,
+                    fontSize: 12,
+                    color: "#5d7199",
+                    cursor: "pointer",
+                    transition: "all 0.2s",
+                    fontFamily: "'DM Sans', system-ui, sans-serif",
+                  }}
+                >
+                  {chip.emoji} {chip.text}
+                </button>
+              ))}
+            </div>
             {/* Error banner */}
             {(sendError || streamError) && (
               <div
@@ -1491,8 +1948,8 @@ export default function Home() {
                 display: "flex",
                 alignItems: "flex-end",
                 gap: 8,
-                background: "#1a2338",
-                border: "1px solid rgba(180,148,80,0.14)",
+                background: "#ffffff",
+                border: "1px solid rgba(73,95,151,0.2)",
                 borderRadius: 14,
                 padding: "10px 12px",
                 transition: "border-color 0.2s, box-shadow 0.2s",
@@ -1536,7 +1993,7 @@ export default function Home() {
                   height: 34,
                   flexShrink: 0,
                   background:
-                    isStreaming || !localInput.trim() ? "#1a2236" : "#c8a84b",
+                    isStreaming || !localInput.trim() ? "#dbe4f6" : "#3767cc",
                   border: "none",
                   borderRadius: 9,
                   cursor:
@@ -1545,7 +2002,7 @@ export default function Home() {
                   alignItems: "center",
                   justifyContent: "center",
                   color:
-                    isStreaming || !localInput.trim() ? "#566070" : "#0b0f18",
+                    isStreaming || !localInput.trim() ? "#6f81a8" : "#ffffff",
                   transition:
                     "background 0.18s, transform 0.15s, box-shadow 0.18s",
                 }}
@@ -1565,7 +2022,7 @@ export default function Home() {
             <div
               style={{
                 fontSize: 11,
-                color: "#566070",
+                color: "#6f81a8",
                 textAlign: "center",
                 marginTop: 7,
               }}

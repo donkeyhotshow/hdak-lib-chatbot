@@ -22,6 +22,7 @@ export const chatRequestSchema = z.object({
   messages: z.array(chatMessageSchema).min(1).max(100),
   language: z.enum(["en", "uk", "ru"]).optional(),
   conversationId: z.number().int().positive().optional(),
+  model: z.string().trim().min(1).optional(),
 });
 
 export function registerChatController(app: Express) {
@@ -59,7 +60,7 @@ export function registerChatController(app: Express) {
         return;
       }
 
-      const { messages, language, conversationId } = parseResult.data;
+      const { messages, language, conversationId, model } = parseResult.data;
 
       let authUserId: number | null = null;
       try {
@@ -83,6 +84,7 @@ export function registerChatController(app: Express) {
         messages,
         language,
         conversationId,
+        model,
         userId: authUserId,
         ip: requestIp,
       });

@@ -69,6 +69,29 @@ pnpm start
 - `app/api/auth/me/route.ts`, `app/api/auth/logout/route.ts` — auth helpers
 - `app/api/health/route.ts`, `app/api/ready/route.ts` — liveness/readiness probes
 
+## Instant answers (FAQ shortcuts)
+
+- На головній сторінці є quick prompt chips для типових бібліотечних питань.
+- Для `/api/chat` запити спочатку проходять через FAQ matcher
+  `lib/server/services/instantAnswers.ts`; при збігу повертається швидка
+  відповідь без LLM-виклику.
+- Теми, що покриті швидкими відповідями: запис до бібліотеки, читацький
+  квиток/картка, правила бібліотеки, правила е-читальної зали, е-каталог,
+  пошук книги, контакти, наукові ресурси, VPN/корпоративний доступ, карта сайту.
+- Запити про каталог (наприклад: "де каталог", "як знайти книгу", "знайти
+  автора ...", "книги з теми ...") додатково обробляються окремим intent-ом
+  `lib/server/services/catalogIntent.ts`, який повертає структуровану
+  catalog action (тип пошуку + query + URL + CTA label).
+- Бібліотечні правила та процедури винесені в окремий knowledge-layer
+  `lib/server/services/libraryKnowledge.ts`, який використовується для швидких
+  відповідей і як довідковий контекст для fallback LLM-відповідей.
+- У guest mode використовується персистентний `hdak-guest-id`; локальна історія
+  зберігається у guest-scoped ключі `hdak-guest-history-v1:<guestId>`.
+- Якщо питання не підпадає під FAQ matcher, працює звичайний OpenRouter/LLM
+  стримінг через `/api/chat`.
+- Щоб розширити базу FAQ, додайте новий елемент до `LIBRARY_FAQ` (keywords,
+  answer, bullets, links) у `lib/server/services/instantAnswers.ts`.
+
 ## How it works
 
 1. **UI (`app/page.tsx` + `lib/pages/Home`)** отправляет сообщения в `/api/chat`.

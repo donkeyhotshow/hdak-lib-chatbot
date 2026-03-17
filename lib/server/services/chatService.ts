@@ -1,4 +1,10 @@
 import { TRPCError } from "@trpc/server";
+import {
+  createUIMessageStream,
+  createUIMessageStreamResponse,
+  generateId,
+  pipeUIMessageStreamToResponse,
+} from "ai";
 import type { Message } from "../../../drizzle/schema";
 import { SECURITY_CONFIG } from "../config/security";
 import * as db from "../db";
@@ -25,6 +31,26 @@ import {
 } from "./conversationMemory";
 import { logSecurityEvent } from "../observability/securityLogger";
 import { setSessionState } from "./sessionStore";
+import { getInstantAnswer } from "./instantAnswers";
+import {
+  buildLibraryKnowledgeContext,
+  type LibraryKnowledgeTopic,
+} from "./libraryKnowledge";
+import {
+  buildOfficialRetrievalContext,
+  retrieveOfficialLibraryChunks,
+} from "./libraryRetrieval";
+import { getMergedKnowledgeTopics } from "./knowledgeAdmin";
+import {
+  buildResponseCacheKey,
+  getCachedResponse,
+  setCachedResponse,
+} from "./responseCache";
+import {
+  buildKnowledgeAssistedFallback,
+  buildSafeLlmUnavailableFallback,
+} from "./fallbackSuggestions";
+import { emitChatAnalyticsEvent } from "./chatAnalytics";
 
 export async function assertConversationOwnership(
   conversationId: number,
@@ -187,6 +213,35 @@ export async function sendConversationMessage(
 
 type ChatEndpointMessage = { role: "assistant" | "user"; content: string };
 
+function findLastUserMessage(messages: ChatEndpointMessage[]): string {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    if (messages[index].role === "user") return messages[index].content;
+  }
+  return "";
+}
+
+function createInstantAnswerStream(answerText: string) {
+  const stream = createUIMessageStream({
+    execute: ({ writer }) => {
+      const messageId = generateId();
+      const textId = generateId();
+
+      writer.write({ type: "start", messageId });
+      writer.write({ type: "text-start", id: textId });
+      writer.write({ type: "text-delta", id: textId, delta: answerText });
+      writer.write({ type: "text-end", id: textId });
+      writer.write({ type: "finish", finishReason: "stop" });
+    },
+  });
+
+  return {
+    pipeUIMessageStreamToResponse: (
+      response: Parameters<typeof pipeUIMessageStreamToResponse>[0]["response"]
+    ) => pipeUIMessageStreamToResponse({ response, stream }),
+    toUIMessageStreamResponse: () => createUIMessageStreamResponse({ stream }),
+  };
+}
+
 export class ChatEndpointError extends Error {
   constructor(
     public readonly statusCode: number,
@@ -202,10 +257,13 @@ export async function processChatRequest(input: {
   messages: ChatEndpointMessage[];
   language?: "en" | "uk" | "ru";
   conversationId?: number;
+  model?: string;
   userId?: number | null;
   ip: string;
 }) {
+  const requestStartedAt = Date.now();
   const conversationId = input.conversationId ?? null;
+  const mode = input.userId == null ? "guest" : "auth";
   const context = {
     endpoint: "/api/chat",
     userId: input.userId ?? null,
@@ -243,22 +301,282 @@ export async function processChatRequest(input: {
     }
   }
 
-  return runAiOrchestration({
-    messages: input.messages,
-    language: input.language,
-    history,
-    context,
-    onFinish: async text => {
-      if (conversationId === null) return;
-      const lastUserMessage =
-        [...input.messages].reverse().find(message => message.role === "user")
-          ?.content ?? null;
+  const lastUserMessage = findLastUserMessage(input.messages);
+  const requestedLanguage = normalizeLanguage(input.language);
+  let runtimeKnowledgeTopics: LibraryKnowledgeTopic[] | undefined;
+  try {
+    runtimeKnowledgeTopics = await getMergedKnowledgeTopics();
+  } catch (error) {
+    logger.warn("[chatService] Failed to load editable knowledge entries", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    runtimeKnowledgeTopics = undefined;
+  }
+  const activeKnowledgeTopics =
+    runtimeKnowledgeTopics && runtimeKnowledgeTopics.length > 0
+      ? runtimeKnowledgeTopics
+      : undefined;
+
+  const instantAnswer = getInstantAnswer(lastUserMessage, requestedLanguage, {
+    knowledgeTopics: activeKnowledgeTopics,
+  });
+
+  const instantType =
+    instantAnswer?.sourceBadge === "catalog" ? "catalog" : "instant";
+  const instantCacheKey = buildResponseCacheKey({
+    query: lastUserMessage,
+    language: requestedLanguage,
+    responseType: instantType,
+  });
+  const cachedInstant = getCachedResponse(instantCacheKey);
+  if (cachedInstant) {
+    emitChatAnalyticsEvent({
+      name: "cache_hit",
+      mode,
+      sourceBadge: cachedInstant.sourceBadge,
+      latencyBucket: "instant",
+      metadata: {
+        responseType: cachedInstant.responseType,
+        query: lastUserMessage,
+      },
+    });
+    return {
+      flagged: false as const,
+      stream: createInstantAnswerStream(cachedInstant.text),
+      language: requestedLanguage,
+    };
+  }
+
+  emitChatAnalyticsEvent({
+    name: "cache_miss",
+    mode,
+    sourceBadge: instantAnswer?.sourceBadge ?? "unknown",
+    latencyBucket: "instant",
+    metadata: { responseType: instantType, query: lastUserMessage },
+  });
+
+  if (instantAnswer) {
+    setCachedResponse(instantCacheKey, {
+      text: instantAnswer.answer,
+      sourceBadge:
+        instantAnswer.sourceBadge === "official-rule"
+          ? "official-rule"
+          : instantAnswer.sourceBadge === "catalog"
+            ? "catalog"
+            : "quick",
+      responseType: instantType,
+    });
+    emitChatAnalyticsEvent({
+      name: "instant_answer_hit",
+      mode,
+      sourceBadge: instantAnswer.sourceBadge ?? "quick",
+      latencyBucket: "instant",
+      metadata: { query: lastUserMessage },
+    });
+    if (instantAnswer.sourceBadge === "catalog") {
+      emitChatAnalyticsEvent({
+        name: "catalog_intent_hit",
+        mode,
+        sourceBadge: "catalog",
+        latencyBucket: "instant",
+        metadata: { query: lastUserMessage },
+      });
+    }
+
+    if (conversationId !== null) {
       await persistConversationMessages({
         conversationId,
         userMessage: lastUserMessage,
-        assistantMessage: text,
+        assistantMessage: instantAnswer.answer,
         context,
       });
+    }
+
+    return {
+      flagged: false as const,
+      stream: createInstantAnswerStream(instantAnswer.answer),
+      language: requestedLanguage,
+    };
+  }
+
+  const retrievalChunks = retrieveOfficialLibraryChunks(lastUserMessage, {
+    limit: 3,
+    minScore: 2,
+    knowledgeTopics: activeKnowledgeTopics,
+  });
+  const retrievalContext = buildOfficialRetrievalContext(retrievalChunks);
+  if (retrievalChunks.length > 0) {
+    emitChatAnalyticsEvent({
+      name: "retrieval_hit",
+      mode,
+      sourceBadge: "generated",
+      latencyBucket: "instant",
+      metadata: {
+        query: lastUserMessage,
+        topSourceUrl: retrievalChunks[0]?.sourceUrl ?? null,
+        sourceDocUrls: retrievalChunks.map(chunk => chunk.sourceUrl).join("|"),
+      },
+    });
+  }
+
+  const knowledgeContextParts = [
+    buildLibraryKnowledgeContext(
+      lastUserMessage,
+      requestedLanguage,
+      activeKnowledgeTopics
+    ),
+    retrievalContext,
+  ].filter(Boolean);
+  const knowledgeContext =
+    knowledgeContextParts.length > 0
+      ? knowledgeContextParts.join("\n\n")
+      : null;
+
+  const knowledgeFallback = buildKnowledgeAssistedFallback(
+    lastUserMessage,
+    requestedLanguage,
+    { knowledgeTopics: activeKnowledgeTopics }
+  );
+  if (knowledgeFallback) {
+    const fallbackCacheKey = buildResponseCacheKey({
+      query: lastUserMessage,
+      language: requestedLanguage,
+      responseType: "knowledge-fallback",
+    });
+    const cachedFallback = getCachedResponse(fallbackCacheKey);
+    if (cachedFallback) {
+      emitChatAnalyticsEvent({
+        name: "cache_hit",
+        mode,
+        sourceBadge: "generated",
+        latencyBucket: "instant",
+        metadata: {
+          responseType: "knowledge-fallback",
+          query: lastUserMessage,
+        },
+      });
+      return {
+        flagged: false as const,
+        stream: createInstantAnswerStream(cachedFallback.text),
+        language: requestedLanguage,
+      };
+    }
+
+    emitChatAnalyticsEvent({
+      name: "cache_miss",
+      mode,
+      sourceBadge: "generated",
+      latencyBucket: "instant",
+      metadata: { responseType: "knowledge-fallback", query: lastUserMessage },
+    });
+    setCachedResponse(fallbackCacheKey, {
+      text: knowledgeFallback.answer,
+      sourceBadge: "generated",
+      responseType: "knowledge-fallback",
+    });
+    emitChatAnalyticsEvent({
+      name: "knowledge_fallback_hit",
+      mode,
+      sourceBadge: "generated",
+      latencyBucket: "instant",
+      metadata: { query: lastUserMessage },
+    });
+    if (conversationId !== null) {
+      await persistConversationMessages({
+        conversationId,
+        userMessage: lastUserMessage,
+        assistantMessage: knowledgeFallback.answer,
+        context,
+      });
+    }
+    return {
+      flagged: false as const,
+      stream: createInstantAnswerStream(knowledgeFallback.answer),
+      language: requestedLanguage,
+    };
+  }
+
+  emitChatAnalyticsEvent({
+    name: "llm_fallback_used",
+    mode,
+    sourceBadge: "llm-fallback",
+    latencyBucket: "streamed",
+    metadata: {
+      query: lastUserMessage,
+      completed: false,
+      retrievalHit: retrievalChunks.length > 0,
     },
   });
+
+  try {
+    return await runAiOrchestration({
+      messages: input.messages,
+      language: input.language,
+      model: input.model,
+      history,
+      knowledgeContext,
+      context,
+      onFinish: async text => {
+        emitChatAnalyticsEvent({
+          name: "llm_fallback_used",
+          mode,
+          sourceBadge: "llm-fallback",
+          latencyBucket:
+            Date.now() - requestStartedAt < 250 ? "instant" : "streamed",
+          metadata: {
+            query: lastUserMessage,
+            completed: true,
+            retrievalHit: retrievalChunks.length > 0,
+          },
+        });
+        if (retrievalChunks.length > 0) {
+          emitChatAnalyticsEvent({
+            name: "retrieval_assisted_response",
+            mode,
+            sourceBadge: "generated",
+            latencyBucket: "streamed",
+            metadata: {
+              query: lastUserMessage,
+              topSourceUrl: retrievalChunks[0]?.sourceUrl ?? null,
+            },
+          });
+        }
+        if (conversationId === null) return;
+        await persistConversationMessages({
+          conversationId,
+          userMessage: findLastUserMessage(input.messages) || null,
+          assistantMessage: text,
+          context,
+        });
+      },
+    });
+  } catch (error) {
+    logger.warn(
+      "[chatService] LLM orchestration unavailable, using safe fallback",
+      {
+        error: error instanceof Error ? error.message : String(error),
+      }
+    );
+    emitChatAnalyticsEvent({
+      name: "llm_safe_fallback_used",
+      mode,
+      sourceBadge: "llm-fallback",
+      latencyBucket: "instant",
+      metadata: { query: lastUserMessage },
+    });
+    const safeFallback = buildSafeLlmUnavailableFallback(requestedLanguage);
+    if (conversationId !== null) {
+      await persistConversationMessages({
+        conversationId,
+        userMessage: lastUserMessage,
+        assistantMessage: safeFallback,
+        context,
+      });
+    }
+    return {
+      flagged: false as const,
+      stream: createInstantAnswerStream(safeFallback),
+      language: requestedLanguage,
+    };
+  }
 }
