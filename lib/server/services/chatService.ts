@@ -1,4 +1,10 @@
 import { TRPCError } from "@trpc/server";
+import {
+  createUIMessageStream,
+  createUIMessageStreamResponse,
+  generateId,
+  pipeUIMessageStreamToResponse,
+} from "ai";
 import type { Message } from "../../../drizzle/schema";
 import { SECURITY_CONFIG } from "../config/security";
 import * as db from "../db";
@@ -25,6 +31,7 @@ import {
 } from "./conversationMemory";
 import { logSecurityEvent } from "../observability/securityLogger";
 import { setSessionState } from "./sessionStore";
+import { getInstantAnswer } from "./instantAnswers";
 
 export async function assertConversationOwnership(
   conversationId: number,
@@ -187,6 +194,28 @@ export async function sendConversationMessage(
 
 type ChatEndpointMessage = { role: "assistant" | "user"; content: string };
 
+function createInstantAnswerStream(answerText: string) {
+  const stream = createUIMessageStream({
+    execute: ({ writer }) => {
+      const messageId = generateId();
+      const textId = generateId();
+
+      writer.write({ type: "start", messageId });
+      writer.write({ type: "text-start", id: textId });
+      writer.write({ type: "text-delta", id: textId, delta: answerText });
+      writer.write({ type: "text-end", id: textId });
+      writer.write({ type: "finish", finishReason: "stop" });
+    },
+  });
+
+  return {
+    pipeUIMessageStreamToResponse: (
+      response: Parameters<typeof pipeUIMessageStreamToResponse>[0]["response"]
+    ) => pipeUIMessageStreamToResponse({ response, stream }),
+    toUIMessageStreamResponse: () => createUIMessageStreamResponse({ stream }),
+  };
+}
+
 export class ChatEndpointError extends Error {
   constructor(
     public readonly statusCode: number,
@@ -242,6 +271,29 @@ export async function processChatRequest(input: {
       }
       throw new ChatEndpointError(500, "Failed to load conversation history");
     }
+  }
+
+  const lastUserMessage =
+    [...input.messages].reverse().find(message => message.role === "user")
+      ?.content ?? "";
+  const requestedLanguage = normalizeLanguage(input.language);
+  const instantAnswer = getInstantAnswer(lastUserMessage, requestedLanguage);
+
+  if (instantAnswer) {
+    if (conversationId !== null) {
+      await persistConversationMessages({
+        conversationId,
+        userMessage: lastUserMessage,
+        assistantMessage: instantAnswer.answer,
+        context,
+      });
+    }
+
+    return {
+      flagged: false as const,
+      stream: createInstantAnswerStream(instantAnswer.answer),
+      language: requestedLanguage,
+    };
   }
 
   return runAiOrchestration({

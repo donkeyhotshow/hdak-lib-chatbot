@@ -72,10 +72,16 @@ pnpm start
 ## Instant answers (FAQ shortcuts)
 
 - На головній сторінці є quick prompt chips для типових бібліотечних питань.
-- Для гостьового режиму стандартні FAQ-запитання обробляються миттєво локально
-  через matcher `lib/server/services/instantAnswers.ts`, без очікування
-  довгого LLM-стримінгу.
-- Якщо питання не підпадає під FAQ matcher, працює звичайний `/api/chat`.
+- Для `/api/chat` запити спочатку проходять через FAQ matcher
+  `lib/server/services/instantAnswers.ts`; при збігу повертається швидка
+  відповідь без LLM-виклику.
+- Теми, що покриті швидкими відповідями: запис до бібліотеки, читацький
+  квиток/картка, правила бібліотеки, правила е-читальної зали, е-каталог,
+  пошук книги, контакти, наукові ресурси, VPN/корпоративний доступ, карта сайту.
+- Якщо питання не підпадає під FAQ matcher, працює звичайний OpenRouter/LLM
+  стримінг через `/api/chat`.
+- Щоб розширити базу FAQ, додайте новий елемент до `LIBRARY_FAQ` (keywords,
+  answer, bullets, links) у `lib/server/services/instantAnswers.ts`.
 
 ## How it works
 

@@ -571,7 +571,7 @@ export default function Home() {
   const chips = useMemo(
     () =>
       QUICK_PROMPTS[language].slice(0, 4).map((text, index) => ({
-        emoji: ["⚡", "📚", "📘", "📞", "🗺️"][index] ?? "💬",
+        emoji: ["⚡", "📚", "📘", "📞"][index] ?? "💬",
         text,
       })),
     [language]
