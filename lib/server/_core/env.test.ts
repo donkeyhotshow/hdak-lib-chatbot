@@ -10,6 +10,8 @@ const ENV_KEYS = [
   "OPENAI_API_KEY",
   "REDIS_URL",
   "CHAT_PROVIDER_API_KEY",
+  "OPENROUTER_HTTP_REFERER",
+  "OPENROUTER_X_TITLE",
 ] as const;
 
 const originalValues = new Map<string, string | undefined>(
@@ -67,6 +69,16 @@ describe("ENV forge aliases", () => {
 
     expect(ENV.redisUrl).toBe("redis://example.test:6379");
     expect(ENV.chatProviderApiKey).toBe("provider-key");
+  });
+
+  it("exposes optional OpenRouter metadata headers", async () => {
+    process.env.OPENROUTER_HTTP_REFERER = "https://example.test";
+    process.env.OPENROUTER_X_TITLE = "HDAK Chat";
+
+    const { ENV } = await importEnvModule();
+
+    expect(ENV.openRouterHttpReferer).toBe("https://example.test");
+    expect(ENV.openRouterXTitle).toBe("HDAK Chat");
   });
 
   it("parses PORT as number with a stable default", async () => {

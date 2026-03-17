@@ -19,6 +19,9 @@ AI-чатбот для бібліотеки ХДАК / KSAC на Next.js + TypeS
 cp .env.example .env
 # заполните минимум: BUILT_IN_FORGE_API_URL/FORGE_API_URL,
 # BUILT_IN_FORGE_API_KEY/FORGE_API_KEY/OPENAI_API_KEY
+# пример для OpenRouter:
+# BUILT_IN_FORGE_API_URL=https://openrouter.ai/api/v1
+# AI_MODEL_NAME=openrouter/auto
 
 pnpm install
 pnpm run db:push    # опционально, если используете MySQL
@@ -44,6 +47,7 @@ App will be available at `http://localhost:3000`.
 
 - `DATABASE_URL` — постоянная история чатов и CRUD админки (без него включается mock-режим)
 - `REDIS_URL` — распределённый кэш/rate-limit backend
+- `OPENROUTER_HTTP_REFERER`, `OPENROUTER_X_TITLE` — необязательные заголовки OpenRouter
 
 Проверка готовности:
 
@@ -84,7 +88,26 @@ Use `.env.example` as the source of truth.
 - **Production critical**: `JWT_SECRET`, `OWNER_OPEN_ID`
 - **Client-safe**: `VITE_APP_ID`, `VITE_OAUTH_PORTAL_URL`,
   `VITE_FRONTEND_FORGE_API_URL`, `VITE_FRONTEND_FORGE_API_KEY`
-- **Optional infra**: `DATABASE_URL`, `REDIS_URL`, `CHAT_PROVIDER_API_KEY`
+- **Optional infra**: `DATABASE_URL`, `REDIS_URL`, `CHAT_PROVIDER_API_KEY`,
+  `OPENROUTER_HTTP_REFERER`, `OPENROUTER_X_TITLE`
+
+## Guest mode (без входа)
+
+- Гость может открыть сайт и сразу использовать чат (`/api/chat`) без OAuth/сессии.
+- Для гостя не вызываются защищённые tRPC-методы истории (`conversations.list/create/getMessages/delete`).
+- История гостя хранится локально в браузере (localStorage), без серверного сохранения.
+- Для авторизованного пользователя поведение прежнее: серверная история разговоров через tRPC.
+
+## OpenRouter (free models)
+
+1. Зарегистрируйтесь на [openrouter.ai](https://openrouter.ai) и получите API key.
+2. Установите env:
+   - `BUILT_IN_FORGE_API_URL=https://openrouter.ai/api/v1`
+   - `BUILT_IN_FORGE_API_KEY=<your_openrouter_key>`
+   - `AI_MODEL_NAME=openrouter/auto` (или конкретную `...:free` модель)
+3. Опционально добавьте:
+   - `OPENROUTER_HTTP_REFERER=https://your-app.example`
+   - `OPENROUTER_X_TITLE=HDAK Library Chatbot`
 
 Приложение возвращает понятные ошибки (`503`) на критичных API, если ключевые env
 не заданы, вместо неявных падений с `undefined`.

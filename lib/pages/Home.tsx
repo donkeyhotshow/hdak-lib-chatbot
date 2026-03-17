@@ -11,14 +11,19 @@ import type { AppRouter } from "@/lib/server/routers";
 import { RefreshCw } from "lucide-react";
 
 type RouterOutput = inferRouterOutputs<AppRouter>;
-type Conversation = RouterOutput["conversations"]["list"][number];
 type DbMessage = RouterOutput["conversations"]["getMessages"][number];
 type DisplayMessage = DbMessage | UIMessage;
+type LocalConversation = {
+  id: number;
+  title: string;
+  updatedAt: Date | string;
+};
 
 const CHAT_TITLE_MAX_LENGTH = 50;
 const SEND_DEBOUNCE_MS = 350;
+const GUEST_HISTORY_STORAGE_KEY = "hdak-guest-history-v1";
 
-type Language = "en" | "uk" | "ru";
+type Language = "en" | "uk";
 
 const translations: Record<Language, Record<string, string>> = {
   en: {
@@ -38,7 +43,6 @@ const translations: Record<Language, Record<string, string>> = {
     selectLanguage: "Select Language",
     english: "English",
     ukrainian: "Українська",
-    russian: "Русский",
     overviewGreeting: "How can I help?",
     overviewDesc:
       "Find books in the catalog, learn about databases, navigate the HDAK library website.",
@@ -52,6 +56,7 @@ const translations: Record<Language, Record<string, string>> = {
     sendFailed: "Failed to send. Please try again.",
     streamError: "Streaming failed. Please try again.",
     streamErrorTooLarge: "Message is too long (max 10,000 characters).",
+    retry: "Retry",
     actionFindCatalog: "Find in Catalog",
     actionWriteLetter: "Write to Librarian",
     actionShare: "Share",
@@ -78,7 +83,6 @@ const translations: Record<Language, Record<string, string>> = {
     selectLanguage: "Виберіть мову",
     english: "English",
     ukrainian: "Українська",
-    russian: "Русский",
     overviewGreeting: "Чим можу допомогти?",
     overviewDesc:
       "Знайду книги в каталозі, розповім про бази даних, допоможу орієнтуватися на сайті бібліотеки ХДАК.",
@@ -93,6 +97,7 @@ const translations: Record<Language, Record<string, string>> = {
     streamError: "Помилка стрімінгу. Спробуйте ще раз.",
     streamErrorTooLarge:
       "Повідомлення занадто довге (максимум 10 000 символів).",
+    retry: "Повторити",
     actionFindCatalog: "Знайти в каталозі",
     actionWriteLetter: "Написати листа",
     actionShare: "Поділитися",
@@ -101,47 +106,6 @@ const translations: Record<Language, Record<string, string>> = {
     historyLabel: "Розмови",
     hint: "Enter — надіслати · Shift+Enter — новий рядок",
     langCode: "УКР",
-  },
-  ru: {
-    title: "Помощник библиотеки ХДАК",
-    subtitle: "Ваш AI-помощник библиотеки ХДАК",
-    newChat: "Новый чат",
-    language: "Язык",
-    logout: "Выход",
-    login: "Вход",
-    sendMessage: "Отправить",
-    typeMessage: "Введите свой вопрос...",
-    loading: "Загрузка...",
-    error: "Ошибка",
-    noConversations: "Нет разговоров.",
-    startChat: "Начать чат",
-    conversations: "Разговоры",
-    selectLanguage: "Выберите язык",
-    english: "English",
-    ukrainian: "Українська",
-    russian: "Русский",
-    overviewGreeting: "Чем могу помочь?",
-    overviewDesc:
-      "Найду книги в каталоге, расскажу о базах данных, помогу ориентироваться на сайте библиотеки ХДАК.",
-    examplesTitle: "Попробуйте спросить:",
-    ex1: "Как записаться в библиотеку?",
-    ex2: "Есть ли доступ к Scopus?",
-    ex3: "Книги Тараса Шевченко",
-    ex4: "Что такое репозиторий ХДАК?",
-    ex5: "Где найти институциональный репозиторий?",
-    deleteConversation: "Удалить",
-    sendFailed: "Ошибка отправки. Попробуйте ещё раз.",
-    streamError: "Ошибка стриминга. Попробуйте ещё раз.",
-    streamErrorTooLarge:
-      "Сообщение слишком длинное (максимум 10 000 символов).",
-    actionFindCatalog: "Найти в каталоге",
-    actionWriteLetter: "Написать письмо",
-    actionShare: "Поделиться",
-    interfaceLang: "Язык интерфейса",
-    officialResources: "Официальные ресурсы библиотеки",
-    historyLabel: "Разговоры",
-    hint: "Enter — отправить · Shift+Enter — новая строка",
-    langCode: "РУС",
   },
 };
 
@@ -165,7 +129,7 @@ export const RESOURCES = [
   {
     group: 1,
     ico: "🗂️",
-    name: "Электронный каталог",
+    name: "Електронний каталог",
     sub: "https://lib-hdak.in.ua/e-catalog.html",
     url: "https://lib-hdak.in.ua/e-catalog.html",
     vpn: false,
@@ -173,7 +137,7 @@ export const RESOURCES = [
   {
     group: 1,
     ico: "🗺️",
-    name: "Карта сайта",
+    name: "Карта сайту",
     sub: "https://lib-hdak.in.ua/site-map.html",
     url: "https://lib-hdak.in.ua/site-map.html",
     vpn: false,
@@ -181,14 +145,14 @@ export const RESOURCES = [
   {
     group: 1,
     ico: "🔎",
-    name: "Поиск научной информации",
+    name: "Пошук наукової інформації",
     sub: "https://lib-hdak.in.ua/search-scientific-info.html",
     url: "https://lib-hdak.in.ua/search-scientific-info.html",
     vpn: false,
   },
   {
     ico: "🔗",
-    name: "Полезные ссылки",
+    name: "Корисні посилання",
     sub: "https://lib-hdak.in.ua/helpful-links.html",
     url: "https://lib-hdak.in.ua/helpful-links.html",
     vpn: false,
@@ -196,7 +160,7 @@ export const RESOURCES = [
   {
     group: 1,
     ico: "🏠",
-    name: "Сайт библиотеки",
+    name: "Сайт бібліотеки",
     sub: "https://lib-hdak.in.ua/",
     url: "https://lib-hdak.in.ua/",
     vpn: false,
@@ -220,7 +184,12 @@ function formatTime(date: Date | string | null | undefined): string {
 
 export default function Home() {
   const [language, setLanguage] = useState<Language>("uk");
-  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [conversations, setConversations] = useState<LocalConversation[]>([]);
+  const [guestConversations, setGuestConversations] = useState<
+    LocalConversation[]
+  >([]);
+  const [guestMessagesByConversation, setGuestMessagesByConversation] =
+    useState<Record<number, UIMessage[]>>({});
   const [currentConversationId, setCurrentConversationId] = useState<
     number | null
   >(null);
@@ -231,16 +200,25 @@ export default function Home() {
   >(null);
   const userHasDeselected = useRef(false);
   const pendingPromptRef = useRef<string | null>(null);
+  const guestConversationIdRef = useRef(Date.now() * 1000);
   const scrollRef = useRef<HTMLDivElement>(null);
   const prevMessageCountRef = useRef(0);
   const lastSendTimeRef = useRef(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const utils = trpc.useUtils();
+  const { data: me } = trpc.auth.me.useQuery(undefined, {
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: 60_000,
+  });
+  const isAuthenticated = Boolean(me);
 
   const conversationIdRef = useRef<number | null>(null);
   const languageRef = useRef<Language>("uk");
+  const isAuthenticatedRef = useRef(false);
   conversationIdRef.current = currentConversationId;
   languageRef.current = language;
+  isAuthenticatedRef.current = isAuthenticated;
 
   useEffect(() => {
     const link = document.createElement("link");
@@ -250,13 +228,48 @@ export default function Home() {
     document.head.appendChild(link);
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const saved = window.localStorage.getItem(GUEST_HISTORY_STORAGE_KEY);
+    if (!saved) return;
+    try {
+      const parsed = JSON.parse(saved) as {
+        conversations?: LocalConversation[];
+        messagesByConversation?: Record<number, UIMessage[]>;
+      };
+      const loadedConversations = parsed.conversations ?? [];
+      setGuestConversations(loadedConversations);
+      setGuestMessagesByConversation(parsed.messagesByConversation ?? {});
+      const maxConversationId = loadedConversations.reduce(
+        (maxId, conversation) => Math.max(maxId, conversation.id),
+        guestConversationIdRef.current
+      );
+      guestConversationIdRef.current = maxConversationId;
+    } catch {
+      window.localStorage.removeItem(GUEST_HISTORY_STORAGE_KEY);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(
+      GUEST_HISTORY_STORAGE_KEY,
+      JSON.stringify({
+        conversations: guestConversations,
+        messagesByConversation: guestMessagesByConversation,
+      })
+    );
+  }, [guestConversations, guestMessagesByConversation]);
+
   const chatTransport = useMemo(
     () =>
       new DefaultChatTransport({
         api: "/api/chat",
         body: () => ({
           language: languageRef.current,
-          conversationId: conversationIdRef.current,
+          conversationId: isAuthenticatedRef.current
+            ? conversationIdRef.current
+            : null,
         }),
         prepareSendMessagesRequest: ({ messages, body }) => {
           const lastUser = [...messages].reverse().find(m => m.role === "user");
@@ -284,6 +297,7 @@ export default function Home() {
   } = useChat({
     transport: chatTransport,
     onFinish: () => {
+      if (!isAuthenticated) return;
       const convId = conversationIdRef.current;
       if (convId !== null) {
         utils.conversations.getMessages.invalidate({ conversationId: convId });
@@ -294,6 +308,10 @@ export default function Home() {
   const { data: conversationsData } = trpc.conversations.list.useQuery(
     undefined,
     {
+      enabled: isAuthenticated,
+      retry: false,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
       staleTime: 5 * 60 * 1000,
     }
   );
@@ -301,7 +319,10 @@ export default function Home() {
   const { data: messagesData } = trpc.conversations.getMessages.useQuery(
     { conversationId: currentConversationId! },
     {
-      enabled: currentConversationId !== null,
+      enabled: isAuthenticated && currentConversationId !== null,
+      retry: false,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
       staleTime: 30_000,
     }
   );
@@ -335,16 +356,45 @@ export default function Home() {
   });
 
   useEffect(() => {
-    if (conversationsData) setConversations(conversationsData);
-  }, [conversationsData]);
+    if (isAuthenticated) {
+      setConversations(
+        (conversationsData ?? []).map(conversation => ({
+          id: conversation.id,
+          title: conversation.title,
+          updatedAt: conversation.updatedAt,
+        }))
+      );
+      return;
+    }
+    setConversations(guestConversations);
+  }, [conversationsData, guestConversations, isAuthenticated]);
 
   const isStreaming = status === "submitted" || status === "streaming";
 
   const allMessages: DisplayMessage[] = useMemo(() => {
+    if (!isAuthenticated) return streamedMessages;
     const dbMsgs: DisplayMessage[] = messagesData ?? [];
     if (!isStreaming && streamedMessages.length === 0) return dbMsgs;
     return [...dbMsgs, ...streamedMessages];
-  }, [messagesData, streamedMessages, isStreaming]);
+  }, [isAuthenticated, messagesData, streamedMessages, isStreaming]);
+
+  useEffect(() => {
+    if (!isAuthenticated && currentConversationId !== null) {
+      setGuestMessagesByConversation(prev => ({
+        ...prev,
+        [currentConversationId]: streamedMessages,
+      }));
+      if (streamedMessages.length > 0) {
+        setGuestConversations(prev =>
+          prev.map(conversation =>
+            conversation.id === currentConversationId
+              ? { ...conversation, updatedAt: new Date().toISOString() }
+              : conversation
+          )
+        );
+      }
+    }
+  }, [isAuthenticated, currentConversationId, streamedMessages]);
 
   useEffect(() => {
     if (status === "ready" && streamedMessages.length > 0 && messagesData) {
@@ -370,12 +420,32 @@ export default function Home() {
     if (currentConversationId) {
       setLocalInput("");
       void sendMessage({ text: textToSend });
-    } else {
+    } else if (isAuthenticated) {
       pendingPromptRef.current = textToSend;
       createConversationMutation.mutate({
         title: textToSend.slice(0, CHAT_TITLE_MAX_LENGTH),
         language,
       });
+    } else {
+      guestConversationIdRef.current += 1;
+      const localConversationId = guestConversationIdRef.current;
+      const now = new Date().toISOString();
+      setCurrentConversationId(localConversationId);
+      setGuestConversations(prev => [
+        {
+          id: localConversationId,
+          title: textToSend.slice(0, CHAT_TITLE_MAX_LENGTH),
+          updatedAt: now,
+        },
+        ...prev,
+      ]);
+      setGuestMessagesByConversation(prev => ({
+        ...prev,
+        [localConversationId]: [],
+      }));
+      setStreamedMessages([]);
+      setLocalInput("");
+      void sendMessage({ text: textToSend });
     }
   };
 
@@ -396,7 +466,11 @@ export default function Home() {
   const handleSelectConversation = (conversationId: number) => {
     userHasDeselected.current = false;
     setCurrentConversationId(conversationId);
-    setStreamedMessages([]);
+    if (isAuthenticated) {
+      setStreamedMessages([]);
+    } else {
+      setStreamedMessages(guestMessagesByConversation[conversationId] ?? []);
+    }
     setSendError(null);
     setOpenDropdown(null);
   };
@@ -406,7 +480,22 @@ export default function Home() {
     conversationId: number
   ) => {
     e.stopPropagation();
-    deleteConversationMutation.mutate({ id: conversationId });
+    if (isAuthenticated) {
+      deleteConversationMutation.mutate({ id: conversationId });
+      return;
+    }
+    setGuestConversations(prev =>
+      prev.filter(conversation => conversation.id !== conversationId)
+    );
+    setGuestMessagesByConversation(prev => {
+      const next = { ...prev };
+      delete next[conversationId];
+      return next;
+    });
+    if (currentConversationId === conversationId) {
+      setCurrentConversationId(null);
+      setStreamedMessages([]);
+    }
   };
 
   const toggleDropdown = (name: "hist" | "res" | "lang") => {
@@ -439,7 +528,6 @@ export default function Home() {
 
   const langLabels: Record<Language, string> = {
     uk: "УКР",
-    ru: "РУС",
     en: "ENG",
   };
 
@@ -468,7 +556,7 @@ export default function Home() {
         }
         .hdak-body {
           font-family: 'DM Sans', system-ui, sans-serif;
-          background: #0b0f18;
+          background: #121a2b;
           color: #ede3d0;
           height: 100vh;
           overflow: hidden;
@@ -528,7 +616,7 @@ export default function Home() {
             padding: "0 20px",
             gap: 10,
             borderBottom: "1px solid rgba(180,148,80,0.14)",
-            background: "#131929",
+            background: "#1a2338",
             flexShrink: 0,
           }}
         >
@@ -576,7 +664,7 @@ export default function Home() {
                   position: "absolute",
                   top: 38,
                   left: 0,
-                  background: "#131929",
+                  background: "#1a2338",
                   border: "1px solid rgba(180,148,80,0.14)",
                   borderRadius: 12,
                   padding: 6,
@@ -802,7 +890,7 @@ export default function Home() {
                     position: "absolute",
                     top: 38,
                     right: 0,
-                    background: "#131929",
+                    background: "#1a2338",
                     border: "1px solid rgba(180,148,80,0.14)",
                     borderRadius: 12,
                     padding: 6,
@@ -928,7 +1016,7 @@ export default function Home() {
                     position: "absolute",
                     top: 38,
                     right: 0,
-                    background: "#131929",
+                    background: "#1a2338",
                     border: "1px solid rgba(180,148,80,0.14)",
                     borderRadius: 12,
                     padding: 6,
@@ -951,7 +1039,7 @@ export default function Home() {
                   >
                     {t.interfaceLang}
                   </div>
-                  {(["uk", "ru", "en"] as Language[]).map(lang => (
+                  {(["uk", "en"] as Language[]).map(lang => (
                     <div
                       key={lang}
                       className="hdak-lang-row"
@@ -971,11 +1059,7 @@ export default function Home() {
                         gap: 8,
                       }}
                     >
-                      {lang === "uk"
-                        ? "🇺🇦 Українська"
-                        : lang === "ru"
-                          ? "🇷🇺 Русский"
-                          : "🇬🇧 English"}
+                      {lang === "uk" ? "🇺🇦 Українська" : "🇬🇧 English"}
                     </div>
                   ))}
                 </div>
@@ -1099,7 +1183,7 @@ export default function Home() {
                     onClick={() => handleQuickStart(chip.text)}
                     style={{
                       padding: "8px 16px",
-                      background: "#131929",
+                      background: "#1a2338",
                       border: "1px solid rgba(180,148,80,0.14)",
                       borderRadius: 22,
                       fontSize: 12,
@@ -1185,7 +1269,7 @@ export default function Home() {
                             : "1px solid rgba(180,148,80,0.14)",
                           fontSize: 14,
                           lineHeight: 1.7,
-                          background: isUser ? "#1c1505" : "#131929",
+                          background: isUser ? "#1c1505" : "#1a2338",
                           borderTopRightRadius: isUser ? 3 : 13,
                           borderTopLeftRadius: isUser ? 13 : 3,
                           color: "#ede3d0",
@@ -1319,7 +1403,7 @@ export default function Home() {
                       borderRadius: 13,
                       borderTopLeftRadius: 3,
                       border: "1px solid rgba(180,148,80,0.14)",
-                      background: "#131929",
+                      background: "#1a2338",
                     }}
                   >
                     <div
@@ -1394,11 +1478,7 @@ export default function Home() {
                     }}
                   >
                     <RefreshCw size={12} />
-                    {language === "uk"
-                      ? "Повторити"
-                      : language === "ru"
-                        ? "Повторить"
-                        : "Retry"}
+                    {t.retry}
                   </button>
                 )}
               </div>
@@ -1410,7 +1490,7 @@ export default function Home() {
                 display: "flex",
                 alignItems: "flex-end",
                 gap: 8,
-                background: "#131929",
+                background: "#1a2338",
                 border: "1px solid rgba(180,148,80,0.14)",
                 borderRadius: 14,
                 padding: "10px 12px",

@@ -36,6 +36,12 @@ function createLLMProvider() {
   return createOpenAI({
     baseURL,
     apiKey: ENV.forgeApiKey,
+    headers: {
+      ...(ENV.openRouterHttpReferer
+        ? { "HTTP-Referer": ENV.openRouterHttpReferer }
+        : {}),
+      ...(ENV.openRouterXTitle ? { "X-Title": ENV.openRouterXTitle } : {}),
+    },
     fetch: createPatchedFetch(fetch),
   });
 }

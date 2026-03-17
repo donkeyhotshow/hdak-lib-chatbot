@@ -326,24 +326,26 @@ curl -X POST https://YOUR_APP_URL/api/chat \
 
 ### Обязательные для production-запуска
 
-| Переменная               | Описание                        | Пример                                                    |
-| ------------------------ | ------------------------------- | --------------------------------------------------------- |
-| `BUILT_IN_FORGE_API_KEY` | API-ключ для LLM                | `AIzaSy...`                                               |
-| `BUILT_IN_FORGE_API_URL` | Базовый URL LLM API             | `https://generativelanguage.googleapis.com/v1beta/openai` |
-| `JWT_SECRET`             | Секрет для подписи cookie/JWT   | `openssl rand -hex 32`                                    |
-| `OWNER_OPEN_ID`          | Стабильный ID владельца (admin) | `my-admin-open-id`                                        |
+| Переменная               | Описание                        | Пример                         |
+| ------------------------ | ------------------------------- | ------------------------------ |
+| `BUILT_IN_FORGE_API_KEY` | API-ключ для LLM                | `sk-or-v1-...`                 |
+| `BUILT_IN_FORGE_API_URL` | Базовый URL LLM API             | `https://openrouter.ai/api/v1` |
+| `JWT_SECRET`             | Секрет для подписи cookie/JWT   | `openssl rand -hex 32`         |
+| `OWNER_OPEN_ID`          | Стабильный ID владельца (admin) | `my-admin-open-id`             |
 
 ### Опциональные
 
-| Переменная              | По умолчанию       | Описание                 |
-| ----------------------- | ------------------ | ------------------------ |
-| `AI_MODEL_NAME`         | `gemini-2.0-flash` | Модель LLM               |
-| `DATABASE_URL`          | _(пусто = mock)_   | MySQL строка подключения |
-| `NODE_ENV`              | `development`      | Режим работы             |
-| `PORT`                  | `3000`             | HTTP порт                |
-| `OAUTH_SERVER_URL`      | _(пусто)_          | URL OAuth-сервера        |
-| `VITE_APP_ID`           | _(пусто)_          | ID приложения OAuth      |
-| `VITE_OAUTH_PORTAL_URL` | _(пусто)_          | URL страницы входа OAuth |
+| Переменная                | По умолчанию       | Описание                                    |
+| ------------------------- | ------------------ | ------------------------------------------- |
+| `AI_MODEL_NAME`           | `gemini-2.0-flash` | Модель LLM                                  |
+| `DATABASE_URL`            | _(пусто = mock)_   | MySQL строка подключения                    |
+| `NODE_ENV`                | `development`      | Режим работы                                |
+| `PORT`                    | `3000`             | HTTP порт                                   |
+| `OAUTH_SERVER_URL`        | _(пусто)_          | URL OAuth-сервера                           |
+| `VITE_APP_ID`             | _(пусто)_          | ID приложения OAuth                         |
+| `VITE_OAUTH_PORTAL_URL`   | _(пусто)_          | URL страницы входа OAuth                    |
+| `OPENROUTER_HTTP_REFERER` | _(пусто)_          | Необязательный Referer заголовок OpenRouter |
+| `OPENROUTER_X_TITLE`      | _(пусто)_          | Необязательный X-Title заголовок OpenRouter |
 
 ---
 
@@ -372,10 +374,23 @@ curl -X POST https://YOUR_APP_URL/api/chat \
 Установите `BUILT_IN_FORGE_API_URL` и `BUILT_IN_FORGE_API_KEY` для выбранного
 провайдера, и `AI_MODEL_NAME` для нужной модели.
 
+Для OpenRouter:
+
+```env
+BUILT_IN_FORGE_API_URL=https://openrouter.ai/api/v1
+BUILT_IN_FORGE_API_KEY=sk-or-v1-...
+AI_MODEL_NAME=openrouter/auto
+# или конкретная free-модель, например:
+# AI_MODEL_NAME=google/gemini-2.0-flash-exp:free
+OPENROUTER_HTTP_REFERER=https://your-app.example.com
+OPENROUTER_X_TITLE=HDAK Library Chatbot
+```
+
 ### Можно ли без OAuth?
 
 **Да.** Без OAuth все пользователи — гости с ролью `user`. Чат и поиск
-работают, admin-панель недоступна. OAuth нужен только для:
+работают, admin-панель недоступна. Для гостей история чатов хранится локально
+в браузере (без серверной авторизации). OAuth нужен только для:
 
 - Идентификации пользователей
 - Admin-доступа (CRUD, метрики, загрузка документов)
