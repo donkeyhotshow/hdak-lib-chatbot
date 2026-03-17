@@ -266,10 +266,11 @@ export default function Home() {
       new DefaultChatTransport({
         api: "/api/chat",
         body: () => ({
+          model: "openrouter/free",
           language: languageRef.current,
           conversationId: isAuthenticatedRef.current
-            ? conversationIdRef.current
-            : null,
+            ? (conversationIdRef.current ?? undefined)
+            : undefined,
         }),
         prepareSendMessagesRequest: ({ messages, body }) => {
           const lastUser = [...messages].reverse().find(m => m.role === "user");

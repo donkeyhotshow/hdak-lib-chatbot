@@ -23,6 +23,16 @@ describe("Home UI language and guest auth guards", () => {
     expect(homePageContent).toContain("refetchOnReconnect: false,");
   });
 
+  it("includes model in /api/chat request body for OpenRouter compatibility", () => {
+    expect(homePageContent).toContain('model: "openrouter/free",');
+  });
+
+  it("omits guest conversationId instead of sending null", () => {
+    expect(homePageContent).toMatch(
+      /conversationId:\s*isAuthenticatedRef\.current[\s\S]*\?\s*\(conversationIdRef\.current \?\? undefined\)\s*:\s*undefined,/
+    );
+  });
+
   it("skips noisy unauthorized query errors in global client logging", () => {
     expect(providersContent).toContain(
       'queryError?.data?.code === "UNAUTHORIZED"'
