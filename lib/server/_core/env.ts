@@ -26,6 +26,8 @@ const envSchema = z.object({
   FORGE_API_KEY: optionalString,
   OPENAI_API_KEY: optionalString,
   CHAT_PROVIDER_API_KEY: optionalString,
+  OPENROUTER_HTTP_REFERER: optionalString,
+  OPENROUTER_X_TITLE: optionalString,
 });
 
 const parsed = envSchema.parse({
@@ -44,6 +46,8 @@ const parsed = envSchema.parse({
   FORGE_API_KEY: process.env.FORGE_API_KEY,
   OPENAI_API_KEY: process.env.OPENAI_API_KEY,
   CHAT_PROVIDER_API_KEY: process.env.CHAT_PROVIDER_API_KEY,
+  OPENROUTER_HTTP_REFERER: process.env.OPENROUTER_HTTP_REFERER,
+  OPENROUTER_X_TITLE: process.env.OPENROUTER_X_TITLE,
   VITE_OAUTH_PORTAL_URL: process.env.VITE_OAUTH_PORTAL_URL,
   VITE_FRONTEND_FORGE_API_URL: process.env.VITE_FRONTEND_FORGE_API_URL,
   VITE_FRONTEND_FORGE_API_KEY: process.env.VITE_FRONTEND_FORGE_API_KEY,
@@ -68,6 +72,8 @@ export const ENV = {
     parsed.FORGE_API_KEY ||
     parsed.OPENAI_API_KEY,
   chatProviderApiKey: parsed.CHAT_PROVIDER_API_KEY,
+  openRouterHttpReferer: parsed.OPENROUTER_HTTP_REFERER,
+  openRouterXTitle: parsed.OPENROUTER_X_TITLE,
   port: parsed.PORT,
 };
 

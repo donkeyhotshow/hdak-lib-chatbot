@@ -11,12 +11,17 @@ import type { AppRouter } from "@/lib/server/routers";
 import { RefreshCw } from "lucide-react";
 
 type RouterOutput = inferRouterOutputs<AppRouter>;
-type Conversation = RouterOutput["conversations"]["list"][number];
 type DbMessage = RouterOutput["conversations"]["getMessages"][number];
 type DisplayMessage = DbMessage | UIMessage;
+type LocalConversation = {
+  id: number;
+  title: string;
+  updatedAt: Date | string;
+};
 
 const CHAT_TITLE_MAX_LENGTH = 50;
 const SEND_DEBOUNCE_MS = 350;
+const GUEST_HISTORY_STORAGE_KEY = "hdak-guest-history-v1";
 
 type Language = "en" | "uk" | "ru";
 
@@ -220,7 +225,12 @@ function formatTime(date: Date | string | null | undefined): string {
 
 export default function Home() {
   const [language, setLanguage] = useState<Language>("uk");
-  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [conversations, setConversations] = useState<LocalConversation[]>([]);
+  const [guestConversations, setGuestConversations] = useState<
+    LocalConversation[]
+  >([]);
+  const [guestMessagesByConversation, setGuestMessagesByConversation] =
+    useState<Record<number, UIMessage[]>>({});
   const [currentConversationId, setCurrentConversationId] = useState<
     number | null
   >(null);
@@ -236,10 +246,16 @@ export default function Home() {
   const lastSendTimeRef = useRef(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const utils = trpc.useUtils();
+  const { data: me } = trpc.auth.me.useQuery(undefined, {
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: 60_000,
+  });
+  const isAuthenticated = Boolean(me);
 
   const conversationIdRef = useRef<number | null>(null);
   const languageRef = useRef<Language>("uk");
-  conversationIdRef.current = currentConversationId;
+  conversationIdRef.current = isAuthenticated ? currentConversationId : null;
   languageRef.current = language;
 
   useEffect(() => {
@@ -249,6 +265,33 @@ export default function Home() {
     link.rel = "stylesheet";
     document.head.appendChild(link);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const saved = window.localStorage.getItem(GUEST_HISTORY_STORAGE_KEY);
+    if (!saved) return;
+    try {
+      const parsed = JSON.parse(saved) as {
+        conversations?: LocalConversation[];
+        messagesByConversation?: Record<number, UIMessage[]>;
+      };
+      setGuestConversations(parsed.conversations ?? []);
+      setGuestMessagesByConversation(parsed.messagesByConversation ?? {});
+    } catch {
+      window.localStorage.removeItem(GUEST_HISTORY_STORAGE_KEY);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(
+      GUEST_HISTORY_STORAGE_KEY,
+      JSON.stringify({
+        conversations: guestConversations,
+        messagesByConversation: guestMessagesByConversation,
+      })
+    );
+  }, [guestConversations, guestMessagesByConversation]);
 
   const chatTransport = useMemo(
     () =>
@@ -284,6 +327,7 @@ export default function Home() {
   } = useChat({
     transport: chatTransport,
     onFinish: () => {
+      if (!isAuthenticated) return;
       const convId = conversationIdRef.current;
       if (convId !== null) {
         utils.conversations.getMessages.invalidate({ conversationId: convId });
@@ -294,6 +338,7 @@ export default function Home() {
   const { data: conversationsData } = trpc.conversations.list.useQuery(
     undefined,
     {
+      enabled: isAuthenticated,
       staleTime: 5 * 60 * 1000,
     }
   );
@@ -301,7 +346,7 @@ export default function Home() {
   const { data: messagesData } = trpc.conversations.getMessages.useQuery(
     { conversationId: currentConversationId! },
     {
-      enabled: currentConversationId !== null,
+      enabled: isAuthenticated && currentConversationId !== null,
       staleTime: 30_000,
     }
   );
@@ -335,16 +380,39 @@ export default function Home() {
   });
 
   useEffect(() => {
-    if (conversationsData) setConversations(conversationsData);
-  }, [conversationsData]);
+    if (isAuthenticated) {
+      setConversations((conversationsData as LocalConversation[]) ?? []);
+      return;
+    }
+    setConversations(guestConversations);
+  }, [conversationsData, guestConversations, isAuthenticated]);
 
   const isStreaming = status === "submitted" || status === "streaming";
 
   const allMessages: DisplayMessage[] = useMemo(() => {
+    if (!isAuthenticated) return streamedMessages;
     const dbMsgs: DisplayMessage[] = messagesData ?? [];
     if (!isStreaming && streamedMessages.length === 0) return dbMsgs;
     return [...dbMsgs, ...streamedMessages];
-  }, [messagesData, streamedMessages, isStreaming]);
+  }, [isAuthenticated, messagesData, streamedMessages, isStreaming]);
+
+  useEffect(() => {
+    if (!isAuthenticated && currentConversationId !== null) {
+      setGuestMessagesByConversation(prev => ({
+        ...prev,
+        [currentConversationId]: streamedMessages,
+      }));
+      if (streamedMessages.length > 0) {
+        setGuestConversations(prev =>
+          prev.map(conversation =>
+            conversation.id === currentConversationId
+              ? { ...conversation, updatedAt: new Date().toISOString() }
+              : conversation
+          )
+        );
+      }
+    }
+  }, [isAuthenticated, currentConversationId, streamedMessages]);
 
   useEffect(() => {
     if (status === "ready" && streamedMessages.length > 0 && messagesData) {
@@ -370,12 +438,31 @@ export default function Home() {
     if (currentConversationId) {
       setLocalInput("");
       void sendMessage({ text: textToSend });
-    } else {
+    } else if (isAuthenticated) {
       pendingPromptRef.current = textToSend;
       createConversationMutation.mutate({
         title: textToSend.slice(0, CHAT_TITLE_MAX_LENGTH),
         language,
       });
+    } else {
+      const localConversationId = Date.now();
+      const now = new Date().toISOString();
+      setCurrentConversationId(localConversationId);
+      setGuestConversations(prev => [
+        {
+          id: localConversationId,
+          title: textToSend.slice(0, CHAT_TITLE_MAX_LENGTH),
+          updatedAt: now,
+        },
+        ...prev,
+      ]);
+      setGuestMessagesByConversation(prev => ({
+        ...prev,
+        [localConversationId]: [],
+      }));
+      setStreamedMessages([]);
+      setLocalInput("");
+      void sendMessage({ text: textToSend });
     }
   };
 
@@ -396,7 +483,11 @@ export default function Home() {
   const handleSelectConversation = (conversationId: number) => {
     userHasDeselected.current = false;
     setCurrentConversationId(conversationId);
-    setStreamedMessages([]);
+    if (isAuthenticated) {
+      setStreamedMessages([]);
+    } else {
+      setStreamedMessages(guestMessagesByConversation[conversationId] ?? []);
+    }
     setSendError(null);
     setOpenDropdown(null);
   };
@@ -406,7 +497,22 @@ export default function Home() {
     conversationId: number
   ) => {
     e.stopPropagation();
-    deleteConversationMutation.mutate({ id: conversationId });
+    if (isAuthenticated) {
+      deleteConversationMutation.mutate({ id: conversationId });
+      return;
+    }
+    setGuestConversations(prev =>
+      prev.filter(conversation => conversation.id !== conversationId)
+    );
+    setGuestMessagesByConversation(prev => {
+      const next = { ...prev };
+      delete next[conversationId];
+      return next;
+    });
+    if (currentConversationId === conversationId) {
+      setCurrentConversationId(null);
+      setStreamedMessages([]);
+    }
   };
 
   const toggleDropdown = (name: "hist" | "res" | "lang") => {

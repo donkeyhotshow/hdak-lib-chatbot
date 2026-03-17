@@ -55,6 +55,8 @@ describe("runAiOrchestration env requirements", () => {
       ENV: {
         forgeApiUrl: "",
         forgeApiKey: "test-key",
+        openRouterHttpReferer: "",
+        openRouterXTitle: "",
       },
     }));
 
@@ -77,6 +79,8 @@ describe("runAiOrchestration env requirements", () => {
       ENV: {
         forgeApiUrl: "https://api.openai.com",
         forgeApiKey: "test-key",
+        openRouterHttpReferer: "",
+        openRouterXTitle: "",
       },
     }));
 
@@ -92,6 +96,35 @@ describe("runAiOrchestration env requirements", () => {
       expect.objectContaining({
         baseURL: "https://api.openai.com/v1",
         apiKey: "test-key",
+      })
+    );
+  });
+
+  it("passes optional OpenRouter headers when configured", async () => {
+    createOpenAIMock.mockReturnValue({ chat: vi.fn(() => "model") });
+    vi.doMock("../_core/env", () => ({
+      ENV: {
+        forgeApiUrl: "https://openrouter.ai/api/v1",
+        forgeApiKey: "test-key",
+        openRouterHttpReferer: "https://example.test",
+        openRouterXTitle: "HDAK Chatbot",
+      },
+    }));
+
+    const { runAiOrchestration } = await import("./aiOrchestrator");
+
+    await runAiOrchestration({
+      messages: [{ role: "user", content: "hello" }],
+      history: [],
+      context: { endpoint: "/api/chat", userId: 1, ip: "127.0.0.1" },
+    });
+
+    expect(createOpenAIMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        headers: {
+          "HTTP-Referer": "https://example.test",
+          "X-Title": "HDAK Chatbot",
+        },
       })
     );
   });
