@@ -69,6 +69,14 @@ pnpm start
 - `app/api/auth/me/route.ts`, `app/api/auth/logout/route.ts` — auth helpers
 - `app/api/health/route.ts`, `app/api/ready/route.ts` — liveness/readiness probes
 
+## Instant answers (FAQ shortcuts)
+
+- На головній сторінці є quick prompt chips для типових бібліотечних питань.
+- Для guest mode стандартні FAQ-вопросы обрабатываются мгновенно локально
+  через matcher `lib/server/services/instantAnswers.ts`, без ожидания длинного
+  LLM-стриминга.
+- Якщо питання не підпадає під FAQ matcher, працює звичайний `/api/chat`.
+
 ## How it works
 
 1. **UI (`app/page.tsx` + `lib/pages/Home`)** отправляет сообщения в `/api/chat`.
