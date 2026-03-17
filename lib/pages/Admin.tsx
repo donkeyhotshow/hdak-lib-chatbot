@@ -88,6 +88,15 @@ function toLines(values: string[] | null | undefined): string {
   return (values ?? []).join("\n");
 }
 
+function isOfficialLibraryUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:" && parsed.hostname === "lib-hdak.in.ua";
+  } catch {
+    return false;
+  }
+}
+
 function formatUptime(seconds: number): string {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
@@ -1438,9 +1447,7 @@ export default function Admin() {
                     {filteredKnowledgeEntries.map((entry: any) => {
                       const hasOnlyOfficialLinks = (
                         entry.sourceUrls ?? []
-                      ).every((url: string) =>
-                        url.includes("https://lib-hdak.in.ua/")
-                      );
+                      ).every((url: string) => isOfficialLibraryUrl(url));
                       return (
                         <div
                           key={entry.id}
