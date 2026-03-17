@@ -10,6 +10,10 @@ import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
 import * as db from "./db";
 import * as syncService from "./services/syncService";
+import {
+  clearChatAnalyticsEvents,
+  listChatAnalyticsEvents,
+} from "./services/chatAnalytics";
 
 // ---------------------------------------------------------------------------
 // Module mocks
@@ -55,7 +59,18 @@ function makeCtx(role: "user" | "admin" = "admin"): TrpcContext {
   };
 }
 
-afterEach(() => vi.restoreAllMocks());
+function makeGuestCtx(): TrpcContext {
+  return {
+    user: null,
+    req: { protocol: "https", headers: {} } as TrpcContext["req"],
+    res: { clearCookie: vi.fn() } as unknown as TrpcContext["res"],
+  };
+}
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  clearChatAnalyticsEvents();
+});
 
 // ---------------------------------------------------------------------------
 // resources router
@@ -402,6 +417,51 @@ describe("analytics.getQueryStats — admin procedure", () => {
     await expect(
       caller.analytics.getQueryStats({ limit: 101 })
     ).rejects.toBeDefined();
+  });
+});
+
+describe("analytics.getQualitySummary — admin procedure", () => {
+  it("returns aggregated quality metrics from chat analytics events", async () => {
+    const adminCaller = appRouter.createCaller(makeCtx("admin"));
+    const guestCaller = appRouter.createCaller(makeGuestCtx());
+
+    await guestCaller.analytics.submitFeedback({
+      responseId: "r-1",
+      sourceBadge: "catalog",
+      userQuery: "де каталог",
+      feedbackValue: "down",
+      guestId: "g-1",
+    });
+    const summary = await adminCaller.analytics.getQualitySummary({
+      topLimit: 5,
+    });
+
+    expect(summary.totalEvents).toBeGreaterThan(0);
+    expect(summary.feedback.notUseful).toBe(1);
+    expect(summary.feedback.negativeResponses.length).toBeGreaterThan(0);
+  });
+});
+
+describe("analytics.submitFeedback — public procedure", () => {
+  it("stores feedback event for guest mode", async () => {
+    const caller = appRouter.createCaller(makeGuestCtx());
+    const result = await caller.analytics.submitFeedback({
+      responseId: "resp-guest-1",
+      sourceBadge: "quick",
+      userQuery: "як записатися",
+      feedbackValue: "up",
+      guestId: "guest-1",
+    });
+
+    expect(result.success).toBe(true);
+    expect(
+      listChatAnalyticsEvents().some(
+        item =>
+          item.name === "feedback_submitted" &&
+          item.mode === "guest" &&
+          item.metadata?.responseId === "resp-guest-1"
+      )
+    ).toBe(true);
   });
 });
 

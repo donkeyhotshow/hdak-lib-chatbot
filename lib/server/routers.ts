@@ -32,6 +32,11 @@ import {
   invalidateInfoCache,
 } from "./services/libraryCache";
 import { clearSession } from "./services/sessionStore";
+import {
+  emitChatAnalyticsEvent,
+  listChatAnalyticsEvents,
+} from "./services/chatAnalytics";
+import { buildChatAnalyticsSummary } from "./services/chatAnalyticsSummary";
 
 /** Maximum number of previous messages included in the AI context window. */
 const MAX_CONVERSATION_HISTORY =
@@ -358,6 +363,51 @@ export const appRouter = router({
       )
       .query(async ({ input }) => {
         return await db.getQueryAnalytics(input?.limit ?? 20);
+      }),
+    getQualitySummary: adminProcedure
+      .input(
+        z.object({ topLimit: z.number().min(1).max(50).default(10) }).optional()
+      )
+      .query(({ input }) => {
+        return buildChatAnalyticsSummary(listChatAnalyticsEvents(), {
+          topLimit: input?.topLimit ?? 10,
+        });
+      }),
+    submitFeedback: publicProcedure
+      .input(
+        z.object({
+          responseId: z.string().min(1).max(200),
+          sourceBadge: z
+            .enum([
+              "quick",
+              "catalog",
+              "official-rule",
+              "generated",
+              "llm-fallback",
+              "unknown",
+            ])
+            .default("unknown"),
+          userQuery: z.string().max(2000).default(""),
+          feedbackValue: z.enum(["up", "down"]),
+          conversationId: z.number().int().positive().optional(),
+          guestId: z.string().max(200).optional(),
+        })
+      )
+      .mutation(({ ctx, input }) => {
+        emitChatAnalyticsEvent({
+          name: "feedback_submitted",
+          mode: ctx.user ? "auth" : "guest",
+          sourceBadge: input.sourceBadge,
+          latencyBucket: "instant",
+          metadata: {
+            query: input.userQuery,
+            feedbackValue: input.feedbackValue,
+            responseId: input.responseId,
+            conversationId: input.conversationId,
+            guestId: input.guestId,
+          },
+        });
+        return { success: true as const };
       }),
   }),
 

@@ -181,6 +181,11 @@ export default function Admin() {
     trpc.analytics.getQueryStats.useQuery(undefined, {
       enabled: activeTab === "analytics",
     });
+  const { data: qualitySummary, isLoading: qualityLoading } =
+    trpc.analytics.getQualitySummary.useQuery(
+      { topLimit: 10 },
+      { enabled: activeTab === "analytics" }
+    );
 
   // Fetch performance metrics from /api/metrics (REST endpoint, cookie auth)
   const {
@@ -1097,6 +1102,163 @@ export default function Admin() {
                     </ScrollArea>
                   )}
                 </Card>
+
+                {qualityLoading ? (
+                  <div className="flex justify-center py-6">
+                    <Loader2 className="w-6 h-6 animate-spin text-indigo-600" />
+                  </div>
+                ) : qualitySummary ? (
+                  <Card className="p-6">
+                    <h2 className="text-lg font-bold mb-4">
+                      Quality Dashboard
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 mb-5">
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <p className="text-xs text-gray-500">Instant answers</p>
+                        <p className="text-2xl font-semibold text-indigo-600">
+                          {qualitySummary.intents.instantAnswers}
+                        </p>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <p className="text-xs text-gray-500">Catalog intent</p>
+                        <p className="text-2xl font-semibold text-indigo-600">
+                          {qualitySummary.intents.catalogIntent}
+                        </p>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <p className="text-xs text-gray-500">
+                          Knowledge fallback
+                        </p>
+                        <p className="text-2xl font-semibold text-indigo-600">
+                          {qualitySummary.intents.knowledgeFallback}
+                        </p>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <p className="text-xs text-gray-500">
+                          LLM / safe fallback
+                        </p>
+                        <p className="text-2xl font-semibold text-indigo-600">
+                          {qualitySummary.intents.llmFallback} /{" "}
+                          {qualitySummary.intents.safeFallback}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <h3 className="font-semibold text-sm mb-3">
+                          Cache stats
+                        </h3>
+                        <p className="text-sm text-gray-700">
+                          Hit: <b>{qualitySummary.cache.hit}</b>
+                        </p>
+                        <p className="text-sm text-gray-700">
+                          Miss: <b>{qualitySummary.cache.miss}</b>
+                        </p>
+                        <p className="text-sm text-gray-700">
+                          Hit rate:{" "}
+                          <b>{qualitySummary.cache.hitRatePercent}%</b>
+                        </p>
+                      </div>
+
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <h3 className="font-semibold text-sm mb-3">
+                          Feedback summary
+                        </h3>
+                        <p className="text-sm text-gray-700">
+                          Useful: <b>{qualitySummary.feedback.useful}</b>
+                        </p>
+                        <p className="text-sm text-gray-700">
+                          Not useful: <b>{qualitySummary.feedback.notUseful}</b>
+                        </p>
+                        <p className="text-xs text-gray-500 mt-2">
+                          Grouped by source badge below
+                        </p>
+                      </div>
+
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <h3 className="font-semibold text-sm mb-3">
+                          Coverage insight (LLM-heavy)
+                        </h3>
+                        {qualitySummary.uncoveredTopQueries.length === 0 ? (
+                          <p className="text-sm text-gray-500">
+                            No uncovered frequent queries yet
+                          </p>
+                        ) : (
+                          <div className="space-y-2">
+                            {qualitySummary.uncoveredTopQueries
+                              .slice(0, 5)
+                              .map(item => (
+                                <div
+                                  key={item.query}
+                                  className="flex justify-between text-sm"
+                                >
+                                  <span className="truncate mr-3">
+                                    {item.query}
+                                  </span>
+                                  <b>{item.count}</b>
+                                </div>
+                              ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <h3 className="font-semibold text-sm mb-3">
+                          Top chat queries (events)
+                        </h3>
+                        {qualitySummary.topQueries.length === 0 ? (
+                          <p className="text-sm text-gray-500">
+                            No chat queries yet
+                          </p>
+                        ) : (
+                          <div className="space-y-2">
+                            {qualitySummary.topQueries.slice(0, 6).map(item => (
+                              <div
+                                key={item.query}
+                                className="flex justify-between text-sm"
+                              >
+                                <span className="truncate mr-3">
+                                  {item.query}
+                                </span>
+                                <b>{item.count}</b>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <h3 className="font-semibold text-sm mb-3">
+                          Latest low-quality responses
+                        </h3>
+                        {qualitySummary.feedback.negativeResponses.length ===
+                        0 ? (
+                          <p className="text-sm text-gray-500">
+                            No negative feedback yet
+                          </p>
+                        ) : (
+                          <div className="space-y-2">
+                            {qualitySummary.feedback.negativeResponses
+                              .slice(0, 6)
+                              .map(item => (
+                                <div key={item.responseId} className="text-sm">
+                                  <p className="font-medium truncate">
+                                    {item.query}
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    {item.sourceBadge} · {item.mode}
+                                  </p>
+                                </div>
+                              ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+                ) : null}
               </>
             ) : (
               <p className="text-gray-500 text-center py-12">

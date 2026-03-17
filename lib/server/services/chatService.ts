@@ -315,7 +315,10 @@ export async function processChatRequest(input: {
       mode,
       sourceBadge: cachedInstant.sourceBadge,
       latencyBucket: "instant",
-      metadata: { responseType: cachedInstant.responseType },
+      metadata: {
+        responseType: cachedInstant.responseType,
+        query: lastUserMessage,
+      },
     });
     return {
       flagged: false as const,
@@ -329,7 +332,7 @@ export async function processChatRequest(input: {
     mode,
     sourceBadge: instantAnswer?.sourceBadge ?? "unknown",
     latencyBucket: "instant",
-    metadata: { responseType: instantType },
+    metadata: { responseType: instantType, query: lastUserMessage },
   });
 
   if (instantAnswer) {
@@ -348,6 +351,7 @@ export async function processChatRequest(input: {
       mode,
       sourceBadge: instantAnswer.sourceBadge ?? "quick",
       latencyBucket: "instant",
+      metadata: { query: lastUserMessage },
     });
     if (instantAnswer.sourceBadge === "catalog") {
       emitChatAnalyticsEvent({
@@ -355,6 +359,7 @@ export async function processChatRequest(input: {
         mode,
         sourceBadge: "catalog",
         latencyBucket: "instant",
+        metadata: { query: lastUserMessage },
       });
     }
 
@@ -391,7 +396,10 @@ export async function processChatRequest(input: {
         mode,
         sourceBadge: "generated",
         latencyBucket: "instant",
-        metadata: { responseType: "knowledge-fallback" },
+        metadata: {
+          responseType: "knowledge-fallback",
+          query: lastUserMessage,
+        },
       });
       return {
         flagged: false as const,
@@ -405,7 +413,7 @@ export async function processChatRequest(input: {
       mode,
       sourceBadge: "generated",
       latencyBucket: "instant",
-      metadata: { responseType: "knowledge-fallback" },
+      metadata: { responseType: "knowledge-fallback", query: lastUserMessage },
     });
     setCachedResponse(fallbackCacheKey, {
       text: knowledgeFallback.answer,
@@ -417,6 +425,7 @@ export async function processChatRequest(input: {
       mode,
       sourceBadge: "generated",
       latencyBucket: "instant",
+      metadata: { query: lastUserMessage },
     });
     if (conversationId !== null) {
       await persistConversationMessages({
@@ -438,6 +447,7 @@ export async function processChatRequest(input: {
     mode,
     sourceBadge: "llm-fallback",
     latencyBucket: "streamed",
+    metadata: { query: lastUserMessage, completed: false },
   });
 
   try {
@@ -455,7 +465,7 @@ export async function processChatRequest(input: {
           sourceBadge: "llm-fallback",
           latencyBucket:
             Date.now() - requestStartedAt < 250 ? "instant" : "streamed",
-          metadata: { completed: true },
+          metadata: { query: lastUserMessage, completed: true },
         });
         if (conversationId === null) return;
         await persistConversationMessages({
@@ -478,6 +488,7 @@ export async function processChatRequest(input: {
       mode,
       sourceBadge: "llm-fallback",
       latencyBucket: "instant",
+      metadata: { query: lastUserMessage },
     });
     const safeFallback = buildSafeLlmUnavailableFallback(requestedLanguage);
     if (conversationId !== null) {

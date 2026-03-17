@@ -438,6 +438,7 @@ export default function Home() {
       utils.conversations.list.invalidate();
     },
   });
+  const submitFeedbackMutation = trpc.analytics.submitFeedback.useMutation();
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -714,6 +715,15 @@ export default function Home() {
       CHAT_TELEMETRY_STORAGE_KEY,
       JSON.stringify(telemetryNext)
     );
+
+    submitFeedbackMutation.mutate({
+      responseId,
+      sourceBadge,
+      userQuery,
+      feedbackValue: value,
+      conversationId,
+      guestId: guestIdRef.current ?? undefined,
+    });
   };
 
   const chips = useMemo(() => {
