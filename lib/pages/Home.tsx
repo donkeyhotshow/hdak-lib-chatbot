@@ -56,6 +56,7 @@ const translations: Record<Language, Record<string, string>> = {
     sendFailed: "Failed to send. Please try again.",
     streamError: "Streaming failed. Please try again.",
     streamErrorTooLarge: "Message is too long (max 10,000 characters).",
+    retry: "Retry",
     actionFindCatalog: "Find in Catalog",
     actionWriteLetter: "Write to Librarian",
     actionShare: "Share",
@@ -96,6 +97,7 @@ const translations: Record<Language, Record<string, string>> = {
     streamError: "Помилка стрімінгу. Спробуйте ще раз.",
     streamErrorTooLarge:
       "Повідомлення занадто довге (максимум 10 000 символів).",
+    retry: "Повторити",
     actionFindCatalog: "Знайти в каталозі",
     actionWriteLetter: "Написати листа",
     actionShare: "Поділитися",
@@ -1476,7 +1478,7 @@ export default function Home() {
                     }}
                   >
                     <RefreshCw size={12} />
-                    {language === "uk" ? "Повторити" : "Retry"}
+                    {t.retry}
                   </button>
                 )}
               </div>
