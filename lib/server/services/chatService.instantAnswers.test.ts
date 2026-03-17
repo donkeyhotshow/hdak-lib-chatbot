@@ -57,6 +57,19 @@ describe("processChatRequest instant answers", () => {
     expect(runAiOrchestrationMock).toHaveBeenCalledTimes(1);
   });
 
+  it("handles complex catalog query as instant answer without LLM call", async () => {
+    const { processChatRequest } = await import("./chatService");
+
+    const result = await processChatRequest({
+      messages: [{ role: "user", content: "знайти автора Шевченко" }],
+      userId: null,
+      ip: "127.0.0.1",
+    });
+
+    expect(result.flagged).toBe(false);
+    expect(runAiOrchestrationMock).not.toHaveBeenCalled();
+  });
+
   it("persists instant answers for authenticated conversation flow", async () => {
     const { processChatRequest } = await import("./chatService");
 

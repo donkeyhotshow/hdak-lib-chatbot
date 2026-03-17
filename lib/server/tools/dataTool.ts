@@ -2,6 +2,7 @@ import { z } from "zod/v4";
 import * as db from "../db";
 import { hdakResources } from "../system-prompts-official";
 import { sanitizeUntrustedContent } from "../services/aiPipeline";
+import { OFFICIAL_CATALOG_URL } from "../services/catalogIntent";
 import type { ToolRegistryEntry } from "./registry";
 
 const searchLibraryResourcesSchema = z.object({ query: z.string() });
@@ -73,15 +74,15 @@ export const dataTools = [
         keyword: "Ключові слова / Keywords",
       };
       return {
-        catalogUrl: "https://lib-hdak.in.ua/e-catalog.html",
-        catalogPageUrl: "https://lib-hdak.in.ua/e-catalog.html",
+        catalogUrl: OFFICIAL_CATALOG_URL,
+        catalogPageUrl: OFFICIAL_CATALOG_URL,
         repositoryUrl: "https://lib-hdak.in.ua/scientists-publications.html",
         searchTerm,
         searchType,
         searchFieldLabel: fieldLabel[searchType] ?? fieldLabel.author,
         steps: [
-          "Відкрийте електронний каталог ХДАК: https://lib-hdak.in.ua/e-catalog.html",
-          'Натисніть кнопку "Пошук" або перейдіть за посиланням: https://lib-hdak.in.ua/e-catalog.html',
+          `Відкрийте електронний каталог ХДАК: ${OFFICIAL_CATALOG_URL}`,
+          `Натисніть кнопку "Пошук" або перейдіть за посиланням: ${OFFICIAL_CATALOG_URL}`,
           `У полі "${fieldLabel[searchType]}" введіть: ${searchTerm}`,
           "Натисніть кнопку пошуку та перегляньте результати.",
         ],

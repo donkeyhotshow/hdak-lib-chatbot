@@ -12,6 +12,10 @@ import {
   getInstantAnswer,
   QUICK_PROMPTS,
 } from "@/lib/server/services/instantAnswers";
+import {
+  getCatalogIntentAction,
+  OFFICIAL_CATALOG_URL,
+} from "@/lib/server/services/catalogIntent";
 import { RefreshCw } from "lucide-react";
 
 type RouterOutput = inferRouterOutputs<AppRouter>;
@@ -658,6 +662,8 @@ export default function Home() {
         .hdak-input-row:focus-within { border-color: rgba(42,90,186,.45); box-shadow: 0 0 0 4px rgba(42,90,186,.1); }
         .hdak-action-btn { height: 30px; padding: 0 12px; background: #f4f7ff; border: 1px solid rgba(73,95,151,0.25); border-radius: 8px; color: #2a5aba; font-size: 12px; cursor: pointer; font-family: 'DM Sans', system-ui, sans-serif; transition: all 0.15s; display: inline-flex; align-items: center; gap: 4px; }
         .hdak-action-btn:hover { background: #e9f0ff; border-color: rgba(42,90,186,.42); color: #204690; }
+        .hdak-action-btn--catalog { background: #e3eeff; border-color: rgba(42,90,186,.5); color: #1f4a9a; font-weight: 600; }
+        .hdak-action-btn--catalog:hover { background: #d7e6ff; border-color: rgba(32,70,144,.58); }
         @media (max-width: 480px) { .tb-label { display: none; } }
       `}</style>
 
@@ -1283,6 +1289,19 @@ export default function Home() {
                   msg.role === "assistant" &&
                   idx === allMessages.length - 1 &&
                   !isStreaming;
+                const previousUserMessage = !isUser
+                  ? [...allMessages]
+                      .slice(0, idx)
+                      .reverse()
+                      .find(prevMessage => prevMessage.role === "user")
+                  : null;
+                const catalogAction =
+                  isLastAssistant && previousUserMessage
+                    ? getCatalogIntentAction(
+                        getMessageText(previousUserMessage),
+                        language
+                      )
+                    : null;
                 return (
                   <div
                     key={idx}
@@ -1355,12 +1374,14 @@ export default function Home() {
                           style={{ display: "flex", flexWrap: "wrap", gap: 6 }}
                         >
                           <a
-                            href="https://lib-hdak.in.ua/e-catalog.html"
+                            href={catalogAction?.url ?? OFFICIAL_CATALOG_URL}
                             target="_blank"
                             rel="noopener noreferrer"
                           >
-                            <button className="hdak-action-btn">
-                              📖 {t.actionFindCatalog}
+                            <button
+                              className={`hdak-action-btn${catalogAction ? " hdak-action-btn--catalog" : ""}`}
+                            >
+                              📖 {catalogAction?.buttonLabel ?? t.actionFindCatalog}
                             </button>
                           </a>
                           <a

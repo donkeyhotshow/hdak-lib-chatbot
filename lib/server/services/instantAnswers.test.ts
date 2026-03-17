@@ -51,6 +51,34 @@ describe("instantAnswers", () => {
     expect(answer).not.toBeNull();
     expect(answer?.intent).toBe("catalog");
     expect(answer?.answer).toContain("https://lib-hdak.in.ua/e-catalog.html");
+    expect(answer?.action?.type).toBe("catalog");
+    expect(answer?.action?.searchType).toBe("generic");
+    expect(answer?.action?.url).toBe("https://lib-hdak.in.ua/e-catalog.html");
+  });
+
+  it("returns catalog instant answer for author search query", () => {
+    const answer = getInstantAnswer("знайти автора Шевченко", "uk");
+    expect(answer).not.toBeNull();
+    expect(answer?.intent).toBe("catalog-intent");
+    expect(answer?.action?.searchType).toBe("author");
+    expect(answer?.action?.searchQuery).toBe("шевченко");
+    expect(answer?.action?.url).toContain("https://lib-hdak.in.ua/e-catalog.html");
+  });
+
+  it("returns catalog instant answer for subject query", () => {
+    const answer = getInstantAnswer("книги з теми режисури", "uk");
+    expect(answer).not.toBeNull();
+    expect(answer?.intent).toBe("catalog-intent");
+    expect(answer?.action?.searchType).toBe("subject");
+    expect(answer?.action?.searchQuery).toBe("режисури");
+    expect(answer?.links).toEqual(["https://lib-hdak.in.ua/e-catalog.html"]);
+  });
+
+  it("does not include legacy library-service URL in catalog answers", () => {
+    const answer = getInstantAnswer("пошук у каталозі", "uk");
+    expect(answer).not.toBeNull();
+    expect(answer?.answer.includes("library-service.com.ua")).toBe(false);
+    expect(answer?.action?.url.includes("library-service.com.ua")).toBe(false);
   });
 
   it("keeps suggested prompts and quick prompts in expected size range", () => {

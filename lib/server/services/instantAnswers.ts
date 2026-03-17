@@ -1,3 +1,9 @@
+import {
+  getCatalogIntentAction,
+  OFFICIAL_CATALOG_URL,
+  type CatalogIntentAction,
+} from "./catalogIntent";
+
 export type InstantAnswerLanguage = "uk" | "en" | "ru";
 
 export type LibraryFaqEntry = {
@@ -14,6 +20,7 @@ export type InstantAnswer = {
   title: string;
   answer: string;
   links: string[];
+  action?: CatalogIntentAction;
 };
 
 export const LIBRARY_FAQ: LibraryFaqEntry[] = [
@@ -266,6 +273,13 @@ function formatFaqAnswer(
   return `**${faq.title}**\n\n${faq.answer}\n\n${bulletList}\n\n${toSourceLabel(language)}:\n${links}`;
 }
 
+function formatCatalogIntentAnswer(action: CatalogIntentAction): string {
+  const queryHint = action.searchQuery
+    ? `Пошуковий запит: **${action.searchQuery}**.`
+    : "За потреби введіть автора, назву або тему у полі пошуку.";
+  return `**${action.title}**\n\n${action.description}\n\n- Шукати можна за автором, назвою або темою.\n- ${queryHint}\n- Якщо потрібна точність — уточніть запит ключовими словами.\n\nОфіційне джерело:\n- ${OFFICIAL_CATALOG_URL}`;
+}
+
 function findMatchingFaq(normalizedQuery: string): LibraryFaqEntry | null {
   return (
     LIBRARY_FAQ.find(faq =>
@@ -282,14 +296,30 @@ export function getInstantAnswer(
 ): InstantAnswer | null {
   const normalizedQuery = normalizeInstantAnswerQuery(query);
   if (!normalizedQuery) return null;
+  const catalogAction = getCatalogIntentAction(
+    query,
+    language === "en" ? "en" : "uk"
+  );
 
   const faq = findMatchingFaq(normalizedQuery);
-  if (!faq) return null;
+  if (faq) {
+    return {
+      intent: faq.id,
+      title: faq.title,
+      answer: formatFaqAnswer(faq, language),
+      links: faq.links,
+      action:
+        faq.id === "catalog" || faq.id === "find-book" ? catalogAction ?? undefined : undefined,
+    };
+  }
+
+  if (!catalogAction) return null;
 
   return {
-    intent: faq.id,
-    title: faq.title,
-    answer: formatFaqAnswer(faq, language),
-    links: faq.links,
+    intent: "catalog-intent",
+    title: catalogAction.title,
+    answer: formatCatalogIntentAnswer(catalogAction),
+    links: [OFFICIAL_CATALOG_URL],
+    action: catalogAction,
   };
 }
