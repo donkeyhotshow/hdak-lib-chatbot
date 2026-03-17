@@ -241,6 +241,7 @@ export default function Home() {
   >(null);
   const userHasDeselected = useRef(false);
   const pendingPromptRef = useRef<string | null>(null);
+  const guestConversationIdRef = useRef(Date.now() * 1000);
   const scrollRef = useRef<HTMLDivElement>(null);
   const prevMessageCountRef = useRef(0);
   const lastSendTimeRef = useRef(0);
@@ -255,8 +256,10 @@ export default function Home() {
 
   const conversationIdRef = useRef<number | null>(null);
   const languageRef = useRef<Language>("uk");
-  conversationIdRef.current = isAuthenticated ? currentConversationId : null;
+  const isAuthenticatedRef = useRef(false);
+  conversationIdRef.current = currentConversationId;
   languageRef.current = language;
+  isAuthenticatedRef.current = isAuthenticated;
 
   useEffect(() => {
     const link = document.createElement("link");
@@ -275,8 +278,14 @@ export default function Home() {
         conversations?: LocalConversation[];
         messagesByConversation?: Record<number, UIMessage[]>;
       };
-      setGuestConversations(parsed.conversations ?? []);
+      const loadedConversations = parsed.conversations ?? [];
+      setGuestConversations(loadedConversations);
       setGuestMessagesByConversation(parsed.messagesByConversation ?? {});
+      const maxConversationId = loadedConversations.reduce(
+        (maxId, conversation) => Math.max(maxId, conversation.id),
+        guestConversationIdRef.current
+      );
+      guestConversationIdRef.current = maxConversationId;
     } catch {
       window.localStorage.removeItem(GUEST_HISTORY_STORAGE_KEY);
     }
@@ -299,7 +308,9 @@ export default function Home() {
         api: "/api/chat",
         body: () => ({
           language: languageRef.current,
-          conversationId: conversationIdRef.current,
+          conversationId: isAuthenticatedRef.current
+            ? conversationIdRef.current
+            : null,
         }),
         prepareSendMessagesRequest: ({ messages, body }) => {
           const lastUser = [...messages].reverse().find(m => m.role === "user");
@@ -381,7 +392,13 @@ export default function Home() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      setConversations((conversationsData as LocalConversation[]) ?? []);
+      setConversations(
+        (conversationsData ?? []).map(conversation => ({
+          id: conversation.id,
+          title: conversation.title,
+          updatedAt: conversation.updatedAt,
+        }))
+      );
       return;
     }
     setConversations(guestConversations);
@@ -445,7 +462,8 @@ export default function Home() {
         language,
       });
     } else {
-      const localConversationId = Date.now();
+      guestConversationIdRef.current += 1;
+      const localConversationId = guestConversationIdRef.current;
       const now = new Date().toISOString();
       setCurrentConversationId(localConversationId);
       setGuestConversations(prev => [

@@ -335,17 +335,17 @@ curl -X POST https://YOUR_APP_URL/api/chat \
 
 ### Опциональные
 
-| Переменная                | По умолчанию      | Описание                                    |
-| ------------------------- | ----------------- | ------------------------------------------- |
-| `AI_MODEL_NAME`           | `openrouter/auto` | Модель LLM                                  |
-| `DATABASE_URL`            | _(пусто = mock)_  | MySQL строка подключения                    |
-| `NODE_ENV`                | `development`     | Режим работы                                |
-| `PORT`                    | `3000`            | HTTP порт                                   |
-| `OAUTH_SERVER_URL`        | _(пусто)_         | URL OAuth-сервера                           |
-| `VITE_APP_ID`             | _(пусто)_         | ID приложения OAuth                         |
-| `VITE_OAUTH_PORTAL_URL`   | _(пусто)_         | URL страницы входа OAuth                    |
-| `OPENROUTER_HTTP_REFERER` | _(пусто)_         | Необязательный Referer заголовок OpenRouter |
-| `OPENROUTER_X_TITLE`      | _(пусто)_         | Необязательный X-Title заголовок OpenRouter |
+| Переменная                | По умолчанию       | Описание                                    |
+| ------------------------- | ------------------ | ------------------------------------------- |
+| `AI_MODEL_NAME`           | `gemini-2.0-flash` | Модель LLM                                  |
+| `DATABASE_URL`            | _(пусто = mock)_   | MySQL строка подключения                    |
+| `NODE_ENV`                | `development`      | Режим работы                                |
+| `PORT`                    | `3000`             | HTTP порт                                   |
+| `OAUTH_SERVER_URL`        | _(пусто)_          | URL OAuth-сервера                           |
+| `VITE_APP_ID`             | _(пусто)_          | ID приложения OAuth                         |
+| `VITE_OAUTH_PORTAL_URL`   | _(пусто)_          | URL страницы входа OAuth                    |
+| `OPENROUTER_HTTP_REFERER` | _(пусто)_          | Необязательный Referer заголовок OpenRouter |
+| `OPENROUTER_X_TITLE`      | _(пусто)_          | Необязательный X-Title заголовок OpenRouter |
 
 ---
 
