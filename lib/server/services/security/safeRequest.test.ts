@@ -26,5 +26,8 @@ describe("safeRequest", () => {
     expect(() =>
       validateExternalUrl("https://example.com/path%0Ainject")
     ).toThrow("URL contains forbidden encoded characters");
+    expect(() =>
+      validateExternalUrl("https://example.com/path%09inject")
+    ).toThrow("URL contains forbidden encoded characters");
   });
 });

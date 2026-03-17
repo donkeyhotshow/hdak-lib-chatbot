@@ -18,6 +18,10 @@ type CircuitBreakerState = {
 
 const circuitBreakerStateByHost = new Map<string, CircuitBreakerState>();
 
+function hasForbiddenEncodedControls(value: string): boolean {
+  return /%(0[0-9a-f]|1[0-f]|7f)/i.test(value);
+}
+
 function getCircuitBreakerState(hostname: string): CircuitBreakerState {
   const existing = circuitBreakerStateByHost.get(hostname);
   if (existing) return existing;
@@ -65,7 +69,11 @@ export function validateExternalUrl(
   if (parsed.username || parsed.password) {
     throw new Error("Credentials in URL are not allowed");
   }
-  if (/%0d|%0a|%00/i.test(parsed.pathname + parsed.search + parsed.hash)) {
+  if (
+    hasForbiddenEncodedControls(parsed.pathname) ||
+    hasForbiddenEncodedControls(parsed.search) ||
+    hasForbiddenEncodedControls(parsed.hash)
+  ) {
     throw new Error("URL contains forbidden encoded characters");
   }
   if (!options?.allowPrivateHosts) {

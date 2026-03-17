@@ -122,6 +122,8 @@ export async function runAiOrchestration(params: {
 
   for (const candidateModel of modelAttempts) {
     try {
+      // Fallback retries handle model initialization errors (e.g., unsupported
+      // model identifier). Runtime stream failures are surfaced via onError.
       selectedModel = candidateModel;
       stream = streamText({
         model: provider.chat(candidateModel),
