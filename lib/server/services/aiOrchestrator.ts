@@ -116,9 +116,7 @@ export async function runAiOrchestration(params: {
   const systemPrompt = params.knowledgeContext
     ? `${getOfficialSystemPrompt(language)}\n\n${params.knowledgeContext}`
     : getOfficialSystemPrompt(language);
-  let stream:
-    | ReturnType<typeof streamText>
-    | null = null;
+  let stream: unknown = null;
   let selectedModel = primaryModel;
   let lastError: unknown = null;
 
@@ -152,12 +150,12 @@ export async function runAiOrchestration(params: {
   }
 
   if (!stream) {
-    throw (lastError instanceof Error ? lastError : new Error(String(lastError)));
+    throw lastError instanceof Error ? lastError : new Error(String(lastError));
   }
 
   return {
     flagged: false as const,
-    stream,
+    stream: stream as ReturnType<typeof streamText>,
     language,
   };
 }

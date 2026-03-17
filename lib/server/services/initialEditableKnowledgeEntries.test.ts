@@ -11,7 +11,9 @@ describe("initial editable knowledge entries seed", () => {
     for (const entry of initialEditableKnowledgeEntries) {
       expect(ids.has(entry.id)).toBe(false);
       ids.add(entry.id);
-      expect(["quick", "catalog", "official-rule"]).toContain(entry.sourceBadge);
+      expect(["quick", "catalog", "official-rule"]).toContain(
+        entry.sourceBadge
+      );
       expect(entry.enabled).toBe(true);
       expect(entry.sourceUrls.length).toBeGreaterThan(0);
       for (const url of entry.sourceUrls) {
