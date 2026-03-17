@@ -60,6 +60,7 @@ describe("processChatRequest instant answers", () => {
 
   it("falls back to normal LLM orchestration for non-FAQ question", async () => {
     const { processChatRequest } = await import("./chatService");
+    const { listChatAnalyticsEvents } = await import("./chatAnalytics");
 
     await processChatRequest({
       messages: [{ role: "user", content: "Поясни квантову криптографію" }],
@@ -68,6 +69,30 @@ describe("processChatRequest instant answers", () => {
     });
 
     expect(runAiOrchestrationMock).toHaveBeenCalledTimes(1);
+    expect(
+      listChatAnalyticsEvents().some(event => event.name === "retrieval_hit")
+    ).toBe(false);
+  });
+
+  it("injects official retrieval context into LLM flow when chunks are found", async () => {
+    const { processChatRequest } = await import("./chatService");
+    const { listChatAnalyticsEvents } = await import("./chatAnalytics");
+
+    await processChatRequest({
+      messages: [{ role: "user", content: "навігація розділи" }],
+      userId: null,
+      ip: "127.0.0.1",
+    });
+
+    expect(runAiOrchestrationMock).toHaveBeenCalledTimes(1);
+    const orchestratorArgs = runAiOrchestrationMock.mock.calls[0]?.[0];
+    expect(orchestratorArgs?.knowledgeContext).toContain(
+      "Офіційні матеріали бібліотеки (retrieval)"
+    );
+    expect(orchestratorArgs?.knowledgeContext).toContain("lib-hdak.in.ua");
+    expect(
+      listChatAnalyticsEvents().some(event => event.name === "retrieval_hit")
+    ).toBe(true);
   });
 
   it("handles complex catalog query as instant answer without LLM call", async () => {

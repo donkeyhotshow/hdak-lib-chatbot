@@ -19,6 +19,7 @@ describe("Home guestId and source provenance guards", () => {
     expect(homePageContent).toContain("sourceBadge");
     expect(homePageContent).toContain("badgeCatalog");
     expect(homePageContent).toContain("sourceLinks");
+    expect(homePageContent).toContain("extractOfficialSourceLinksFromText");
     expect(homePageContent).toContain("t.sourcesLabel");
     expect(homePageContent).toContain("t.viewSource");
   });

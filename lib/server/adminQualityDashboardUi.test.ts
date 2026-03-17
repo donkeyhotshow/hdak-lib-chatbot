@@ -19,6 +19,9 @@ describe("Admin quality dashboard UI guards", () => {
     expect(adminPageContent).toContain("Feedback summary");
     expect(adminPageContent).toContain("Cache stats");
     expect(adminPageContent).toContain("Coverage insight (LLM-heavy)");
+    expect(adminPageContent).toContain("Retrieval hits");
+    expect(adminPageContent).toContain("Top retrieved official sources");
+    expect(adminPageContent).toContain("Uncovered after retrieval");
     expect(adminPageContent).toContain("Latest low-quality responses");
   });
 });

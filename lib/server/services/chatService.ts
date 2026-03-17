@@ -34,6 +34,10 @@ import { setSessionState } from "./sessionStore";
 import { getInstantAnswer } from "./instantAnswers";
 import { buildLibraryKnowledgeContext } from "./libraryKnowledge";
 import {
+  buildOfficialRetrievalContext,
+  retrieveOfficialLibraryChunks,
+} from "./libraryRetrieval";
+import {
   buildResponseCacheKey,
   getCachedResponse,
   setCachedResponse,
@@ -296,10 +300,6 @@ export async function processChatRequest(input: {
   const lastUserMessage = findLastUserMessage(input.messages);
   const requestedLanguage = normalizeLanguage(input.language);
   const instantAnswer = getInstantAnswer(lastUserMessage, requestedLanguage);
-  const knowledgeContext = buildLibraryKnowledgeContext(
-    lastUserMessage,
-    requestedLanguage
-  );
 
   const instantType =
     instantAnswer?.sourceBadge === "catalog" ? "catalog" : "instant";
@@ -379,6 +379,34 @@ export async function processChatRequest(input: {
     };
   }
 
+  const retrievalChunks = retrieveOfficialLibraryChunks(lastUserMessage, {
+    limit: 3,
+    minScore: 2,
+  });
+  const retrievalContext = buildOfficialRetrievalContext(retrievalChunks);
+  if (retrievalChunks.length > 0) {
+    emitChatAnalyticsEvent({
+      name: "retrieval_hit",
+      mode,
+      sourceBadge: "generated",
+      latencyBucket: "instant",
+      metadata: {
+        query: lastUserMessage,
+        topSourceUrl: retrievalChunks[0]?.sourceUrl ?? null,
+        sourceDocUrls: retrievalChunks.map(chunk => chunk.sourceUrl).join("|"),
+      },
+    });
+  }
+
+  const knowledgeContextParts = [
+    buildLibraryKnowledgeContext(lastUserMessage, requestedLanguage),
+    retrievalContext,
+  ].filter(Boolean);
+  const knowledgeContext =
+    knowledgeContextParts.length > 0
+      ? knowledgeContextParts.join("\n\n")
+      : null;
+
   const knowledgeFallback = buildKnowledgeAssistedFallback(
     lastUserMessage,
     requestedLanguage
@@ -447,7 +475,11 @@ export async function processChatRequest(input: {
     mode,
     sourceBadge: "llm-fallback",
     latencyBucket: "streamed",
-    metadata: { query: lastUserMessage, completed: false },
+    metadata: {
+      query: lastUserMessage,
+      completed: false,
+      retrievalHit: retrievalChunks.length > 0,
+    },
   });
 
   try {
@@ -465,8 +497,24 @@ export async function processChatRequest(input: {
           sourceBadge: "llm-fallback",
           latencyBucket:
             Date.now() - requestStartedAt < 250 ? "instant" : "streamed",
-          metadata: { query: lastUserMessage, completed: true },
+          metadata: {
+            query: lastUserMessage,
+            completed: true,
+            retrievalHit: retrievalChunks.length > 0,
+          },
         });
+        if (retrievalChunks.length > 0) {
+          emitChatAnalyticsEvent({
+            name: "retrieval_assisted_response",
+            mode,
+            sourceBadge: "generated",
+            latencyBucket: "streamed",
+            metadata: {
+              query: lastUserMessage,
+              topSourceUrl: retrievalChunks[0]?.sourceUrl ?? null,
+            },
+          });
+        }
         if (conversationId === null) return;
         await persistConversationMessages({
           conversationId,

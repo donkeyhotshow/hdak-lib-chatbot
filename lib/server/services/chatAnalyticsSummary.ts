@@ -23,6 +23,8 @@ export type ChatQualitySummary = {
   intents: {
     instantAnswers: number;
     catalogIntent: number;
+    retrievalHit: number;
+    retrievalAssistedResponse: number;
     knowledgeFallback: number;
     llmFallback: number;
     safeFallback: number;
@@ -49,6 +51,8 @@ export type ChatQualitySummary = {
   };
   topQueries: Array<{ query: string; count: number }>;
   uncoveredTopQueries: Array<{ query: string; count: number }>;
+  topRetrievedSources: Array<{ source: string; count: number }>;
+  uncoveredAfterRetrievalTopQueries: Array<{ query: string; count: number }>;
 };
 
 const EMPTY_BADGE_COUNTS: Record<ChatSourceBadge, number> = {
@@ -78,6 +82,8 @@ export function buildChatAnalyticsSummary(
   const topLimit = options?.topLimit ?? 10;
   const queryCounts = new Map<string, number>();
   const uncoveredQueryCounts = new Map<string, number>();
+  const uncoveredAfterRetrievalCounts = new Map<string, number>();
+  const retrievedSourceCounts = new Map<string, number>();
   const feedbackByBadge = createFeedbackBySourceBadge();
   const negativeResponses: ChatQualitySummary["feedback"]["negativeResponses"] =
     [];
@@ -89,6 +95,8 @@ export function buildChatAnalyticsSummary(
     intents: {
       instantAnswers: 0,
       catalogIntent: 0,
+      retrievalHit: 0,
+      retrievalAssistedResponse: 0,
       knowledgeFallback: 0,
       llmFallback: 0,
       safeFallback: 0,
@@ -102,6 +110,8 @@ export function buildChatAnalyticsSummary(
     },
     topQueries: [],
     uncoveredTopQueries: [],
+    topRetrievedSources: [],
+    uncoveredAfterRetrievalTopQueries: [],
   };
 
   for (const event of events) {
@@ -124,12 +134,35 @@ export function buildChatAnalyticsSummary(
       case "catalog_intent_hit":
         summary.intents.catalogIntent += 1;
         break;
+      case "retrieval_hit": {
+        summary.intents.retrievalHit += 1;
+        const sourcesRaw = event.metadata?.sourceDocUrls;
+        if (typeof sourcesRaw === "string" && sourcesRaw.length > 0) {
+          for (const source of sourcesRaw.split("|")) {
+            const safeSource = source.trim();
+            if (safeSource) incrementCounter(retrievedSourceCounts, safeSource);
+          }
+        }
+        break;
+      }
+      case "retrieval_assisted_response":
+        summary.intents.retrievalAssistedResponse += 1;
+        break;
       case "knowledge_fallback_hit":
         summary.intents.knowledgeFallback += 1;
         break;
       case "llm_fallback_used":
         summary.intents.llmFallback += 1;
-        if (query) incrementCounter(uncoveredQueryCounts, query.toLowerCase());
+        if (query && event.metadata?.completed !== false) {
+          incrementCounter(uncoveredQueryCounts, query.toLowerCase());
+        }
+        if (
+          query &&
+          event.metadata?.retrievalHit !== true &&
+          event.metadata?.completed !== false
+        ) {
+          incrementCounter(uncoveredAfterRetrievalCounts, query.toLowerCase());
+        }
         break;
       case "llm_safe_fallback_used":
         summary.intents.safeFallback += 1;
@@ -176,6 +209,20 @@ export function buildChatAnalyticsSummary(
   }));
   summary.uncoveredTopQueries = mapToTopItems(
     uncoveredQueryCounts,
+    topLimit
+  ).map(item => ({
+    query: item.key,
+    count: item.count,
+  }));
+  summary.topRetrievedSources = mapToTopItems(
+    retrievedSourceCounts,
+    topLimit
+  ).map(item => ({
+    source: item.key,
+    count: item.count,
+  }));
+  summary.uncoveredAfterRetrievalTopQueries = mapToTopItems(
+    uncoveredAfterRetrievalCounts,
     topLimit
   ).map(item => ({
     query: item.key,

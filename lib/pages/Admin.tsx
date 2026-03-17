@@ -1126,6 +1126,20 @@ export default function Admin() {
                         </p>
                       </div>
                       <div className="bg-gray-50 rounded-lg p-3">
+                        <p className="text-xs text-gray-500">Retrieval hits</p>
+                        <p className="text-2xl font-semibold text-indigo-600">
+                          {qualitySummary.intents.retrievalHit}
+                        </p>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <p className="text-xs text-gray-500">
+                          Retrieval-assisted
+                        </p>
+                        <p className="text-2xl font-semibold text-indigo-600">
+                          {qualitySummary.intents.retrievalAssistedResponse}
+                        </p>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg p-3">
                         <p className="text-xs text-gray-500">
                           Knowledge fallback
                         </p>
@@ -1144,7 +1158,7 @@ export default function Admin() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
                       <div className="bg-gray-50 rounded-lg p-4">
                         <h3 className="font-semibold text-sm mb-3">
                           Cache stats
@@ -1202,6 +1216,32 @@ export default function Admin() {
                           </div>
                         )}
                       </div>
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <h3 className="font-semibold text-sm mb-3">
+                          Top retrieved official sources
+                        </h3>
+                        {qualitySummary.topRetrievedSources.length === 0 ? (
+                          <p className="text-sm text-gray-500">
+                            No retrieval source hits yet
+                          </p>
+                        ) : (
+                          <div className="space-y-2">
+                            {qualitySummary.topRetrievedSources
+                              .slice(0, 5)
+                              .map(item => (
+                                <div
+                                  key={item.source}
+                                  className="flex justify-between text-sm"
+                                >
+                                  <span className="truncate mr-3">
+                                    {item.source}
+                                  </span>
+                                  <b>{item.count}</b>
+                                </div>
+                              ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
@@ -1251,6 +1291,33 @@ export default function Admin() {
                                   <p className="text-xs text-gray-500">
                                     {item.sourceBadge} · {item.mode}
                                   </p>
+                                </div>
+                              ))}
+                          </div>
+                        )}
+                      </div>
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <h3 className="font-semibold text-sm mb-3">
+                          Uncovered after retrieval
+                        </h3>
+                        {qualitySummary.uncoveredAfterRetrievalTopQueries
+                          .length === 0 ? (
+                          <p className="text-sm text-gray-500">
+                            No post-retrieval uncovered queries
+                          </p>
+                        ) : (
+                          <div className="space-y-2">
+                            {qualitySummary.uncoveredAfterRetrievalTopQueries
+                              .slice(0, 6)
+                              .map(item => (
+                                <div
+                                  key={item.query}
+                                  className="flex justify-between text-sm"
+                                >
+                                  <span className="truncate mr-3">
+                                    {item.query}
+                                  </span>
+                                  <b>{item.count}</b>
                                 </div>
                               ))}
                           </div>

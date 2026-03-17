@@ -179,6 +179,12 @@ function getMessageText(msg: DisplayMessage): string {
   return "";
 }
 
+function extractOfficialSourceLinksFromText(text: string): string[] {
+  if (!text) return [];
+  const matches = text.match(/https?:\/\/lib-hdak\.in\.ua\/[^\s)]+/g) ?? [];
+  return [...new Set(matches)];
+}
+
 function createLocalUiMessage(
   role: "user" | "assistant",
   text: string
@@ -1468,6 +1474,9 @@ export default function Home() {
                         getMessageText(previousUserMessage)
                       )
                     : null;
+                const extractedOfficialLinks = isUser
+                  ? []
+                  : extractOfficialSourceLinksFromText(getMessageText(msg));
                 const sourceBadge = isUser
                   ? null
                   : instantAnswerMeta?.sourceBadge === "official-rule"
@@ -1478,7 +1487,9 @@ export default function Home() {
                         ? t.badgeQuick
                         : knowledgeTopic
                           ? t.badgeGenerated
-                          : null;
+                          : extractedOfficialLinks.length > 0
+                            ? t.badgeGenerated
+                            : null;
                 const sourceBadgeType = isUser
                   ? "unknown"
                   : instantAnswerMeta?.sourceBadge === "official-rule"
@@ -1489,12 +1500,14 @@ export default function Home() {
                         ? "quick"
                         : knowledgeTopic
                           ? "generated"
-                          : "llm-fallback";
+                          : extractedOfficialLinks.length > 0
+                            ? "generated"
+                            : "llm-fallback";
                 const sourceLinks = isUser
                   ? []
                   : (instantAnswerMeta?.links ??
                     knowledgeTopic?.sourceUrls ??
-                    []);
+                    extractedOfficialLinks);
                 const responseId =
                   "id" in msg && typeof msg.id !== "undefined"
                     ? String(msg.id)

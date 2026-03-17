@@ -13,6 +13,8 @@ export type ChatSourceBadge =
 export type ChatAnalyticsEventName =
   | "instant_answer_hit"
   | "catalog_intent_hit"
+  | "retrieval_hit"
+  | "retrieval_assisted_response"
   | "knowledge_fallback_hit"
   | "llm_fallback_used"
   | "llm_safe_fallback_used"

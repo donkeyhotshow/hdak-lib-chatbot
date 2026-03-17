@@ -34,10 +34,26 @@ describe("chatAnalyticsSummary", () => {
         metadata: { query: "правила бібліотеки" },
       }),
       event({
+        name: "retrieval_hit",
+        mode: "auth",
+        sourceBadge: "generated",
+        metadata: {
+          query: "контакти бібліотеки",
+          sourceDocUrls:
+            "https://lib-hdak.in.ua/site-map.html|https://lib-hdak.in.ua/",
+        },
+      }),
+      event({
+        name: "retrieval_assisted_response",
+        mode: "auth",
+        sourceBadge: "generated",
+        metadata: { query: "контакти бібліотеки" },
+      }),
+      event({
         name: "llm_fallback_used",
         mode: "auth",
         sourceBadge: "llm-fallback",
-        metadata: { query: "рідкісний запит" },
+        metadata: { query: "рідкісний запит", retrievalHit: false },
       }),
       event({
         name: "llm_safe_fallback_used",
@@ -77,9 +93,11 @@ describe("chatAnalyticsSummary", () => {
       }),
     ]);
 
-    expect(summary.totalEvents).toBe(9);
+    expect(summary.totalEvents).toBe(11);
     expect(summary.intents.instantAnswers).toBe(1);
     expect(summary.intents.catalogIntent).toBe(1);
+    expect(summary.intents.retrievalHit).toBe(1);
+    expect(summary.intents.retrievalAssistedResponse).toBe(1);
     expect(summary.intents.knowledgeFallback).toBe(1);
     expect(summary.intents.llmFallback).toBe(1);
     expect(summary.intents.safeFallback).toBe(1);
@@ -100,6 +118,14 @@ describe("chatAnalyticsSummary", () => {
     });
     expect(summary.uncoveredTopQueries[0]).toMatchObject({
       query: "рідкісний запит",
+      count: 1,
+    });
+    expect(summary.uncoveredAfterRetrievalTopQueries[0]).toMatchObject({
+      query: "рідкісний запит",
+      count: 1,
+    });
+    expect(summary.topRetrievedSources[0]).toMatchObject({
+      source: "https://lib-hdak.in.ua/site-map.html",
       count: 1,
     });
     expect(summary.topQueries[0]).toMatchObject({
