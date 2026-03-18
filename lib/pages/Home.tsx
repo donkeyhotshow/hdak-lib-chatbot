@@ -6,6 +6,7 @@ import { DefaultChatTransport } from "ai";
 import type { inferRouterOutputs } from "@trpc/server";
 
 import { Markdown } from "@/components/Markdown";
+import { CatalogActionButton } from "@/components/CatalogActionButton";
 import { trpc } from "@/lib/trpc";
 import type { AppRouter } from "@/lib/server/routers";
 import {
@@ -47,10 +48,14 @@ const SEND_DEBOUNCE_MS = 350;
 const TYPING_BASE_DELAY_MS = 40;
 const TYPING_DELAY_VARIANCE_MS = 20;
 const TYPING_PUNCTUATION_PAUSE_MS = 120;
+const TYPING_MIN_DELAY_MS = 12;
+const TYPING_FAST_THRESHOLD_CHARS = 700;
+const TYPING_MEDIUM_THRESHOLD_CHARS = 350;
 const TYPING_PUNCTUATION_REGEX = /[.!?;:,]/;
 const VIRTUALIZED_MESSAGES_THRESHOLD = 50;
 const VIRTUALIZED_WINDOW_SIZE = 70;
 const AUTO_SCROLL_BOTTOM_THRESHOLD_PX = 48;
+const LIBRARY_EMAIL = "library@hdak.ua";
 const GUEST_HISTORY_STORAGE_KEY = "hdak-guest-history-v1";
 const GUEST_HISTORY_STORAGE_PREFIX = "hdak-guest-history-v1:";
 const GUEST_ID_STORAGE_KEY = "hdak-guest-id";
@@ -93,9 +98,12 @@ const translations: Record<Language, Record<string, string>> = {
     streamError: "Streaming failed. Please try again.",
     streamErrorTooLarge: "Message is too long (max 10,000 characters).",
     retry: "Retry",
-    actionFindCatalog: "Find in Catalog",
+    actionFindCatalog: "Search catalog",
+    actionOrderBook: "Order book",
+    actionContact: "Contact",
     actionWriteLetter: "Write to Librarian",
     actionShare: "Share",
+    actionCopySource: "Copy source/contact",
     interfaceLang: "Interface language",
     officialResources: "Official library resources",
     historyLabel: "Conversations",
@@ -149,9 +157,12 @@ const translations: Record<Language, Record<string, string>> = {
     streamErrorTooLarge:
       "Повідомлення занадто довге (максимум 10 000 символів).",
     retry: "Повторити",
-    actionFindCatalog: "Знайти в каталозі",
+    actionFindCatalog: "Шукати в каталозі",
+    actionOrderBook: "Замовити книгу",
+    actionContact: "Звʼязатися",
     actionWriteLetter: "Написати листа",
     actionShare: "Поділитися",
+    actionCopySource: "Копіювати джерело/контакти",
     interfaceLang: "Мова інтерфейсу",
     officialResources: "Офіційні ресурси бібліотеки",
     historyLabel: "Розмови",
@@ -202,6 +213,13 @@ function extractOfficialSourceLinksFromText(text: string): string[] {
   if (!text) return [];
   const matches = text.match(/https?:\/\/lib-hdak\.in\.ua\/[^\s)]+/g) ?? [];
   return [...new Set(matches)];
+}
+
+function extractContactsFromText(text: string): string[] {
+  if (!text) return [];
+  const emails = text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) ?? [];
+  const phones = text.match(/\+?\d[\d()\-\s]{7,}\d/g) ?? [];
+  return [...new Set([...emails, ...phones])];
 }
 
 function createLocalUiMessage(
@@ -656,6 +674,12 @@ export default function Home() {
     }
 
     let currentIndex = 0;
+    const adaptiveBaseDelay =
+      fullText.length > TYPING_FAST_THRESHOLD_CHARS
+        ? TYPING_MIN_DELAY_MS
+        : fullText.length > TYPING_MEDIUM_THRESHOLD_CHARS
+          ? Math.max(TYPING_MIN_DELAY_MS, Math.floor(TYPING_BASE_DELAY_MS / 2))
+          : TYPING_BASE_DELAY_MS;
     const typeNext = () => {
       currentIndex += 1;
       setTypedMessageText(fullText.slice(0, currentIndex));
@@ -672,14 +696,14 @@ export default function Home() {
         ? TYPING_PUNCTUATION_PAUSE_MS
         : 0;
       const delay =
-        TYPING_BASE_DELAY_MS +
+        adaptiveBaseDelay +
         Math.floor(Math.random() * (TYPING_DELAY_VARIANCE_MS + 1)) +
         punctuationPause;
 
       typingTimeoutRef.current = setTimeout(typeNext, delay);
     };
 
-    typingTimeoutRef.current = setTimeout(typeNext, TYPING_BASE_DELAY_MS);
+    typingTimeoutRef.current = setTimeout(typeNext, adaptiveBaseDelay);
   }, [
     allMessages,
     completedTypingIds,
@@ -1871,6 +1895,12 @@ export default function Home() {
                         )
                         .slice(0, 3)
                     : [];
+                const catalogMatches = !isUser
+                  ? (instantAnswerMeta?.catalogMatches ?? [])
+                  : [];
+                const smartResultChips = !isUser
+                  ? (instantAnswerMeta?.smartChips ?? [])
+                  : [];
                 return (
                   <div
                     key={
@@ -1975,6 +2005,42 @@ export default function Home() {
                           </div>
                         )}
                       </div>
+                      {!isUser && catalogMatches.length > 0 && (
+                        <div
+                          style={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: 6,
+                            alignItems: "center",
+                            fontSize: 11,
+                            color: "#795a39",
+                          }}
+                        >
+                          {catalogMatches.slice(0, 3).map(book => (
+                            <span
+                              key={`${book.author}-${book.title}`}
+                              className="hdak-source-badge"
+                              style={{
+                                fontSize: 11,
+                                background:
+                                  book.status === "доступна"
+                                    ? "#e7f4ea"
+                                    : book.status === "замовлена"
+                                      ? "#fff8df"
+                                      : "#f3ece1",
+                                borderColor: "rgba(121,90,57,0.28)",
+                              }}
+                            >
+                              {book.status === "доступна"
+                                ? "🟢"
+                                : book.status === "замовлена"
+                                  ? "🟡"
+                                  : "🔴"}{" "}
+                              {book.status}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                       {!isUser && sourceLinks.length > 0 && (
                         <div
                           style={{
@@ -2093,33 +2159,89 @@ export default function Home() {
                           ))}
                         </div>
                       )}
+                      {!isUser && smartResultChips.length > 0 && (
+                        <div
+                          style={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: 6,
+                            alignItems: "center",
+                          }}
+                        >
+                          {smartResultChips.map(chip => (
+                            <span
+                              key={chip}
+                              className="hdak-action-btn"
+                              style={{
+                                height: 24,
+                                padding: "0 8px",
+                                fontSize: 11,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                background: "#f3ece1",
+                              }}
+                            >
+                              {chip}
+                            </span>
+                          ))}
+                        </div>
+                      )}
 
                       {/* Quick actions under last assistant message */}
                       {isLastAssistant && (
                         <div
                           style={{ display: "flex", flexWrap: "wrap", gap: 6 }}
                         >
-                          <a
+                          <CatalogActionButton
                             href={catalogAction?.url ?? OFFICIAL_CATALOG_URL}
-                            target="_blank"
+                            label={
+                              catalogAction?.buttonLabel ?? t.actionFindCatalog
+                            }
+                            emphasized={Boolean(catalogAction)}
+                          />
+                          {catalogMatches.length > 0 && (
+                            <a
+                              href={OFFICIAL_CATALOG_URL}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <button className="hdak-action-btn">
+                                📖 {t.actionOrderBook}
+                              </button>
+                            </a>
+                          )}
+                          <a
+                            href={`mailto:${LIBRARY_EMAIL}`}
                             rel="noopener noreferrer"
                           >
-                            <button
-                              className={`hdak-action-btn${catalogAction ? " hdak-action-btn--catalog" : ""}`}
-                            >
-                              📖{" "}
-                              {catalogAction?.buttonLabel ??
-                                t.actionFindCatalog}
+                            <button className="hdak-action-btn">
+                              📞 {t.actionContact}
                             </button>
                           </a>
                           <a
-                            href="mailto:library@hdak.edu.ua"
+                            href={`mailto:${LIBRARY_EMAIL}`}
                             rel="noopener noreferrer"
                           >
                             <button className="hdak-action-btn">
                               ✉️ {t.actionWriteLetter}
                             </button>
                           </a>
+                          <button
+                            onClick={() => {
+                              const contacts = extractContactsFromText(
+                                getMessageText(msg)
+                              );
+                              const sourceToCopy = contacts.length
+                                ? contacts.join("\n")
+                                : (sourceLinks[0] ?? OFFICIAL_CATALOG_URL);
+                              navigator.clipboard
+                                .writeText(sourceToCopy)
+                                .catch(() => {});
+                            }}
+                            className="hdak-action-btn"
+                          >
+                            📋 {t.actionCopySource}
+                          </button>
                           <button
                             onClick={() => {
                               const text = getMessageText(msg);

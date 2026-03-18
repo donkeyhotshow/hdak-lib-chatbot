@@ -18,4 +18,11 @@ describe("Home instant answers UX guards", () => {
     expect(homePageContent).toContain("if (!isAuthenticated && instantAnswer)");
     expect(homePageContent).toContain("setStreamedMessages(prev => [");
   });
+
+  it("renders catalog status badges, smart chips and copy action", () => {
+    expect(homePageContent).toContain("catalogMatches.slice(0, 3).map");
+    expect(homePageContent).toContain("smartResultChips.map(chip =>");
+    expect(homePageContent).toContain("actionCopySource");
+    expect(homePageContent).toContain("extractContactsFromText");
+  });
 });
