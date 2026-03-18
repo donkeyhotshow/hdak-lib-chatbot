@@ -1,5 +1,5 @@
 // REDESIGNED
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useChat } from "@ai-sdk/react";
 import type { UIMessage } from "ai";
 import { DefaultChatTransport } from "ai";
@@ -48,6 +48,9 @@ const TYPING_BASE_DELAY_MS = 40;
 const TYPING_DELAY_VARIANCE_MS = 20;
 const TYPING_PUNCTUATION_PAUSE_MS = 120;
 const TYPING_PUNCTUATION_REGEX = /[.!?;:,]/;
+const VIRTUALIZED_MESSAGES_THRESHOLD = 50;
+const VIRTUALIZED_WINDOW_SIZE = 70;
+const AUTO_SCROLL_BOTTOM_THRESHOLD_PX = 48;
 const GUEST_HISTORY_STORAGE_KEY = "hdak-guest-history-v1";
 const GUEST_HISTORY_STORAGE_PREFIX = "hdak-guest-history-v1:";
 const GUEST_ID_STORAGE_KEY = "hdak-guest-id";
@@ -96,7 +99,7 @@ const translations: Record<Language, Record<string, string>> = {
     interfaceLang: "Interface language",
     officialResources: "Official library resources",
     historyLabel: "Conversations",
-    hint: "Enter — send · Shift+Enter — new line",
+    hint: "Enter — send · Shift+Enter — new line · ↑ (empty) — edit last · Alt+↓ — send",
     langCode: "ENG",
     quickAnswer: "Quick answer",
     badgeQuick: "Quick answer",
@@ -152,7 +155,7 @@ const translations: Record<Language, Record<string, string>> = {
     interfaceLang: "Мова інтерфейсу",
     officialResources: "Офіційні ресурси бібліотеки",
     historyLabel: "Розмови",
-    hint: "Enter — надіслати · Shift+Enter — новий рядок",
+    hint: "Enter — надіслати · Shift+Enter — новий рядок · ↑ (порожньо) — редагувати останнє · Alt+↓ — надіслати",
     langCode: "УКР",
     quickAnswer: "Швидка відповідь",
     badgeQuick: "Швидка відповідь",
@@ -293,13 +296,16 @@ export default function Home() {
   const guestConversationIdRef = useRef(Date.now() * 1000);
   const guestIdRef = useRef<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const prevMessageCountRef = useRef(0);
   const prevTypingMessageCountRef = useRef(0);
+  const shouldAutoScrollRef = useRef(true);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSendTimeRef = useRef(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [typingMessageId, setTypingMessageId] = useState<string | null>(null);
   const [typedMessageText, setTypedMessageText] = useState("");
+  const [visibleMessageStartIndex, setVisibleMessageStartIndex] = useState(0);
   const [completedTypingIds, setCompletedTypingIds] = useState<
     Record<string, true>
   >({});
@@ -528,13 +534,46 @@ export default function Home() {
     }
   }, [status, messagesData, streamedMessages, setStreamedMessages]);
 
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
+    scrollRef.current?.scrollIntoView({ behavior });
+  }, []);
+
+  const handleMessagesScroll = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    const distanceToBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
+    shouldAutoScrollRef.current =
+      distanceToBottom <= AUTO_SCROLL_BOTTOM_THRESHOLD_PX;
+  }, []);
+
   useEffect(() => {
     const count = allMessages.length;
-    if (count > prevMessageCountRef.current) {
-      scrollRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (count > prevMessageCountRef.current && shouldAutoScrollRef.current) {
+      scrollToBottom(prevMessageCountRef.current === 0 ? "auto" : "smooth");
     }
     prevMessageCountRef.current = count;
-  }, [allMessages]);
+  }, [allMessages, scrollToBottom]);
+
+  useEffect(() => {
+    if (allMessages.length <= VIRTUALIZED_MESSAGES_THRESHOLD) {
+      if (visibleMessageStartIndex !== 0) setVisibleMessageStartIndex(0);
+      return;
+    }
+    const recommendedStart = Math.max(
+      0,
+      allMessages.length - VIRTUALIZED_WINDOW_SIZE
+    );
+    setVisibleMessageStartIndex(prev =>
+      prev > recommendedStart ? recommendedStart : prev
+    );
+  }, [allMessages.length, visibleMessageStartIndex]);
+
+  const visibleMessages = useMemo(() => {
+    if (allMessages.length <= VIRTUALIZED_MESSAGES_THRESHOLD)
+      return allMessages;
+    return allMessages.slice(visibleMessageStartIndex);
+  }, [allMessages, visibleMessageStartIndex]);
 
   useEffect(
     () => () => {
@@ -729,10 +768,13 @@ export default function Home() {
     }
   };
 
-  const handleQuickStart = (prompt: string) => {
-    setOpenDropdown(null);
-    handleSendMessage(prompt);
-  };
+  const handleQuickStart = useCallback(
+    (prompt: string) => {
+      setOpenDropdown(null);
+      handleSendMessage(prompt);
+    },
+    [handleSendMessage]
+  );
 
   const handleNewChat = () => {
     userHasDeselected.current = true;
@@ -782,6 +824,35 @@ export default function Home() {
     setOpenDropdown(prev => (prev === name ? null : name));
   };
 
+  const getConversationPreview = useCallback(
+    (conversationId: number) => {
+      if (isAuthenticated) return "";
+      const messages = guestMessagesByConversation[conversationId] ?? [];
+      const firstUserQuestion = messages.find(
+        message => message.role === "user"
+      );
+      if (!firstUserQuestion) return "";
+      return getMessageText(firstUserQuestion).replace(/\s+/g, " ").trim();
+    },
+    [guestMessagesByConversation, isAuthenticated]
+  );
+
+  const editLastUserMessage = useCallback(() => {
+    const lastUserMessage = [...allMessages]
+      .reverse()
+      .find(message => message.role === "user");
+    if (!lastUserMessage) return;
+    const text = getMessageText(lastUserMessage);
+    setLocalInput(text);
+    requestAnimationFrame(() => {
+      if (!textareaRef.current) return;
+      textareaRef.current.focus();
+      adjustTextarea();
+      const end = textareaRef.current.value.length;
+      textareaRef.current.setSelectionRange(end, end);
+    });
+  }, [allMessages]);
+
   const t = translations[language];
 
   useEffect(() => {
@@ -810,6 +881,19 @@ export default function Home() {
       window.localStorage.removeItem(FEEDBACK_STORAGE_KEY);
     }
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onUnexpectedError = () => {
+      setSendError(t.streamError);
+    };
+    window.addEventListener("error", onUnexpectedError);
+    window.addEventListener("unhandledrejection", onUnexpectedError);
+    return () => {
+      window.removeEventListener("error", onUnexpectedError);
+      window.removeEventListener("unhandledrejection", onUnexpectedError);
+    };
+  }, [t.streamError]);
 
   const saveFeedback = (
     responseId: string,
@@ -957,8 +1041,9 @@ export default function Home() {
         .hdak-dd-scroll::-webkit-scrollbar-thumb { background: rgba(121,90,57,0.28); border-radius: 3px; }
         .hdak-msg-scroll::-webkit-scrollbar { width: 3px; }
         .hdak-msg-scroll::-webkit-scrollbar-thumb { background: rgba(121,90,57,0.28); border-radius: 3px; }
+        .hdak-msg-scroll { padding-bottom: 10px; }
         .hdak-textarea { resize: none; background: transparent; border: none; outline: none; color: #5f4b3a; font-family: 'DM Sans', system-ui, sans-serif; font-size: 14px; line-height: 1.62; min-height: 22px; max-height: 100px; width: 100%; }
-        .hdak-textarea::placeholder { color: #795a39; opacity: 1; }
+        .hdak-textarea::placeholder { color: #5f4b3a; opacity: 0.82; }
         .hdak-bubble a { color: #a85f2e; text-underline-offset: 3px; font-weight: 500; }
         .hdak-bubble strong { color: #5f4b3a; font-weight: 600; }
         .hdak-bubble code { background: #f1e8dc; padding: 1px 5px; border-radius: 4px; font-size: 12.5px; }
@@ -971,12 +1056,17 @@ export default function Home() {
         .hdak-lang-row:hover { background: #f3ece1; color: #5f4b3a; }
         .hdak-tb-btn:hover, .hdak-tb-btn.active { border-color: rgba(121,90,57,0.46); color: #5f4b3a; background: #f3ece1; }
         .hdak-send:hover:not(:disabled) { background: #a85f2e; transform: scale(1.04); box-shadow: 0 6px 14px rgba(168,95,46,0.28); }
-        .hdak-send:disabled { background: #e2d2bd; color: #795a39; cursor: default; transform: none; box-shadow: none; }
+        .hdak-send:disabled { background: #e2d2bd; color: #5f4b3a; cursor: default; transform: none; box-shadow: none; }
         .hdak-input-row:focus-within { border-color: rgba(168,95,46,0.45); box-shadow: 0 0 0 4px rgba(168,95,46,0.12); }
-        .hdak-action-btn { height: 30px; padding: 0 12px; background: #f9f5ee; border: 1px solid rgba(121,90,57,0.34); border-radius: 8px; color: #a85f2e; font-size: 12px; cursor: pointer; font-family: 'DM Sans', system-ui, sans-serif; transition: all 0.15s; display: inline-flex; align-items: center; gap: 4px; }
+        .hdak-action-btn { height: 30px; padding: 0 12px; background: #f9f5ee; border: 1px solid rgba(121,90,57,0.34); border-radius: 8px; color: #a85f2e; font-size: 12px; cursor: pointer; font-family: 'DM Sans', system-ui, sans-serif; transition: all 0.15s; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 3px rgba(121,90,57,0.1); }
         .hdak-action-btn:hover { background: #efe4d4; border-color: rgba(168,95,46,0.45); color: #5f4b3a; }
+        .hdak-action-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(168,95,46,0.25); }
         .hdak-action-btn--catalog { background: #a85f2e; border-color: rgba(121,90,57,0.5); color: #ffffff; font-weight: 600; }
         .hdak-action-btn--catalog:hover { background: #bfae8d; border-color: rgba(121,90,57,0.52); color: #5f4b3a; }
+        .hdak-source-badge { transition: transform 0.16s ease, box-shadow 0.16s ease; box-shadow: 0 1px 3px rgba(121,90,57,0.1); }
+        .hdak-source-badge:hover { transform: translateY(-1px); }
+        .hdak-feedback-btn { transition: transform 0.14s ease, box-shadow 0.14s ease; }
+        .hdak-feedback-btn:hover { transform: translateY(-1px); box-shadow: 0 1px 3px rgba(121,90,57,0.15); }
         .typing-message {
           border-right: 2px solid #795a39;
           animation: blinkCursor 0.75s step-end infinite;
@@ -987,6 +1077,14 @@ export default function Home() {
           height: 14px;
           border-radius: 999px;
           background: #d9b48c;
+          animation: skeletonPulse 0.9s ease-in-out infinite;
+        }
+        .hdak-unified-loading {
+          width: 140px;
+          height: 10px;
+          border-radius: 999px;
+          background: linear-gradient(90deg, #d9b48c 25%, #f3ece1 50%, #d9b48c 75%);
+          background-size: 200% 100%;
           animation: skeletonPulse 0.9s ease-in-out infinite;
         }
         @media (max-width: 480px) { .tb-label { display: none; } }
@@ -1129,74 +1227,100 @@ export default function Home() {
                     {t.noConversations}
                   </div>
                 ) : (
-                  conversations.map(conv => (
-                    <div
-                      key={conv.id}
-                      className="hdak-hist-row"
-                      onClick={() => handleSelectConversation(conv.id)}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                        padding: "8px 10px",
-                        borderRadius: 8,
-                        cursor: "pointer",
-                        transition: "background 0.15s",
-                        borderLeft:
-                          currentConversationId === conv.id
-                            ? "2px solid #a85f2e"
-                            : "2px solid transparent",
-                        background:
-                          currentConversationId === conv.id
-                            ? "#f3ece1"
-                            : "transparent",
-                      }}
-                    >
-                      <span
+                  conversations.map(conv => {
+                    const conversationPreview = getConversationPreview(conv.id);
+                    return (
+                      <div
+                        key={conv.id}
+                        className="hdak-hist-row"
+                        onClick={() => handleSelectConversation(conv.id)}
                         style={{
-                          flex: 1,
-                          fontSize: 13,
-                          color: "#5f4b3a",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {conv.title}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 11,
-                          color: "#795a39",
-                          flexShrink: 0,
-                        }}
-                      >
-                        {formatTime(conv.updatedAt)}
-                      </span>
-                      <button
-                        onClick={e => handleDeleteConversation(e, conv.id)}
-                        style={{
-                          background: "none",
-                          border: "none",
-                          color: "#795a39",
+                          display: "flex",
+                          alignItems: "flex-start",
+                          gap: 8,
+                          padding: "8px 10px",
+                          borderRadius: 8,
                           cursor: "pointer",
-                          fontSize: 12,
-                          padding: "2px 3px",
-                          opacity: 0.7,
-                          transition: "color 0.15s",
+                          transition: "background 0.15s",
+                          borderLeft:
+                            currentConversationId === conv.id
+                              ? "2px solid #a85f2e"
+                              : "2px solid transparent",
+                          background:
+                            currentConversationId === conv.id
+                              ? "#f3ece1"
+                              : "transparent",
                         }}
-                        onMouseEnter={e =>
-                          (e.currentTarget.style.color = "#e05555")
-                        }
-                        onMouseLeave={e =>
-                          (e.currentTarget.style.color = "#795a39")
-                        }
-                        title={t.deleteConversation}
                       >
-                        ✕
-                      </button>
-                    </div>
-                  ))
+                        <span
+                          style={{
+                            flex: 1,
+                            minWidth: 0,
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 2,
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: 13,
+                              color: "#5f4b3a",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {conv.title}
+                          </span>
+                          {conversationPreview && (
+                            <span
+                              style={{
+                                fontSize: 11,
+                                color: "#795a39",
+                                opacity: 0.85,
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {conversationPreview}
+                            </span>
+                          )}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: 11,
+                            color: "#795a39",
+                            flexShrink: 0,
+                          }}
+                        >
+                          {formatTime(conv.updatedAt)}
+                        </span>
+                        <button
+                          onClick={e => handleDeleteConversation(e, conv.id)}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            color: "#795a39",
+                            cursor: "pointer",
+                            fontSize: 12,
+                            padding: "2px 3px",
+                            opacity: 0.7,
+                            transition: "color 0.15s",
+                          }}
+                          onMouseEnter={e =>
+                            (e.currentTarget.style.color = "#e05555")
+                          }
+                          onMouseLeave={e =>
+                            (e.currentTarget.style.color = "#795a39")
+                          }
+                          title={t.deleteConversation}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    );
+                  })
                 )}
               </div>
             )}
@@ -1630,25 +1754,41 @@ export default function Home() {
             /* Active chat */
             <div
               className="hdak-msg-scroll"
+              ref={messagesContainerRef}
+              onScroll={handleMessagesScroll}
               style={{
                 flex: 1,
                 overflowY: "auto",
-                padding: "24px 0 10px",
+                padding: "24px 0 18px",
                 display: "flex",
                 flexDirection: "column",
                 gap: 14,
                 scrollBehavior: "smooth",
               }}
             >
-              {allMessages.map((msg, idx) => {
+              {visibleMessageStartIndex > 0 && (
+                <button
+                  className="hdak-action-btn"
+                  style={{ alignSelf: "center", height: 26, fontSize: 11 }}
+                  onClick={() =>
+                    setVisibleMessageStartIndex(prev =>
+                      Math.max(0, prev - VIRTUALIZED_WINDOW_SIZE)
+                    )
+                  }
+                >
+                  ↑ Show earlier messages ({visibleMessageStartIndex})
+                </button>
+              )}
+              {visibleMessages.map((msg, idx) => {
+                const messageIndex = visibleMessageStartIndex + idx;
                 const isUser = msg.role === "user";
                 const isLastAssistant =
                   msg.role === "assistant" &&
-                  idx === allMessages.length - 1 &&
+                  messageIndex === allMessages.length - 1 &&
                   !isStreaming;
                 const previousUserMessage = !isUser
                   ? [...allMessages]
-                      .slice(0, idx)
+                      .slice(0, messageIndex)
                       .reverse()
                       .find(prevMessage => prevMessage.role === "user")
                   : null;
@@ -1715,7 +1855,7 @@ export default function Home() {
                 const responseId =
                   "id" in msg && typeof msg.id !== "undefined"
                     ? String(msg.id)
-                    : `${idx}-${sourceBadgeType}`;
+                    : `${messageIndex}-${sourceBadgeType}`;
                 const followUpPrompts =
                   !isUser && instantAnswerMeta
                     ? (instantAnswerMeta.suggestedFollowUps?.length
@@ -1733,7 +1873,11 @@ export default function Home() {
                     : [];
                 return (
                   <div
-                    key={idx}
+                    key={
+                      "id" in msg && typeof msg.id !== "undefined"
+                        ? String(msg.id)
+                        : messageIndex
+                    }
                     style={{
                       display: "flex",
                       gap: 10,
@@ -1772,6 +1916,7 @@ export default function Home() {
                       {/* Bubble */}
                       {!isUser && sourceBadge && (
                         <span
+                          className="hdak-source-badge"
                           style={{
                             alignSelf: "flex-start",
                             fontSize: 11,
@@ -1870,7 +2015,7 @@ export default function Home() {
                           }}
                         >
                           <button
-                            className="hdak-action-btn"
+                            className="hdak-action-btn hdak-feedback-btn"
                             onClick={() =>
                               saveFeedback(
                                 responseId,
@@ -1892,7 +2037,7 @@ export default function Home() {
                             {t.feedbackUp}
                           </button>
                           <button
-                            className="hdak-action-btn"
+                            className="hdak-action-btn hdak-feedback-btn"
                             onClick={() =>
                               saveFeedback(
                                 responseId,
@@ -2044,6 +2189,7 @@ export default function Home() {
                         padding: "5px 2px",
                       }}
                     >
+                      <div className="hdak-unified-loading" />
                       {[0, 0.2, 0.4].map((delay, i) => (
                         <div
                           key={i}
@@ -2166,6 +2312,21 @@ export default function Home() {
                   adjustTextarea();
                 }}
                 onKeyDown={e => {
+                  if (
+                    e.key === "ArrowUp" &&
+                    !e.shiftKey &&
+                    !e.altKey &&
+                    !localInput.trim()
+                  ) {
+                    e.preventDefault();
+                    editLastUserMessage();
+                    return;
+                  }
+                  if (e.key === "ArrowDown" && e.altKey) {
+                    e.preventDefault();
+                    if (localInput.trim()) handleSendMessage();
+                    return;
+                  }
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
                     const now = Date.now();
@@ -2203,7 +2364,7 @@ export default function Home() {
                   alignItems: "center",
                   justifyContent: "center",
                   color:
-                    isStreaming || !localInput.trim() ? "#795a39" : "#ffffff",
+                    isStreaming || !localInput.trim() ? "#5f4b3a" : "#ffffff",
                   transition:
                     "background 0.18s, transform 0.15s, box-shadow 0.18s",
                 }}
