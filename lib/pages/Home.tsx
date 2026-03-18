@@ -2448,7 +2448,7 @@ export default function Home() {
           )}
 
           {/* ── INPUT BAR ── */}
-          <div style={{ padding: "12px 0 22px", flexShrink: 0 }}>
+          <div style={{ padding: "12px 0 0", flexShrink: 0, paddingBottom: "max(22px, env(safe-area-inset-bottom))" }}>
             {/* Chips: visible only in empty/welcome state, fade out once chat starts */}
             <div
               style={{
@@ -2535,11 +2535,12 @@ export default function Home() {
                 display: "flex",
                 alignItems: "flex-end",
                 gap: 8,
-                background: "#f9f5ee",
-                border: "1px solid #d9b48c",
-                borderRadius: 14,
-                padding: "10px 12px",
+                background: "#ffffff",
+                border: "1.5px solid #d4c4a8",
+                borderRadius: 16,
+                padding: "8px 8px 8px 14px",
                 transition: "border-color 0.2s, box-shadow 0.2s",
+                boxShadow: "0 2px 8px rgba(90,50,20,0.07)",
               }}
             >
               <textarea
