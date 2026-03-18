@@ -275,6 +275,57 @@ export const RESOURCES = [
   },
 ];
 
+function getDomain(url: string): string {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return url;
+  }
+}
+
+type ContextAction = {
+  icon: string;
+  label: string;
+  q: string | null;
+  action?: string;
+};
+
+function getContextActions(topicId?: string | null): ContextAction[] {
+  if (topicId === "signup-library" || topicId === "reader-card") {
+    return [
+      { icon: "🔍", label: "Каталог", q: "Де знайти каталог?" },
+      { icon: "📞", label: "Зв'язатися", q: "Контакти бібліотеки" },
+      { icon: "🗺️", label: "Адреса", q: "Адреса бібліотеки" },
+    ];
+  }
+  if (topicId === "catalog" || topicId === "find-book") {
+    return [
+      { icon: "📖", label: "Правила", q: "Правила користування" },
+      { icon: "⬇️", label: "Скачати", q: "Де скачати матеріали?" },
+      { icon: "🔍", label: "Знайти книгу", q: "Як знайти книгу в каталозі?" },
+    ];
+  }
+  if (topicId === "contacts" || topicId === "hdak-address") {
+    return [
+      { icon: "📍", label: "На карті", q: "Де на карті бібліотека?" },
+      { icon: "✉️", label: "Написати", q: "Написати листа до бібліотеки" },
+      { icon: "📋", label: "Копіювати", q: null, action: "copy" },
+    ];
+  }
+  if (topicId === "library-rules" || topicId === "reading-room-rules") {
+    return [
+      { icon: "📝", label: "Записатися", q: "Як записатися до бібліотеки?" },
+      { icon: "📱", label: "Е-читальня", q: "Правила е-читальної зали" },
+      { icon: "❓", label: "Ще питання", q: null, action: "clear" },
+    ];
+  }
+  return [
+    { icon: "🔄", label: "Нове питання", q: null, action: "clear" },
+    { icon: "📞", label: "Контакти", q: "Контакти бібліотеки" },
+    { icon: "🔗", label: "Поділитися", q: null, action: "share" },
+  ];
+}
+
 function formatTime(date: Date | string | null | undefined): string {
   if (!date) return "";
   const d = typeof date === "string" ? new Date(date) : date;
@@ -1020,6 +1071,10 @@ export default function Home() {
           50%      { box-shadow: 0 0 64px rgba(200,168,75,0.38); }
         }
         @keyframes msgIn {
+          from { opacity:0; transform:translateY(12px); }
+          to   { opacity:1; transform:translateY(0); }
+        }
+        @keyframes ctxIn {
           from { opacity:0; transform:translateY(8px); }
           to   { opacity:1; transform:translateY(0); }
         }
@@ -1061,36 +1116,45 @@ export default function Home() {
           pointer-events: none; z-index: 0;
         }
         .hdak-serif { font-family: 'Playfair Display', Georgia, serif; }
-        .hdak-dd-scroll::-webkit-scrollbar { width: 3px; }
-        .hdak-dd-scroll::-webkit-scrollbar-thumb { background: rgba(121,90,57,0.28); border-radius: 3px; }
-        .hdak-msg-scroll::-webkit-scrollbar { width: 3px; }
-        .hdak-msg-scroll::-webkit-scrollbar-thumb { background: rgba(121,90,57,0.28); border-radius: 3px; }
+        .hdak-dd-scroll::-webkit-scrollbar { width: 4px; }
+        .hdak-dd-scroll::-webkit-scrollbar-thumb { background: #d4c4a8; border-radius: 4px; }
+        .hdak-dd-scroll::-webkit-scrollbar-thumb:hover { background: #8b5e3c; }
+        .hdak-msg-scroll::-webkit-scrollbar { width: 4px; }
+        .hdak-msg-scroll::-webkit-scrollbar-thumb { background: #d4c4a8; border-radius: 4px; }
+        .hdak-msg-scroll::-webkit-scrollbar-thumb:hover { background: #8b5e3c; }
+        .hdak-msg-scroll::-webkit-scrollbar-track { background: transparent; }
         .hdak-msg-scroll { padding-bottom: 10px; }
-        .hdak-textarea { resize: none; background: transparent; border: none; outline: none; color: #5f4b3a; font-family: 'DM Sans', system-ui, sans-serif; font-size: 14px; line-height: 1.62; min-height: 22px; max-height: 100px; width: 100%; }
+        .hdak-textarea { resize: none; background: transparent; border: none; outline: none; color: #5f4b3a; font-family: 'DM Sans', system-ui, sans-serif; font-size: 16px; line-height: 1.62; min-height: 22px; max-height: 100px; width: 100%; }
         .hdak-textarea::placeholder { color: #5f4b3a; opacity: 0.82; }
-        .hdak-bubble a { color: #a85f2e; text-underline-offset: 3px; font-weight: 500; }
-        .hdak-bubble strong { color: #5f4b3a; font-weight: 600; }
+        .hdak-bubble a { color: #8b5e3c; text-underline-offset: 3px; font-weight: 500; }
+        .hdak-bubble a:hover { color: #5c3a1e; }
+        .hdak-bubble strong { color: #5c3a1e; font-weight: 600; }
         .hdak-bubble code { background: #f1e8dc; padding: 1px 5px; border-radius: 4px; font-size: 12.5px; }
         .hdak-bubble ul { padding-left: 20px; margin-top: 6px; }
         .hdak-bubble li { margin-bottom: 5px; }
         .hdak-bubble p { margin-bottom: 9px; line-height: 1.72; }
-        .hdak-chip:hover { border-color: #a85f2e; color: #5f4b3a; background: #f3ece1; transform: translateY(-1px); }
+        .hdak-chip:hover { border-color: #5c3a1e; color: #ffffff; background: #5c3a1e; transform: translateY(-1px); }
         .hdak-res-row:hover { background: #f3ece1; }
         .hdak-hist-row:hover { background: #f3ece1; }
         .hdak-lang-row:hover { background: #f3ece1; color: #5f4b3a; }
         .hdak-tb-btn:hover, .hdak-tb-btn.active { border-color: rgba(121,90,57,0.46); color: #5f4b3a; background: #f3ece1; }
-        .hdak-send:hover:not(:disabled) { background: #a85f2e; transform: scale(1.04); box-shadow: 0 6px 14px rgba(168,95,46,0.28); }
-        .hdak-send:disabled { background: #e2d2bd; color: #5f4b3a; cursor: default; transform: none; box-shadow: none; }
-        .hdak-input-row:focus-within { border-color: rgba(168,95,46,0.45); box-shadow: 0 0 0 4px rgba(168,95,46,0.12); }
+        .hdak-send:hover:not(:disabled) { background: #8b5e3c; transform: scale(1.05); box-shadow: 0 6px 14px rgba(92,58,30,0.28); }
+        .hdak-send:disabled { background: #d4c4a8; color: #5f4b3a; cursor: default; transform: none; box-shadow: none; }
+        .hdak-input-row:focus-within { border-color: #8b5e3c; box-shadow: 0 0 0 3px rgba(139,94,60,0.12); }
         .hdak-action-btn { height: 30px; padding: 0 12px; background: #f9f5ee; border: 1px solid rgba(121,90,57,0.34); border-radius: 8px; color: #a85f2e; font-size: 12px; cursor: pointer; font-family: 'DM Sans', system-ui, sans-serif; transition: all 0.15s; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 3px rgba(121,90,57,0.1); }
-        .hdak-action-btn:hover { background: #efe4d4; border-color: rgba(168,95,46,0.45); color: #5f4b3a; }
-        .hdak-action-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(168,95,46,0.25); }
+        .hdak-action-btn:hover { background: #5c3a1e; border-color: #5c3a1e; color: #ffffff; }
+        .hdak-action-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(92,58,30,0.25); }
         .hdak-action-btn--catalog { background: #a85f2e; border-color: rgba(121,90,57,0.5); color: #ffffff; font-weight: 600; }
         .hdak-action-btn--catalog:hover { background: #bfae8d; border-color: rgba(121,90,57,0.52); color: #5f4b3a; }
+        .hdak-ctx-btn { height: 32px; padding: 0 14px; background: #ffffff; border: 1px solid #e0d5c5; border-radius: 20px; color: #5f4b3a; font-size: 13px; cursor: pointer; font-family: 'DM Sans', system-ui, sans-serif; transition: all 0.15s; display: inline-flex; align-items: center; gap: 5px; animation: ctxIn 0.3s ease both; }
+        .hdak-ctx-btn:hover { background: #5c3a1e; border-color: #5c3a1e; color: #ffffff; }
+        .hdak-ctx-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(92,58,30,0.25); }
         .hdak-source-badge { transition: transform 0.16s ease, box-shadow 0.16s ease; box-shadow: 0 1px 3px rgba(121,90,57,0.1); }
         .hdak-source-badge:hover { transform: translateY(-1px); }
-        .hdak-feedback-btn { transition: transform 0.14s ease, box-shadow 0.14s ease; }
-        .hdak-feedback-btn:hover { transform: translateY(-1px); box-shadow: 0 1px 3px rgba(121,90,57,0.15); }
+        .hdak-feedback-row { display: flex; align-items: center; gap: 4px; opacity: 0; transition: opacity 0.2s; }
+        .hdak-msg-outer:hover .hdak-feedback-row { opacity: 1; }
+        .hdak-feedback-btn { font-size: 13px; background: none; border: none; cursor: pointer; padding: 2px 4px; line-height: 1; transition: opacity 0.15s, transform 0.14s ease; }
+        .hdak-feedback-btn:hover { transform: translateY(-1px); }
         .typing-message {
           border-right: 2px solid #795a39;
           animation: blinkCursor 0.75s step-end infinite;
@@ -1126,15 +1190,17 @@ export default function Home() {
         {/* ── TOPBAR ── */}
         <header
           style={{
-            position: "relative",
-            zIndex: 110,
-            height: 52,
+            position: "sticky",
+            top: 0,
+            zIndex: 50,
+            height: 56,
             display: "flex",
             alignItems: "center",
             padding: "0 20px",
             gap: 10,
-            borderBottom: "1px solid rgba(121,90,57,0.28)",
-            background: "#f9f5ee",
+            borderBottom: "2px solid #5c3a1e",
+            background: "rgba(255,255,255,0.95)",
+            backdropFilter: "blur(8px)",
             flexShrink: 0,
           }}
         >
@@ -1380,9 +1446,10 @@ export default function Home() {
             <span
               className="hdak-serif"
               style={{
-                fontSize: 15,
-                color: "#5f4b3a",
+                fontSize: 17,
+                color: "#5c3a1e",
                 letterSpacing: "0.01em",
+                fontWeight: 600,
               }}
             >
               Бібліотека ХДАК
@@ -1390,7 +1457,7 @@ export default function Home() {
           </div>
 
           {/* Right buttons */}
-          <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+          <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
             {/* Resources */}
             <div style={{ position: "relative" }}>
               <button
@@ -1437,7 +1504,7 @@ export default function Home() {
                     background: "#f9f5ee",
                     border: "1px solid rgba(121,90,57,0.28)",
                     borderRadius: 12,
-                    padding: 6,
+                    padding: 0,
                     zIndex: 200,
                     boxShadow:
                       "0 16px 48px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.03)",
@@ -1445,21 +1512,43 @@ export default function Home() {
                     maxHeight: 440,
                     overflowY: "auto",
                     animation: "ddIn 0.15s cubic-bezier(.25,.46,.45,.94) both",
+                    overflow: "hidden",
                   }}
                   className="hdak-dd-scroll"
                 >
                   <div
                     style={{
-                      fontSize: 10,
+                      fontSize: 11,
                       fontWeight: 500,
-                      letterSpacing: "0.1em",
+                      letterSpacing: "0.08em",
                       textTransform: "uppercase",
-                      color: "#795a39",
-                      padding: "5px 9px 9px",
+                      color: "#ffffff",
+                      background: "#5c3a1e",
+                      padding: "10px 16px",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
                     }}
                   >
                     {t.officialResources}
+                    <button
+                      onClick={() => setOpenDropdown(null)}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "#ffffff",
+                        fontSize: 18,
+                        cursor: "pointer",
+                        lineHeight: 1,
+                        padding: "0 2px",
+                        opacity: 0.8,
+                      }}
+                      aria-label="Закрити"
+                    >
+                      ×
+                    </button>
                   </div>
+                  <div style={{ padding: 6, overflowY: "auto", maxHeight: 380 }} className="hdak-dd-scroll">
                   {RESOURCES.map(res => (
                     <a
                       key={`${res.name}-${res.url}`}
@@ -1525,6 +1614,7 @@ export default function Home() {
                       </div>
                     </a>
                   ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -1610,6 +1700,19 @@ export default function Home() {
               )}
             </div>
           </div>
+
+          {/* Status indicator dot */}
+          <div
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              background: "#4caf50",
+              flexShrink: 0,
+              boxShadow: "0 0 0 2px rgba(76,175,80,0.25)",
+            }}
+            title="Онлайн"
+          />
         </header>
 
         {/* ── MAIN ── */}
@@ -1908,28 +2011,30 @@ export default function Home() {
                         ? String(msg.id)
                         : messageIndex
                     }
+                    className="hdak-msg-outer"
                     style={{
                       display: "flex",
                       gap: 10,
                       flexDirection: isUser ? "row-reverse" : "row",
                       animation:
-                        "msgIn 0.28s cubic-bezier(.25,.46,.45,.94) both",
+                        "msgIn 0.3s ease both",
                     }}
                   >
                     {/* Avatar */}
                     <div
                       style={{
-                        width: 30,
-                        height: 30,
-                        borderRadius: 8,
+                        width: 32,
+                        height: 32,
+                        borderRadius: "50%",
                         flexShrink: 0,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
                         fontSize: 14,
                         marginTop: 2,
-                        border: "1px solid rgba(121,90,57,0.28)",
-                        background: isUser ? "#f6efe4" : "#f3ece1",
+                        background: isUser ? "#c4934a" : "#f3ece1",
+                        border: isUser ? "none" : "1px solid rgba(121,90,57,0.28)",
+                        color: isUser ? "#ffffff" : "inherit",
                       }}
                     >
                       {isUser ? "👤" : "📚"}
@@ -1963,18 +2068,25 @@ export default function Home() {
                       )}
                       <div
                         className="hdak-bubble"
-                        style={{
+                        style={isUser ? {
                           padding: "11px 15px",
-                          borderRadius: 13,
-                          border: isUser
-                            ? "1px solid rgba(121,90,57,0.34)"
-                            : "1px solid rgba(121,90,57,0.28)",
+                          borderRadius: "16px 4px 16px 16px",
+                          border: "1px solid rgba(92,58,30,0.4)",
                           fontSize: 14,
                           lineHeight: 1.7,
-                          background: isUser ? "#f6efe4" : "#f9f5ee",
-                          borderTopRightRadius: isUser ? 3 : 13,
-                          borderTopLeftRadius: isUser ? 13 : 3,
-                          color: "#5f4b3a",
+                          background: "#5c3a1e",
+                          color: "#ffffff",
+                          maxWidth: "78%",
+                        } : {
+                          padding: "11px 15px",
+                          borderRadius: "4px 16px 16px 16px",
+                          border: "1px solid #e8ddd0",
+                          borderLeft: "3px solid #8b5e3c",
+                          fontSize: 14,
+                          lineHeight: 1.6,
+                          background: "#ffffff",
+                          color: "#2a2018",
+                          boxShadow: "0 2px 8px rgba(90,50,20,0.08)",
                         }}
                       >
                         {isUser ? (
@@ -2052,25 +2164,22 @@ export default function Home() {
                               href={link}
                               target="_blank"
                               rel="noopener noreferrer"
+                              aria-label={t.viewSource}
                               style={{
                                 fontSize: 11,
-                                color: "#a85f2e",
-                                opacity: 0.75,
+                                color: "#c4934a",
+                                opacity: 0.7,
                                 textDecoration: "none",
                               }}
                             >
-                              {t.viewSource} ↗
+                              ↗ {getDomain(link)}
                             </a>
                           ))}
                         </div>
                       )}
                       {!isUser && (
                         <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 4,
-                          }}
+                          className="hdak-feedback-row"
                         >
                           <button
                             className="hdak-feedback-btn"
