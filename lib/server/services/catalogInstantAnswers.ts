@@ -158,6 +158,36 @@ export function generateCatalogInstantAnswer(
   return result;
 }
 
+const _searchCache = new Map<string, CatalogInstantAnswerResult>();
+const MAX_CACHE_SIZE = 100;
+
+/**
+ * LRU-style cached wrapper around generateCatalogInstantAnswer.
+ * Uses REAL_CATALOG_BOOKS and evicts the oldest entry when the cache exceeds MAX_CACHE_SIZE.
+ */
+export function generateCatalogInstantAnswerCached(
+  query: string
+): CatalogInstantAnswerResult {
+  const cacheKey = query.toLowerCase().trim();
+  const cached = _searchCache.get(cacheKey);
+  if (cached !== undefined) return cached;
+
+  const result = generateCatalogInstantAnswer(query, REAL_CATALOG_BOOKS);
+  _searchCache.set(cacheKey, result);
+
+  if (_searchCache.size > MAX_CACHE_SIZE) {
+    const firstKey = _searchCache.keys().next().value;
+    if (firstKey !== undefined) _searchCache.delete(firstKey);
+  }
+
+  return result;
+}
+
+/** Exposed for testing only — clears the search cache. */
+export function _clearCatalogSearchCache(): void {
+  _searchCache.clear();
+}
+
 export function generateInstantAnswerWithStatus(
   query: string,
   books: CatalogBook[] = REAL_CATALOG_BOOKS,
