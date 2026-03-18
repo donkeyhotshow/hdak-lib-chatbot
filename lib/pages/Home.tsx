@@ -2004,6 +2004,9 @@ export default function Home() {
                 const smartResultChips = !isUser
                   ? (instantAnswerMeta?.smartChips ?? [])
                   : [];
+                const contextActions = isLastAssistant
+                  ? getContextActions(knowledgeTopic?.id)
+                  : [];
                 return (
                   <div
                     key={
@@ -2382,6 +2385,57 @@ export default function Home() {
                           </button>
                         </div>
                       )}
+                      {contextActions.length > 0 && (
+                        <div
+                          style={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: 6,
+                            marginTop: 4,
+                          }}
+                        >
+                          {contextActions.map((ca, ci) => (
+                            <button
+                              key={ci}
+                              className="hdak-ctx-btn"
+                              onClick={() => {
+                                if (ca.action === "clear") {
+                                  handleNewChat();
+                                } else if (ca.action === "share") {
+                                  const text = getMessageText(msg);
+                                  if (navigator.share) {
+                                    navigator
+                                      .share({
+                                        title: "HDAK Library",
+                                        text,
+                                        url: window.location.href,
+                                      })
+                                      .catch(() =>
+                                        navigator.clipboard
+                                          .writeText(text)
+                                          .catch(() => {})
+                                      );
+                                  } else {
+                                    navigator.clipboard
+                                      .writeText(text)
+                                      .catch(() => {});
+                                  }
+                                } else if (ca.action === "copy") {
+                                  navigator.clipboard
+                                    .writeText(
+                                      sourceLinks[0] ?? OFFICIAL_CATALOG_URL
+                                    )
+                                    .catch(() => {});
+                                } else if (ca.q) {
+                                  handleQuickStart(ca.q);
+                                }
+                              }}
+                            >
+                              {ca.icon} {ca.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -2592,13 +2646,13 @@ export default function Home() {
                 }}
                 disabled={isStreaming || !localInput.trim()}
                 style={{
-                  width: 34,
-                  height: 34,
+                  width: 38,
+                  height: 38,
                   flexShrink: 0,
                   background:
-                    isStreaming || !localInput.trim() ? "#e2d2bd" : "#a85f2e",
+                    isStreaming || !localInput.trim() ? "#e2d2bd" : "#5c3a1e",
                   border: "none",
-                  borderRadius: 9,
+                  borderRadius: 12,
                   cursor:
                     isStreaming || !localInput.trim() ? "default" : "pointer",
                   display: "flex",
@@ -2611,8 +2665,8 @@ export default function Home() {
                 }}
               >
                 <svg
-                  width="15"
-                  height="15"
+                  width="16"
+                  height="16"
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="2.5"
