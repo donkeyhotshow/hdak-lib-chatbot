@@ -10,6 +10,7 @@ import {
 describe("libraryKnowledge", () => {
   it("contains required knowledge topics", () => {
     const ids = LIBRARY_KNOWLEDGE_TOPICS.map(topic => topic.id);
+    expect(ids).toHaveLength(20);
     expect(ids).toEqual(
       expect.arrayContaining([
         "signup-library",
@@ -19,10 +20,19 @@ describe("libraryKnowledge", () => {
         "catalog",
         "find-book",
         "contacts",
-        "ask-librarian",
+        "library-director",
         "scientific-resources",
+        "library-structure",
+        "library-collection",
+        "library-history",
+        "news-events",
+        "documents",
         "vpn-access",
+        "helpful-links",
         "site-map",
+        "library-projects",
+        "working-hours",
+        "hdak-address",
       ])
     );
   });
@@ -59,8 +69,32 @@ describe("libraryKnowledge", () => {
   });
 
   it("finds topic by keyword query", () => {
-    const topic = findLibraryKnowledgeTopic("як звернутися до бібліотекаря");
-    expect(topic?.id).toBe("ask-librarian");
+    const topic = findLibraryKnowledgeTopic("хто директор бібліотеки хдак");
+    expect(topic?.id).toBe("library-director");
+  });
+
+  it("keeps instant-answer facts concrete and non-generic", () => {
+    const bannedGenericPhrases = [
+      "опубліковані на сторінці",
+      "розміщені на офіційному сайті",
+      "доступна інформація",
+      "перейдіть на сторінку",
+    ];
+    for (const topic of LIBRARY_KNOWLEDGE_TOPICS) {
+      expect(topic.shortFacts.length).toBeGreaterThanOrEqual(2);
+      for (const fact of topic.shortFacts) {
+        const normalizedFact = fact.toLowerCase();
+        for (const phrase of bannedGenericPhrases) {
+          expect(normalizedFact).not.toContain(phrase);
+        }
+      }
+    }
+  });
+
+  it("keeps follow-up prompts available for each curated topic", () => {
+    for (const topic of LIBRARY_KNOWLEDGE_TOPICS) {
+      expect(topic.suggestedFollowUps?.length ?? 0).toBeGreaterThan(0);
+    }
   });
 
   it("ignores disabled topics when searching in runtime topics", () => {

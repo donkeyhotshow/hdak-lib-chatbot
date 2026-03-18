@@ -31,13 +31,20 @@ export type InstantAnswer = {
   sourceBadge?: "quick" | "catalog" | "official-rule";
 };
 
+const MAX_FAQ_BULLETS = 2;
+
 function toFaqEntry(topic: LibraryKnowledgeTopic): LibraryFaqEntry {
+  const answerSentences = topic.shortFacts.slice(0, 2);
+  const bulletCandidates = [
+    ...topic.shortFacts.slice(2),
+    ...topic.policySnippets,
+  ];
   return {
     id: topic.id,
     keywords: topic.keywords,
     title: topic.title ?? topic.topic,
-    answer: topic.shortFacts[0] ?? topic.topic,
-    bullets: [...topic.shortFacts, ...topic.policySnippets].slice(0, 3),
+    answer: answerSentences.join(" ") || topic.topic,
+    bullets: bulletCandidates.slice(0, MAX_FAQ_BULLETS),
     links: topic.sourceUrls,
     sourceBadge: topic.sourceBadge,
   };
