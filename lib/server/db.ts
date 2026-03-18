@@ -1165,7 +1165,9 @@ export async function getDocumentChunks(
       return await db
         .select()
         .from(documentChunks)
-        .where(eq(documentChunks.language, language as DocumentChunk["language"]))
+        .where(
+          eq(documentChunks.language, language as DocumentChunk["language"])
+        )
         .orderBy(desc(documentChunks.createdAt))
         .limit(CHUNK_LIMIT);
     }

@@ -8,9 +8,11 @@ import {
   InsertDocumentMetadata,
 } from "../../drizzle/schema";
 
-/**
- * RAG Service - Handles PDF processing, chunking, and embedding generation
- */
+/** Intermediate structure used during semantic similarity ranking. */
+interface ScoredChunk {
+  chunk: DocumentChunk;
+  score: number;
+}
 
 // Configuration
 const CHUNK_SIZE = 1000; // characters per chunk
@@ -249,10 +251,6 @@ export async function semanticSearch(
     }
 
     // Calculate similarity scores
-    interface ScoredChunk {
-      chunk: DocumentChunk;
-      score: number;
-    }
     const scoredChunks: ScoredChunk[] = allChunks
       .map((chunk: DocumentChunk) => {
         const embedding = chunk.embedding as number[] | null;

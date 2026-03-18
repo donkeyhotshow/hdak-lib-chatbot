@@ -2043,30 +2043,23 @@ export default function Home() {
                       )}
                       {!isUser && sourceLinks.length > 0 && (
                         <div
-                          style={{
-                            fontSize: 11,
-                            color: "#795a39",
-                            paddingLeft: 2,
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 3,
-                          }}
+                          aria-label={t.sourcesLabel}
+                          style={{ display: "flex", flexWrap: "wrap", gap: 4 }}
                         >
-                          <span style={{ fontWeight: 500 }}>
-                            {t.sourcesLabel}:
-                          </span>
-                          {sourceLinks.map(link => (
+                          {sourceLinks.slice(0, 1).map(link => (
                             <a
                               key={link}
                               href={link}
                               target="_blank"
                               rel="noopener noreferrer"
                               style={{
+                                fontSize: 11,
                                 color: "#a85f2e",
+                                opacity: 0.75,
                                 textDecoration: "none",
                               }}
                             >
-                              {t.viewSource}
+                              {t.viewSource} ↗
                             </a>
                           ))}
                         </div>
@@ -2075,13 +2068,14 @@ export default function Home() {
                         <div
                           style={{
                             display: "flex",
-                            flexWrap: "wrap",
-                            gap: 6,
                             alignItems: "center",
+                            gap: 4,
                           }}
                         >
                           <button
-                            className="hdak-action-btn hdak-feedback-btn"
+                            className="hdak-feedback-btn"
+                            title={t.feedbackUp}
+                            aria-label={t.feedbackUp}
                             onClick={() =>
                               saveFeedback(
                                 responseId,
@@ -2091,19 +2085,25 @@ export default function Home() {
                               )
                             }
                             style={{
-                              height: 24,
-                              padding: "0 8px",
-                              fontSize: 11,
-                              background:
+                              fontSize: 13,
+                              opacity:
                                 feedbackByResponseId[responseId] === "up"
-                                  ? "#e7f4ea"
-                                  : "#f9f5ee",
+                                  ? 1
+                                  : 0.4,
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              padding: "2px 4px",
+                              lineHeight: 1,
+                              transition: "opacity 0.15s",
                             }}
                           >
-                            {t.feedbackUp}
+                            👍
                           </button>
                           <button
-                            className="hdak-action-btn hdak-feedback-btn"
+                            className="hdak-feedback-btn"
+                            title={t.feedbackDown}
+                            aria-label={t.feedbackDown}
                             onClick={() =>
                               saveFeedback(
                                 responseId,
@@ -2113,16 +2113,20 @@ export default function Home() {
                               )
                             }
                             style={{
-                              height: 24,
-                              padding: "0 8px",
-                              fontSize: 11,
-                              background:
+                              fontSize: 13,
+                              opacity:
                                 feedbackByResponseId[responseId] === "down"
-                                  ? "#fcebea"
-                                  : "#f9f5ee",
+                                  ? 1
+                                  : 0.4,
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              padding: "2px 4px",
+                              lineHeight: 1,
+                              transition: "opacity 0.15s",
                             }}
                           >
-                            {t.feedbackDown}
+                            👎
                           </button>
                           {feedbackByResponseId[responseId] && (
                             <span style={{ fontSize: 11, color: "#795a39" }}>
@@ -2336,34 +2340,39 @@ export default function Home() {
 
           {/* ── INPUT BAR ── */}
           <div style={{ padding: "12px 0 22px", flexShrink: 0 }}>
+            {/* Chips: visible only in empty/welcome state, fade out once chat starts */}
             <div
               style={{
-                display: "flex",
-                gap: 8,
-                flexWrap: "wrap",
-                marginBottom: 10,
+                overflow: "hidden",
+                maxHeight: showEmpty ? "80px" : "0",
+                opacity: showEmpty ? 1 : 0,
+                marginBottom: showEmpty ? "10px" : "0",
+                transition:
+                  "max-height 0.35s ease, opacity 0.3s ease, margin-bottom 0.3s ease",
               }}
             >
-              {chips.map(chip => (
-                <button
-                  key={`inline-chip-${chip.text}`}
-                  className="hdak-chip"
-                  onClick={() => handleQuickStart(chip.text)}
-                  style={{
-                    padding: "7px 12px",
-                    background: "#f9f5ee",
-                    border: "1px solid rgba(121,90,57,0.28)",
-                    borderRadius: 18,
-                    fontSize: 12,
-                    color: "#795a39",
-                    cursor: "pointer",
-                    transition: "all 0.2s",
-                    fontFamily: "'DM Sans', system-ui, sans-serif",
-                  }}
-                >
-                  {chip.emoji} {chip.text}
-                </button>
-              ))}
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {chips.map(chip => (
+                  <button
+                    key={`inline-chip-${chip.text}`}
+                    className="hdak-chip"
+                    onClick={() => handleQuickStart(chip.text)}
+                    style={{
+                      padding: "7px 12px",
+                      background: "#f9f5ee",
+                      border: "1px solid rgba(121,90,57,0.28)",
+                      borderRadius: 18,
+                      fontSize: 12,
+                      color: "#795a39",
+                      cursor: "pointer",
+                      transition: "all 0.2s",
+                      fontFamily: "'DM Sans', system-ui, sans-serif",
+                    }}
+                  >
+                    {chip.emoji} {chip.text}
+                  </button>
+                ))}
+              </div>
             </div>
             {/* Error banner */}
             {(sendError || streamError) && (
