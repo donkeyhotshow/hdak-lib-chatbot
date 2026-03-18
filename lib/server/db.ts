@@ -464,7 +464,7 @@ export async function createConversation(
     const result = await db.insert(conversations).values({
       userId,
       title,
-      language: language as any,
+      language: language as Conversation["language"],
     });
 
     // Get the last inserted ID
@@ -1086,7 +1086,7 @@ export async function logUserQuery(
   conversationId: number | null,
   query: string,
   language: string,
-  resourcesReturned: any = null
+  resourcesReturned: unknown = null
 ): Promise<UserQuery | null> {
   const db = await getDb();
   if (!db) return null;
@@ -1096,7 +1096,7 @@ export async function logUserQuery(
       userId,
       conversationId,
       query,
-      language: language as any,
+      language: language as UserQuery["language"],
       resourcesReturned: resourcesReturned
         ? JSON.stringify(resourcesReturned)
         : null,
@@ -1165,7 +1165,7 @@ export async function getDocumentChunks(
       return await db
         .select()
         .from(documentChunks)
-        .where(eq(documentChunks.language, language as any))
+        .where(eq(documentChunks.language, language as DocumentChunk["language"]))
         .orderBy(desc(documentChunks.createdAt))
         .limit(CHUNK_LIMIT);
     }
