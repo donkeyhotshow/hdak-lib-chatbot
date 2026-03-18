@@ -44,6 +44,10 @@ type LocalConversation = {
 
 const CHAT_TITLE_MAX_LENGTH = 50;
 const SEND_DEBOUNCE_MS = 350;
+const TYPING_BASE_DELAY_MS = 40;
+const TYPING_DELAY_VARIANCE_MS = 20;
+const TYPING_PUNCTUATION_PAUSE_MS = 120;
+const TYPING_PUNCTUATION_REGEX = /[.!?;:,]/;
 const GUEST_HISTORY_STORAGE_KEY = "hdak-guest-history-v1";
 const GUEST_HISTORY_STORAGE_PREFIX = "hdak-guest-history-v1:";
 const GUEST_ID_STORAGE_KEY = "hdak-guest-id";
@@ -290,8 +294,15 @@ export default function Home() {
   const guestIdRef = useRef<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const prevMessageCountRef = useRef(0);
+  const prevTypingMessageCountRef = useRef(0);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSendTimeRef = useRef(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [typingMessageId, setTypingMessageId] = useState<string | null>(null);
+  const [typedMessageText, setTypedMessageText] = useState("");
+  const [completedTypingIds, setCompletedTypingIds] = useState<
+    Record<string, true>
+  >({});
   const utils = trpc.useUtils();
   const { data: me } = trpc.auth.me.useQuery(undefined, {
     retry: false,
@@ -524,6 +535,119 @@ export default function Home() {
     }
     prevMessageCountRef.current = count;
   }, [allMessages]);
+
+  useEffect(
+    () => () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    const count = allMessages.length;
+    const isNewMessage = count > prevTypingMessageCountRef.current;
+    prevTypingMessageCountRef.current = count;
+
+    if (!isNewMessage || isStreaming || count === 0) return;
+
+    const lastMessage = allMessages[count - 1];
+    if (lastMessage.role !== "assistant") return;
+
+    const previousUserMessage = [...allMessages]
+      .slice(0, count - 1)
+      .reverse()
+      .find(message => message.role === "user");
+
+    if (!previousUserMessage) return;
+
+    const instantAnswerMeta = getInstantAnswer(
+      getMessageText(previousUserMessage),
+      language,
+      {
+        knowledgeTopics: runtimeKnowledgeTopics,
+      }
+    );
+
+    const knowledgeTopic = runtimeKnowledgeTopics
+      ? findLibraryKnowledgeTopicInTopics(
+          getMessageText(previousUserMessage),
+          runtimeKnowledgeTopics
+        )
+      : findLibraryKnowledgeTopic(getMessageText(previousUserMessage));
+
+    const extractedOfficialLinks = extractOfficialSourceLinksFromText(
+      getMessageText(lastMessage)
+    );
+
+    const sourceBadgeType =
+      instantAnswerMeta?.sourceBadge === "official-rule"
+        ? "official-rule"
+        : instantAnswerMeta?.sourceBadge === "catalog"
+          ? "catalog"
+          : instantAnswerMeta?.sourceBadge === "quick"
+            ? "quick"
+            : knowledgeTopic || extractedOfficialLinks.length > 0
+              ? "generated"
+              : "llm-fallback";
+
+    if (sourceBadgeType === "llm-fallback") return;
+
+    const responseId =
+      "id" in lastMessage && typeof lastMessage.id !== "undefined"
+        ? String(lastMessage.id)
+        : `${count - 1}-${sourceBadgeType}`;
+
+    if (completedTypingIds[responseId]) return;
+
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+    }
+
+    const fullText = getMessageText(lastMessage);
+    setTypingMessageId(responseId);
+    setTypedMessageText("");
+
+    if (!fullText) {
+      setCompletedTypingIds(prev => ({ ...prev, [responseId]: true }));
+      setTypingMessageId(null);
+      return;
+    }
+
+    let currentIndex = 0;
+    const typeNext = () => {
+      currentIndex += 1;
+      setTypedMessageText(fullText.slice(0, currentIndex));
+
+      if (currentIndex >= fullText.length) {
+        setCompletedTypingIds(prev => ({ ...prev, [responseId]: true }));
+        setTypingMessageId(null);
+        typingTimeoutRef.current = null;
+        return;
+      }
+
+      const previousChar = fullText[currentIndex - 1];
+      const punctuationPause = TYPING_PUNCTUATION_REGEX.test(previousChar)
+        ? TYPING_PUNCTUATION_PAUSE_MS
+        : 0;
+      const delay =
+        TYPING_BASE_DELAY_MS +
+        Math.floor(Math.random() * (TYPING_DELAY_VARIANCE_MS + 1)) +
+        punctuationPause;
+
+      typingTimeoutRef.current = setTimeout(typeNext, delay);
+    };
+
+    typingTimeoutRef.current = setTimeout(typeNext, TYPING_BASE_DELAY_MS);
+  }, [
+    allMessages,
+    completedTypingIds,
+    isStreaming,
+    language,
+    runtimeKnowledgeTopics,
+  ]);
 
   const handleSendMessage = (messageText?: string) => {
     const textToSend = messageText ?? localInput;
@@ -803,10 +927,17 @@ export default function Home() {
           from { opacity:0; transform:translateY(14px); }
           to   { opacity:1; transform:translateY(0); }
         }
+        @keyframes blinkCursor {
+          50% { border-color: transparent; }
+        }
+        @keyframes skeletonPulse {
+          0%, 100% { opacity: 0.45; }
+          50% { opacity: 0.9; }
+        }
         .hdak-body {
           font-family: 'DM Sans', system-ui, sans-serif;
-          background: #eef3fb;
-          color: #1f2a44;
+          background: #faf8f4;
+          color: #5f4b3a;
           height: 100vh;
           overflow: hidden;
           display: flex;
@@ -823,29 +954,41 @@ export default function Home() {
         }
         .hdak-serif { font-family: 'Playfair Display', Georgia, serif; }
         .hdak-dd-scroll::-webkit-scrollbar { width: 3px; }
-        .hdak-dd-scroll::-webkit-scrollbar-thumb { background: rgba(73,95,151,0.2); border-radius: 3px; }
+        .hdak-dd-scroll::-webkit-scrollbar-thumb { background: rgba(121,90,57,0.28); border-radius: 3px; }
         .hdak-msg-scroll::-webkit-scrollbar { width: 3px; }
-        .hdak-msg-scroll::-webkit-scrollbar-thumb { background: rgba(73,95,151,0.2); border-radius: 3px; }
-        .hdak-textarea { resize: none; background: transparent; border: none; outline: none; color: #1f2a44; font-family: 'DM Sans', system-ui, sans-serif; font-size: 14px; line-height: 1.62; min-height: 22px; max-height: 100px; width: 100%; }
-        .hdak-textarea::placeholder { color: #6f81a8; opacity: 1; }
-        .hdak-bubble a { color: #2a5aba; text-underline-offset: 3px; font-weight: 500; }
-        .hdak-bubble strong { color: #1f2a44; font-weight: 600; }
-        .hdak-bubble code { background: #edf2fc; padding: 1px 5px; border-radius: 4px; font-size: 12.5px; }
+        .hdak-msg-scroll::-webkit-scrollbar-thumb { background: rgba(121,90,57,0.28); border-radius: 3px; }
+        .hdak-textarea { resize: none; background: transparent; border: none; outline: none; color: #5f4b3a; font-family: 'DM Sans', system-ui, sans-serif; font-size: 14px; line-height: 1.62; min-height: 22px; max-height: 100px; width: 100%; }
+        .hdak-textarea::placeholder { color: #795a39; opacity: 1; }
+        .hdak-bubble a { color: #a85f2e; text-underline-offset: 3px; font-weight: 500; }
+        .hdak-bubble strong { color: #5f4b3a; font-weight: 600; }
+        .hdak-bubble code { background: #f1e8dc; padding: 1px 5px; border-radius: 4px; font-size: 12.5px; }
         .hdak-bubble ul { padding-left: 20px; margin-top: 6px; }
         .hdak-bubble li { margin-bottom: 5px; }
         .hdak-bubble p { margin-bottom: 9px; line-height: 1.72; }
-        .hdak-chip:hover { border-color: #3767cc; color: #1f2a44; background: #eef4ff; transform: translateY(-1px); }
-        .hdak-res-row:hover { background: #eef4ff; }
-        .hdak-hist-row:hover { background: #eef4ff; }
-        .hdak-lang-row:hover { background: #eef4ff; color: #1f2a44; }
-        .hdak-tb-btn:hover, .hdak-tb-btn.active { border-color: rgba(73,95,151,0.38); color: #1f2a44; background: #eef4ff; }
-        .hdak-send:hover:not(:disabled) { background: #2a5aba; transform: scale(1.04); box-shadow: 0 6px 14px rgba(42,90,186,.28); }
-        .hdak-send:disabled { background: #dbe4f6; color: #6f81a8; cursor: default; transform: none; box-shadow: none; }
-        .hdak-input-row:focus-within { border-color: rgba(42,90,186,.45); box-shadow: 0 0 0 4px rgba(42,90,186,.1); }
-        .hdak-action-btn { height: 30px; padding: 0 12px; background: #f4f7ff; border: 1px solid rgba(73,95,151,0.25); border-radius: 8px; color: #2a5aba; font-size: 12px; cursor: pointer; font-family: 'DM Sans', system-ui, sans-serif; transition: all 0.15s; display: inline-flex; align-items: center; gap: 4px; }
-        .hdak-action-btn:hover { background: #e9f0ff; border-color: rgba(42,90,186,.42); color: #204690; }
-        .hdak-action-btn--catalog { background: #e3eeff; border-color: rgba(42,90,186,.5); color: #1f4a9a; font-weight: 600; }
-        .hdak-action-btn--catalog:hover { background: #d7e6ff; border-color: rgba(32,70,144,.58); }
+        .hdak-chip:hover { border-color: #a85f2e; color: #5f4b3a; background: #f3ece1; transform: translateY(-1px); }
+        .hdak-res-row:hover { background: #f3ece1; }
+        .hdak-hist-row:hover { background: #f3ece1; }
+        .hdak-lang-row:hover { background: #f3ece1; color: #5f4b3a; }
+        .hdak-tb-btn:hover, .hdak-tb-btn.active { border-color: rgba(121,90,57,0.46); color: #5f4b3a; background: #f3ece1; }
+        .hdak-send:hover:not(:disabled) { background: #a85f2e; transform: scale(1.04); box-shadow: 0 6px 14px rgba(168,95,46,0.28); }
+        .hdak-send:disabled { background: #e2d2bd; color: #795a39; cursor: default; transform: none; box-shadow: none; }
+        .hdak-input-row:focus-within { border-color: rgba(168,95,46,0.45); box-shadow: 0 0 0 4px rgba(168,95,46,0.12); }
+        .hdak-action-btn { height: 30px; padding: 0 12px; background: #f9f5ee; border: 1px solid rgba(121,90,57,0.34); border-radius: 8px; color: #a85f2e; font-size: 12px; cursor: pointer; font-family: 'DM Sans', system-ui, sans-serif; transition: all 0.15s; display: inline-flex; align-items: center; gap: 4px; }
+        .hdak-action-btn:hover { background: #efe4d4; border-color: rgba(168,95,46,0.45); color: #5f4b3a; }
+        .hdak-action-btn--catalog { background: #a85f2e; border-color: rgba(121,90,57,0.5); color: #ffffff; font-weight: 600; }
+        .hdak-action-btn--catalog:hover { background: #bfae8d; border-color: rgba(121,90,57,0.52); color: #5f4b3a; }
+        .typing-message {
+          border-right: 2px solid #795a39;
+          animation: blinkCursor 0.75s step-end infinite;
+          padding-right: 2px;
+        }
+        .typing-skeleton {
+          width: 120px;
+          height: 14px;
+          border-radius: 999px;
+          background: #d9b48c;
+          animation: skeletonPulse 0.9s ease-in-out infinite;
+        }
         @media (max-width: 480px) { .tb-label { display: none; } }
       `}</style>
 
@@ -868,8 +1011,8 @@ export default function Home() {
             alignItems: "center",
             padding: "0 20px",
             gap: 10,
-            borderBottom: "1px solid rgba(73,95,151,0.2)",
-            background: "#ffffff",
+            borderBottom: "1px solid rgba(121,90,57,0.28)",
+            background: "#f9f5ee",
             flexShrink: 0,
           }}
         >
@@ -882,9 +1025,9 @@ export default function Home() {
                 height: 30,
                 padding: "0 11px",
                 background: "transparent",
-                border: "1px solid rgba(73,95,151,0.2)",
+                border: "1px solid rgba(121,90,57,0.28)",
                 borderRadius: 7,
-                color: "#6f81a8",
+                color: "#795a39",
                 fontFamily: "'DM Sans', system-ui, sans-serif",
                 fontSize: 12,
                 fontWeight: 400,
@@ -917,8 +1060,8 @@ export default function Home() {
                   position: "absolute",
                   top: 38,
                   left: 0,
-                  background: "#ffffff",
-                  border: "1px solid rgba(73,95,151,0.2)",
+                  background: "#f9f5ee",
+                  border: "1px solid rgba(121,90,57,0.28)",
                   borderRadius: 12,
                   padding: 6,
                   zIndex: 200,
@@ -937,7 +1080,7 @@ export default function Home() {
                     fontWeight: 500,
                     letterSpacing: "0.1em",
                     textTransform: "uppercase",
-                    color: "#6f81a8",
+                    color: "#795a39",
                     padding: "5px 9px 9px",
                   }}
                 >
@@ -949,10 +1092,10 @@ export default function Home() {
                     width: "100%",
                     padding: "8px 10px",
                     marginBottom: 5,
-                    background: "#eef4ff",
-                    border: "1px solid rgba(73,95,151,0.2)",
+                    background: "#f3ece1",
+                    border: "1px solid rgba(121,90,57,0.28)",
                     borderRadius: 8,
-                    color: "#3767cc",
+                    color: "#a85f2e",
                     fontFamily: "'DM Sans', system-ui, sans-serif",
                     fontSize: 12,
                     fontWeight: 500,
@@ -980,7 +1123,7 @@ export default function Home() {
                     style={{
                       padding: "8px 10px",
                       fontSize: 12,
-                      color: "#6f81a8",
+                      color: "#795a39",
                     }}
                   >
                     {t.noConversations}
@@ -1001,11 +1144,11 @@ export default function Home() {
                         transition: "background 0.15s",
                         borderLeft:
                           currentConversationId === conv.id
-                            ? "2px solid #3767cc"
+                            ? "2px solid #a85f2e"
                             : "2px solid transparent",
                         background:
                           currentConversationId === conv.id
-                            ? "#eef4ff"
+                            ? "#f3ece1"
                             : "transparent",
                       }}
                     >
@@ -1013,7 +1156,7 @@ export default function Home() {
                         style={{
                           flex: 1,
                           fontSize: 13,
-                          color: "#1f2a44",
+                          color: "#5f4b3a",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
                           whiteSpace: "nowrap",
@@ -1024,7 +1167,7 @@ export default function Home() {
                       <span
                         style={{
                           fontSize: 11,
-                          color: "#6f81a8",
+                          color: "#795a39",
                           flexShrink: 0,
                         }}
                       >
@@ -1035,7 +1178,7 @@ export default function Home() {
                         style={{
                           background: "none",
                           border: "none",
-                          color: "#6f81a8",
+                          color: "#795a39",
                           cursor: "pointer",
                           fontSize: 12,
                           padding: "2px 3px",
@@ -1046,7 +1189,7 @@ export default function Home() {
                           (e.currentTarget.style.color = "#e05555")
                         }
                         onMouseLeave={e =>
-                          (e.currentTarget.style.color = "#6f81a8")
+                          (e.currentTarget.style.color = "#795a39")
                         }
                         title={t.deleteConversation}
                       >
@@ -1075,8 +1218,8 @@ export default function Home() {
               style={{
                 width: 28,
                 height: 28,
-                background: "#eef4ff",
-                border: "1px solid rgba(180,148,80,0.35)",
+                background: "#f3ece1",
+                border: "1px solid rgba(191,174,141,0.55)",
                 borderRadius: 7,
                 display: "flex",
                 alignItems: "center",
@@ -1090,7 +1233,7 @@ export default function Home() {
               className="hdak-serif"
               style={{
                 fontSize: 15,
-                color: "#1f2a44",
+                color: "#5f4b3a",
                 letterSpacing: "0.01em",
               }}
             >
@@ -1109,9 +1252,9 @@ export default function Home() {
                   height: 30,
                   padding: "0 11px",
                   background: "transparent",
-                  border: "1px solid rgba(73,95,151,0.2)",
+                  border: "1px solid rgba(121,90,57,0.28)",
                   borderRadius: 7,
-                  color: "#6f81a8",
+                  color: "#795a39",
                   fontFamily: "'DM Sans', system-ui, sans-serif",
                   fontSize: 12,
                   cursor: "pointer",
@@ -1143,8 +1286,8 @@ export default function Home() {
                     position: "absolute",
                     top: 38,
                     right: 0,
-                    background: "#ffffff",
-                    border: "1px solid rgba(73,95,151,0.2)",
+                    background: "#f9f5ee",
+                    border: "1px solid rgba(121,90,57,0.28)",
                     borderRadius: 12,
                     padding: 6,
                     zIndex: 200,
@@ -1163,7 +1306,7 @@ export default function Home() {
                       fontWeight: 500,
                       letterSpacing: "0.1em",
                       textTransform: "uppercase",
-                      color: "#6f81a8",
+                      color: "#795a39",
                       padding: "5px 9px 9px",
                     }}
                   >
@@ -1202,7 +1345,7 @@ export default function Home() {
                         <div
                           style={{
                             fontSize: 12,
-                            color: "#1f2a44",
+                            color: "#5f4b3a",
                             fontWeight: 500,
                             lineHeight: 1.3,
                           }}
@@ -1212,7 +1355,7 @@ export default function Home() {
                             <span
                               style={{
                                 fontSize: 10,
-                                color: "#3767cc",
+                                color: "#a85f2e",
                                 opacity: 0.75,
                                 marginLeft: 4,
                               }}
@@ -1224,7 +1367,7 @@ export default function Home() {
                         <div
                           style={{
                             fontSize: 11,
-                            color: "#6f81a8",
+                            color: "#795a39",
                             lineHeight: 1.3,
                             marginTop: 1,
                           }}
@@ -1247,9 +1390,9 @@ export default function Home() {
                   height: 30,
                   padding: "0 11px",
                   background: "transparent",
-                  border: "1px solid rgba(73,95,151,0.2)",
+                  border: "1px solid rgba(121,90,57,0.28)",
                   borderRadius: 7,
-                  color: "#6f81a8",
+                  color: "#795a39",
                   fontFamily: "'DM Sans', system-ui, sans-serif",
                   fontSize: 12,
                   cursor: "pointer",
@@ -1269,8 +1412,8 @@ export default function Home() {
                     position: "absolute",
                     top: 38,
                     right: 0,
-                    background: "#ffffff",
-                    border: "1px solid rgba(73,95,151,0.2)",
+                    background: "#f9f5ee",
+                    border: "1px solid rgba(121,90,57,0.28)",
                     borderRadius: 12,
                     padding: 6,
                     zIndex: 200,
@@ -1286,7 +1429,7 @@ export default function Home() {
                       fontWeight: 500,
                       letterSpacing: "0.1em",
                       textTransform: "uppercase",
-                      color: "#6f81a8",
+                      color: "#795a39",
                       padding: "5px 9px 9px",
                     }}
                   >
@@ -1305,7 +1448,7 @@ export default function Home() {
                         borderRadius: 8,
                         cursor: "pointer",
                         fontSize: 13,
-                        color: language === lang ? "#3767cc" : "#6f81a8",
+                        color: language === lang ? "#a85f2e" : "#795a39",
                         transition: "background 0.15s, color 0.15s",
                         display: "flex",
                         alignItems: "center",
@@ -1353,8 +1496,8 @@ export default function Home() {
                 style={{
                   width: 64,
                   height: 64,
-                  background: "#eef4ff",
-                  border: "1px solid rgba(180,148,80,0.35)",
+                  background: "#f3ece1",
+                  border: "1px solid rgba(191,174,141,0.55)",
                   borderRadius: 16,
                   display: "flex",
                   alignItems: "center",
@@ -1371,7 +1514,7 @@ export default function Home() {
                 style={{
                   fontSize: 26,
                   fontWeight: 600,
-                  color: "#1f2a44",
+                  color: "#5f4b3a",
                   marginBottom: 10,
                 }}
               >
@@ -1380,7 +1523,7 @@ export default function Home() {
               <p
                 style={{
                   fontSize: 13,
-                  color: "#5d7199",
+                  color: "#795a39",
                   maxWidth: 320,
                   lineHeight: 1.65,
                   marginBottom: 30,
@@ -1393,8 +1536,8 @@ export default function Home() {
                 style={{
                   width: "100%",
                   maxWidth: 520,
-                  background: "#ffffff",
-                  border: "1px solid rgba(73,95,151,0.18)",
+                  background: "#f9f5ee",
+                  border: "1px solid #d9b48c",
                   borderRadius: 14,
                   padding: "12px 14px",
                   marginBottom: 18,
@@ -1403,7 +1546,7 @@ export default function Home() {
                 <div
                   style={{
                     fontSize: 11,
-                    color: "#3767cc",
+                    color: "#a85f2e",
                     fontWeight: 600,
                     marginBottom: 7,
                     letterSpacing: "0.04em",
@@ -1413,7 +1556,7 @@ export default function Home() {
                   {t.onboardingTitle}
                 </div>
                 <div
-                  style={{ fontSize: 12, color: "#5d7199", lineHeight: 1.55 }}
+                  style={{ fontSize: 12, color: "#795a39", lineHeight: 1.55 }}
                 >
                   <div>{t.onboardingStep1}</div>
                   <div>{t.onboardingStep2}</div>
@@ -1436,17 +1579,17 @@ export default function Home() {
                   style={{
                     flex: 1,
                     height: 1,
-                    background: "rgba(73,95,151,0.2)",
+                    background: "rgba(121,90,57,0.28)",
                   }}
                 />
-                <span style={{ fontSize: 12, color: "#3767cc", opacity: 0.5 }}>
+                <span style={{ fontSize: 12, color: "#a85f2e", opacity: 0.5 }}>
                   ✦
                 </span>
                 <div
                   style={{
                     flex: 1,
                     height: 1,
-                    background: "rgba(73,95,151,0.2)",
+                    background: "rgba(121,90,57,0.28)",
                   }}
                 />
               </div>
@@ -1468,11 +1611,11 @@ export default function Home() {
                     onClick={() => handleQuickStart(chip.text)}
                     style={{
                       padding: "8px 16px",
-                      background: "#ffffff",
-                      border: "1px solid rgba(73,95,151,0.2)",
+                      background: "#f9f5ee",
+                      border: "1px solid rgba(121,90,57,0.28)",
                       borderRadius: 22,
                       fontSize: 12,
-                      color: "#5d7199",
+                      color: "#795a39",
                       cursor: "pointer",
                       transition: "all 0.2s",
                       fontFamily: "'DM Sans', system-ui, sans-serif",
@@ -1611,8 +1754,8 @@ export default function Home() {
                         justifyContent: "center",
                         fontSize: 14,
                         marginTop: 2,
-                        border: "1px solid rgba(73,95,151,0.2)",
-                        background: isUser ? "#f4f8ff" : "#eef4ff",
+                        border: "1px solid rgba(121,90,57,0.28)",
+                        background: isUser ? "#f6efe4" : "#f3ece1",
                       }}
                     >
                       {isUser ? "👤" : "📚"}
@@ -1632,9 +1775,9 @@ export default function Home() {
                           style={{
                             alignSelf: "flex-start",
                             fontSize: 11,
-                            color: "#2a5aba",
-                            background: "#eef4ff",
-                            border: "1px solid rgba(73,95,151,0.24)",
+                            color: "#a85f2e",
+                            background: "#f3ece1",
+                            border: "1px solid rgba(121,90,57,0.34)",
                             borderRadius: 999,
                             padding: "2px 8px",
                             lineHeight: 1.4,
@@ -1649,14 +1792,14 @@ export default function Home() {
                           padding: "11px 15px",
                           borderRadius: 13,
                           border: isUser
-                            ? "1px solid rgba(73,95,151,0.24)"
-                            : "1px solid rgba(73,95,151,0.2)",
+                            ? "1px solid rgba(121,90,57,0.34)"
+                            : "1px solid rgba(121,90,57,0.28)",
                           fontSize: 14,
                           lineHeight: 1.7,
-                          background: isUser ? "#f4f8ff" : "#ffffff",
+                          background: isUser ? "#f6efe4" : "#f9f5ee",
                           borderTopRightRadius: isUser ? 3 : 13,
                           borderTopLeftRadius: isUser ? 13 : 3,
-                          color: "#1f2a44",
+                          color: "#5f4b3a",
                         }}
                       >
                         {isUser ? (
@@ -1665,7 +1808,25 @@ export default function Home() {
                           </p>
                         ) : (
                           <div style={{ fontSize: 14 }}>
-                            <Markdown>{getMessageText(msg)}</Markdown>
+                            {typingMessageId === responseId &&
+                            !completedTypingIds[responseId] ? (
+                              typedMessageText.length > 0 ? (
+                                <div className="typing-message">
+                                  <p
+                                    style={{
+                                      margin: 0,
+                                      whiteSpace: "pre-wrap",
+                                    }}
+                                  >
+                                    {typedMessageText}
+                                  </p>
+                                </div>
+                              ) : (
+                                <div className="typing-skeleton" />
+                              )
+                            ) : (
+                              <Markdown>{getMessageText(msg)}</Markdown>
+                            )}
                           </div>
                         )}
                       </div>
@@ -1673,7 +1834,7 @@ export default function Home() {
                         <div
                           style={{
                             fontSize: 11,
-                            color: "#5d7199",
+                            color: "#795a39",
                             paddingLeft: 2,
                             display: "flex",
                             flexDirection: "column",
@@ -1690,7 +1851,7 @@ export default function Home() {
                               target="_blank"
                               rel="noopener noreferrer"
                               style={{
-                                color: "#2a5aba",
+                                color: "#a85f2e",
                                 textDecoration: "none",
                               }}
                             >
@@ -1725,7 +1886,7 @@ export default function Home() {
                               background:
                                 feedbackByResponseId[responseId] === "up"
                                   ? "#e7f4ea"
-                                  : "#ffffff",
+                                  : "#f9f5ee",
                             }}
                           >
                             {t.feedbackUp}
@@ -1747,13 +1908,13 @@ export default function Home() {
                               background:
                                 feedbackByResponseId[responseId] === "down"
                                   ? "#fcebea"
-                                  : "#ffffff",
+                                  : "#f9f5ee",
                             }}
                           >
                             {t.feedbackDown}
                           </button>
                           {feedbackByResponseId[responseId] && (
-                            <span style={{ fontSize: 11, color: "#5d7199" }}>
+                            <span style={{ fontSize: 11, color: "#795a39" }}>
                               {t.feedbackSaved}
                             </span>
                           )}
@@ -1768,7 +1929,7 @@ export default function Home() {
                             alignItems: "center",
                           }}
                         >
-                          <span style={{ fontSize: 11, color: "#5d7199" }}>
+                          <span style={{ fontSize: 11, color: "#795a39" }}>
                             {t.followUpLabel}:
                           </span>
                           {followUpPrompts.map(prompt => (
@@ -1860,8 +2021,8 @@ export default function Home() {
                       justifyContent: "center",
                       fontSize: 14,
                       marginTop: 2,
-                      border: "1px solid rgba(73,95,151,0.2)",
-                      background: "#eef4ff",
+                      border: "1px solid rgba(121,90,57,0.28)",
+                      background: "#f3ece1",
                     }}
                   >
                     📚
@@ -1871,8 +2032,8 @@ export default function Home() {
                       padding: "11px 15px",
                       borderRadius: 13,
                       borderTopLeftRadius: 3,
-                      border: "1px solid rgba(73,95,151,0.2)",
-                      background: "#ffffff",
+                      border: "1px solid rgba(121,90,57,0.28)",
+                      background: "#f9f5ee",
                     }}
                   >
                     <div
@@ -1890,7 +2051,7 @@ export default function Home() {
                             width: 7,
                             height: 7,
                             borderRadius: "50%",
-                            background: "#3767cc",
+                            background: "#a85f2e",
                             opacity: 0.4,
                             animation: `dotPulse 1.3s ease-in-out ${delay}s infinite`,
                           }}
@@ -1922,11 +2083,11 @@ export default function Home() {
                   onClick={() => handleQuickStart(chip.text)}
                   style={{
                     padding: "7px 12px",
-                    background: "#f8fbff",
-                    border: "1px solid rgba(73,95,151,0.2)",
+                    background: "#f9f5ee",
+                    border: "1px solid rgba(121,90,57,0.28)",
                     borderRadius: 18,
                     fontSize: 12,
-                    color: "#5d7199",
+                    color: "#795a39",
                     cursor: "pointer",
                     transition: "all 0.2s",
                     fontFamily: "'DM Sans', system-ui, sans-serif",
@@ -1988,8 +2149,8 @@ export default function Home() {
                 display: "flex",
                 alignItems: "flex-end",
                 gap: 8,
-                background: "#ffffff",
-                border: "1px solid rgba(73,95,151,0.2)",
+                background: "#f9f5ee",
+                border: "1px solid #d9b48c",
                 borderRadius: 14,
                 padding: "10px 12px",
                 transition: "border-color 0.2s, box-shadow 0.2s",
@@ -2033,7 +2194,7 @@ export default function Home() {
                   height: 34,
                   flexShrink: 0,
                   background:
-                    isStreaming || !localInput.trim() ? "#dbe4f6" : "#3767cc",
+                    isStreaming || !localInput.trim() ? "#e2d2bd" : "#a85f2e",
                   border: "none",
                   borderRadius: 9,
                   cursor:
@@ -2042,7 +2203,7 @@ export default function Home() {
                   alignItems: "center",
                   justifyContent: "center",
                   color:
-                    isStreaming || !localInput.trim() ? "#6f81a8" : "#ffffff",
+                    isStreaming || !localInput.trim() ? "#795a39" : "#ffffff",
                   transition:
                     "background 0.18s, transform 0.15s, box-shadow 0.18s",
                 }}
@@ -2062,7 +2223,7 @@ export default function Home() {
             <div
               style={{
                 fontSize: 11,
-                color: "#6f81a8",
+                color: "#795a39",
                 textAlign: "center",
                 marginTop: 7,
               }}
