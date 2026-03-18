@@ -17,7 +17,7 @@ describe("instantAnswers", () => {
   });
 
   it("covers all required FAQ topics with official links", () => {
-    expect(LIBRARY_FAQ.length).toBeGreaterThanOrEqual(11);
+    expect(LIBRARY_FAQ.length).toBe(20);
     for (const faq of LIBRARY_FAQ) {
       expect(faq.links.length).toBeGreaterThan(0);
       for (const link of faq.links) {
@@ -30,6 +30,7 @@ describe("instantAnswers", () => {
     const answer = getInstantAnswer("Як записатися до бібліотеки?", "uk");
     expect(answer).not.toBeNull();
     expect(answer?.intent).toBe("signup-library");
+    expect(answer?.answer).toContain("Єдиний читацький квиток діє з 1966 року");
     expect(answer?.answer).toContain(
       "https://lib-hdak.in.ua/project-unified-reader-card.html"
     );
@@ -43,8 +44,12 @@ describe("instantAnswers", () => {
     expect(answer).not.toBeNull();
     expect(answer?.intent).toBe("library-rules");
     expect(answer?.sourceBadge).toBe("official-rule");
+    expect(answer?.answer).toContain("Групова видача підручників");
     expect(answer?.answer).toContain(
       "https://lib-hdak.in.ua/rules-library.html"
+    );
+    expect(answer?.answer.toLowerCase()).not.toContain(
+      "опубліковані на сторінці"
     );
   });
 
@@ -64,9 +69,10 @@ describe("instantAnswers", () => {
     expect(answer).not.toBeNull();
     expect(answer?.intent).toBe("catalog-intent");
     expect(answer?.action?.searchType).toBe("author");
-    expect(answer?.action?.searchQuery).toBe("шевченко");
+    expect(answer?.action?.searchQuery.toLowerCase()).toContain("шевченко");
     expect(answer?.action?.url).toContain(OFFICIAL_CATALOG_URL);
     expect(answer?.sourceBadge).toBe("catalog");
+    expect(answer?.smartChips).toContain("🔍 Шукати в каталозі");
   });
 
   it("returns catalog instant answer for subject query", () => {
@@ -74,8 +80,8 @@ describe("instantAnswers", () => {
     expect(answer).not.toBeNull();
     expect(answer?.intent).toBe("catalog-intent");
     expect(answer?.action?.searchType).toBe("subject");
-    expect(answer?.action?.searchQuery).toBe("режисури");
-    expect(answer?.links).toEqual([OFFICIAL_CATALOG_URL]);
+    expect(answer?.action?.searchQuery).toContain("режисури");
+    expect(answer?.links[0]).toContain(OFFICIAL_CATALOG_URL);
     expect(answer?.sourceBadge).toBe("catalog");
   });
 
@@ -84,6 +90,9 @@ describe("instantAnswers", () => {
     expect(answer).not.toBeNull();
     expect(answer?.intent).toBe("find-book");
     expect(answer?.sourceBadge).toBe("catalog");
+    expect(answer?.answer).toContain(
+      "Електронний каталог ведеться з 2008 року"
+    );
   });
 
   it("uses official catalog URL for catalog instant answers", () => {

@@ -8,6 +8,10 @@ import {
   findLibraryKnowledgeTopicInTopics,
   type LibraryKnowledgeTopic,
 } from "./libraryKnowledge";
+import {
+  generateInstantAnswerWithStatus,
+  type CatalogBook,
+} from "./catalogInstantAnswers";
 
 export type InstantAnswerLanguage = "uk" | "en" | "ru";
 
@@ -29,15 +33,24 @@ export type InstantAnswer = {
   suggestedFollowUps?: string[];
   action?: CatalogIntentAction;
   sourceBadge?: "quick" | "catalog" | "official-rule";
+  catalogMatches?: CatalogBook[];
+  smartChips?: string[];
 };
 
+const MAX_BULLET_ITEMS = 2;
+
 function toFaqEntry(topic: LibraryKnowledgeTopic): LibraryFaqEntry {
+  const answerSentences = topic.shortFacts.slice(0, 2);
+  const bulletCandidates = [
+    ...topic.shortFacts.slice(2),
+    ...topic.policySnippets,
+  ];
   return {
     id: topic.id,
     keywords: topic.keywords,
     title: topic.title ?? topic.topic,
-    answer: topic.shortFacts[0] ?? topic.topic,
-    bullets: [...topic.shortFacts, ...topic.policySnippets].slice(0, 3),
+    answer: answerSentences.join(" ") || topic.topic,
+    bullets: bulletCandidates.slice(0, MAX_BULLET_ITEMS),
     links: topic.sourceUrls,
     sourceBadge: topic.sourceBadge,
   };
@@ -129,7 +142,10 @@ function findMatchingFaq(
 export function getInstantAnswer(
   query: string,
   language: InstantAnswerLanguage = "uk",
-  options?: { knowledgeTopics?: LibraryKnowledgeTopic[] }
+  options?: {
+    knowledgeTopics?: LibraryKnowledgeTopic[];
+    catalogBooks?: CatalogBook[];
+  }
 ): InstantAnswer | null {
   const normalizedQuery = normalizeInstantAnswerQuery(query);
   if (!normalizedQuery) return null;
@@ -141,13 +157,24 @@ export function getInstantAnswer(
     language === "en" ? "en" : "uk"
   );
   if (catalogAction && catalogAction.searchType !== "generic") {
+    const catalogStatusAnswer = generateInstantAnswerWithStatus(
+      query,
+      options?.catalogBooks
+    );
     return {
       intent: "catalog-intent",
       title: catalogAction.title,
-      answer: formatCatalogIntentAnswer(catalogAction, language),
-      links: [OFFICIAL_CATALOG_URL],
-      action: catalogAction,
+      answer:
+        catalogStatusAnswer.answer ||
+        formatCatalogIntentAnswer(catalogAction, language),
+      links: catalogStatusAnswer.links,
+      action: {
+        ...catalogAction,
+        url: catalogStatusAnswer.action.url,
+      },
       sourceBadge: "catalog",
+      catalogMatches: catalogStatusAnswer.books,
+      smartChips: catalogStatusAnswer.smartChips,
     };
   }
 
