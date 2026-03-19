@@ -5,9 +5,8 @@ import type { CatalogBook } from "@/lib/server/services/catalogInstantAnswers";
 import type { CatalogBookCardProps } from "./CatalogBookCard";
 
 // Lazy-load the animated card to keep the initial bundle small.
-const CatalogBookCard = lazy(
-  () =>
-    import("./CatalogBookCard").then(m => ({ default: m.CatalogBookCard }))
+const CatalogBookCard = lazy(() =>
+  import("./CatalogBookCard").then(m => ({ default: m.CatalogBookCard }))
 ) as React.ComponentType<CatalogBookCardProps>;
 
 type CatalogResultsListProps = {
@@ -39,11 +38,7 @@ export const LazyCatalogResults = memo(function LazyCatalogResults({
     <div className="hdak-catalog-results">
       {books.map((book, index) => (
         <Suspense key={book.title + book.author} fallback={<SkeletonCard />}>
-          <CatalogBookCard
-            book={book}
-            delay={index * 50}
-            onOrder={onOrder}
-          />
+          <CatalogBookCard book={book} delay={index * 50} onOrder={onOrder} />
         </Suspense>
       ))}
     </div>
