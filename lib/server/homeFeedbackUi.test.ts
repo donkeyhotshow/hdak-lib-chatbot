@@ -22,7 +22,7 @@ describe("Home feedback and follow-up UX guards", () => {
 
   it("shows follow-up chips for instant answers", () => {
     expect(homePageContent).toContain("followUpPrompts");
-    expect(homePageContent).toContain("t.followUpLabel");
+    expect(homePageContent).toContain("followUpLabel");
     expect(homePageContent).toContain("handleQuickStart(prompt)");
   });
 });

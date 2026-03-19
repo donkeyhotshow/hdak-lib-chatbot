@@ -120,6 +120,7 @@ const translations: Record<Language, Record<string, string>> = {
     feedbackDown: "👎 Didn’t help",
     feedbackSaved: "Thanks for feedback",
     followUpLabel: "Similar questions",
+    emptyStateTagline: "Ask anything about the library",
   },
   uk: {
     title: "Помічник бібліотеки ХДАК",
@@ -179,6 +180,7 @@ const translations: Record<Language, Record<string, string>> = {
     feedbackDown: "👎 Не допомогло",
     feedbackSaved: "Дякуємо за відгук",
     followUpLabel: "Схожі запитання",
+    emptyStateTagline: "Запитайте що завгодно про бібліотеку",
   },
 };
 
@@ -1039,8 +1041,8 @@ export default function Home() {
   };
 
   const chips = useMemo(() => {
-    const chipEmojis = ["⚡", "📚", "📘", "📞"];
-    return QUICK_PROMPTS[language].slice(0, 4).map((text, index) => ({
+    const chipEmojis = ["⚡", "📚", "📘"];
+    return QUICK_PROMPTS[language].slice(0, 3).map((text, index) => ({
       emoji: chipEmojis[index % chipEmojis.length],
       text,
     }));
@@ -1081,6 +1083,14 @@ export default function Home() {
         @keyframes dotPulse {
           0%,100% { transform:scale(.75); opacity:.3; }
           50%      { transform:scale(1.2); opacity:.9; }
+        }
+        @keyframes shimmerSlide {
+          0%   { background-position: -200% center; }
+          100% { background-position:  200% center; }
+        }
+        @keyframes chipIn {
+          from { opacity:0; transform:translateY(6px); }
+          to   { opacity:1; transform:translateY(0); }
         }
         @keyframes ddIn {
           from { opacity:0; transform:translateY(-8px) scale(0.98); }
@@ -1144,11 +1154,16 @@ export default function Home() {
         .hdak-send:hover:not(:disabled) { background: #8b5e3c; transform: scale(1.05); box-shadow: 0 6px 14px rgba(92,58,30,0.28); }
         .hdak-send:disabled { background: #d4c4a8; color: #5f4b3a; cursor: default; transform: none; box-shadow: none; }
         .hdak-input-row:focus-within { border-color: #8b5e3c; box-shadow: 0 0 0 3px rgba(139,94,60,0.12); }
-        .hdak-action-btn { height: 30px; padding: 0 12px; background: #f9f5ee; border: 1px solid rgba(121,90,57,0.34); border-radius: 8px; color: #a85f2e; font-size: 12px; cursor: pointer; font-family: 'DM Sans', system-ui, sans-serif; transition: all 0.15s; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 3px rgba(121,90,57,0.1); }
+        .hdak-inline-source:hover { text-decoration: underline; }
+        .hdak-action-btn { height: 36px; padding: 0 12px; background: #f9f5ee; border: 1px solid rgba(121,90,57,0.34); border-radius: 8px; color: #a85f2e; font-size: 12px; cursor: pointer; font-family: 'DM Sans', system-ui, sans-serif; transition: all 0.15s; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 3px rgba(121,90,57,0.1); }
         .hdak-action-btn:hover { background: #5c3a1e; border-color: #5c3a1e; color: #ffffff; }
         .hdak-action-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(92,58,30,0.25); }
         .hdak-action-btn--catalog { background: #a85f2e; border-color: rgba(121,90,57,0.5); color: #ffffff; font-weight: 600; }
         .hdak-action-btn--catalog:hover { background: #bfae8d; border-color: rgba(121,90,57,0.52); color: #5f4b3a; }
+        .hdak-action-btn--secondary { background: transparent; border-color: rgba(121,90,57,0.28); color: #795a39; box-shadow: none; font-size: 11px; }
+        .hdak-action-btn--secondary:hover { background: transparent; border-color: #795a39; color: #5c3a1e; text-decoration: underline; }
+        .hdak-followup-chip { height: 30px; padding: 0 12px; background: transparent; border: 1px solid rgba(121,90,57,0.34); border-radius: 20px; color: #795a39; font-size: 12px; cursor: pointer; font-family: 'DM Sans', system-ui, sans-serif; transition: all 0.15s; display: inline-flex; align-items: center; white-space: nowrap; max-width: fit-content; animation: chipIn 0.2s ease both; }
+        .hdak-followup-chip:hover { border-color: #795a39; color: #5c3a1e; background: rgba(121,90,57,0.06); }
         .hdak-ctx-btn { height: 32px; padding: 0 14px; background: #ffffff; border: 1px solid #e0d5c5; border-radius: 20px; color: #5f4b3a; font-size: 13px; cursor: pointer; font-family: 'DM Sans', system-ui, sans-serif; transition: all 0.15s; display: inline-flex; align-items: center; gap: 5px; animation: ctxIn 0.3s ease both; }
         .hdak-ctx-btn:hover { background: #5c3a1e; border-color: #5c3a1e; color: #ffffff; }
         .hdak-ctx-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(92,58,30,0.25); }
@@ -1178,7 +1193,17 @@ export default function Home() {
           background-size: 200% 100%;
           animation: skeletonPulse 0.9s ease-in-out infinite;
         }
+        .hdak-shimmer-bar {
+          position: absolute;
+          top: 0; left: 0; right: 0;
+          height: 2px;
+          border-radius: 2px 2px 0 0;
+          background: linear-gradient(90deg, transparent 0%, #a85f2e 50%, transparent 100%);
+          background-size: 200% 100%;
+          animation: shimmerSlide 1.2s linear infinite;
+        }
         @media (max-width: 480px) { .tb-label { display: none; } }
+        @media (max-width: 640px) { .hdak-input-hint { display: none; } }
       `}</style>
 
       <div className="hdak-body">
@@ -1749,20 +1774,18 @@ export default function Home() {
             >
               <div
                 style={{
-                  width: 64,
-                  height: 64,
-                  background: "#ddd3c4",
-                  border: "1px solid rgba(191,174,141,0.55)",
-                  borderRadius: 16,
+                  width: 40,
+                  height: 40,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: 30,
-                  marginBottom: 22,
-                  animation: "breathe 4s ease-in-out infinite",
+                  marginBottom: 18,
                 }}
               >
-                📖
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#795a39" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                  <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                </svg>
               </div>
               <h1
                 className="hdak-serif"
@@ -1770,11 +1793,21 @@ export default function Home() {
                   fontSize: 26,
                   fontWeight: 600,
                   color: "#5f4b3a",
-                  marginBottom: 10,
+                  marginBottom: 6,
                 }}
               >
                 {t.overviewGreeting}
               </h1>
+              <p
+                style={{
+                  fontSize: 13,
+                  color: "#9e8060",
+                  fontStyle: "italic",
+                  marginBottom: 6,
+                }}
+              >
+                {t.emptyStateTagline}
+              </p>
               <p
                 style={{
                   fontSize: 13,
@@ -1988,7 +2021,7 @@ export default function Home() {
                     ? String(msg.id)
                     : `${messageIndex}-${sourceBadgeType}`;
                 const followUpPrompts =
-                  !isUser && instantAnswerMeta
+                  !isUser && isLastAssistant && instantAnswerMeta
                     ? (instantAnswerMeta.suggestedFollowUps?.length
                         ? instantAnswerMeta.suggestedFollowUps
                         : QUICK_PROMPTS[language]
@@ -2000,7 +2033,7 @@ export default function Home() {
                               previousUserMessage ?? msg
                             ).toLowerCase()
                         )
-                        .slice(0, 3)
+                        .slice(0, 2)
                     : [];
                 const catalogMatches = !isUser
                   ? (instantAnswerMeta?.catalogMatches ?? [])
@@ -2055,7 +2088,7 @@ export default function Home() {
                         maxWidth: 540,
                       }}
                     >
-                      {/* Bubble */}
+                      {/* Source category badge above bubble */}
                       {!isUser && sourceBadge && (
                         <span
                           className="hdak-source-badge"
@@ -2094,6 +2127,8 @@ export default function Home() {
                           background: "#f5efe6",
                           color: "#2a2018",
                           boxShadow: "0 2px 8px rgba(90,50,20,0.08)",
+                          position: "relative",
+                          overflow: "hidden",
                         }}
                       >
                         {isUser ? (
@@ -2125,6 +2160,31 @@ export default function Home() {
                               </p>
                             ) : (
                               <Markdown>{getMessageText(msg)}</Markdown>
+                            )}
+                            {/* Inline source link at bottom of bubble */}
+                            {sourceLinks.length > 0 && (
+                              <div
+                                aria-label={t.sourcesLabel}
+                                style={{
+                                  textAlign: "right",
+                                  marginTop: 6,
+                                }}
+                              >
+                                <a
+                                  href={sourceLinks[0]}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  aria-label={t.viewSource}
+                                  className="hdak-inline-source"
+                                  style={{
+                                    fontSize: 11,
+                                    color: "#a85f2e",
+                                    textDecoration: "none",
+                                  }}
+                                >
+                                  ↗ {getDomain(sourceLinks[0])}
+                                </a>
+                              </div>
                             )}
                           </div>
                         )}
@@ -2162,30 +2222,6 @@ export default function Home() {
                                   : "🔴"}{" "}
                               {book.status}
                             </span>
-                          ))}
-                        </div>
-                      )}
-                      {!isUser && sourceLinks.length > 0 && (
-                        <div
-                          aria-label={t.sourcesLabel}
-                          style={{ display: "flex", flexWrap: "wrap", gap: 4 }}
-                        >
-                          {sourceLinks.slice(0, 1).map(link => (
-                            <a
-                              key={link}
-                              href={link}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              aria-label={t.viewSource}
-                              style={{
-                                fontSize: 11,
-                                color: "#c4934a",
-                                opacity: 0.7,
-                                textDecoration: "none",
-                              }}
-                            >
-                              ↗ {getDomain(link)}
-                            </a>
                           ))}
                         </div>
                       )}
@@ -2260,22 +2296,18 @@ export default function Home() {
                         <div
                           style={{
                             display: "flex",
-                            flexWrap: "wrap",
+                            flexWrap: "nowrap",
                             gap: 6,
                             alignItems: "center",
+                            overflowX: "auto",
                           }}
                         >
-                          <span style={{ fontSize: 11, color: "#795a39" }}>
-                            {t.followUpLabel}:
-                          </span>
-                          {followUpPrompts.map(prompt => (
+                          {followUpPrompts.map((prompt, pIdx) => (
                             <button
                               key={prompt}
-                              className="hdak-action-btn"
+                              className="hdak-followup-chip"
                               style={{
-                                height: 24,
-                                padding: "0 8px",
-                                fontSize: 11,
+                                animationDelay: `${pIdx * 0.05}s`,
                               }}
                               onClick={() => handleQuickStart(prompt)}
                             >
@@ -2315,7 +2347,7 @@ export default function Home() {
                       {/* Quick actions under last assistant message */}
                       {isLastAssistant && (
                         <div
-                          style={{ display: "flex", flexWrap: "wrap", gap: 6 }}
+                          style={{ display: "flex", flexWrap: "nowrap", gap: 6, alignItems: "center" }}
                         >
                           <CatalogActionButton
                             href={catalogAction?.url ?? OFFICIAL_CATALOG_URL}
@@ -2347,7 +2379,7 @@ export default function Home() {
                                 .writeText(sourceToCopy)
                                 .catch(() => {});
                             }}
-                            className="hdak-action-btn"
+                            className="hdak-action-btn hdak-action-btn--secondary"
                           >
                             📋 {t.actionCopySource}
                           </button>
@@ -2436,31 +2468,13 @@ export default function Home() {
                       borderTopLeftRadius: 3,
                       border: "1px solid rgba(121,90,57,0.28)",
                       background: "#f5efe6",
+                      position: "relative",
+                      overflow: "hidden",
+                      minWidth: 80,
                     }}
                   >
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: 5,
-                        alignItems: "center",
-                        padding: "5px 2px",
-                      }}
-                    >
-                      <div className="hdak-unified-loading" />
-                      {[0, 0.2, 0.4].map((delay, i) => (
-                        <div
-                          key={i}
-                          style={{
-                            width: 7,
-                            height: 7,
-                            borderRadius: "50%",
-                            background: "#a85f2e",
-                            opacity: 0.4,
-                            animation: `dotPulse 1.3s ease-in-out ${delay}s infinite`,
-                          }}
-                        />
-                      ))}
-                    </div>
+                    <div className="hdak-shimmer-bar" />
+                    <div className="hdak-unified-loading" style={{ marginTop: 6 }} />
                   </div>
                 </div>
               )}
@@ -2470,7 +2484,7 @@ export default function Home() {
           )}
 
           {/* ── INPUT BAR ── */}
-          <div style={{ padding: "12px 0 0", flexShrink: 0, paddingBottom: "max(22px, env(safe-area-inset-bottom))" }}>
+          <div style={{ padding: "12px 0 0", flexShrink: 0, paddingBottom: "max(22px, env(safe-area-inset-bottom))", borderTop: "1px solid rgba(121,90,57,0.15)" }}>
             {/* Chips: visible only in empty/welcome state, fade out once chat starts */}
             <div
               style={{
@@ -2645,6 +2659,7 @@ export default function Home() {
               </button>
             </div>
             <div
+              className="hdak-input-hint"
               style={{
                 fontSize: 11,
                 color: "#795a39",
