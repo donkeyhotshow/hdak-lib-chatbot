@@ -1,7 +1,10 @@
 "use client";
 
 import { motion } from "framer-motion";
-import type { CatalogBook, CatalogBookStatus } from "@/lib/server/services/catalogInstantAnswers";
+import type {
+  CatalogBook,
+  CatalogBookStatus,
+} from "@/lib/server/services/catalogInstantAnswers";
 
 const STATUS_BADGE: Record<CatalogBookStatus, string> = {
   доступна: "🟢",
@@ -24,7 +27,11 @@ export type CatalogBookCardProps = {
   onOrder?: (book: CatalogBook) => void;
 };
 
-export function CatalogBookCard({ book, delay = 0, onOrder }: CatalogBookCardProps) {
+export function CatalogBookCard({
+  book,
+  delay = 0,
+  onOrder,
+}: CatalogBookCardProps) {
   const badge = STATUS_BADGE[book.status];
   const label = STATUS_LABEL[book.status];
   const canOrder = book.status !== "відсутня";
@@ -36,11 +43,7 @@ export function CatalogBookCard({ book, delay = 0, onOrder }: CatalogBookCardPro
       transition={{ delay: delay / 1000, duration: 0.25 }}
     >
       <div className="hdak-book-card">
-        <span
-          className="hdak-status-badge"
-          title={label}
-          aria-label={label}
-        >
+        <span className="hdak-status-badge" title={label} aria-label={label}>
           {badge}
         </span>
         <h4 className="hdak-book-title">{book.title}</h4>
