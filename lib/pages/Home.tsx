@@ -2141,23 +2141,11 @@ export default function Home() {
                             !completedTypingIds[responseId] ? (
                               typedMessageText.length > 0 ? (
                                 <div className="typing-message">
-                                  <p
-                                    style={{
-                                      margin: 0,
-                                      whiteSpace: "pre-wrap",
-                                    }}
-                                  >
-                                    {typedMessageText}
-                                  </p>
+                                  <Markdown>{typedMessageText}</Markdown>
                                 </div>
                               ) : (
                                 <div className="typing-skeleton" />
                               )
-                            ) : isStreaming &&
-                              messageIndex === allMessages.length - 1 ? (
-                              <p style={{ margin: 0, whiteSpace: "pre-wrap" }}>
-                                {getMessageText(msg)}
-                              </p>
                             ) : (
                               <Markdown>{getMessageText(msg)}</Markdown>
                             )}
