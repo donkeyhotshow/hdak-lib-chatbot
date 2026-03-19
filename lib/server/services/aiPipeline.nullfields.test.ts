@@ -37,7 +37,14 @@ vi.mock("ai", async importOriginal => {
 });
 
 vi.mock("@ai-sdk/openai", () => ({
-  openai: vi.fn(() => "mock-model"),
+  createOpenAI: vi.fn(() => ({ chat: vi.fn(() => "mock-model") })),
+}));
+
+vi.mock("./llmProviderFactory", () => ({
+  createLLMProvider: vi.fn(() => ({
+    provider: { chat: vi.fn(() => "mock-model") },
+    providerName: "openai-compatible",
+  })),
 }));
 
 // ---------------------------------------------------------------------------

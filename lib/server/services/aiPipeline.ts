@@ -1,5 +1,4 @@
 import { generateText } from "ai";
-import { openai } from "@ai-sdk/openai";
 import NodeCache from "node-cache";
 import type { LibraryResource } from "../../../drizzle/schema";
 import { SECURITY_CONFIG } from "../config/security";
@@ -13,6 +12,7 @@ import {
   officialLibraryInfo,
   officialLibraryResources,
 } from "../system-prompts-official";
+import { createLLMProvider } from "./llmProviderFactory";
 
 /** Maximum time (ms) allowed for a single AI text generation call. */
 const AI_TIMEOUT_MS = 30_000;
@@ -334,8 +334,9 @@ export async function generateConversationReply(
     ];
 
     const startMs = Date.now();
+    const { provider } = createLLMProvider();
     const { text, usage } = await generateText({
-      model: openai(AI_MODEL_NAME),
+      model: provider.chat(AI_MODEL_NAME),
       system: systemPrompt,
       messages: allMessages,
       temperature: AI_TEMPERATURE,
