@@ -211,6 +211,14 @@ function getMessageText(msg: DisplayMessage): string {
   return "";
 }
 
+function stripQuickReplyHeading(text: string): string {
+  return text
+    .replace(/^#{1,3}\s*Швидка відповідь[^\n]*\n*/i, "")
+    .replace(/^\*(\*?)Швидка відповідь\*\1[^\n]*\n*/i, "")
+    .replace(/^Швидка відповідь[^\n]*\n*/i, "")
+    .trimStart();
+}
+
 function extractOfficialSourceLinksFromText(text: string): string[] {
   if (!text) return [];
   const matches = text.match(/https?:\/\/lib-hdak\.in\.ua\/[^\s)]+/g) ?? [];
@@ -2141,13 +2149,13 @@ export default function Home() {
                             !completedTypingIds[responseId] ? (
                               typedMessageText.length > 0 ? (
                                 <div className="typing-message">
-                                  <Markdown>{typedMessageText}</Markdown>
+                                  <Markdown>{stripQuickReplyHeading(typedMessageText)}</Markdown>
                                 </div>
                               ) : (
                                 <div className="typing-skeleton" />
                               )
                             ) : (
-                              <Markdown>{getMessageText(msg)}</Markdown>
+                              <Markdown>{stripQuickReplyHeading(getMessageText(msg))}</Markdown>
                             )}
                             {/* Inline source link at bottom of bubble */}
                             {sourceLinks.length > 0 && (
