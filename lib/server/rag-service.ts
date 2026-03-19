@@ -8,9 +8,11 @@ import {
   InsertDocumentMetadata,
 } from "../../drizzle/schema";
 
-/**
- * RAG Service - Handles PDF processing, chunking, and embedding generation
- */
+/** Intermediate structure used during semantic similarity ranking. */
+interface ScoredChunk {
+  chunk: DocumentChunk;
+  score: number;
+}
 
 // Configuration
 const CHUNK_SIZE = 1000; // characters per chunk
@@ -249,7 +251,7 @@ export async function semanticSearch(
     }
 
     // Calculate similarity scores
-    const scoredChunks = allChunks
+    const scoredChunks: ScoredChunk[] = allChunks
       .map((chunk: DocumentChunk) => {
         const embedding = chunk.embedding as number[] | null;
         if (!embedding || !Array.isArray(embedding)) {
@@ -258,11 +260,11 @@ export async function semanticSearch(
         const score = cosineSimilarity(queryEmbedding, embedding);
         return { chunk, score };
       })
-      .filter((item: any) => item.score >= similarityThreshold)
-      .sort((a: any, b: any) => b.score - a.score)
+      .filter((item: ScoredChunk) => item.score >= similarityThreshold)
+      .sort((a: ScoredChunk, b: ScoredChunk) => b.score - a.score)
       .slice(0, topK);
 
-    return { chunks: scoredChunks.map((item: any) => item.chunk) };
+    return { chunks: scoredChunks.map((item: ScoredChunk) => item.chunk) };
   } catch (error) {
     logger.error("[RAG] Semantic search failed — embedding API unavailable", {
       error: error instanceof Error ? error.message : String(error),
