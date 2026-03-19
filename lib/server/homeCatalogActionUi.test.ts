@@ -21,6 +21,5 @@ describe("Home catalog action button guards", () => {
     expect(homePageContent).toContain("t.actionFindCatalog");
     expect(homePageContent).toContain("<CatalogActionButton");
     expect(homePageContent).toContain("t.actionOrderBook");
-    expect(homePageContent).toContain("t.actionContact");
   });
 });

@@ -1099,15 +1099,18 @@ export default function Home() {
         }
         .hdak-body {
           font-family: 'DM Sans', system-ui, sans-serif;
-          background: #faf8f4;
+          background: #e8e0d5;
           color: #5f4b3a;
           height: 100vh;
+          height: 100dvh;
           overflow: hidden;
           display: flex;
           flex-direction: column;
           font-size: 14px;
           line-height: 1.5;
           position: relative;
+          padding-top: 56px;
+          box-sizing: border-box;
         }
         .hdak-body::before {
           content: '';
@@ -1190,18 +1193,19 @@ export default function Home() {
         {/* ── TOPBAR ── */}
         <header
           style={{
-            position: "sticky",
+            position: "fixed",
             top: 0,
-            zIndex: 50,
+            left: 0,
+            right: 0,
+            zIndex: 200,
             height: 56,
             display: "flex",
             alignItems: "center",
             padding: "0 20px",
             gap: 10,
             borderBottom: "2px solid #5c3a1e",
-            background: "rgba(255,255,255,0.95)",
+            background: "rgba(232,224,213,0.97)",
             backdropFilter: "blur(8px)",
-            flexShrink: 0,
           }}
         >
           {/* History button */}
@@ -1747,7 +1751,7 @@ export default function Home() {
                 style={{
                   width: 64,
                   height: 64,
-                  background: "#f3ece1",
+                  background: "#ddd3c4",
                   border: "1px solid rgba(191,174,141,0.55)",
                   borderRadius: 16,
                   display: "flex",
@@ -1861,11 +1865,11 @@ export default function Home() {
                     className="hdak-chip"
                     onClick={() => handleQuickStart(chip.text)}
                     style={{
-                      padding: "8px 16px",
+                      padding: "6px 10px",
                       background: "#f9f5ee",
                       border: "1px solid rgba(121,90,57,0.28)",
-                      borderRadius: 22,
-                      fontSize: 12,
+                      borderRadius: 18,
+                      fontSize: 11,
                       color: "#795a39",
                       cursor: "pointer",
                       transition: "all 0.2s",
@@ -2083,11 +2087,11 @@ export default function Home() {
                         } : {
                           padding: "11px 15px",
                           borderRadius: "4px 16px 16px 16px",
-                          border: "1px solid #e8ddd0",
+                          border: "1px solid #d9cfc0",
                           borderLeft: "3px solid #8b5e3c",
                           fontSize: 14,
                           lineHeight: 1.6,
-                          background: "#ffffff",
+                          background: "#f5efe6",
                           color: "#2a2018",
                           boxShadow: "0 2px 8px rgba(90,50,20,0.08)",
                         }}
@@ -2114,6 +2118,11 @@ export default function Home() {
                               ) : (
                                 <div className="typing-skeleton" />
                               )
+                            ) : isStreaming &&
+                              messageIndex === allMessages.length - 1 ? (
+                              <p style={{ margin: 0, whiteSpace: "pre-wrap" }}>
+                                {getMessageText(msg)}
+                              </p>
                             ) : (
                               <Markdown>{getMessageText(msg)}</Markdown>
                             )}
@@ -2326,22 +2335,6 @@ export default function Home() {
                               </button>
                             </a>
                           )}
-                          <a
-                            href={`mailto:${LIBRARY_EMAIL}`}
-                            rel="noopener noreferrer"
-                          >
-                            <button className="hdak-action-btn">
-                              📞 {t.actionContact}
-                            </button>
-                          </a>
-                          <a
-                            href={`mailto:${LIBRARY_EMAIL}`}
-                            rel="noopener noreferrer"
-                          >
-                            <button className="hdak-action-btn">
-                              ✉️ {t.actionWriteLetter}
-                            </button>
-                          </a>
                           <button
                             onClick={() => {
                               const contacts = extractContactsFromText(
@@ -2357,31 +2350,6 @@ export default function Home() {
                             className="hdak-action-btn"
                           >
                             📋 {t.actionCopySource}
-                          </button>
-                          <button
-                            onClick={() => {
-                              const text = getMessageText(msg);
-                              if (navigator.share) {
-                                navigator
-                                  .share({
-                                    title: "HDAK Library",
-                                    text,
-                                    url: window.location.href,
-                                  })
-                                  .catch(() =>
-                                    navigator.clipboard
-                                      .writeText(text)
-                                      .catch(() => {})
-                                  );
-                              } else {
-                                navigator.clipboard
-                                  .writeText(text)
-                                  .catch(() => {});
-                              }
-                            }}
-                            className="hdak-action-btn"
-                          >
-                            🔗 {t.actionShare}
                           </button>
                         </div>
                       )}
@@ -2456,7 +2424,7 @@ export default function Home() {
                       fontSize: 14,
                       marginTop: 2,
                       border: "1px solid rgba(121,90,57,0.28)",
-                      background: "#f3ece1",
+                      background: "#ede5d8",
                     }}
                   >
                     📚
@@ -2467,7 +2435,7 @@ export default function Home() {
                       borderRadius: 13,
                       borderTopLeftRadius: 3,
                       border: "1px solid rgba(121,90,57,0.28)",
-                      background: "#f9f5ee",
+                      background: "#f5efe6",
                     }}
                   >
                     <div
@@ -2507,9 +2475,9 @@ export default function Home() {
             <div
               style={{
                 overflow: "hidden",
-                maxHeight: showEmpty ? "80px" : "0",
+                maxHeight: showEmpty ? "60px" : "0",
                 opacity: showEmpty ? 1 : 0,
-                marginBottom: showEmpty ? "10px" : "0",
+                marginBottom: showEmpty ? "8px" : "0",
                 transition:
                   "max-height 0.35s ease, opacity 0.3s ease, margin-bottom 0.3s ease",
               }}
@@ -2521,11 +2489,11 @@ export default function Home() {
                     className="hdak-chip"
                     onClick={() => handleQuickStart(chip.text)}
                     style={{
-                      padding: "7px 12px",
+                      padding: "5px 10px",
                       background: "#f9f5ee",
                       border: "1px solid rgba(121,90,57,0.28)",
-                      borderRadius: 18,
-                      fontSize: 12,
+                      borderRadius: 16,
+                      fontSize: 11,
                       color: "#795a39",
                       cursor: "pointer",
                       transition: "all 0.2s",
@@ -2589,8 +2557,8 @@ export default function Home() {
                 display: "flex",
                 alignItems: "flex-end",
                 gap: 8,
-                background: "#ffffff",
-                border: "1.5px solid #d4c4a8",
+                background: "#f5efe6",
+                border: "1.5px solid #c8b898",
                 borderRadius: 16,
                 padding: "8px 8px 8px 14px",
                 transition: "border-color 0.2s, box-shadow 0.2s",

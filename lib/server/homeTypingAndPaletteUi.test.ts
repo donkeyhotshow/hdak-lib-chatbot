@@ -35,14 +35,14 @@ describe("Home typing animation and brown palette guards", () => {
     expect(homePageContent).toContain("#bfae8d");
     expect(homePageContent).toContain("#5f4b3a");
     expect(homePageContent).toContain("#a85f2e");
-    expect(homePageContent).toContain("#faf8f4");
+    expect(homePageContent).toContain("#e8e0d5");
     expect(homePageContent).toContain("#f9f5ee");
   });
 
   it("defines matching global css variables for palette and contrast", () => {
     expect(globalCssContent).toContain("--primary-brown: #795a39;");
     expect(globalCssContent).toContain("--dark-brown: #5f4b3a;");
-    expect(globalCssContent).toContain("--bg-parchment: #faf8f4;");
+    expect(globalCssContent).toContain("--bg-parchment: #e8e0d5;");
     expect(globalCssContent).toContain("--card-bg: #f9f5ee;");
   });
 });
