@@ -42,6 +42,7 @@ export default defineConfig({
         "lib/server/_core/map.ts",
         "lib/server/_core/notification.ts",
         "lib/server/_core/patchedFetch.ts",
+        "lib/server/_core/sdk.ts",
         "lib/server/_core/voiceTranscription.ts",
         "lib/server/storage.ts",
         "lib/server/controllers/chatController.ts",
