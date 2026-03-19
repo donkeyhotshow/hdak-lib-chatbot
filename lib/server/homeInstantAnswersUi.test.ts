@@ -9,7 +9,7 @@ describe("Home instant answers UX guards", () => {
 
   it("renders quick prompt chips from shared instant answers list", () => {
     expect(homePageContent).toContain("QUICK_PROMPTS[language]");
-    expect(homePageContent).toContain("slice(0, 4).map");
+    expect(homePageContent).toContain("slice(0, 3).map");
     expect(homePageContent).toContain("chips.map(chip =>");
   });
 
