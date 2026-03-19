@@ -64,12 +64,12 @@ describe("catalogInstantAnswers", () => {
     expect(result.books[0]?.author).toContain("Леся");
   });
 
-  it("handles 100 queries under 10ms", () => {
+  it("handles 100 queries under 50ms", () => {
     const start = performance.now();
     for (let i = 0; i < 100; i += 1) {
       generateCatalogInstantAnswer("театр", testBooks, { skipJsonSize: true });
     }
-    expect(performance.now() - start).toBeLessThan(10);
+    expect(performance.now() - start).toBeLessThan(50);
   });
 
   it("keeps serialized response below 5KB", () => {

@@ -2178,7 +2178,9 @@ export default function Home() {
                             !completedTypingIds[responseId] ? (
                               typedMessageText.length > 0 ? (
                                 <div className="typing-message">
-                                  <Markdown>{typedMessageText}</Markdown>
+                                  <Markdown>
+                                    {stripQuickReplyHeading(typedMessageText)}
+                                  </Markdown>
                                 </div>
                               ) : (
                                 <div className="typing-skeleton" />
