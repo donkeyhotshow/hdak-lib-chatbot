@@ -45,10 +45,10 @@ type LocalConversation = {
 
 const CHAT_TITLE_MAX_LENGTH = 50;
 const SEND_DEBOUNCE_MS = 350;
-const TYPING_BASE_DELAY_MS = 40;
-const TYPING_DELAY_VARIANCE_MS = 20;
-const TYPING_PUNCTUATION_PAUSE_MS = 120;
-const TYPING_MIN_DELAY_MS = 12;
+const TYPING_BASE_DELAY_MS = 20;
+const TYPING_DELAY_VARIANCE_MS = 10;
+const TYPING_PUNCTUATION_PAUSE_MS = 60;
+const TYPING_MIN_DELAY_MS = 6;
 const TYPING_FAST_THRESHOLD_CHARS = 700;
 const TYPING_MEDIUM_THRESHOLD_CHARS = 350;
 const TYPING_PUNCTUATION_REGEX = /[.!?;:,]/;
@@ -724,7 +724,7 @@ export default function Home() {
       typingTimeoutRef.current = null;
     }
 
-    const fullText = getMessageText(lastMessage);
+    const fullText = stripQuickReplyHeading(getMessageText(lastMessage));
     setTypingMessageId(responseId);
     setTypedMessageText("");
 
@@ -1114,6 +1114,10 @@ export default function Home() {
         @keyframes skeletonPulse {
           0%, 100% { opacity: 0.45; }
           50% { opacity: 0.9; }
+        }
+        @keyframes actionsIn {
+          from { opacity:0; transform:translateY(8px); }
+          to   { opacity:1; transform:translateY(0); }
         }
         .hdak-body {
           font-family: 'DM Sans', system-ui, sans-serif;
@@ -2028,6 +2032,7 @@ export default function Home() {
                   "id" in msg && typeof msg.id !== "undefined"
                     ? String(msg.id)
                     : `${messageIndex}-${sourceBadgeType}`;
+                const isCurrentlyTyping = typingMessageId === responseId;
                 const followUpPrompts =
                   !isUser && isLastAssistant && instantAnswerMeta
                     ? (instantAnswerMeta.suggestedFollowUps?.length
@@ -2149,7 +2154,7 @@ export default function Home() {
                             !completedTypingIds[responseId] ? (
                               typedMessageText.length > 0 ? (
                                 <div className="typing-message">
-                                  <Markdown>{stripQuickReplyHeading(typedMessageText)}</Markdown>
+                                  <Markdown>{typedMessageText}</Markdown>
                                 </div>
                               ) : (
                                 <div className="typing-skeleton" />
@@ -2185,251 +2190,257 @@ export default function Home() {
                           </div>
                         )}
                       </div>
-                      {!isUser && catalogMatches.length > 0 && (
+                      {!isStreaming && !isCurrentlyTyping && isLastAssistant && (
                         <div
                           style={{
                             display: "flex",
-                            flexWrap: "wrap",
+                            flexDirection: "column",
                             gap: 6,
-                            alignItems: "center",
-                            fontSize: 11,
-                            color: "#795a39",
+                            animation: "actionsIn 0.35s ease both",
                           }}
                         >
-                          {catalogMatches.slice(0, 3).map(book => (
-                            <span
-                              key={`${book.author}-${book.title}`}
-                              className="hdak-source-badge"
-                              style={{
-                                fontSize: 11,
-                                background:
-                                  book.status === "доступна"
-                                    ? "#e7f4ea"
-                                    : book.status === "замовлена"
-                                      ? "#fff8df"
-                                      : "#f3ece1",
-                                borderColor: "rgba(121,90,57,0.28)",
-                              }}
-                            >
-                              {book.status === "доступна"
-                                ? "🟢"
-                                : book.status === "замовлена"
-                                  ? "🟡"
-                                  : "🔴"}{" "}
-                              {book.status}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                      {!isUser && (
-                        <div
-                          className="hdak-feedback-row"
-                        >
-                          <button
-                            className="hdak-feedback-btn"
-                            title={t.feedbackUp}
-                            aria-label={t.feedbackUp}
-                            onClick={() =>
-                              saveFeedback(
-                                responseId,
-                                sourceBadgeType,
-                                getMessageText(previousUserMessage ?? msg),
-                                "up"
-                              )
-                            }
-                            style={{
-                              fontSize: 13,
-                              opacity:
-                                feedbackByResponseId[responseId] === "up"
-                                  ? 1
-                                  : 0.4,
-                              background: "none",
-                              border: "none",
-                              cursor: "pointer",
-                              padding: "2px 4px",
-                              lineHeight: 1,
-                              transition: "opacity 0.15s",
-                            }}
-                          >
-                            👍
-                          </button>
-                          <button
-                            className="hdak-feedback-btn"
-                            title={t.feedbackDown}
-                            aria-label={t.feedbackDown}
-                            onClick={() =>
-                              saveFeedback(
-                                responseId,
-                                sourceBadgeType,
-                                getMessageText(previousUserMessage ?? msg),
-                                "down"
-                              )
-                            }
-                            style={{
-                              fontSize: 13,
-                              opacity:
-                                feedbackByResponseId[responseId] === "down"
-                                  ? 1
-                                  : 0.4,
-                              background: "none",
-                              border: "none",
-                              cursor: "pointer",
-                              padding: "2px 4px",
-                              lineHeight: 1,
-                              transition: "opacity 0.15s",
-                            }}
-                          >
-                            👎
-                          </button>
-                          {feedbackByResponseId[responseId] && (
-                            <span style={{ fontSize: 11, color: "#795a39" }}>
-                              {t.feedbackSaved}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                      {!isUser && followUpPrompts.length > 0 && (
-                        <div
-                          style={{
-                            display: "flex",
-                            flexWrap: "nowrap",
-                            gap: 6,
-                            alignItems: "center",
-                            overflowX: "auto",
-                          }}
-                        >
-                          {followUpPrompts.map((prompt, pIdx) => (
-                            <button
-                              key={prompt}
-                              className="hdak-followup-chip"
-                              style={{
-                                animationDelay: `${pIdx * 0.05}s`,
-                              }}
-                              onClick={() => handleQuickStart(prompt)}
-                            >
-                              {prompt}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                      {!isUser && smartResultChips.length > 0 && (
-                        <div
-                          style={{
-                            display: "flex",
-                            flexWrap: "wrap",
-                            gap: 6,
-                            alignItems: "center",
-                          }}
-                        >
-                          {smartResultChips.map(chip => (
-                            <span
-                              key={chip}
-                              className="hdak-action-btn"
-                              style={{
-                                height: 24,
-                                padding: "0 8px",
-                                fontSize: 11,
-                                display: "inline-flex",
-                                alignItems: "center",
-                                background: "#f3ece1",
-                              }}
-                            >
-                              {chip}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Quick actions under last assistant message */}
-                      {isLastAssistant && (
-                        <div
-                          style={{ display: "flex", flexWrap: "nowrap", gap: 6, alignItems: "center" }}
-                        >
-                          <CatalogActionButton
-                            href={catalogAction?.url ?? OFFICIAL_CATALOG_URL}
-                            label={
-                              catalogAction?.buttonLabel ?? t.actionFindCatalog
-                            }
-                            emphasized={Boolean(catalogAction)}
-                          />
                           {catalogMatches.length > 0 && (
-                            <a
-                              href={OFFICIAL_CATALOG_URL}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                            <div
+                              style={{
+                                display: "flex",
+                                flexWrap: "wrap",
+                                gap: 6,
+                                alignItems: "center",
+                                fontSize: 11,
+                                color: "#795a39",
+                              }}
                             >
-                              <button className="hdak-action-btn">
-                                📖 {t.actionOrderBook}
-                              </button>
-                            </a>
+                              {catalogMatches.slice(0, 3).map(book => (
+                                <span
+                                  key={`${book.author}-${book.title}`}
+                                  className="hdak-source-badge"
+                                  style={{
+                                    fontSize: 11,
+                                    background:
+                                      book.status === "доступна"
+                                        ? "#e7f4ea"
+                                        : book.status === "замовлена"
+                                          ? "#fff8df"
+                                          : "#f3ece1",
+                                    borderColor: "rgba(121,90,57,0.28)",
+                                  }}
+                                >
+                                  {book.status === "доступна"
+                                    ? "🟢"
+                                    : book.status === "замовлена"
+                                      ? "🟡"
+                                      : "🔴"}{" "}
+                                  {book.status}
+                                </span>
+                              ))}
+                            </div>
                           )}
-                          <button
-                            onClick={() => {
-                              const contacts = extractContactsFromText(
-                                getMessageText(msg)
-                              );
-                              const sourceToCopy = contacts.length
-                                ? contacts.join("\n")
-                                : (sourceLinks[0] ?? OFFICIAL_CATALOG_URL);
-                              navigator.clipboard
-                                .writeText(sourceToCopy)
-                                .catch(() => {});
-                            }}
-                            className="hdak-action-btn hdak-action-btn--secondary"
+                          <div
+                            className="hdak-feedback-row"
                           >
-                            📋 {t.actionCopySource}
-                          </button>
-                        </div>
-                      )}
-                      {contextActions.length > 0 && (
-                        <div
-                          style={{
-                            display: "flex",
-                            flexWrap: "wrap",
-                            gap: 6,
-                            marginTop: 4,
-                          }}
-                        >
-                          {contextActions.map((ca, ci) => (
                             <button
-                              key={ci}
-                              className="hdak-ctx-btn"
+                              className="hdak-feedback-btn"
+                              title={t.feedbackUp}
+                              aria-label={t.feedbackUp}
+                              onClick={() =>
+                                saveFeedback(
+                                  responseId,
+                                  sourceBadgeType,
+                                  getMessageText(previousUserMessage ?? msg),
+                                  "up"
+                                )
+                              }
+                              style={{
+                                fontSize: 13,
+                                opacity:
+                                  feedbackByResponseId[responseId] === "up"
+                                    ? 1
+                                    : 0.4,
+                                background: "none",
+                                border: "none",
+                                cursor: "pointer",
+                                padding: "2px 4px",
+                                lineHeight: 1,
+                                transition: "opacity 0.15s",
+                              }}
+                            >
+                              👍
+                            </button>
+                            <button
+                              className="hdak-feedback-btn"
+                              title={t.feedbackDown}
+                              aria-label={t.feedbackDown}
+                              onClick={() =>
+                                saveFeedback(
+                                  responseId,
+                                  sourceBadgeType,
+                                  getMessageText(previousUserMessage ?? msg),
+                                  "down"
+                                )
+                              }
+                              style={{
+                                fontSize: 13,
+                                opacity:
+                                  feedbackByResponseId[responseId] === "down"
+                                    ? 1
+                                    : 0.4,
+                                background: "none",
+                                border: "none",
+                                cursor: "pointer",
+                                padding: "2px 4px",
+                                lineHeight: 1,
+                                transition: "opacity 0.15s",
+                              }}
+                            >
+                              👎
+                            </button>
+                            {feedbackByResponseId[responseId] && (
+                              <span style={{ fontSize: 11, color: "#795a39" }}>
+                                {t.feedbackSaved}
+                              </span>
+                            )}
+                          </div>
+                          {followUpPrompts.length > 0 && (
+                            <div
+                              style={{
+                                display: "flex",
+                                flexWrap: "nowrap",
+                                gap: 6,
+                                alignItems: "center",
+                                overflowX: "auto",
+                              }}
+                            >
+                              {followUpPrompts.map((prompt, pIdx) => (
+                                <button
+                                  key={prompt}
+                                  className="hdak-followup-chip"
+                                  style={{
+                                    animationDelay: `${pIdx * 0.05}s`,
+                                  }}
+                                  onClick={() => handleQuickStart(prompt)}
+                                >
+                                  {prompt}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                          {smartResultChips.length > 0 && (
+                            <div
+                              style={{
+                                display: "flex",
+                                flexWrap: "wrap",
+                                gap: 6,
+                                alignItems: "center",
+                              }}
+                            >
+                              {smartResultChips.map(chip => (
+                                <span
+                                  key={chip}
+                                  className="hdak-action-btn"
+                                  style={{
+                                    height: 24,
+                                    padding: "0 8px",
+                                    fontSize: 11,
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    background: "#f3ece1",
+                                  }}
+                                >
+                                  {chip}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          {/* Quick actions under last assistant message */}
+                          <div
+                            style={{ display: "flex", flexWrap: "nowrap", gap: 6, alignItems: "center" }}
+                          >
+                            <CatalogActionButton
+                              href={catalogAction?.url ?? OFFICIAL_CATALOG_URL}
+                              label={
+                                catalogAction?.buttonLabel ?? t.actionFindCatalog
+                              }
+                              emphasized={Boolean(catalogAction)}
+                            />
+                            {catalogMatches.length > 0 && (
+                              <a
+                                href={OFFICIAL_CATALOG_URL}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                <button className="hdak-action-btn">
+                                  📖 {t.actionOrderBook}
+                                </button>
+                              </a>
+                            )}
+                            <button
                               onClick={() => {
-                                if (ca.action === "clear") {
-                                  handleNewChat();
-                                } else if (ca.action === "share") {
-                                  const text = getMessageText(msg);
-                                  if (navigator.share) {
-                                    navigator
-                                      .share({
-                                        title: "HDAK Library",
-                                        text,
-                                        url: window.location.href,
-                                      })
-                                      .catch(() =>
+                                const contacts = extractContactsFromText(
+                                  getMessageText(msg)
+                                );
+                                const sourceToCopy = contacts.length
+                                  ? contacts.join("\n")
+                                  : (sourceLinks[0] ?? OFFICIAL_CATALOG_URL);
+                                navigator.clipboard
+                                  .writeText(sourceToCopy)
+                                  .catch(() => {});
+                              }}
+                              className="hdak-action-btn hdak-action-btn--secondary"
+                            >
+                              📋 {t.actionCopySource}
+                            </button>
+                          </div>
+                          {contextActions.length > 0 && (
+                            <div
+                              style={{
+                                display: "flex",
+                                flexWrap: "wrap",
+                                gap: 6,
+                                marginTop: 4,
+                              }}
+                            >
+                              {contextActions.map((ca, ci) => (
+                                <button
+                                  key={ci}
+                                  className="hdak-ctx-btn"
+                                  onClick={() => {
+                                    if (ca.action === "clear") {
+                                      handleNewChat();
+                                    } else if (ca.action === "share") {
+                                      const text = getMessageText(msg);
+                                      if (navigator.share) {
+                                        navigator
+                                          .share({
+                                            title: "HDAK Library",
+                                            text,
+                                            url: window.location.href,
+                                          })
+                                          .catch(() =>
+                                            navigator.clipboard
+                                              .writeText(text)
+                                              .catch(() => {})
+                                          );
+                                      } else {
                                         navigator.clipboard
                                           .writeText(text)
-                                          .catch(() => {})
-                                      );
-                                  } else {
-                                    navigator.clipboard
-                                      .writeText(text)
-                                      .catch(() => {});
-                                  }
-                                } else if (ca.action === "copy") {
-                                  navigator.clipboard
-                                    .writeText(
-                                      sourceLinks[0] ?? OFFICIAL_CATALOG_URL
-                                    )
-                                    .catch(() => {});
-                                } else if (ca.q) {
-                                  handleQuickStart(ca.q);
-                                }
-                              }}
-                            >
-                              {ca.icon} {ca.label}
-                            </button>
-                          ))}
+                                          .catch(() => {});
+                                      }
+                                    } else if (ca.action === "copy") {
+                                      navigator.clipboard
+                                        .writeText(
+                                          sourceLinks[0] ?? OFFICIAL_CATALOG_URL
+                                        )
+                                        .catch(() => {});
+                                    } else if (ca.q) {
+                                      handleQuickStart(ca.q);
+                                    }
+                                  }}
+                                >
+                                  {ca.icon} {ca.label}
+                                </button>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
