@@ -1,5 +1,5 @@
 // REDESIGNED
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback, memo } from "react";
 import { useChat } from "@ai-sdk/react";
 import type { UIMessage } from "ai";
 import { DefaultChatTransport } from "ai";
@@ -243,6 +243,45 @@ function createLocalUiMessage(
   };
 }
 
+type CatalogBook = {
+  title: string;
+  author: string;
+  year: string;
+  url: string;
+};
+
+type CatalogResult = {
+  ok: boolean;
+  results: CatalogBook[];
+  search_url: string;
+  fallback?: { label: string; url: string }[];
+};
+
+function getCatalogResultFromParts(msg: DisplayMessage): CatalogResult | null {
+  if (!("parts" in msg) || !Array.isArray(msg.parts)) return null;
+  for (const part of msg.parts) {
+    if (
+      part !== null &&
+      typeof part === "object" &&
+      (part as { type?: string }).type === "tool-invocation"
+    ) {
+      const ti = (
+        part as {
+          toolInvocation?: {
+            toolName?: string;
+            state?: string;
+            result?: unknown;
+          };
+        }
+      ).toolInvocation;
+      if (ti?.toolName === "searchCatalog" && ti.state === "result") {
+        return ti.result as CatalogResult;
+      }
+    }
+  }
+  return null;
+}
+
 export const RESOURCES = [
   {
     group: 1,
@@ -350,6 +389,587 @@ function formatTime(date: Date | string | null | undefined): string {
   if (diff < 172800000) return "Вчора";
   return d.toLocaleDateString("uk-UA", { day: "numeric", month: "short" });
 }
+
+type SourceBadgeType =
+  | "quick"
+  | "catalog"
+  | "official-rule"
+  | "generated"
+  | "llm-fallback"
+  | "unknown";
+
+type MessageItemProps = {
+  msg: DisplayMessage;
+  idx: number;
+  visibleMessageStartIndex: number;
+  allMessages: DisplayMessage[];
+  isStreaming: boolean;
+  typingMessageId: string | null;
+  typedMessageText: string;
+  completedTypingIds: Record<string, true>;
+  feedbackByResponseId: Record<string, ChatFeedbackValue>;
+  language: Language;
+  runtimeKnowledgeTopics: LibraryKnowledgeTopic[] | undefined;
+  t: Record<string, string>;
+  saveFeedback: (
+    responseId: string,
+    sourceBadge: SourceBadgeType,
+    userQuery: string,
+    value: ChatFeedbackValue
+  ) => void;
+  handleQuickStart: (prompt: string) => void;
+  handleNewChat: () => void;
+};
+
+const MessageItem = memo(function MessageItem({
+  msg,
+  idx,
+  visibleMessageStartIndex,
+  allMessages,
+  isStreaming,
+  typingMessageId,
+  typedMessageText,
+  completedTypingIds,
+  feedbackByResponseId,
+  language,
+  runtimeKnowledgeTopics,
+  t,
+  saveFeedback,
+  handleQuickStart,
+  handleNewChat,
+}: MessageItemProps) {
+  const messageIndex = visibleMessageStartIndex + idx;
+  const isUser = msg.role === "user";
+  const isLastAssistant =
+    msg.role === "assistant" &&
+    messageIndex === allMessages.length - 1 &&
+    !isStreaming;
+  const previousUserMessage = !isUser
+    ? [...allMessages]
+        .slice(0, messageIndex)
+        .reverse()
+        .find(prevMessage => prevMessage.role === "user")
+    : null;
+  const catalogAction =
+    isLastAssistant && previousUserMessage
+      ? getCatalogIntentAction(getMessageText(previousUserMessage), language)
+      : null;
+  const instantAnswerMeta =
+    !isUser && previousUserMessage
+      ? getInstantAnswer(getMessageText(previousUserMessage), language, {
+          knowledgeTopics: runtimeKnowledgeTopics,
+        })
+      : null;
+  const knowledgeTopic =
+    !isUser && previousUserMessage
+      ? runtimeKnowledgeTopics
+        ? findLibraryKnowledgeTopicInTopics(
+            getMessageText(previousUserMessage),
+            runtimeKnowledgeTopics
+          )
+        : findLibraryKnowledgeTopic(getMessageText(previousUserMessage))
+      : null;
+  const extractedOfficialLinks = isUser
+    ? []
+    : extractOfficialSourceLinksFromText(getMessageText(msg));
+  const sourceBadge = isUser
+    ? null
+    : instantAnswerMeta?.sourceBadge === "official-rule"
+      ? t.badgeOfficialRule
+      : instantAnswerMeta?.sourceBadge === "catalog"
+        ? t.badgeCatalog
+        : instantAnswerMeta
+          ? t.badgeQuick
+          : knowledgeTopic
+            ? t.badgeGenerated
+            : extractedOfficialLinks.length > 0
+              ? t.badgeGenerated
+              : null;
+  const sourceBadgeType: SourceBadgeType = isUser
+    ? "unknown"
+    : instantAnswerMeta?.sourceBadge === "official-rule"
+      ? "official-rule"
+      : instantAnswerMeta?.sourceBadge === "catalog"
+        ? "catalog"
+        : instantAnswerMeta?.sourceBadge === "quick"
+          ? "quick"
+          : knowledgeTopic
+            ? "generated"
+            : extractedOfficialLinks.length > 0
+              ? "generated"
+              : "llm-fallback";
+  const sourceLinks = isUser
+    ? []
+    : (instantAnswerMeta?.links ??
+      knowledgeTopic?.sourceUrls ??
+      extractedOfficialLinks);
+  const responseId =
+    "id" in msg && typeof msg.id !== "undefined"
+      ? String(msg.id)
+      : `${messageIndex}-${sourceBadgeType}`;
+  const isCurrentlyTyping = typingMessageId === responseId;
+  const followUpPrompts =
+    !isUser && isLastAssistant && instantAnswerMeta
+      ? (instantAnswerMeta.suggestedFollowUps?.length
+          ? instantAnswerMeta.suggestedFollowUps
+          : QUICK_PROMPTS[language]
+        )
+          .filter(
+            prompt =>
+              prompt.toLowerCase() !==
+              getMessageText(previousUserMessage ?? msg).toLowerCase()
+          )
+          .slice(0, 2)
+      : [];
+  const catalogMatches = !isUser
+    ? (instantAnswerMeta?.catalogMatches ?? [])
+    : [];
+  const smartResultChips = !isUser ? (instantAnswerMeta?.smartChips ?? []) : [];
+  const contextActions = isLastAssistant
+    ? getContextActions(knowledgeTopic?.id)
+    : [];
+  const catalogResult = !isUser ? getCatalogResultFromParts(msg) : null;
+
+  return (
+    <div
+      className="hdak-msg-outer"
+      style={{
+        display: "flex",
+        gap: 10,
+        flexDirection: isUser ? "row-reverse" : "row",
+        animation: "msgIn 0.3s ease both",
+      }}
+    >
+      {/* Avatar */}
+      <div
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: "50%",
+          flexShrink: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 14,
+          marginTop: 2,
+          background: isUser ? "#c4934a" : "#f3ece1",
+          border: isUser ? "none" : "1px solid rgba(121,90,57,0.28)",
+          color: isUser ? "#ffffff" : "inherit",
+        }}
+      >
+        {isUser ? "👤" : "📚"}
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 6,
+          maxWidth: 540,
+        }}
+      >
+        {/* Source category badge above bubble */}
+        {!isUser && sourceBadge && (
+          <span
+            className="hdak-source-badge"
+            style={{
+              alignSelf: "flex-start",
+              fontSize: 11,
+              color: "#a85f2e",
+              background: "#f3ece1",
+              border: "1px solid rgba(121,90,57,0.34)",
+              borderRadius: 999,
+              padding: "2px 8px",
+              lineHeight: 1.4,
+            }}
+          >
+            {sourceBadge}
+          </span>
+        )}
+        <div
+          className="hdak-bubble"
+          style={
+            isUser
+              ? {
+                  padding: "11px 15px",
+                  borderRadius: "16px 4px 16px 16px",
+                  border: "1px solid rgba(92,58,30,0.4)",
+                  fontSize: 14,
+                  lineHeight: 1.7,
+                  background: "#5c3a1e",
+                  color: "#ffffff",
+                  maxWidth: "78%",
+                }
+              : {
+                  padding: "11px 15px",
+                  borderRadius: "4px 16px 16px 16px",
+                  border: "1px solid #d9cfc0",
+                  borderLeft: "3px solid #8b5e3c",
+                  fontSize: 14,
+                  lineHeight: 1.6,
+                  background: "#f5efe6",
+                  color: "#2a2018",
+                  boxShadow: "0 2px 8px rgba(90,50,20,0.08)",
+                  position: "relative",
+                  overflow: "hidden",
+                }
+          }
+        >
+          {isUser ? (
+            <p style={{ whiteSpace: "pre-wrap", margin: 0 }}>
+              {getMessageText(msg)}
+            </p>
+          ) : (
+            <div style={{ fontSize: 14 }}>
+              {typingMessageId === responseId &&
+              !completedTypingIds[responseId] ? (
+                typedMessageText.length > 0 ? (
+                  <div className="typing-message">
+                    <Markdown>
+                      {stripQuickReplyHeading(typedMessageText)}
+                    </Markdown>
+                  </div>
+                ) : (
+                  <div className="typing-skeleton" />
+                )
+              ) : (
+                <Markdown>
+                  {stripQuickReplyHeading(getMessageText(msg))}
+                </Markdown>
+              )}
+              {/* Inline source link at bottom of bubble */}
+              {sourceLinks.length > 0 && (
+                <div
+                  aria-label={t.sourcesLabel}
+                  style={{
+                    textAlign: "right",
+                    marginTop: 6,
+                  }}
+                >
+                  <a
+                    href={sourceLinks[0]}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={t.viewSource}
+                    className="hdak-inline-source"
+                    style={{
+                      fontSize: 11,
+                      color: "#a85f2e",
+                      textDecoration: "none",
+                    }}
+                  >
+                    ↗ {getDomain(sourceLinks[0])}
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        {/* Catalog search result cards */}
+        {catalogResult && (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 6,
+              fontSize: 13,
+            }}
+          >
+            {catalogResult.results.map((b, i) => (
+              <a
+                key={i}
+                href={b.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "block",
+                  padding: "8px 12px",
+                  background: "#f5efe6",
+                  border: "1px solid #d9cfc0",
+                  borderLeft: "3px solid #8b5e3c",
+                  borderRadius: 8,
+                  textDecoration: "none",
+                  color: "#2a2018",
+                }}
+              >
+                <div style={{ fontWeight: 600, color: "#5c3a1e" }}>
+                  {b.title}
+                </div>
+                {b.author && <div style={{ color: "#795a39" }}>{b.author}</div>}
+                {b.year && (
+                  <div style={{ color: "#a88060", fontSize: 11 }}>{b.year}</div>
+                )}
+              </a>
+            ))}
+            {!catalogResult.ok &&
+              (catalogResult.fallback ?? []).map((a, i) => (
+                <a
+                  key={i}
+                  href={a.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hdak-action-btn"
+                  style={{ display: "inline-flex", alignItems: "center" }}
+                >
+                  {a.label} ↗
+                </a>
+              ))}
+            <a
+              href={catalogResult.search_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hdak-action-btn"
+              style={{ alignSelf: "flex-start" }}
+            >
+              Всі результати ↗
+            </a>
+          </div>
+        )}
+        {!isStreaming && !isCurrentlyTyping && isLastAssistant && (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 6,
+              animation: "actionsIn 0.35s ease both",
+            }}
+          >
+            {catalogMatches.length > 0 && (
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 6,
+                  alignItems: "center",
+                  fontSize: 11,
+                  color: "#795a39",
+                }}
+              >
+                {catalogMatches.slice(0, 3).map(book => (
+                  <span
+                    key={`${book.author}-${book.title}`}
+                    className="hdak-source-badge"
+                    style={{
+                      fontSize: 11,
+                      background:
+                        book.status === "доступна"
+                          ? "#e7f4ea"
+                          : book.status === "замовлена"
+                            ? "#fff8df"
+                            : "#f3ece1",
+                      borderColor: "rgba(121,90,57,0.28)",
+                    }}
+                  >
+                    {book.status === "доступна"
+                      ? "🟢"
+                      : book.status === "замовлена"
+                        ? "🟡"
+                        : "🔴"}{" "}
+                    {book.status}
+                  </span>
+                ))}
+              </div>
+            )}
+            <div className="hdak-feedback-row">
+              <button
+                className="hdak-feedback-btn"
+                title={t.feedbackUp}
+                aria-label={t.feedbackUp}
+                onClick={() =>
+                  saveFeedback(
+                    responseId,
+                    sourceBadgeType,
+                    getMessageText(previousUserMessage ?? msg),
+                    "up"
+                  )
+                }
+                style={{
+                  fontSize: 13,
+                  opacity: feedbackByResponseId[responseId] === "up" ? 1 : 0.4,
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: "2px 4px",
+                  lineHeight: 1,
+                  transition: "opacity 0.15s",
+                }}
+              >
+                <span aria-hidden="true">👍</span>
+              </button>
+              <button
+                className="hdak-feedback-btn"
+                title={t.feedbackDown}
+                aria-label={t.feedbackDown}
+                onClick={() =>
+                  saveFeedback(
+                    responseId,
+                    sourceBadgeType,
+                    getMessageText(previousUserMessage ?? msg),
+                    "down"
+                  )
+                }
+                style={{
+                  fontSize: 13,
+                  opacity:
+                    feedbackByResponseId[responseId] === "down" ? 1 : 0.4,
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: "2px 4px",
+                  lineHeight: 1,
+                  transition: "opacity 0.15s",
+                }}
+              >
+                <span aria-hidden="true">👎</span>
+              </button>
+              {feedbackByResponseId[responseId] && (
+                <span style={{ fontSize: 11, color: "#795a39" }}>
+                  {t.feedbackSaved}
+                </span>
+              )}
+            </div>
+            {followUpPrompts.length > 0 && (
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "nowrap",
+                  gap: 6,
+                  alignItems: "center",
+                  overflowX: "auto",
+                }}
+              >
+                {followUpPrompts.map((prompt, pIdx) => (
+                  <button
+                    key={prompt}
+                    className="hdak-followup-chip"
+                    style={{
+                      animationDelay: `${pIdx * 0.05}s`,
+                    }}
+                    onClick={() => handleQuickStart(prompt)}
+                  >
+                    {prompt}
+                  </button>
+                ))}
+              </div>
+            )}
+            {smartResultChips.length > 0 && (
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 6,
+                  alignItems: "center",
+                }}
+              >
+                {smartResultChips.map(chip => (
+                  <span
+                    key={chip}
+                    className="hdak-action-btn"
+                    style={{
+                      height: 24,
+                      padding: "0 8px",
+                      fontSize: 11,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      background: "#f3ece1",
+                    }}
+                  >
+                    {chip}
+                  </span>
+                ))}
+              </div>
+            )}
+            {/* Quick actions under last assistant message */}
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "nowrap",
+                gap: 6,
+                alignItems: "center",
+              }}
+            >
+              <CatalogActionButton
+                href={catalogAction?.url ?? OFFICIAL_CATALOG_URL}
+                label={catalogAction?.buttonLabel ?? t.actionFindCatalog}
+                emphasized={Boolean(catalogAction)}
+              />
+              {catalogMatches.length > 0 && (
+                <a
+                  href={OFFICIAL_CATALOG_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <button className="hdak-action-btn">
+                    📖 {t.actionOrderBook}
+                  </button>
+                </a>
+              )}
+              <button
+                onClick={() => {
+                  const contacts = extractContactsFromText(getMessageText(msg));
+                  const sourceToCopy = contacts.length
+                    ? contacts.join("\n")
+                    : (sourceLinks[0] ?? OFFICIAL_CATALOG_URL);
+                  navigator.clipboard.writeText(sourceToCopy).catch(() => {});
+                }}
+                className="hdak-action-btn hdak-action-btn--secondary"
+              >
+                📋 {t.actionCopySource}
+              </button>
+            </div>
+            {contextActions.length > 0 && (
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 6,
+                  marginTop: 4,
+                }}
+              >
+                {contextActions.map((ca, ci) => (
+                  <button
+                    key={ci}
+                    className="hdak-ctx-btn"
+                    onClick={() => {
+                      if (ca.action === "clear") {
+                        handleNewChat();
+                      } else if (ca.action === "share") {
+                        const text = getMessageText(msg);
+                        if (navigator.share) {
+                          navigator
+                            .share({
+                              title: "HDAK Library",
+                              text,
+                              url: window.location.href,
+                            })
+                            .catch(() =>
+                              navigator.clipboard
+                                .writeText(text)
+                                .catch(() => {})
+                            );
+                        } else {
+                          navigator.clipboard.writeText(text).catch(() => {});
+                        }
+                      } else if (ca.action === "copy") {
+                        navigator.clipboard
+                          .writeText(sourceLinks[0] ?? OFFICIAL_CATALOG_URL)
+                          .catch(() => {});
+                      } else if (ca.q) {
+                        handleQuickStart(ca.q);
+                      }
+                    }}
+                  >
+                    {ca.icon} {ca.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+});
 
 export default function Home() {
   // FIX 5 — Render-count guard (dev-only); catches re-render loops early.
@@ -890,14 +1510,14 @@ export default function Home() {
     [handleSendMessage]
   );
 
-  const handleNewChat = () => {
+  const handleNewChat = useCallback(() => {
     userHasDeselected.current = true;
     setCurrentConversationId(null);
     setStreamedMessages([]);
     setLocalInput("");
     setSendError(null);
     setOpenDropdown(null);
-  };
+  }, []);
 
   const handleSelectConversation = (conversationId: number) => {
     userHasDeselected.current = false;
@@ -1019,73 +1639,70 @@ export default function Home() {
     }
   }, []);
 
-  const saveFeedback = (
-    responseId: string,
-    sourceBadge:
-      | "quick"
-      | "catalog"
-      | "official-rule"
-      | "generated"
-      | "llm-fallback"
-      | "unknown",
-    userQuery: string,
-    value: ChatFeedbackValue
-  ) => {
-    setFeedbackByResponseId(prev => ({ ...prev, [responseId]: value }));
-    if (typeof window === "undefined") return;
-    const conversationId = currentConversationId ?? undefined;
-    const payload = createFeedbackPayload({
-      responseId,
-      sourceBadge,
-      userQuery,
-      feedbackValue: value,
-      conversationId,
-      guestId: guestIdRef.current ?? undefined,
-    });
-    let existing: ChatFeedbackPayload[] = [];
-    try {
-      const existingRaw = window.localStorage.getItem(FEEDBACK_STORAGE_KEY);
-      existing = existingRaw
-        ? (JSON.parse(existingRaw) as ChatFeedbackPayload[])
-        : [];
-    } catch {
-      existing = [];
-    }
-    const next = appendFeedbackPayload(existing, payload);
-    window.localStorage.setItem(FEEDBACK_STORAGE_KEY, JSON.stringify(next));
+  const saveFeedback = useCallback(
+    (
+      responseId: string,
+      sourceBadge: SourceBadgeType,
+      userQuery: string,
+      value: ChatFeedbackValue
+    ) => {
+      setFeedbackByResponseId(prev => ({ ...prev, [responseId]: value }));
+      if (typeof window === "undefined") return;
+      const conversationId = conversationIdRef.current ?? undefined;
+      const payload = createFeedbackPayload({
+        responseId,
+        sourceBadge,
+        userQuery,
+        feedbackValue: value,
+        conversationId,
+        guestId: guestIdRef.current ?? undefined,
+      });
+      let existing: ChatFeedbackPayload[] = [];
+      try {
+        const existingRaw = window.localStorage.getItem(FEEDBACK_STORAGE_KEY);
+        existing = existingRaw
+          ? (JSON.parse(existingRaw) as ChatFeedbackPayload[])
+          : [];
+      } catch {
+        existing = [];
+      }
+      const next = appendFeedbackPayload(existing, payload);
+      window.localStorage.setItem(FEEDBACK_STORAGE_KEY, JSON.stringify(next));
 
-    let telemetryExisting: ChatTelemetryEvent[] = [];
-    try {
-      const telemetryRaw = window.localStorage.getItem(
-        CHAT_TELEMETRY_STORAGE_KEY
+      let telemetryExisting: ChatTelemetryEvent[] = [];
+      try {
+        const telemetryRaw = window.localStorage.getItem(
+          CHAT_TELEMETRY_STORAGE_KEY
+        );
+        telemetryExisting = telemetryRaw
+          ? (JSON.parse(telemetryRaw) as ChatTelemetryEvent[])
+          : [];
+      } catch {
+        telemetryExisting = [];
+      }
+      const telemetryNext = appendTelemetryEvent(telemetryExisting, {
+        name: "feedback_submitted",
+        timestamp: new Date().toISOString(),
+        mode: isAuthenticatedRef.current ? "auth" : "guest",
+        sourceBadge,
+        responseLatency: "instant",
+      });
+      window.localStorage.setItem(
+        CHAT_TELEMETRY_STORAGE_KEY,
+        JSON.stringify(telemetryNext)
       );
-      telemetryExisting = telemetryRaw
-        ? (JSON.parse(telemetryRaw) as ChatTelemetryEvent[])
-        : [];
-    } catch {
-      telemetryExisting = [];
-    }
-    const telemetryNext = appendTelemetryEvent(telemetryExisting, {
-      name: "feedback_submitted",
-      timestamp: new Date().toISOString(),
-      mode: isAuthenticated ? "auth" : "guest",
-      sourceBadge,
-      responseLatency: "instant",
-    });
-    window.localStorage.setItem(
-      CHAT_TELEMETRY_STORAGE_KEY,
-      JSON.stringify(telemetryNext)
-    );
 
-    submitFeedbackMutation.mutate({
-      responseId,
-      sourceBadge,
-      userQuery,
-      feedbackValue: value,
-      conversationId,
-      guestId: guestIdRef.current ?? undefined,
-    });
-  };
+      submitFeedbackMutation.mutate({
+        responseId,
+        sourceBadge,
+        userQuery,
+        feedbackValue: value,
+        conversationId,
+        guestId: guestIdRef.current ?? undefined,
+      });
+    },
+    [submitFeedbackMutation.mutate]
+  );
 
   const chips = useMemo(() => {
     const chipEmojis = ["⚡", "📚", "📘"];
@@ -2033,514 +2650,29 @@ export default function Home() {
               )}
               {visibleMessages.map((msg, idx) => {
                 const messageIndex = visibleMessageStartIndex + idx;
-                const isUser = msg.role === "user";
-                const isLastAssistant =
-                  msg.role === "assistant" &&
-                  messageIndex === allMessages.length - 1 &&
-                  !isStreaming;
-                const previousUserMessage = !isUser
-                  ? [...allMessages]
-                      .slice(0, messageIndex)
-                      .reverse()
-                      .find(prevMessage => prevMessage.role === "user")
-                  : null;
-                const catalogAction =
-                  isLastAssistant && previousUserMessage
-                    ? getCatalogIntentAction(
-                        getMessageText(previousUserMessage),
-                        language
-                      )
-                    : null;
-                const instantAnswerMeta =
-                  !isUser && previousUserMessage
-                    ? getInstantAnswer(
-                        getMessageText(previousUserMessage),
-                        language,
-                        { knowledgeTopics: runtimeKnowledgeTopics }
-                      )
-                    : null;
-                const knowledgeTopic =
-                  !isUser && previousUserMessage
-                    ? runtimeKnowledgeTopics
-                      ? findLibraryKnowledgeTopicInTopics(
-                          getMessageText(previousUserMessage),
-                          runtimeKnowledgeTopics
-                        )
-                      : findLibraryKnowledgeTopic(
-                          getMessageText(previousUserMessage)
-                        )
-                    : null;
-                const extractedOfficialLinks = isUser
-                  ? []
-                  : extractOfficialSourceLinksFromText(getMessageText(msg));
-                const sourceBadge = isUser
-                  ? null
-                  : instantAnswerMeta?.sourceBadge === "official-rule"
-                    ? t.badgeOfficialRule
-                    : instantAnswerMeta?.sourceBadge === "catalog"
-                      ? t.badgeCatalog
-                      : instantAnswerMeta
-                        ? t.badgeQuick
-                        : knowledgeTopic
-                          ? t.badgeGenerated
-                          : extractedOfficialLinks.length > 0
-                            ? t.badgeGenerated
-                            : null;
-                const sourceBadgeType = isUser
-                  ? "unknown"
-                  : instantAnswerMeta?.sourceBadge === "official-rule"
-                    ? "official-rule"
-                    : instantAnswerMeta?.sourceBadge === "catalog"
-                      ? "catalog"
-                      : instantAnswerMeta?.sourceBadge === "quick"
-                        ? "quick"
-                        : knowledgeTopic
-                          ? "generated"
-                          : extractedOfficialLinks.length > 0
-                            ? "generated"
-                            : "llm-fallback";
-                const sourceLinks = isUser
-                  ? []
-                  : (instantAnswerMeta?.links ??
-                    knowledgeTopic?.sourceUrls ??
-                    extractedOfficialLinks);
-                const responseId =
-                  "id" in msg && typeof msg.id !== "undefined"
-                    ? String(msg.id)
-                    : `${messageIndex}-${sourceBadgeType}`;
-                const isCurrentlyTyping = typingMessageId === responseId;
-                const followUpPrompts =
-                  !isUser && isLastAssistant && instantAnswerMeta
-                    ? (instantAnswerMeta.suggestedFollowUps?.length
-                        ? instantAnswerMeta.suggestedFollowUps
-                        : QUICK_PROMPTS[language]
-                      )
-                        .filter(
-                          prompt =>
-                            prompt.toLowerCase() !==
-                            getMessageText(
-                              previousUserMessage ?? msg
-                            ).toLowerCase()
-                        )
-                        .slice(0, 2)
-                    : [];
-                const catalogMatches = !isUser
-                  ? (instantAnswerMeta?.catalogMatches ?? [])
-                  : [];
-                const smartResultChips = !isUser
-                  ? (instantAnswerMeta?.smartChips ?? [])
-                  : [];
-                const contextActions = isLastAssistant
-                  ? getContextActions(knowledgeTopic?.id)
-                  : [];
                 return (
-                  <div
+                  <MessageItem
                     key={
                       "id" in msg && typeof msg.id !== "undefined"
                         ? String(msg.id)
                         : `msg-${messageIndex}-${msg.role}`
                     }
-                    className="hdak-msg-outer"
-                    style={{
-                      display: "flex",
-                      gap: 10,
-                      flexDirection: isUser ? "row-reverse" : "row",
-                      animation: "msgIn 0.3s ease both",
-                    }}
-                  >
-                    {/* Avatar */}
-                    <div
-                      style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: "50%",
-                        flexShrink: 0,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 14,
-                        marginTop: 2,
-                        background: isUser ? "#c4934a" : "#f3ece1",
-                        border: isUser
-                          ? "none"
-                          : "1px solid rgba(121,90,57,0.28)",
-                        color: isUser ? "#ffffff" : "inherit",
-                      }}
-                    >
-                      {isUser ? "👤" : "📚"}
-                    </div>
-
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 6,
-                        maxWidth: 540,
-                      }}
-                    >
-                      {/* Source category badge above bubble */}
-                      {!isUser && sourceBadge && (
-                        <span
-                          className="hdak-source-badge"
-                          style={{
-                            alignSelf: "flex-start",
-                            fontSize: 11,
-                            color: "#a85f2e",
-                            background: "#f3ece1",
-                            border: "1px solid rgba(121,90,57,0.34)",
-                            borderRadius: 999,
-                            padding: "2px 8px",
-                            lineHeight: 1.4,
-                          }}
-                        >
-                          {sourceBadge}
-                        </span>
-                      )}
-                      <div
-                        className="hdak-bubble"
-                        style={
-                          isUser
-                            ? {
-                                padding: "11px 15px",
-                                borderRadius: "16px 4px 16px 16px",
-                                border: "1px solid rgba(92,58,30,0.4)",
-                                fontSize: 14,
-                                lineHeight: 1.7,
-                                background: "#5c3a1e",
-                                color: "#ffffff",
-                                maxWidth: "78%",
-                              }
-                            : {
-                                padding: "11px 15px",
-                                borderRadius: "4px 16px 16px 16px",
-                                border: "1px solid #d9cfc0",
-                                borderLeft: "3px solid #8b5e3c",
-                                fontSize: 14,
-                                lineHeight: 1.6,
-                                background: "#f5efe6",
-                                color: "#2a2018",
-                                boxShadow: "0 2px 8px rgba(90,50,20,0.08)",
-                                position: "relative",
-                                overflow: "hidden",
-                              }
-                        }
-                      >
-                        {isUser ? (
-                          <p style={{ whiteSpace: "pre-wrap", margin: 0 }}>
-                            {getMessageText(msg)}
-                          </p>
-                        ) : (
-                          <div style={{ fontSize: 14 }}>
-                            {typingMessageId === responseId &&
-                            !completedTypingIds[responseId] ? (
-                              typedMessageText.length > 0 ? (
-                                <div className="typing-message">
-                                  <Markdown>
-                                    {stripQuickReplyHeading(typedMessageText)}
-                                  </Markdown>
-                                </div>
-                              ) : (
-                                <div className="typing-skeleton" />
-                              )
-                            ) : (
-                              <Markdown>
-                                {stripQuickReplyHeading(getMessageText(msg))}
-                              </Markdown>
-                            )}
-                            {/* Inline source link at bottom of bubble */}
-                            {sourceLinks.length > 0 && (
-                              <div
-                                aria-label={t.sourcesLabel}
-                                style={{
-                                  textAlign: "right",
-                                  marginTop: 6,
-                                }}
-                              >
-                                <a
-                                  href={sourceLinks[0]}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  aria-label={t.viewSource}
-                                  className="hdak-inline-source"
-                                  style={{
-                                    fontSize: 11,
-                                    color: "#a85f2e",
-                                    textDecoration: "none",
-                                  }}
-                                >
-                                  ↗ {getDomain(sourceLinks[0])}
-                                </a>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                      {!isStreaming &&
-                        !isCurrentlyTyping &&
-                        isLastAssistant && (
-                          <div
-                            style={{
-                              display: "flex",
-                              flexDirection: "column",
-                              gap: 6,
-                              animation: "actionsIn 0.35s ease both",
-                            }}
-                          >
-                            {catalogMatches.length > 0 && (
-                              <div
-                                style={{
-                                  display: "flex",
-                                  flexWrap: "wrap",
-                                  gap: 6,
-                                  alignItems: "center",
-                                  fontSize: 11,
-                                  color: "#795a39",
-                                }}
-                              >
-                                {catalogMatches.slice(0, 3).map(book => (
-                                  <span
-                                    key={`${book.author}-${book.title}`}
-                                    className="hdak-source-badge"
-                                    style={{
-                                      fontSize: 11,
-                                      background:
-                                        book.status === "доступна"
-                                          ? "#e7f4ea"
-                                          : book.status === "замовлена"
-                                            ? "#fff8df"
-                                            : "#f3ece1",
-                                      borderColor: "rgba(121,90,57,0.28)",
-                                    }}
-                                  >
-                                    {book.status === "доступна"
-                                      ? "🟢"
-                                      : book.status === "замовлена"
-                                        ? "🟡"
-                                        : "🔴"}{" "}
-                                    {book.status}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-                            <div className="hdak-feedback-row">
-                              <button
-                                className="hdak-feedback-btn"
-                                title={t.feedbackUp}
-                                aria-label={t.feedbackUp}
-                                onClick={() =>
-                                  saveFeedback(
-                                    responseId,
-                                    sourceBadgeType,
-                                    getMessageText(previousUserMessage ?? msg),
-                                    "up"
-                                  )
-                                }
-                                style={{
-                                  fontSize: 13,
-                                  opacity:
-                                    feedbackByResponseId[responseId] === "up"
-                                      ? 1
-                                      : 0.4,
-                                  background: "none",
-                                  border: "none",
-                                  cursor: "pointer",
-                                  padding: "2px 4px",
-                                  lineHeight: 1,
-                                  transition: "opacity 0.15s",
-                                }}
-                              >
-                                <span aria-hidden="true">👍</span>
-                              </button>
-                              <button
-                                className="hdak-feedback-btn"
-                                title={t.feedbackDown}
-                                aria-label={t.feedbackDown}
-                                onClick={() =>
-                                  saveFeedback(
-                                    responseId,
-                                    sourceBadgeType,
-                                    getMessageText(previousUserMessage ?? msg),
-                                    "down"
-                                  )
-                                }
-                                style={{
-                                  fontSize: 13,
-                                  opacity:
-                                    feedbackByResponseId[responseId] === "down"
-                                      ? 1
-                                      : 0.4,
-                                  background: "none",
-                                  border: "none",
-                                  cursor: "pointer",
-                                  padding: "2px 4px",
-                                  lineHeight: 1,
-                                  transition: "opacity 0.15s",
-                                }}
-                              >
-                                <span aria-hidden="true">👎</span>
-                              </button>
-                              {feedbackByResponseId[responseId] && (
-                                <span
-                                  style={{ fontSize: 11, color: "#795a39" }}
-                                >
-                                  {t.feedbackSaved}
-                                </span>
-                              )}
-                            </div>
-                            {followUpPrompts.length > 0 && (
-                              <div
-                                style={{
-                                  display: "flex",
-                                  flexWrap: "nowrap",
-                                  gap: 6,
-                                  alignItems: "center",
-                                  overflowX: "auto",
-                                }}
-                              >
-                                {followUpPrompts.map((prompt, pIdx) => (
-                                  <button
-                                    key={prompt}
-                                    className="hdak-followup-chip"
-                                    style={{
-                                      animationDelay: `${pIdx * 0.05}s`,
-                                    }}
-                                    onClick={() => handleQuickStart(prompt)}
-                                  >
-                                    {prompt}
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-                            {smartResultChips.length > 0 && (
-                              <div
-                                style={{
-                                  display: "flex",
-                                  flexWrap: "wrap",
-                                  gap: 6,
-                                  alignItems: "center",
-                                }}
-                              >
-                                {smartResultChips.map(chip => (
-                                  <span
-                                    key={chip}
-                                    className="hdak-action-btn"
-                                    style={{
-                                      height: 24,
-                                      padding: "0 8px",
-                                      fontSize: 11,
-                                      display: "inline-flex",
-                                      alignItems: "center",
-                                      background: "#f3ece1",
-                                    }}
-                                  >
-                                    {chip}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-                            {/* Quick actions under last assistant message */}
-                            <div
-                              style={{
-                                display: "flex",
-                                flexWrap: "nowrap",
-                                gap: 6,
-                                alignItems: "center",
-                              }}
-                            >
-                              <CatalogActionButton
-                                href={
-                                  catalogAction?.url ?? OFFICIAL_CATALOG_URL
-                                }
-                                label={
-                                  catalogAction?.buttonLabel ??
-                                  t.actionFindCatalog
-                                }
-                                emphasized={Boolean(catalogAction)}
-                              />
-                              {catalogMatches.length > 0 && (
-                                <a
-                                  href={OFFICIAL_CATALOG_URL}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                >
-                                  <button className="hdak-action-btn">
-                                    📖 {t.actionOrderBook}
-                                  </button>
-                                </a>
-                              )}
-                              <button
-                                onClick={() => {
-                                  const contacts = extractContactsFromText(
-                                    getMessageText(msg)
-                                  );
-                                  const sourceToCopy = contacts.length
-                                    ? contacts.join("\n")
-                                    : (sourceLinks[0] ?? OFFICIAL_CATALOG_URL);
-                                  navigator.clipboard
-                                    .writeText(sourceToCopy)
-                                    .catch(() => {});
-                                }}
-                                className="hdak-action-btn hdak-action-btn--secondary"
-                              >
-                                📋 {t.actionCopySource}
-                              </button>
-                            </div>
-                            {contextActions.length > 0 && (
-                              <div
-                                style={{
-                                  display: "flex",
-                                  flexWrap: "wrap",
-                                  gap: 6,
-                                  marginTop: 4,
-                                }}
-                              >
-                                {contextActions.map((ca, ci) => (
-                                  <button
-                                    key={ci}
-                                    className="hdak-ctx-btn"
-                                    onClick={() => {
-                                      if (ca.action === "clear") {
-                                        handleNewChat();
-                                      } else if (ca.action === "share") {
-                                        const text = getMessageText(msg);
-                                        if (navigator.share) {
-                                          navigator
-                                            .share({
-                                              title: "HDAK Library",
-                                              text,
-                                              url: window.location.href,
-                                            })
-                                            .catch(() =>
-                                              navigator.clipboard
-                                                .writeText(text)
-                                                .catch(() => {})
-                                            );
-                                        } else {
-                                          navigator.clipboard
-                                            .writeText(text)
-                                            .catch(() => {});
-                                        }
-                                      } else if (ca.action === "copy") {
-                                        navigator.clipboard
-                                          .writeText(
-                                            sourceLinks[0] ??
-                                              OFFICIAL_CATALOG_URL
-                                          )
-                                          .catch(() => {});
-                                      } else if (ca.q) {
-                                        handleQuickStart(ca.q);
-                                      }
-                                    }}
-                                  >
-                                    {ca.icon} {ca.label}
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                    </div>
-                  </div>
+                    msg={msg}
+                    idx={idx}
+                    visibleMessageStartIndex={visibleMessageStartIndex}
+                    allMessages={allMessages}
+                    isStreaming={isStreaming}
+                    typingMessageId={typingMessageId}
+                    typedMessageText={typedMessageText}
+                    completedTypingIds={completedTypingIds}
+                    feedbackByResponseId={feedbackByResponseId}
+                    language={language}
+                    runtimeKnowledgeTopics={runtimeKnowledgeTopics}
+                    t={t}
+                    saveFeedback={saveFeedback}
+                    handleQuickStart={handleQuickStart}
+                    handleNewChat={handleNewChat}
+                  />
                 );
               })}
 

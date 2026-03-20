@@ -1,4 +1,5 @@
 import type { ZodTypeAny, infer as ZodInfer } from "zod";
+import { catalogTools } from "./catalogTool";
 import { dataTools } from "./dataTool";
 import { imageTools } from "./imageTool";
 import { mapTools } from "./mapTool";
@@ -22,6 +23,7 @@ export type ToolRegistryEntry<TSchema extends ZodTypeAny = ZodTypeAny> = {
 };
 
 const toolEntries: ToolRegistryEntry[] = [
+  ...catalogTools,
   ...dataTools,
   ...imageTools,
   ...voiceTools,
