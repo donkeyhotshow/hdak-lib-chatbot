@@ -352,6 +352,18 @@ function formatTime(date: Date | string | null | undefined): string {
 }
 
 export default function Home() {
+  // FIX 5 — Render-count guard (dev-only); catches re-render loops early
+  const renderCount = useRef(0);
+  if (process.env.NODE_ENV === "development") {
+    renderCount.current += 1;
+    if (renderCount.current > 50) {
+      console.error(
+        `[Home] Excessive renders detected: ${renderCount.current}. ` +
+          "Check useEffect deps and streaming batching."
+      );
+    }
+  }
+
   const [language, setLanguage] = useState<Language>("uk");
   const [conversations, setConversations] = useState<LocalConversation[]>([]);
   const [guestConversations, setGuestConversations] = useState<
@@ -613,6 +625,12 @@ export default function Home() {
     }
   }, [status, messagesData, streamedMessages, setStreamedMessages]);
 
+  // FIX 1B — Keep a ref to the latest allMessages so effects that only care about
+  // the count can depend on allMessages.length (a primitive) instead of the whole
+  // array reference, which changes on every streaming chunk.
+  const allMessagesRef = useRef(allMessages);
+  allMessagesRef.current = allMessages;
+
   const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
     scrollRef.current?.scrollIntoView({ behavior });
   }, []);
@@ -632,7 +650,9 @@ export default function Home() {
       scrollToBottom(prevMessageCountRef.current === 0 ? "auto" : "smooth");
     }
     prevMessageCountRef.current = count;
-  }, [allMessages, scrollToBottom]);
+    // FIX 1B: use allMessages.length (primitive) instead of allMessages (array ref)
+    // to avoid re-firing on every streaming chunk
+  }, [allMessages.length, scrollToBottom]);
 
   useEffect(() => {
     if (allMessages.length <= VIRTUALIZED_MESSAGES_THRESHOLD) {
@@ -664,16 +684,19 @@ export default function Home() {
   );
 
   useEffect(() => {
-    const count = allMessages.length;
+    // FIX 1B: read from allMessagesRef so we can depend on allMessages.length
+    // (a stable primitive) rather than allMessages (new array ref every chunk).
+    const msgs = allMessagesRef.current;
+    const count = msgs.length;
     const isNewMessage = count > prevTypingMessageCountRef.current;
     prevTypingMessageCountRef.current = count;
 
     if (!isNewMessage || isStreaming || count === 0) return;
 
-    const lastMessage = allMessages[count - 1];
+    const lastMessage = msgs[count - 1];
     if (lastMessage.role !== "assistant") return;
 
-    const previousUserMessage = [...allMessages]
+    const previousUserMessage = [...msgs]
       .slice(0, count - 1)
       .reverse()
       .find(message => message.role === "user");
@@ -765,8 +788,11 @@ export default function Home() {
     };
 
     typingTimeoutRef.current = setTimeout(typeNext, adaptiveBaseDelay);
+    // FIX 1B: allMessages.length (primitive) instead of allMessages (array ref).
+    // allMessagesRef.current always has the latest snapshot so the effect body
+    // still reads the correct messages without the array being in deps.
   }, [
-    allMessages,
+    allMessages.length,
     completedTypingIds,
     isStreaming,
     language,
@@ -1071,12 +1097,15 @@ export default function Home() {
     !userHasDeselected.current &&
     allMessages.length === 0;
 
-  const adjustTextarea = () => {
-    const el = textareaRef.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = Math.min(el.scrollHeight, 100) + "px";
-  };
+  // FIX 3/4: stable ref via useCallback + rAF to avoid layout thrashing
+  const adjustTextarea = useCallback(() => {
+    requestAnimationFrame(() => {
+      const el = textareaRef.current;
+      if (!el) return;
+      el.style.height = "auto";
+      el.style.height = Math.min(el.scrollHeight, 100) + "px";
+    });
+  }, []);
 
   const langLabels: Record<Language, string> = {
     uk: "УКР",
