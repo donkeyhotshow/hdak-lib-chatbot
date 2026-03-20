@@ -6,8 +6,8 @@ import { NextRequest, NextResponse } from "next/server";
 import * as cheerio from "cheerio";
 import { logger } from "@/lib/server/_core/logger";
 
-const CATALOG =
-  "https://library-service.com.ua:8443/khkhdak/DocumentSearchForm";
+const CATALOG_BASE = "https://library-service.com.ua:8443/khkhdak";
+const CATALOG = `${CATALOG_BASE}/DocumentSearchForm`;
 
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
@@ -42,9 +42,7 @@ export async function GET(req: NextRequest) {
         title: td.eq(0).text().trim(),
         author: td.eq(1).text().trim(),
         year: td.eq(2).text().trim(),
-        url: href.startsWith("http")
-          ? href
-          : `https://library-service.com.ua:8443/khkhdak${href}`,
+        url: href.startsWith("http") ? href : `${CATALOG_BASE}${href}`,
       });
     });
     return NextResponse.json({
