@@ -1,0 +1,19 @@
+{
+  "name": "ХДАК Бібліотека — AI Асистент",
+  "short_name": "ХДАК Чат",
+  "description": "AI-асистент Наукової бібліотеки Харківської державної академії культури",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f2ea",
+  "theme_color": "#1a0d05",
+  "lang": "uk",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

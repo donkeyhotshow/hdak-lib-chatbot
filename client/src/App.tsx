@@ -16,6 +16,7 @@ function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">
+      <a href="#main-content" className="skip-link">Перейти до змісту</a>
 
       {/* Mobile overlay */}
       {sidebarOpen && (
@@ -54,7 +55,7 @@ function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        <div className="flex-1 h-full overflow-hidden relative">
+        <div id="main-content" className="flex-1 h-full overflow-hidden relative">
           {children}
         </div>
       </main>
