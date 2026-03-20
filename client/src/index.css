@@ -5,38 +5,57 @@
 @tailwind utilities;
 
 :root {
-  /* Library Theme - Soft, Intellectual, Calming */
   --font-sans: 'Inter', sans-serif;
   --font-serif: 'Lora', serif;
 
-  --background: 210 20% 98%;      /* Soft off-white */
-  --foreground: 220 15% 20%;      /* Dark charcoal for readability */
-  
-  --primary: 215 25% 27%;         /* Deep Library Blue */
-  --primary-foreground: 210 20% 98%;
-  
-  --secondary: 210 20% 90%;       /* Light gray-blue for secondary elements */
-  --secondary-foreground: 220 15% 20%;
-  
-  --muted: 210 15% 95%;           /* Very light gray for backgrounds */
-  --muted-foreground: 215 10% 45%;
-  
-  --accent: 35 30% 92%;           /* Warm paper/parchment tone */
-  --accent-foreground: 220 15% 20%;
-  
-  --destructive: 0 60% 55%;       /* Muted red */
+  /* === Wood-toned Library Theme === */
+
+  /* Light zones — warm parchment/cream */
+  --background: 38 35% 96%;
+  --foreground: 20 55% 12%;
+
+  /* Primary — deep walnut */
+  --primary: 20 58% 28%;
+  --primary-foreground: 38 35% 96%;
+
+  /* Secondary — medium warm tan */
+  --secondary: 35 30% 88%;
+  --secondary-foreground: 20 55% 12%;
+
+  /* Muted — soft parchment tones */
+  --muted: 36 25% 91%;
+  --muted-foreground: 24 22% 46%;
+
+  /* Accent — caramel/golden */
+  --accent: 33 60% 65%;
+  --accent-foreground: 20 55% 12%;
+
+  --destructive: 0 60% 50%;
   --destructive-foreground: 0 0% 98%;
-  
-  --border: 215 15% 88%;
-  --input: 215 15% 88%;
-  --ring: 215 25% 27%;
-  
+
+  --border: 30 22% 84%;
+  --input: 30 22% 84%;
+  --ring: 20 58% 28%;
   --radius: 0.75rem;
+
+  /* Custom wood zone colors used directly */
+  --wood-darkest: #130a04;
+  --wood-dark: #1e0f06;
+  --wood-mid: #2f180a;
+  --wood-highlight: rgba(220,160,90,0.12);
+  --wood-grain-line: rgba(220,160,80,0.06);
+  --parchment: #f7f2ea;
+  --parchment-dark: #ede5d8;
 }
 
 @layer base {
   body {
-    @apply bg-background text-foreground antialiased font-sans selection:bg-primary/10;
+    @apply bg-background text-foreground antialiased font-sans;
+    -webkit-font-smoothing: antialiased;
+    selection-color: theme('colors.orange.200');
+  }
+  * {
+    @apply selection:bg-amber-200/60;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -44,68 +63,156 @@
   }
 }
 
-@layer utilities {
-  .font-serif {
-    font-family: var(--font-serif);
-  }
-  
-  /* Custom scrollbar for chat */
-  .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
-  }
-  .scrollbar-thin::-webkit-scrollbar-track {
-    @apply bg-transparent;
-  }
-  .scrollbar-thin::-webkit-scrollbar-thumb {
-    @apply bg-muted-foreground/20 rounded-full hover:bg-muted-foreground/40 transition-colors;
-  }
-
-  /* Markdown Styles */
-  .prose-custom {
-    @apply text-foreground leading-relaxed;
-  }
-  .prose-custom p {
-    @apply mb-4 last:mb-0;
-  }
-  .prose-custom ul {
-    @apply list-disc pl-4 mb-4 space-y-1;
-  }
-  .prose-custom ol {
-    @apply list-decimal pl-4 mb-4 space-y-1;
-  }
-  .prose-custom a {
-    @apply text-primary underline underline-offset-4 hover:text-primary/80 transition-colors;
-  }
-  .prose-custom code {
-    @apply bg-muted px-1.5 py-0.5 rounded text-sm font-mono text-primary;
-  }
-  .prose-custom pre {
-    @apply bg-muted p-4 rounded-lg overflow-x-auto mb-4 text-sm;
-  }
-  .prose-custom pre code {
-    @apply bg-transparent p-0 text-inherit;
-  }
-  .prose-custom h1, .prose-custom h2, .prose-custom h3 {
-    @apply font-serif font-bold mt-6 mb-3 text-primary;
-  }
-  .prose-custom blockquote {
-    @apply border-l-4 border-primary/20 pl-4 italic text-muted-foreground my-4;
-  }
+/* =============================================
+   WOOD SIDEBAR
+   ============================================= */
+.wood-panel {
+  background-color: var(--wood-darkest);
+  background-image:
+    repeating-linear-gradient(
+      89deg,
+      transparent 0px,
+      transparent 10px,
+      var(--wood-grain-line) 10px,
+      var(--wood-grain-line) 11px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      transparent 0px,
+      transparent 40px,
+      rgba(220,160,80,0.03) 40px,
+      rgba(220,160,80,0.03) 42px
+    );
 }
 
-/* Animations */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(5px); }
-  to { opacity: 1; transform: translateY(0); }
+.wood-panel-mid {
+  background-color: var(--wood-mid);
+  background-image:
+    repeating-linear-gradient(
+      88deg,
+      transparent 0px,
+      transparent 14px,
+      rgba(220,160,80,0.07) 14px,
+      rgba(220,160,80,0.07) 15px
+    );
 }
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-out forwards;
+
+/* =============================================
+   SCROLLBAR
+   ============================================= */
+.scrollbar-wood::-webkit-scrollbar {
+  width: 5px;
+}
+.scrollbar-wood::-webkit-scrollbar-track {
+  background: rgba(0,0,0,0.2);
+}
+.scrollbar-wood::-webkit-scrollbar-thumb {
+  background: rgba(180,110,50,0.4);
+  border-radius: 99px;
+}
+.scrollbar-wood::-webkit-scrollbar-thumb:hover {
+  background: rgba(180,110,50,0.65);
+}
+
+.scrollbar-parchment::-webkit-scrollbar {
+  width: 5px;
+}
+.scrollbar-parchment::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-parchment::-webkit-scrollbar-thumb {
+  background: rgba(150,100,50,0.18);
+  border-radius: 99px;
+}
+.scrollbar-parchment::-webkit-scrollbar-thumb:hover {
+  background: rgba(150,100,50,0.35);
+}
+
+/* =============================================
+   PROSE — markdown rendering in chat
+   ============================================= */
+.prose-custom {
+  @apply text-foreground leading-relaxed;
+}
+.prose-custom p {
+  @apply mb-3 last:mb-0;
+}
+.prose-custom ul {
+  @apply list-disc pl-5 mb-3 space-y-1;
+}
+.prose-custom ol {
+  @apply list-decimal pl-5 mb-3 space-y-1;
+}
+.prose-custom a {
+  @apply text-primary underline underline-offset-4 hover:text-primary/75 transition-colors;
+}
+.prose-custom code {
+  @apply bg-amber-100/70 px-1.5 py-0.5 rounded text-sm font-mono text-primary;
+}
+.prose-custom pre {
+  @apply bg-amber-50 border border-amber-200/50 p-4 rounded-lg overflow-x-auto mb-3 text-sm;
+}
+.prose-custom pre code {
+  @apply bg-transparent p-0;
+}
+.prose-custom h1, .prose-custom h2, .prose-custom h3 {
+  @apply font-serif font-bold mt-5 mb-2 text-primary;
+}
+.prose-custom blockquote {
+  @apply border-l-4 border-amber-300/60 pl-4 italic text-muted-foreground my-3;
+}
+.prose-custom strong {
+  @apply font-semibold text-foreground;
+}
+.prose-custom table {
+  @apply w-full border-collapse text-sm mb-3;
+}
+.prose-custom th {
+  @apply bg-amber-100/60 border border-amber-200/50 px-3 py-2 text-left font-semibold;
+}
+.prose-custom td {
+  @apply border border-amber-200/30 px-3 py-2;
+}
+
+/* =============================================
+   ANIMATIONS
+   ============================================= */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+.animate-fade-up {
+  animation: fadeUp 0.28s ease-out forwards;
+}
+
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+.animate-cursor {
+  animation: cursor-blink 0.85s step-end infinite;
 }
 
 @keyframes pulse-subtle {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+  50%       { opacity: 0.75; }
 }
 .animate-pulse-subtle {
-  animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  animation: pulse-subtle 2s ease-in-out infinite;
+}
+
+/* =============================================
+   MISC UTILITIES
+   ============================================= */
+.parchment-bg {
+  background-color: var(--parchment);
+}
+.parchment-dark-bg {
+  background-color: var(--parchment-dark);
+}
+
+/* Divider that looks like a book spine */
+.spine-divider {
+  border-right: 1px solid rgba(220,160,80,0.15);
+  box-shadow: 1px 0 8px rgba(0,0,0,0.25);
 }
