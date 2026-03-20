@@ -29,9 +29,7 @@ describe("Mobile UX bug fixes — guard tests", () => {
   });
 
   it("followup chips have min-height 44px", () => {
-    expect(homePageContent).toContain(
-      ".hdak-followup-chip { min-height: 44px"
-    );
+    expect(homePageContent).toContain(".hdak-followup-chip { min-height: 44px");
   });
 
   it("action buttons have min-height 44px", () => {

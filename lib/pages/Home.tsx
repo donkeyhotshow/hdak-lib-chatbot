@@ -352,13 +352,16 @@ function formatTime(date: Date | string | null | undefined): string {
 }
 
 export default function Home() {
-  // FIX 5 — Render-count guard (dev-only); catches re-render loops early
+  // FIX 5 — Render-count guard (dev-only); catches re-render loops early.
+  // Logs once when the threshold is first crossed, then every 50 renders
+  // after that, to avoid flooding the console while still being visible.
   const renderCount = useRef(0);
   if (process.env.NODE_ENV === "development") {
     renderCount.current += 1;
-    if (renderCount.current > 50) {
+    const rc = renderCount.current;
+    if (rc === 51 || (rc > 50 && rc % 50 === 1)) {
       console.error(
-        `[Home] Excessive renders detected: ${renderCount.current}. ` +
+        `[Home] Excessive renders detected: ${rc}. ` +
           "Check useEffect deps and streaming batching."
       );
     }

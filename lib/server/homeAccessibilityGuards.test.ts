@@ -53,15 +53,11 @@ describe("Accessibility guard tests (ARIA, contrast, focus, skip link)", () => {
 
   // FIX 4: Icon-only buttons
   it("history button has descriptive aria-label", () => {
-    expect(homeContent).toContain(
-      'aria-label="Переглянути історію чатів"'
-    );
+    expect(homeContent).toContain('aria-label="Переглянути історію чатів"');
   });
 
   it("resources button has descriptive aria-label", () => {
-    expect(homeContent).toContain(
-      'aria-label="Відкрити ресурси бібліотеки"'
-    );
+    expect(homeContent).toContain('aria-label="Відкрити ресурси бібліотеки"');
   });
 
   it("language button has descriptive aria-label", () => {
