@@ -4,6 +4,7 @@ export const maxDuration = 15;
 
 import { NextRequest, NextResponse } from "next/server";
 import * as cheerio from "cheerio";
+import { logger } from "@/lib/server/_core/logger";
 
 const CATALOG =
   "https://library-service.com.ua:8443/khkhdak/DocumentSearchForm";
@@ -23,7 +24,6 @@ export async function GET(req: NextRequest) {
     const res = await fetch(searchUrl, {
       signal: AbortSignal.timeout(8000),
       headers: { "User-Agent": "HDACLibBot/1.0" },
-      next: { revalidate: 300 },
     });
     if (!res.ok) throw new Error(`${res.status}`);
     const $ = cheerio.load(await res.text());
@@ -52,7 +52,11 @@ export async function GET(req: NextRequest) {
       results: books.slice(0, 8),
       search_url: searchUrl,
     });
-  } catch {
+  } catch (err) {
+    logger.warn("[api/catalog] Catalog fetch failed", {
+      error: err instanceof Error ? err.message : String(err),
+      searchUrl,
+    });
     return NextResponse.json({
       ok: false,
       results: [],

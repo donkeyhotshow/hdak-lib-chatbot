@@ -675,9 +675,9 @@ const MessageItem = memo(function MessageItem({
               fontSize: 13,
             }}
           >
-            {catalogResult.results.map((b, i) => (
+            {catalogResult.results.map(b => (
               <a
-                key={i}
+                key={b.url}
                 href={b.url}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -702,9 +702,9 @@ const MessageItem = memo(function MessageItem({
               </a>
             ))}
             {!catalogResult.ok &&
-              (catalogResult.fallback ?? []).map((a, i) => (
+              (catalogResult.fallback ?? []).map(a => (
                 <a
-                  key={i}
+                  key={a.url}
                   href={a.url}
                   target="_blank"
                   rel="noopener noreferrer"
