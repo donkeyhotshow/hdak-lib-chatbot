@@ -1,3 +1,7 @@
+// REQUIRED env vars: BUILT_IN_FORGE_API_KEY (or FORGE_API_KEY / OPENAI_API_KEY)
+// Set these in Vercel Dashboard → Settings → Environment Variables
+// Local: copy .env.example → .env.local
+
 import {
   chatRequestSchema,
   MAX_CHAT_MESSAGE_LENGTH,
@@ -15,25 +19,29 @@ import {
 } from "@/lib/server/security/rateLimiter";
 
 export const runtime = "nodejs";
+export const maxDuration = 30;
 
 export async function POST(req: Request) {
-  const missingEnv = getMissingCriticalEnvVars({ forProductionBoot: false });
-  if (missingEnv.length > 0) {
-    return Response.json(
-      {
-        error: "Service unavailable",
-        details: `Missing environment variable(s): ${missingEnv.join(", ")}`,
-      },
-      { status: 503 }
-    );
-  }
-
-  const requestIp = getRequestIp({
-    ip: "unknown",
-    headers: Object.fromEntries(req.headers.entries()),
-  });
-
   try {
+    const missingEnv = getMissingCriticalEnvVars({ forProductionBoot: false });
+    if (missingEnv.length > 0) {
+      logger.error("[api/chat] Required environment variable(s) missing", {
+        missing: missingEnv,
+      });
+      return Response.json(
+        {
+          error: "API key not configured",
+          details: `Missing environment variable(s): ${missingEnv.join(", ")}`,
+        },
+        { status: 500 }
+      );
+    }
+
+    const requestIp = getRequestIp({
+      ip: "unknown",
+      headers: Object.fromEntries(req.headers.entries()),
+    });
+
     try {
       await enforceSecurityRateLimit({ endpoint: "/api/chat", ip: requestIp });
     } catch {
@@ -99,17 +107,20 @@ export async function POST(req: Request) {
     }
 
     return serviceResult.stream.toUIMessageStreamResponse();
-  } catch (error) {
-    if (error instanceof ChatEndpointError) {
-      return Response.json(
-        { error: error.message },
-        { status: error.statusCode }
-      );
+  } catch (err) {
+    if (err instanceof ChatEndpointError) {
+      return Response.json({ error: err.message }, { status: err.statusCode });
     }
 
-    logger.error("[/api/chat] Controller error", {
-      error: error instanceof Error ? error.message : String(error),
+    logger.error("[api/chat] Unhandled error", {
+      error: err instanceof Error ? err.message : String(err),
     });
-    return Response.json({ error: "Internal server error" }, { status: 500 });
+    return Response.json(
+      {
+        error: "internal_error",
+        message: err instanceof Error ? err.message : "Unknown error",
+      },
+      { status: 500 }
+    );
   }
 }

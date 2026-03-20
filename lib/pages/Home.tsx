@@ -1941,9 +1941,9 @@ export default function Home() {
                   maxWidth: 480,
                 }}
               >
-                {chips.map((chip, i) => (
+                {chips.map(chip => (
                   <button
-                    key={i}
+                    key={chip.text}
                     className="hdak-chip"
                     onClick={() => handleQuickStart(chip.text)}
                     style={{
@@ -2106,7 +2106,7 @@ export default function Home() {
                     key={
                       "id" in msg && typeof msg.id !== "undefined"
                         ? String(msg.id)
-                        : messageIndex
+                        : `msg-${messageIndex}-${msg.role}`
                     }
                     className="hdak-msg-outer"
                     style={{
