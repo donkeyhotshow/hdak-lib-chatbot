@@ -980,6 +980,16 @@ export default function Home() {
     };
   }, [t.streamError]);
 
+  useEffect(() => {
+    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/sw.js").catch(() => {
+          // SW registration is best-effort; failures are non-critical
+        });
+      });
+    }
+  }, []);
+
   const saveFeedback = (
     responseId: string,
     sourceBadge:
@@ -1167,23 +1177,23 @@ export default function Home() {
         .hdak-send:disabled { background: #d4c4a8; color: #5f4b3a; cursor: default; transform: none; box-shadow: none; }
         .hdak-input-row:focus-within { border-color: #8b5e3c; box-shadow: 0 0 0 3px rgba(139,94,60,0.12); }
         .hdak-inline-source:hover { text-decoration: underline; }
-        .hdak-action-btn { height: 36px; padding: 0 12px; background: #f9f5ee; border: 1px solid rgba(121,90,57,0.34); border-radius: 8px; color: #a85f2e; font-size: 12px; cursor: pointer; font-family: 'DM Sans', system-ui, sans-serif; transition: all 0.15s; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 3px rgba(121,90,57,0.1); }
+        .hdak-action-btn { min-height: 44px; height: auto; padding: 0 12px; background: #f9f5ee; border: 1px solid rgba(121,90,57,0.34); border-radius: 8px; color: #a85f2e; font-size: 12px; cursor: pointer; font-family: 'DM Sans', system-ui, sans-serif; transition: all 0.15s; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 3px rgba(121,90,57,0.1); touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
         .hdak-action-btn:hover { background: #5c3a1e; border-color: #5c3a1e; color: #ffffff; }
         .hdak-action-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(92,58,30,0.25); }
         .hdak-action-btn--catalog { background: #a85f2e; border-color: rgba(121,90,57,0.5); color: #ffffff; font-weight: 600; }
         .hdak-action-btn--catalog:hover { background: #bfae8d; border-color: rgba(121,90,57,0.52); color: #5f4b3a; }
         .hdak-action-btn--secondary { background: transparent; border-color: rgba(121,90,57,0.28); color: #795a39; box-shadow: none; font-size: 11px; }
         .hdak-action-btn--secondary:hover { background: transparent; border-color: #795a39; color: #5c3a1e; text-decoration: underline; }
-        .hdak-followup-chip { height: 30px; padding: 0 12px; background: transparent; border: 1px solid rgba(121,90,57,0.34); border-radius: 20px; color: #795a39; font-size: 12px; cursor: pointer; font-family: 'DM Sans', system-ui, sans-serif; transition: all 0.15s; display: inline-flex; align-items: center; white-space: nowrap; max-width: fit-content; animation: chipIn 0.2s ease both; }
+        .hdak-followup-chip { min-height: 44px; height: auto; padding: 10px 12px; background: transparent; border: 1px solid rgba(121,90,57,0.34); border-radius: 20px; color: #795a39; font-size: 12px; cursor: pointer; font-family: 'DM Sans', system-ui, sans-serif; transition: all 0.15s; display: inline-flex; align-items: center; white-space: nowrap; max-width: fit-content; animation: chipIn 0.2s ease both; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
         .hdak-followup-chip:hover { border-color: #795a39; color: #5c3a1e; background: rgba(121,90,57,0.06); }
-        .hdak-ctx-btn { height: 32px; padding: 0 14px; background: #ffffff; border: 1px solid #e0d5c5; border-radius: 20px; color: #5f4b3a; font-size: 13px; cursor: pointer; font-family: 'DM Sans', system-ui, sans-serif; transition: all 0.15s; display: inline-flex; align-items: center; gap: 5px; animation: ctxIn 0.3s ease both; }
+        .hdak-ctx-btn { min-height: 44px; height: auto; padding: 0 14px; background: #ffffff; border: 1px solid #e0d5c5; border-radius: 20px; color: #5f4b3a; font-size: 13px; cursor: pointer; font-family: 'DM Sans', system-ui, sans-serif; transition: all 0.15s; display: inline-flex; align-items: center; gap: 5px; animation: ctxIn 0.3s ease both; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
         .hdak-ctx-btn:hover { background: #5c3a1e; border-color: #5c3a1e; color: #ffffff; }
         .hdak-ctx-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(92,58,30,0.25); }
         .hdak-source-badge { transition: transform 0.16s ease, box-shadow 0.16s ease; box-shadow: 0 1px 3px rgba(121,90,57,0.1); }
         .hdak-source-badge:hover { transform: translateY(-1px); }
         .hdak-feedback-row { display: flex; align-items: center; gap: 4px; opacity: 0; transition: opacity 0.2s; }
         .hdak-msg-outer:hover .hdak-feedback-row { opacity: 1; }
-        .hdak-feedback-btn { font-size: 13px; background: none; border: none; cursor: pointer; padding: 2px 4px; line-height: 1; transition: opacity 0.15s, transform 0.14s ease; }
+        .hdak-feedback-btn { font-size: 13px; background: none; border: none; cursor: pointer; min-height: 44px; min-width: 44px; padding: 10px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; transition: opacity 0.15s, transform 0.14s ease; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
         .hdak-feedback-btn:hover { transform: translateY(-1px); }
         .typing-message {
           border-right: 2px solid #795a39;
@@ -1216,6 +1226,7 @@ export default function Home() {
         }
         @media (max-width: 480px) { .tb-label { display: none; } }
         @media (max-width: 640px) { .hdak-input-hint { display: none; } }
+        @media (pointer: coarse) { .hdak-input-hint { display: none; } }
       `}</style>
 
       <div className="hdak-body">
@@ -1929,7 +1940,8 @@ export default function Home() {
                     className="hdak-chip"
                     onClick={() => handleQuickStart(chip.text)}
                     style={{
-                      padding: "6px 10px",
+                      minHeight: 44,
+                      padding: "10px 14px",
                       background: "#f9f5ee",
                       border: "1px solid rgba(121,90,57,0.28)",
                       borderRadius: 18,
@@ -1938,6 +1950,8 @@ export default function Home() {
                       cursor: "pointer",
                       transition: "all 0.2s",
                       fontFamily: "'DM Sans', system-ui, sans-serif",
+                      touchAction: "manipulation",
+                      WebkitTapHighlightColor: "transparent",
                     }}
                   >
                     {chip.emoji} {chip.text}
@@ -1951,6 +1965,9 @@ export default function Home() {
               className="hdak-msg-scroll"
               ref={messagesContainerRef}
               onScroll={handleMessagesScroll}
+              role="log"
+              aria-live="polite"
+              aria-label="Chat messages"
               style={{
                 flex: 1,
                 overflowY: "auto",
@@ -2541,40 +2558,6 @@ export default function Home() {
               borderTop: "1px solid rgba(121,90,57,0.15)",
             }}
           >
-            {/* Chips: visible only in empty/welcome state, fade out once chat starts */}
-            <div
-              style={{
-                overflow: "hidden",
-                maxHeight: showEmpty ? "60px" : "0",
-                opacity: showEmpty ? 1 : 0,
-                marginBottom: showEmpty ? "8px" : "0",
-                transition:
-                  "max-height 0.35s ease, opacity 0.3s ease, margin-bottom 0.3s ease",
-              }}
-            >
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {chips.map(chip => (
-                  <button
-                    key={`inline-chip-${chip.text}`}
-                    className="hdak-chip"
-                    onClick={() => handleQuickStart(chip.text)}
-                    style={{
-                      padding: "5px 10px",
-                      background: "#f9f5ee",
-                      border: "1px solid rgba(121,90,57,0.28)",
-                      borderRadius: 16,
-                      fontSize: 11,
-                      color: "#795a39",
-                      cursor: "pointer",
-                      transition: "all 0.2s",
-                      fontFamily: "'DM Sans', system-ui, sans-serif",
-                    }}
-                  >
-                    {chip.emoji} {chip.text}
-                  </button>
-                ))}
-              </div>
-            </div>
             {/* Error banner */}
             {(sendError || streamError) && (
               <div
@@ -2677,6 +2660,7 @@ export default function Home() {
               />
               <button
                 className="hdak-send"
+                aria-label={t.sendMessage}
                 onClick={() => {
                   handleSendMessage();
                   if (textareaRef.current)
@@ -2684,8 +2668,8 @@ export default function Home() {
                 }}
                 disabled={isStreaming || !localInput.trim()}
                 style={{
-                  width: 38,
-                  height: 38,
+                  width: 44,
+                  height: 44,
                   flexShrink: 0,
                   background:
                     isStreaming || !localInput.trim() ? "#e2d2bd" : "#5c3a1e",
@@ -2700,6 +2684,8 @@ export default function Home() {
                     isStreaming || !localInput.trim() ? "#5f4b3a" : "#ffffff",
                   transition:
                     "background 0.18s, transform 0.15s, box-shadow 0.18s",
+                  touchAction: "manipulation",
+                  WebkitTapHighlightColor: "transparent",
                 }}
               >
                 <svg
