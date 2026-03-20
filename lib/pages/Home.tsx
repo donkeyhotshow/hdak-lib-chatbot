@@ -1261,6 +1261,8 @@ export default function Home() {
             <button
               className={`hdak-tb-btn${openDropdown === "hist" ? " active" : ""}`}
               onClick={() => toggleDropdown("hist")}
+              aria-label="Переглянути історію чатів"
+              aria-expanded={openDropdown === "hist"}
               style={{
                 height: 30,
                 padding: "0 11px",
@@ -1522,6 +1524,8 @@ export default function Home() {
               <button
                 className={`hdak-tb-btn${openDropdown === "res" ? " active" : ""}`}
                 onClick={() => toggleDropdown("res")}
+                aria-label="Відкрити ресурси бібліотеки"
+                aria-expanded={openDropdown === "res"}
                 style={{
                   height: 30,
                   padding: "0 11px",
@@ -1686,6 +1690,8 @@ export default function Home() {
               <button
                 className={`hdak-tb-btn${openDropdown === "lang" ? " active" : ""}`}
                 onClick={() => toggleDropdown("lang")}
+                aria-label="Змінити мову інтерфейсу"
+                aria-expanded={openDropdown === "lang"}
                 style={{
                   height: 30,
                   padding: "0 11px",
@@ -1703,7 +1709,8 @@ export default function Home() {
                   whiteSpace: "nowrap",
                 }}
               >
-                🌐 <span className="tb-label">{langLabels[language]}</span>
+                <span aria-hidden="true">🌐</span>{" "}
+                <span className="tb-label">{langLabels[language]}</span>
               </button>
 
               {openDropdown === "lang" && (
@@ -1843,7 +1850,7 @@ export default function Home() {
               <p
                 style={{
                   fontSize: 13,
-                  color: "#9e8060",
+                  color: "#64461d",
                   fontStyle: "italic",
                   marginBottom: 6,
                 }}
@@ -1967,7 +1974,8 @@ export default function Home() {
               onScroll={handleMessagesScroll}
               role="log"
               aria-live="polite"
-              aria-label="Chat messages"
+              aria-label="Історія чату"
+              aria-busy={isStreaming}
               style={{
                 flex: 1,
                 overflowY: "auto",
@@ -2309,7 +2317,7 @@ export default function Home() {
                                   transition: "opacity 0.15s",
                                 }}
                               >
-                                👍
+                                <span aria-hidden="true">👍</span>
                               </button>
                               <button
                                 className="hdak-feedback-btn"
@@ -2337,7 +2345,7 @@ export default function Home() {
                                   transition: "opacity 0.15s",
                                 }}
                               >
-                                👎
+                                <span aria-hidden="true">👎</span>
                               </button>
                               {feedbackByResponseId[responseId] && (
                                 <span
@@ -2620,9 +2628,14 @@ export default function Home() {
             >
               <textarea
                 ref={textareaRef}
+                id="chat-input"
                 className="hdak-textarea"
                 rows={1}
                 value={localInput}
+                aria-label="Введіть запитання до бібліотеки"
+                aria-describedby="keyboard-hints"
+                inputMode="text"
+                autoComplete="off"
                 onChange={e => {
                   setLocalInput(e.target.value);
                   adjustTextarea();
@@ -2702,6 +2715,7 @@ export default function Home() {
             </div>
             <div
               className="hdak-input-hint"
+              id="keyboard-hints"
               style={{
                 fontSize: 11,
                 color: "#795a39",
@@ -2711,6 +2725,23 @@ export default function Home() {
             >
               {t.hint}
             </div>
+            {/* Visually-hidden accessible description for screen readers */}
+            <span
+              id="keyboard-hints-sr"
+              style={{
+                position: "absolute",
+                width: 1,
+                height: 1,
+                padding: 0,
+                margin: -1,
+                overflow: "hidden",
+                clip: "rect(0,0,0,0)",
+                whiteSpace: "nowrap",
+                border: 0,
+              }}
+            >
+              Enter для надсилання, Shift+Enter для нового рядка
+            </span>
           </div>
         </main>
       </div>
