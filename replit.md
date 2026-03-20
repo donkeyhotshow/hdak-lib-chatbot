@@ -50,8 +50,8 @@ Preferred communication style: Simple, everyday language.
 - **Database Tables** *(Data schema version: 1.1)*:
   - `conversations` — id, title, created_at
   - `messages` — id, conversation_id (FK to conversations with cascade delete), role, content, created_at
-  - `library_info` — id, key (unique), value_uk, value_ru, value_en, category ('contacts'|'hours'|'rules'|'services'|'general'), source, updated_at
-  - `library_resources` — id, name, type ('catalog'|'repository'|'site'|'db'), url, description_uk, description_ru, description_en, is_official, requires_auth
+  - `library_info` — id, key (unique), value_uk, value_en, category ('contacts'|'hours'|'rules'|'services'|'general'), source, updated_at
+  - `library_resources` — id, name, type ('catalog'|'repository'|'site'|'db'), url, description_uk, description_en, is_official, requires_auth
 - **Route Contracts**: `shared/routes.ts` defines API contract schemas using Zod
 
 ### Database
