@@ -17,7 +17,9 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "db:seed": "node seed-db.mjs"
+    "db:seed": "node seed-db.mjs",
+    "check:prod": "npx tsx scripts/check-production.ts",
+    "check:prod:local": "CHECK_URL=http://localhost:3000 npx tsx scripts/check-production.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.12",
