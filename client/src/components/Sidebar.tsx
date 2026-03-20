@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useConversations, useDeleteConversation, useCreateConversation } from "@/hooks/use-chat";
-import { Plus, MessageSquare, Trash2, BookMarked, ExternalLink } from "lucide-react";
+import { Plus, MessageSquare, Trash2, Library, ExternalLink } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { format } from "date-fns";
 import {
@@ -38,102 +38,88 @@ export function Sidebar({ className }: { className?: string }) {
   };
 
   return (
-    <div className={cn("flex flex-col h-full wood-panel spine-divider", className)}>
+    <div className={cn("flex flex-col h-full bg-muted/50 border-r border-border", className)}>
 
-      {/* ── Logo / Header ── dark wood header zone */}
-      <div className="wood-panel-mid px-5 py-5 border-b border-amber-900/30">
-        <Link href="/" className="flex items-center gap-3 group cursor-pointer mb-5">
-          <div className="w-9 h-9 rounded-lg bg-amber-700/80 border border-amber-600/50 flex items-center justify-center shadow-lg group-hover:bg-amber-600/90 transition-colors">
-            <BookMarked className="w-5 h-5 text-amber-100" />
+      {/* Header */}
+      <div className="p-4 border-b border-border/40">
+        <Link href="/" className="flex items-center gap-2 px-2 py-3 mb-4 group cursor-pointer">
+          <div className="w-8 h-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center shadow-lg shadow-primary/20 group-hover:scale-105 transition-transform duration-200">
+            <Library className="w-4 h-4" />
           </div>
-          <div>
-            <p className="font-serif font-bold text-base text-amber-100 leading-tight tracking-wide">ХДАК</p>
-            <p className="text-[10px] text-amber-400/70 uppercase tracking-widest leading-none font-medium">Наукова бібліотека</p>
-          </div>
+          <span className="font-serif font-bold text-lg text-primary tracking-tight">HDAK Library</span>
         </Link>
 
-        {/* New chat button */}
-        <button
+        <Button
           onClick={handleNewChat}
           disabled={createMutation.isPending}
           data-testid="button-new-conversation"
-          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg
-            bg-amber-800/40 hover:bg-amber-700/50 border border-amber-700/40 hover:border-amber-600/50
-            text-amber-200 hover:text-amber-100 text-sm font-medium
-            transition-all duration-200 disabled:opacity-50"
+          className="w-full justify-start gap-2 h-11 shadow-sm bg-white hover:bg-white/70 text-foreground border border-border/60"
+          variant="outline"
         >
-          <Plus className="w-4 h-4 shrink-0" />
+          <Plus className="w-4 h-4" />
           {createMutation.isPending ? "Створення..." : "Нова розмова"}
-        </button>
+        </Button>
       </div>
 
-      {/* ── Conversation list ── */}
-      <div className="flex-1 overflow-y-auto py-3 px-3 space-y-0.5 scrollbar-wood">
+      {/* Conversation list */}
+      <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1 scrollbar-thin">
         {isLoading ? (
-          <div className="py-8 text-center">
-            <p className="text-xs text-amber-500/60 animate-pulse">Завантаження...</p>
+          <div className="text-center py-8 text-sm text-muted-foreground animate-pulse">
+            Завантаження...
           </div>
         ) : conversations?.length === 0 ? (
-          <div className="py-10 px-4 text-center">
-            <MessageSquare className="w-8 h-8 text-amber-700/50 mx-auto mb-3" />
-            <p className="text-xs text-amber-500/60 leading-relaxed">
-              Почніть нову розмову, щоб переглянути бібліотечний каталог
-            </p>
+          <div className="text-center py-8 px-4">
+            <p className="text-sm text-muted-foreground mb-1">Ще немає розмов.</p>
+            <p className="text-xs text-muted-foreground/60">Розпочніть нову розмову для пошуку в каталозі.</p>
           </div>
         ) : (
           conversations?.map((conv) => {
             const isActive = location === `/chat/${conv.id}`;
-            const dateStr = conv.createdAt
-              ? format(new Date(conv.createdAt), "d MMM")
-              : "";
-
             return (
               <Link key={conv.id} href={`/chat/${conv.id}`} className="block">
                 <div
                   data-testid={`conv-item-${conv.id}`}
                   className={cn(
-                    "group relative flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-all duration-150 cursor-pointer",
+                    "group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-150 cursor-pointer",
                     isActive
-                      ? "bg-amber-800/60 border border-amber-700/50 text-amber-100"
-                      : "text-amber-300/70 hover:bg-amber-900/50 hover:text-amber-200"
+                      ? "bg-white text-primary font-medium shadow-sm border border-border/50"
+                      : "text-muted-foreground hover:bg-white/60 hover:text-foreground"
                   )}
                 >
                   <MessageSquare className={cn(
-                    "w-3.5 h-3.5 shrink-0",
-                    isActive ? "text-amber-300" : "text-amber-600/60"
+                    "w-4 h-4 shrink-0",
+                    isActive ? "text-primary" : "text-muted-foreground/60"
                   )} />
 
-                  <div className="flex-1 min-w-0">
-                    <p className="truncate leading-snug pr-5">
-                      {conv.title || "Без назви"}
-                    </p>
-                    {dateStr && (
-                      <p className={cn(
-                        "text-[10px] mt-0.5",
-                        isActive ? "text-amber-400/70" : "text-amber-700/60"
-                      )}>
-                        {dateStr}
-                      </p>
-                    )}
+                  <div className="flex-1 min-w-0 truncate pr-6">
+                    {conv.title || "Без назви"}
                   </div>
 
-                  {/* Delete */}
+                  {conv.createdAt && (
+                    <span className={cn(
+                      "text-[10px] shrink-0 tabular-nums",
+                      isActive ? "text-primary/50" : "text-muted-foreground/40"
+                    )}>
+                      {format(new Date(conv.createdAt), "d MMM")}
+                    </span>
+                  )}
+
                   <div className="opacity-0 group-hover:opacity-100 absolute right-2 top-1/2 -translate-y-1/2 transition-opacity z-10">
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <button
                           onClick={(e) => e.stopPropagation()}
                           data-testid={`button-delete-conv-${conv.id}`}
-                          className="p-1.5 rounded-md hover:bg-red-900/40 hover:text-red-300 text-amber-600/60 transition-colors"
+                          className="p-1.5 rounded-md hover:bg-destructive/10 hover:text-destructive transition-colors"
                         >
-                          <Trash2 className="w-3 h-3" />
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
                           <AlertDialogTitle>Видалити розмову?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Це незворотно видалить всю историю розмови.
+                            Цю дію не можна скасувати. Всю историю розмови буде видалено.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -155,16 +141,16 @@ export function Sidebar({ className }: { className?: string }) {
         )}
       </div>
 
-      {/* ── Footer links ── slightly lighter wood */}
-      <div className="wood-panel-mid px-4 py-4 border-t border-amber-900/30 space-y-1">
+      {/* Footer links */}
+      <div className="p-4 border-t border-border/40 bg-muted/30 space-y-1">
         <a
           href="https://lib-hdak.in.ua/"
           target="_blank"
           rel="noopener noreferrer"
           data-testid="link-library-website"
-          className="flex items-center gap-2 text-xs text-amber-500/70 hover:text-amber-300 transition-colors px-2 py-1.5 rounded-md hover:bg-amber-900/30"
+          className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-primary transition-colors p-2 rounded-md hover:bg-white/60"
         >
-          <ExternalLink className="w-3 h-3 shrink-0" />
+          <ExternalLink className="w-3.5 h-3.5 shrink-0" />
           Офіційний сайт бібліотеки
         </a>
         <a
@@ -172,9 +158,9 @@ export function Sidebar({ className }: { className?: string }) {
           target="_blank"
           rel="noopener noreferrer"
           data-testid="link-catalog"
-          className="flex items-center gap-2 text-xs text-amber-500/70 hover:text-amber-300 transition-colors px-2 py-1.5 rounded-md hover:bg-amber-900/30"
+          className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-primary transition-colors p-2 rounded-md hover:bg-white/60"
         >
-          <ExternalLink className="w-3 h-3 shrink-0" />
+          <ExternalLink className="w-3.5 h-3.5 shrink-0" />
           Електронний каталог
         </a>
       </div>

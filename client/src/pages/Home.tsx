@@ -1,121 +1,98 @@
-import { Button } from "@/components/ui/button";
 import { useCreateConversation } from "@/hooks/use-chat";
 import { useLocation } from "wouter";
-import { BookOpen, Search, ScrollText, MessageCircle, BookMarked } from "lucide-react";
+import { Library, Search, BookOpen, MessageCircle } from "lucide-react";
 import { motion } from "framer-motion";
 
 const features = [
   {
     icon: Search,
     title: "Пошук у каталозі",
-    desc: "Знайдіть книги та матеріали через електронний каталог ХДАК.",
+    desc: "Знайдіть книги та матеріали в електронному каталозі бібліотеки.",
   },
   {
-    icon: ScrollText,
-    title: "Правила та послуги",
-    desc: "Дізнайтеся про режим роботи, умови користування та відділи.",
+    icon: BookOpen,
+    title: "Довідник бібліотеки",
+    desc: "Дізнайтесь про правила, графік роботи та послуги.",
   },
   {
     icon: MessageCircle,
     title: "Допомога з науковими ресурсами",
-    desc: "Навігація по репозитарію та базах даних для вашого дослідження.",
+    desc: "Отримайте допомогу в пошуку академічних матеріалів.",
   },
 ];
-
-const cardVariants = {
-  hidden: { opacity: 0, y: 16 },
-  show: (i: number) => ({
-    opacity: 1, y: 0,
-    transition: { duration: 0.35, delay: i * 0.1, ease: "easeOut" },
-  }),
-};
 
 export default function Home() {
   const [_, setLocation] = useLocation();
   const createMutation = useCreateConversation();
 
-  const handleStart = () => {
+  const handleStartChat = () => {
     createMutation.mutate(undefined, {
-      onSuccess: (conv) => setLocation(`/chat/${conv.id}`),
+      onSuccess: (newConv) => setLocation(`/chat/${newConv.id}`),
     });
   };
 
   return (
-    <div className="h-full overflow-y-auto scrollbar-parchment parchment-bg">
-      <div className="min-h-full flex flex-col items-center justify-center p-8 py-16">
-        <div className="w-full max-w-2xl mx-auto text-center space-y-10">
-
-          {/* Icon + Title */}
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45 }}
-            className="space-y-6"
-          >
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-amber-800 shadow-xl shadow-amber-900/30 border border-amber-700/60">
-              <BookMarked className="w-10 h-10 text-amber-200" />
+    <div className="h-full overflow-y-auto scrollbar-thin flex flex-col items-center justify-center p-8 text-center">
+      <div className="w-full max-w-2xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45 }}
+          className="space-y-8"
+        >
+          {/* Icon */}
+          <div className="relative inline-block">
+            <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full" />
+            <div className="relative bg-white p-6 rounded-3xl shadow-xl shadow-primary/10 border border-border">
+              <Library className="w-16 h-16 text-primary" />
             </div>
+          </div>
 
-            <div className="space-y-3">
-              <h1 className="text-4xl md:text-5xl font-serif font-bold text-amber-900 tracking-tight leading-tight">
-                Бібліотечний асистент
-              </h1>
-              <p className="text-lg text-amber-700/75 leading-relaxed max-w-md mx-auto font-light">
-                Наукова бібліотека ХДАК — ваш AI-провідник по каталогу, ресурсах та послугах бібліотеки.
-              </p>
-            </div>
-          </motion.div>
+          {/* Title */}
+          <div className="space-y-4">
+            <h1 className="text-4xl md:text-5xl font-serif font-bold text-foreground tracking-tight">
+              Бібліотечний асистент ХДАК
+            </h1>
+            <p className="text-lg text-muted-foreground leading-relaxed max-w-lg mx-auto">
+              AI-провідник по каталогу, ресурсах та послугах Наукової бібліотеки ХДАК.
+            </p>
+          </div>
 
           {/* Feature cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
             {features.map((f, i) => (
               <motion.div
                 key={f.title}
-                custom={i}
-                initial="hidden"
-                animate="show"
-                variants={cardVariants}
-                className="
-                  p-5 text-left rounded-2xl border border-amber-200/70
-                  bg-white/60 hover:bg-white/90 backdrop-blur-sm
-                  shadow-sm hover:shadow-md
-                  transition-all duration-200
-                "
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 + i * 0.08, duration: 0.3 }}
+                className="p-4 bg-white rounded-xl border border-border shadow-sm hover:shadow-md transition-shadow"
               >
-                <div className="w-9 h-9 rounded-xl bg-amber-100 border border-amber-200/60 flex items-center justify-center mb-4">
-                  <f.icon className="w-5 h-5 text-amber-800" />
-                </div>
-                <h3 className="font-semibold text-amber-900 mb-1.5 text-sm leading-snug">{f.title}</h3>
-                <p className="text-xs text-amber-700/65 leading-relaxed">{f.desc}</p>
+                <f.icon className="w-6 h-6 text-primary mb-3" />
+                <h3 className="font-semibold text-foreground mb-1 text-sm">{f.title}</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">{f.desc}</p>
               </motion.div>
             ))}
           </div>
 
           {/* CTA */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.45, duration: 0.35 }}
-          >
+          <div className="pt-2">
             <button
-              onClick={handleStart}
+              onClick={handleStartChat}
               disabled={createMutation.isPending}
               data-testid="button-start-chat"
               className="
-                inline-flex items-center gap-2.5 px-8 py-4 text-base font-semibold rounded-2xl
-                bg-amber-800 hover:bg-amber-700 text-amber-100
-                border border-amber-700/60 hover:border-amber-600
-                shadow-lg shadow-amber-900/25 hover:shadow-amber-900/35
-                hover:-translate-y-0.5
+                inline-flex items-center gap-2 h-14 px-8 text-base font-semibold rounded-2xl
+                bg-primary hover:bg-primary/90 text-primary-foreground
+                shadow-lg shadow-primary/25 hover:-translate-y-0.5
                 transition-all duration-200
                 disabled:opacity-60 disabled:cursor-not-allowed
               "
             >
-              <BookOpen className="w-5 h-5" />
-              {createMutation.isPending ? "Створення..." : "Почати розмову"}
+              {createMutation.isPending ? "Створення..." : "Розпочати розмову"}
             </button>
-          </motion.div>
-        </div>
+          </div>
+        </motion.div>
       </div>
     </div>
   );

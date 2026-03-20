@@ -20,56 +20,45 @@ export const ChatMessage = memo(function ChatMessage({
 }: ChatMessageProps) {
   const isUser = role === "user";
 
-  const timeStr = createdAt
-    ? format(new Date(createdAt), "HH:mm")
-    : undefined;
-
   return (
-    <div
-      className={cn(
-        "w-full animate-fade-up",
-        isUser
-          ? "parchment-bg border-b border-amber-200/50"
-          : "parchment-dark-bg border-b border-amber-200/60"
-      )}
-    >
-      <div className="max-w-3xl mx-auto px-5 py-6 flex gap-5">
+    <div className={cn(
+      "group w-full py-7 px-4 transition-colors duration-150",
+      isUser ? "bg-transparent" : "bg-muted/30 border-y border-border/40"
+    )}>
+      <div className="max-w-3xl mx-auto flex gap-5">
+
         {/* Avatar */}
         <div className={cn(
-          "shrink-0 w-9 h-9 rounded-xl flex items-center justify-center border shadow-sm mt-0.5",
+          "shrink-0 w-9 h-9 rounded-xl flex items-center justify-center shadow-sm border mt-0.5",
           isUser
-            ? "bg-amber-100 border-amber-300/60 text-amber-800"
-            : "bg-amber-800 border-amber-700 text-amber-100"
+            ? "bg-white border-border text-foreground"
+            : "bg-primary text-primary-foreground border-primary/80"
         )}>
-          {isUser
-            ? <User className="w-4 h-4" />
-            : <Bot className="w-4 h-4" />
-          }
+          {isUser ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
         </div>
 
         {/* Content */}
-        <div className="flex-1 min-w-0 space-y-1.5">
+        <div className="flex-1 space-y-1.5 min-w-0">
           <div className="flex items-baseline gap-2">
-            <span className={cn(
-              "text-sm font-semibold",
-              isUser ? "text-amber-900" : "text-amber-800"
-            )}>
+            <span className="font-semibold text-sm text-foreground">
               {isUser ? "Ви" : "Бібліотечний асистент"}
             </span>
-            {timeStr && (
-              <span className="text-[11px] text-amber-600/50">{timeStr}</span>
+            {createdAt && (
+              <span className="text-xs text-muted-foreground">
+                {format(new Date(createdAt), "HH:mm")}
+              </span>
             )}
           </div>
 
           <div className={cn(
-            "prose-custom text-[15px] leading-relaxed",
+            "prose-custom max-w-none text-[15px]",
             isStreaming && "animate-pulse-subtle"
           )}>
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {content || (isStreaming ? "…" : "")}
+              {content || (isStreaming ? "" : "")}
             </ReactMarkdown>
             {isStreaming && (
-              <span className="inline-block w-1.5 h-4 ml-0.5 bg-amber-700/60 animate-cursor rounded-sm" />
+              <span className="inline-block w-1.5 h-4 ml-0.5 bg-primary/50 animate-cursor rounded-sm" />
             )}
           </div>
         </div>

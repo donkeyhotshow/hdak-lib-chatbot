@@ -3,7 +3,7 @@ import { useParams } from "wouter";
 import { useConversation, useChatStream } from "@/hooks/use-chat";
 import { ChatMessage } from "@/components/ChatMessage";
 import { ChatInput } from "@/components/ChatInput";
-import { Loader2, AlertCircle, BookOpen } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function Chat() {
@@ -12,78 +12,61 @@ export default function Chat() {
 
   const { data: conversation, isLoading, error, refetch } = useConversation(id);
   const { sendMessage, isStreaming, streamedContent, stopStream } = useChatStream(id);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Smooth auto-scroll — only when near the bottom already
-  const scrollToBottom = useCallback((smooth = true) => {
-    bottomRef.current?.scrollIntoView({
-      behavior: smooth ? "smooth" : "instant",
-      block: "end",
-    });
+  const scrollToBottom = useCallback(() => {
+    scrollRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, []);
 
   useEffect(() => {
-    scrollToBottom(true);
+    scrollToBottom();
   }, [conversation?.messages.length, streamedContent, scrollToBottom]);
 
-  // ── Loading state
   if (isLoading) {
     return (
-      <div className="h-full flex items-center justify-center parchment-bg">
-        <Loader2 className="w-7 h-7 text-amber-700 animate-spin" />
+      <div className="h-full flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
       </div>
     );
   }
 
-  // ── Error state
   if (error || !conversation) {
     return (
-      <div className="h-full flex flex-col items-center justify-center gap-5 text-center p-8 parchment-bg">
-        <div className="w-16 h-16 bg-red-50 border border-red-200 rounded-full flex items-center justify-center">
-          <AlertCircle className="w-8 h-8 text-red-400" />
+      <div className="h-full flex flex-col items-center justify-center gap-4 text-center p-8">
+        <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center">
+          <AlertCircle className="w-8 h-8 text-destructive" />
         </div>
         <div>
-          <h2 className="text-xl font-serif font-bold text-amber-900">
+          <h2 className="text-xl font-serif font-bold text-foreground">
             Не вдалося завантажити розмову
           </h2>
-          <p className="text-amber-600/70 mt-1.5 text-sm">
-            Розмова могла бути видалена або не існує.
+          <p className="text-muted-foreground mt-2 text-sm">
+            Розмову могло бути видалено або вона не існує.
           </p>
         </div>
-        <Button
-          onClick={() => refetch()}
-          variant="outline"
-          className="border-amber-300 text-amber-800 hover:bg-amber-50"
-        >
-          Спробувати ще раз
-        </Button>
+        <Button onClick={() => refetch()} variant="outline">Спробувати ще раз</Button>
       </div>
     );
   }
 
-  const hasMessages = conversation.messages.length > 0;
-
   return (
-    <div className="flex flex-col h-full parchment-bg">
+    <div className="flex flex-col h-full bg-background relative">
 
-      {/* ── Messages area */}
-      <div className="flex-1 overflow-y-auto scrollbar-parchment scroll-smooth">
-        <div className="min-h-full pb-36">
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto scrollbar-thin scroll-smooth">
+        <div className="min-h-full pb-32">
 
           {/* Empty state */}
-          {!hasMessages && !isStreaming && (
-            <div className="max-w-2xl mx-auto px-6 py-20 text-center space-y-4">
-              <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-amber-100 border border-amber-200/60">
-                <BookOpen className="w-7 h-7 text-amber-700" />
-              </div>
-              <h2 className="text-2xl font-serif font-bold text-amber-900">
+          {conversation.messages.length === 0 && !isStreaming && (
+            <div className="max-w-3xl mx-auto px-4 py-12 text-center space-y-3">
+              <h2 className="text-2xl font-serif font-bold text-primary">
                 {conversation.title || "Нова розмова"}
               </h2>
-              <p className="text-amber-600/70 leading-relaxed text-sm max-w-sm mx-auto">
-                Привіт! Я — бібліотечний асистент ХДАК. Запитайте про каталог, розклад, правила або ресурси.
+              <p className="text-muted-foreground text-sm">
+                Привіт! Я — бібліотечний асистент ХДАК. Чим можу допомогти?
               </p>
               {/* Quick prompts */}
-              <div className="flex flex-wrap justify-center gap-2 pt-2">
+              <div className="flex flex-wrap justify-center gap-2 pt-3">
                 {[
                   "Як знайти книгу в каталозі?",
                   "Коли працює бібліотека?",
@@ -93,9 +76,11 @@ export default function Chat() {
                     key={prompt}
                     onClick={() => sendMessage(prompt)}
                     disabled={isStreaming}
-                    className="px-3 py-1.5 text-xs rounded-full border border-amber-300/70
-                      bg-white/70 hover:bg-amber-50 text-amber-800
-                      transition-colors duration-150 font-medium"
+                    className="
+                      px-3 py-1.5 text-xs rounded-full
+                      border border-border bg-white hover:bg-muted/50
+                      text-foreground transition-colors duration-150 font-medium
+                    "
                   >
                     {prompt}
                   </button>
@@ -104,7 +89,7 @@ export default function Chat() {
             </div>
           )}
 
-          {/* Message list */}
+          {/* Messages list */}
           {conversation.messages.map((msg) => (
             <ChatMessage
               key={msg.id}
@@ -123,14 +108,12 @@ export default function Chat() {
             />
           )}
 
-          <div ref={bottomRef} className="h-4" />
+          <div ref={scrollRef} className="h-4" />
         </div>
       </div>
 
-      {/* ── Input area — light parchment gradient fade */}
-      <div className="absolute bottom-0 left-0 right-0 pointer-events-none"
-           style={{ height: "140px", background: "linear-gradient(to top, #f7f2ea 55%, transparent)" }} />
-      <div className="relative z-10">
+      {/* Input — gradient fade over bottom of message list */}
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-background via-background/95 to-transparent pt-10 pb-2">
         <ChatInput
           onSend={sendMessage}
           onStop={stopStream}
