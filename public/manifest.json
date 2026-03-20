@@ -1,0 +1,21 @@
+{
+  "name": "HDAK Library Chatbot",
+  "short_name": "HDAK Chatbot",
+  "description": "Чатбот бібліотеки Харківської державної академії культури",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#e8e0d5",
+  "theme_color": "#5c3a1e",
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

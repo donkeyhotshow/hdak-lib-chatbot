@@ -6,6 +6,8 @@ import { Component, ReactNode } from "react";
 
 interface Props {
   children: ReactNode;
+  /** When any value in this array changes the error state is cleared automatically. */
+  resetKeys?: unknown[];
 }
 
 interface State {
@@ -27,6 +29,21 @@ class ErrorBoundary extends Component<Props, State> {
     console.error("[ErrorBoundary] UI render error", {
       message: error.message,
     });
+  }
+
+  componentDidUpdate(prevProps: Props) {
+    if (
+      this.state.hasError &&
+      prevProps.resetKeys !== this.props.resetKeys &&
+      this.props.resetKeys !== undefined
+    ) {
+      const changed = this.props.resetKeys.some(
+        (key, i) => key !== prevProps.resetKeys?.[i]
+      );
+      if (changed) {
+        this.setState({ hasError: false, error: null });
+      }
+    }
   }
 
   render() {

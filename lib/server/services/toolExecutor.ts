@@ -9,6 +9,7 @@ import {
 } from "../tools/registry";
 
 const CHAT_TOOL_NAMES = [
+  "searchCatalog",
   "searchLibraryResources",
   "getCatalogSearchLink",
   "findUpcomingLibraryEvents",

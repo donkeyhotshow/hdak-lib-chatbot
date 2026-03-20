@@ -1,8 +1,6 @@
-import { createOpenAI } from "@ai-sdk/openai";
 import { stepCountIs, streamText } from "ai";
 import { SECURITY_CONFIG } from "../config/security";
 import { ENV } from "../_core/env";
-import { createPatchedFetch } from "../_core/patchedFetch";
 import {
   AI_MODEL_NAME,
   AI_TEMPERATURE,
@@ -15,6 +13,7 @@ import {
   trimPromptToTokenLimit,
 } from "../security/tokenLimits";
 import { buildAiTools } from "./toolExecutor";
+import { createLLMProvider } from "./llmProviderFactory";
 
 const MAX_TOOL_CALLS = 5;
 
@@ -23,38 +22,6 @@ type ChatMessage = { role: "assistant" | "user"; content: string };
 function buildModelAttemptOrder(primaryModel: string): string[] {
   const fallbacks = ENV.openRouterFallbackModels ?? [];
   return [...new Set([primaryModel, ...fallbacks])];
-}
-
-function createLLMProvider() {
-  const rawUrl = ENV.forgeApiUrl;
-  if (!rawUrl) {
-    throw new Error(
-      "Missing AI base URL. Set BUILT_IN_FORGE_API_URL or FORGE_API_URL."
-    );
-  }
-  const hasVersionedPath =
-    rawUrl.includes("/v1beta") ||
-    rawUrl.includes("/openai") ||
-    rawUrl.endsWith("/v1");
-  const baseURL = hasVersionedPath ? rawUrl : `${rawUrl}/v1`;
-  const providerName = baseURL.includes("openrouter.ai")
-    ? "openrouter"
-    : "openai-compatible";
-
-  return {
-    providerName,
-    provider: createOpenAI({
-      baseURL,
-      apiKey: ENV.forgeApiKey,
-      headers: {
-        ...(ENV.openRouterHttpReferer
-          ? { "HTTP-Referer": ENV.openRouterHttpReferer }
-          : {}),
-        ...(ENV.openRouterXTitle ? { "X-Title": ENV.openRouterXTitle } : {}),
-      },
-      fetch: createPatchedFetch(fetch),
-    }),
-  };
 }
 
 export async function runAiOrchestration(params: {
