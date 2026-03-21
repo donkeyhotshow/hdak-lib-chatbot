@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { type Conversation, type Message } from "@shared/schema";
 import { useState, useCallback, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
+import type { CatalogResult } from "@/components/CatalogResults";
 
 interface ConversationWithMessages extends Conversation {
   messages: Message[];
@@ -9,6 +10,26 @@ interface ConversationWithMessages extends Conversation {
 
 const CONVERSATIONS_KEY = ["/api/conversations"] as const;
 const conversationKey = (id: number | null) => ["/api/conversations", id] as const;
+
+// ─── Parse catalog result embedded in message content ─────────────────────────
+export function parseCatalogFromContent(content: string): { text: string; catalogResult: CatalogResult | null } {
+  const MARKER_START = "<!--CATALOG:";
+  const MARKER_END = "-->";
+  const idx = content.indexOf(MARKER_START);
+  if (idx === -1) return { text: content, catalogResult: null };
+
+  const text = content.slice(0, idx).trimEnd();
+  const jsonStart = idx + MARKER_START.length;
+  const jsonEnd = content.indexOf(MARKER_END, jsonStart);
+  if (jsonEnd === -1) return { text, catalogResult: null };
+
+  try {
+    const catalogResult = JSON.parse(content.slice(jsonStart, jsonEnd)) as CatalogResult;
+    return { text, catalogResult };
+  } catch {
+    return { text, catalogResult: null };
+  }
+}
 
 // ─── Conversations list ───────────────────────────────────────────────────────
 export function useConversations() {
@@ -100,15 +121,29 @@ export function useChatStream(conversationId: number | null) {
   const qc = useQueryClient();
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamedContent, setStreamedContent] = useState("");
+  const [streamedCatalogResult, setStreamedCatalogResult] = useState<CatalogResult | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  // Streaming buffer to reduce re-render frequency
+  const streamBufRef   = useRef("");
+  const streamTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const flushBuffer = useCallback(() => {
+    if (streamTimerRef.current) {
+      clearTimeout(streamTimerRef.current);
+      streamTimerRef.current = null;
+    }
+    setStreamedContent(streamBufRef.current);
+  }, []);
 
   const sendMessage = useCallback(async (content: string) => {
     if (!conversationId) return;
 
     setIsStreaming(true);
     setStreamedContent("");
+    setStreamedCatalogResult(null);
+    streamBufRef.current = "";
 
-    // Optimistic update — show user message immediately
     const optimisticMsg: Message = {
       id: Date.now(),
       conversationId,
@@ -138,8 +173,6 @@ export function useChatStream(conversationId: number | null) {
       if (!reader) throw new Error("No response stream");
 
       const decoder = new TextDecoder();
-      let accumulated = "";
-      // lineBuffer holds partial lines across chunk boundaries
       let lineBuffer = "";
 
       while (true) {
@@ -148,7 +181,6 @@ export function useChatStream(conversationId: number | null) {
 
         lineBuffer += decoder.decode(value, { stream: true });
         const lines = lineBuffer.split("\n");
-        // Keep the last (potentially incomplete) line in the buffer
         lineBuffer = lines.pop() ?? "";
 
         for (const line of lines) {
@@ -158,9 +190,20 @@ export function useChatStream(conversationId: number | null) {
 
           try {
             const data = JSON.parse(raw);
+
             if (typeof data.content === "string") {
-              accumulated += data.content;
-              setStreamedContent(accumulated);
+              streamBufRef.current += data.content;
+              // Throttle state updates to ~30fps
+              if (!streamTimerRef.current) {
+                streamTimerRef.current = setTimeout(() => {
+                  setStreamedContent(streamBufRef.current);
+                  streamTimerRef.current = null;
+                }, 32);
+              }
+            }
+
+            if (data.catalogResult) {
+              setStreamedCatalogResult(data.catalogResult as CatalogResult);
             }
           } catch {
             // skip malformed frames
@@ -168,28 +211,39 @@ export function useChatStream(conversationId: number | null) {
         }
       }
     } catch (err: unknown) {
-      // AbortError is intentional (user stopped) — don't surface as error
       if (err instanceof Error && err.name !== "AbortError") {
         console.error("Stream error:", err);
       }
     } finally {
+      flushBuffer();
+      if (streamTimerRef.current) {
+        clearTimeout(streamTimerRef.current);
+        streamTimerRef.current = null;
+      }
+      streamBufRef.current = "";
       setIsStreaming(false);
       setStreamedContent("");
+      setStreamedCatalogResult(null);
       abortRef.current = null;
-      // Refetch to get real persisted messages from DB
       qc.invalidateQueries({ queryKey: conversationKey(conversationId) });
     }
-  }, [conversationId, qc]);
+  }, [conversationId, qc, flushBuffer]);
 
   const stopStream = useCallback(() => {
     if (abortRef.current) {
       abortRef.current.abort();
       abortRef.current = null;
+      if (streamTimerRef.current) {
+        clearTimeout(streamTimerRef.current);
+        streamTimerRef.current = null;
+      }
+      streamBufRef.current = "";
       setIsStreaming(false);
       setStreamedContent("");
+      setStreamedCatalogResult(null);
       qc.invalidateQueries({ queryKey: conversationKey(conversationId) });
     }
   }, [conversationId, qc]);
 
-  return { sendMessage, isStreaming, streamedContent, stopStream };
+  return { sendMessage, isStreaming, streamedContent, streamedCatalogResult, stopStream };
 }

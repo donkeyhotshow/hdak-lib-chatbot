@@ -1,27 +1,96 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState, useMemo, memo } from "react";
 import { useParams } from "wouter";
-import { useConversation, useChatStream } from "@/hooks/use-chat";
+import { useConversation, useChatStream, parseCatalogFromContent } from "@/hooks/use-chat";
 import { ChatMessage, TypingIndicator } from "@/components/ChatMessage";
 import { ChatInput } from "@/components/ChatInput";
+import { CatalogResults, type CatalogBook, type CatalogResult } from "@/components/CatalogResults";
 import { Loader2, AlertCircle, RotateCcw } from "lucide-react";
 import { format } from "date-fns";
 import { uk } from "date-fns/locale";
+import type { Message } from "@shared/schema";
+
+interface MessageWithCatalog extends Message {
+  catalogResult?: CatalogResult | null;
+  displayContent: string;
+}
+
+function useProcessedMessages(rawMessages: Message[]): MessageWithCatalog[] {
+  return useMemo(() => rawMessages.map(msg => {
+    const { text, catalogResult } = parseCatalogFromContent(msg.content);
+    return { ...msg, displayContent: text, catalogResult };
+  }), [rawMessages]);
+}
+
+const MessageRow = memo(function MessageRow({
+  msg,
+  savedTitles,
+  onSave,
+}: {
+  msg: MessageWithCatalog;
+  savedTitles: Set<string>;
+  onSave: (book: CatalogBook) => void;
+}) {
+  return (
+    <>
+      <ChatMessage
+        key={msg.id}
+        role={msg.role as "user" | "assistant"}
+        content={msg.displayContent}
+        createdAt={msg.createdAt}
+      />
+      {msg.catalogResult && (
+        <CatalogResults
+          data={msg.catalogResult}
+          savedTitles={savedTitles}
+          onSave={onSave}
+        />
+      )}
+    </>
+  );
+});
 
 export default function Chat() {
   const params = useParams();
   const id = params.id ? parseInt(params.id) : null;
 
   const { data: conversation, isLoading, error, refetch } = useConversation(id);
-  const { sendMessage, isStreaming, streamedContent, stopStream } = useChatStream(id);
+  const { sendMessage, isStreaming, streamedContent, streamedCatalogResult, stopStream } = useChatStream(id);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // ── Saved books (localStorage) ─────────────────────────────────────────────
+  const [savedBooks, setSavedBooks] = useState<CatalogBook[]>(() => {
+    if (typeof window === "undefined") return [];
+    try { return JSON.parse(localStorage.getItem("hdak_saved") ?? "[]"); }
+    catch { return []; }
+  });
+
+  const toggleSave = useCallback((book: CatalogBook) => {
+    setSavedBooks(prev => {
+      const has  = prev.some(b => b.title === book.title);
+      const next = has
+        ? prev.filter(b => b.title !== book.title)
+        : [...prev, book];
+      localStorage.setItem("hdak_saved", JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  const savedTitles = useMemo(
+    () => new Set(savedBooks.map(b => b.title)),
+    [savedBooks]
+  );
 
   const scrollToBottom = useCallback(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, []);
 
+  // Fix: use messages.length not messages to avoid infinite loop
+  const messageCount = conversation?.messages.length ?? 0;
   useEffect(() => {
     scrollToBottom();
-  }, [conversation?.messages.length, streamedContent, scrollToBottom]);
+  }, [messageCount, streamedContent, scrollToBottom]);
+
+  const processedMessages = useProcessedMessages(conversation?.messages ?? []);
 
   if (isLoading) {
     return (
@@ -89,7 +158,6 @@ export default function Chat() {
             className="flex flex-col items-center justify-center text-center h-full"
             style={{ padding: "32px 20px", animation: "rise .45s cubic-bezier(.22,.8,.36,1) both" }}
           >
-            {/* Decorative glyph */}
             <div style={{
               fontFamily: "var(--ff-d)",
               fontSize: 48,
@@ -123,7 +191,6 @@ export default function Chat() {
               Знайду книги в каталозі, розповім про ресурси і допоможу орієнтуватися на сайті бібліотеки ХДАК.
             </p>
 
-            {/* How-to steps */}
             <div style={{ display: "flex", flexDirection: "column", gap: 5, width: "100%", maxWidth: 340 }}>
               {[
                 { n: "1", text: <><b>Оберіть запит</b> нижче або напишіть своє</> },
@@ -174,23 +241,32 @@ export default function Chat() {
           </div>
         )}
 
-        {/* Messages */}
-        {conversation.messages.map((msg) => (
-          <ChatMessage
+        {/* Messages with catalog results */}
+        {processedMessages.map((msg) => (
+          <MessageRow
             key={msg.id}
-            role={msg.role as "user" | "assistant"}
-            content={msg.content}
-            createdAt={msg.createdAt}
+            msg={msg}
+            savedTitles={savedTitles}
+            onSave={toggleSave}
           />
         ))}
 
         {/* Streaming */}
         {isStreaming && streamedContent && (
-          <ChatMessage
-            role="assistant"
-            content={streamedContent}
-            isStreaming={true}
-          />
+          <>
+            <ChatMessage
+              role="assistant"
+              content={streamedContent}
+              isStreaming={true}
+            />
+            {streamedCatalogResult && (
+              <CatalogResults
+                data={streamedCatalogResult}
+                savedTitles={savedTitles}
+                onSave={toggleSave}
+              />
+            )}
+          </>
         )}
         {isStreaming && !streamedContent && <TypingIndicator />}
 

@@ -6,27 +6,38 @@ interface ChatInputProps {
   onStop: () => void;
   disabled?: boolean;
   isStreaming?: boolean;
+  chips?: { label: string; icon?: string }[];
+  primaryChip?: string;
 }
 
-const CHIPS = [
-  { label: "🔍 Шукати в каталозі", primary: true },
-  { label: "⚡ Як записатися?" },
-  { label: "📘 Правила користування" },
-  { label: "🕐 Графік роботи" },
-  { label: "📞 Контакти" },
+const DEFAULT_CHIPS = [
+  { label: "Шукати в каталозі", icon: "🔍", primary: true },
+  { label: "Як записатися?", icon: "⚡" },
+  { label: "Правила користування", icon: "📘" },
+  { label: "Графік роботи", icon: "🕐" },
+  { label: "Контакти", icon: "📞" },
 ];
 
-export function ChatInput({ onSend, onStop, disabled, isStreaming }: ChatInputProps) {
+export function ChatInput({ onSend, onStop, disabled, isStreaming, chips, primaryChip }: ChatInputProps) {
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [focused, setFocused] = useState(false);
 
+  const activeChips = chips
+    ? chips.map(c => ({ label: c.label, icon: c.icon, primary: c.label === primaryChip }))
+    : DEFAULT_CHIPS;
+
+  const grow = useCallback(() => {
+    requestAnimationFrame(() => {
+      if (!textareaRef.current) return;
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 120) + "px";
+    });
+  }, []);
+
   useEffect(() => {
-    const el = textareaRef.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
-  }, [input]);
+    grow();
+  }, [input, grow]);
 
   useEffect(() => {
     if (!isStreaming) textareaRef.current?.focus();
@@ -37,7 +48,9 @@ export function ChatInput({ onSend, onStop, disabled, isStreaming }: ChatInputPr
     if (!trimmed || disabled || isStreaming) return;
     onSend(trimmed);
     setInput("");
-    if (textareaRef.current) textareaRef.current.style.height = "auto";
+    requestAnimationFrame(() => {
+      if (textareaRef.current) textareaRef.current.style.height = "auto";
+    });
   }, [input, disabled, isStreaming, onSend]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -64,14 +77,22 @@ export function ChatInput({ onSend, onStop, disabled, isStreaming }: ChatInputPr
         className="chips-row"
         role="list"
         aria-label="Швидкі запити"
-        style={{ marginBottom: 8 }}
+        style={{
+          marginBottom: 8,
+          WebkitMaskImage: "linear-gradient(to right, transparent 0%, #000 4%, #000 96%, transparent 100%)",
+          maskImage: "linear-gradient(to right, transparent 0%, #000 4%, #000 96%, transparent 100%)",
+          opacity: isStreaming ? 0.45 : 1,
+          pointerEvents: isStreaming ? "none" : "auto",
+          transition: "opacity .12s",
+        }}
       >
-        {CHIPS.map(({ label, primary }) => (
+        {activeChips.map(({ label, icon, primary }) => (
           <button
             key={label}
             role="listitem"
-            onClick={() => handleSubmit(label.replace(/^[\p{Emoji}\s]+/u, "").trim())}
+            onClick={() => handleSubmit(label)}
             disabled={isStreaming || disabled}
+            data-testid={`button-chip-${label}`}
             style={{
               flexShrink: 0,
               display: "inline-flex",
@@ -79,19 +100,19 @@ export function ChatInput({ onSend, onStop, disabled, isStreaming }: ChatInputPr
               gap: 4,
               height: 30,
               padding: "0 12px",
-              background: primary ? "var(--b1)" : "rgba(255,252,245,.8)",
-              border: `1.5px solid ${primary ? "var(--b1)" : "var(--border-mid)"}`,
-              borderRadius: "var(--r-pill)",
+              background: primary ? "var(--brown-1)" : "rgba(255,252,245,.8)",
+              border: `1.5px solid ${primary ? "var(--brown-1)" : "var(--border-md)"}`,
+              borderRadius: 999,
               color: primary ? "rgba(245,234,216,.95)" : "var(--text-2)",
               fontSize: 12.5,
               fontWeight: 500,
               whiteSpace: "nowrap",
               transition: "all .12s",
               cursor: isStreaming || disabled ? "not-allowed" : "pointer",
-              opacity: isStreaming || disabled ? 0.5 : 1,
               fontFamily: "var(--ff-b)",
             }}
           >
+            {icon && <span style={{ fontSize: 13 }}>{icon}</span>}
             {label}
           </button>
         ))}
@@ -103,11 +124,11 @@ export function ChatInput({ onSend, onStop, disabled, isStreaming }: ChatInputPr
           display: "flex",
           alignItems: "flex-end",
           gap: 8,
-          background: "rgba(255,252,245,.95)",
-          border: `1.5px solid ${focused ? "var(--border-strong)" : "var(--border-mid)"}`,
-          borderRadius: "var(--r-xl)",
+          background: "var(--bg-input)",
+          border: `1.5px solid ${focused ? "var(--border-lg)" : "var(--border-md)"}`,
+          borderRadius: 22,
           padding: "5px 6px 5px 16px",
-          boxShadow: focused ? "0 0 0 3px rgba(92,58,30,.07)" : "none",
+          boxShadow: focused ? "0 0 0 3px rgba(60,35,10,.06)" : "none",
           transition: "border-color .12s, box-shadow .12s",
         }}
       >
@@ -132,7 +153,7 @@ export function ChatInput({ onSend, onStop, disabled, isStreaming }: ChatInputPr
             border: "none",
             outline: "none",
             color: "var(--text-0)",
-            fontSize: 15,
+            fontSize: 15.5,
             fontFamily: "var(--ff-b)",
             fontWeight: 400,
             resize: "none",
@@ -172,7 +193,7 @@ export function ChatInput({ onSend, onStop, disabled, isStreaming }: ChatInputPr
             style={{
               width: 36, height: 36, flexShrink: 0,
               display: "flex", alignItems: "center", justifyContent: "center",
-              background: "var(--b1)",
+              background: "var(--brown-1)",
               border: "none",
               borderRadius: "var(--r-md)",
               color: "var(--p1)",
@@ -191,14 +212,14 @@ export function ChatInput({ onSend, onStop, disabled, isStreaming }: ChatInputPr
         id="kb-hint"
         style={{
           fontSize: 10.5,
-          color: "var(--text-4)",
+          color: "var(--text-faint)",
           textAlign: "center",
           paddingTop: 5,
           letterSpacing: ".01em",
         }}
         className="hidden sm:block"
       >
-        Enter — надіслати · Shift+Enter — новий рядок
+        Enter — надіслати · Shift+Enter — новий рядок · ↑ — редагувати
       </p>
     </div>
   );

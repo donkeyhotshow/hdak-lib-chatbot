@@ -39,7 +39,7 @@ export async function registerRoutes(
   /* ── Chat routes ── */
   registerChatRoutes(app);
 
-  /* ── Catalog live search ── */
+  /* ── Catalog live search (legacy POST) ── */
   app.post("/api/catalog/live", async (req, res) => {
     const parsed = catalogQuerySchema.safeParse(req.body);
     if (!parsed.success) {
@@ -58,6 +58,61 @@ export async function registerRoutes(
       return res.status(502).json({
         error: err?.message ?? "Помилка з'єднання з каталогом",
         fallbackUrl: `https://library-service.com.ua:8443/khkhdak/DocumentSearchForm?ZT=q&SS=${encodeURIComponent(query)}`,
+      });
+    }
+  });
+
+  /* ── Catalog GET search (for AI tool use) ── */
+  const catalogGetSchema = z.object({
+    author: z.string().max(200).optional(),
+    title:  z.string().max(200).optional(),
+    topic:  z.string().max(200).optional(),
+    limit:  z.coerce.number().int().min(1).max(30).optional(),
+  });
+
+  app.get("/api/catalog", async (req, res) => {
+    const parsed = catalogGetSchema.safeParse(req.query);
+    if (!parsed.success) {
+      return res.status(400).json({ ok: false, error: "Невірний запит", results: [], total: 0, search_url: "" });
+    }
+
+    const { author, title, topic, limit = 8 } = parsed.data;
+    const query = title || topic || author || "";
+    const BASE = "https://library-service.com.ua:8443/khkhdak";
+    const qs = new URLSearchParams();
+    if (author) qs.set("ZT", "a"), qs.set("SS", author);
+    else if (query) qs.set("ZT", "q"), qs.set("SS", query);
+    const searchUrl = `${BASE}/DocumentSearchForm?${qs.toString()}`;
+
+    try {
+      const data = await searchCatalog(query || "", author);
+      const books = data.results.slice(0, limit).map(r => ({
+        title:  r.title,
+        author: r.author ?? "",
+        year:   r.year ?? "",
+        type:   r.type ?? "",
+        url:    r.link ? (r.link.startsWith("http") ? r.link : `${BASE}${r.link}`) : searchUrl,
+      }));
+      return res.json({
+        ok: true,
+        total: books.length,
+        results: books,
+        search_url: searchUrl,
+        empty: books.length === 0,
+      });
+    } catch (err: any) {
+      console.error("[catalog GET]", err?.message);
+      return res.json({
+        ok: false,
+        total: 0,
+        results: [],
+        search_url: searchUrl,
+        error: "unavailable",
+        fallback: [
+          { label: "Відкрити каталог",  url: searchUrl },
+          { label: "Viber бібліотеки",  url: "viber://chat/?number=%2B380661458484" },
+          { label: "Telegram",          url: "https://t.me/+380661458484" },
+        ],
       });
     }
   });

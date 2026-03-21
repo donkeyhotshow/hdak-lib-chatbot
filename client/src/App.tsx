@@ -7,12 +7,17 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
 import Chat from "@/pages/Chat";
 import { Sidebar } from "@/components/Sidebar";
+import { Header } from "@/components/Header";
+import { ResourcesDrawer } from "@/components/ResourcesDrawer";
 import { useState, useCallback } from "react";
 import { Menu } from "lucide-react";
 
 function AppLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [resourcesOpen, setResourcesOpen] = useState(false);
   const closeSidebar = useCallback(() => setIsSidebarOpen(false), []);
+  const toggleResources = useCallback(() => setResourcesOpen(v => !v), []);
+  const closeResources = useCallback(() => setResourcesOpen(false), []);
 
   return (
     <div
@@ -41,17 +46,17 @@ function AppLayout({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 flex flex-col h-full min-w-0 relative">
+      <main className="flex-1 flex flex-col h-full min-w-0 relative overflow-hidden">
 
-        {/* Mobile header */}
+        {/* Mobile hamburger row — only on small screens */}
         <div
           className="md:hidden flex items-center gap-3 px-4"
           style={{
-            height: 56,
+            height: 40,
             background: "rgba(245,234,216,.92)",
             backdropFilter: "blur(10px)",
             WebkitBackdropFilter: "blur(10px)",
-            borderBottom: "1px solid var(--border-mid)",
+            borderBottom: "1px solid var(--border-light)",
             flexShrink: 0,
           }}
         >
@@ -60,7 +65,7 @@ function AppLayout({ children }: { children: React.ReactNode }) {
             data-testid="button-open-sidebar"
             aria-label="Відкрити меню"
             style={{
-              width: 32, height: 32,
+              width: 28, height: 28,
               display: "flex", alignItems: "center", justifyContent: "center",
               background: "transparent",
               border: "1px solid var(--border-mid)",
@@ -71,25 +76,20 @@ function AppLayout({ children }: { children: React.ReactNode }) {
               flexShrink: 0,
             }}
           >
-            <Menu style={{ width: 16, height: 16 }} />
+            <Menu style={{ width: 14, height: 14 }} />
           </button>
-          {/* Book spine mini-logo */}
-          <div style={{
-            width: 26, height: 26,
-            borderRadius: "var(--r-sm)",
-            background: "var(--b1)",
-            position: "relative", overflow: "hidden",
-            flexShrink: 0,
-          }}>
-            <span style={{ position: "absolute", left: 5, top: 4, right: 5, bottom: 4, borderLeft: "2px solid rgba(245,234,216,.6)", borderRight: "2px solid rgba(245,234,216,.6)" }} />
-            <span style={{ position: "absolute", left: "50%", top: 4, bottom: 4, width: 1, background: "rgba(245,234,216,.4)", transform: "translateX(-50%)" }} />
-          </div>
-          <span style={{ fontFamily: "var(--ff-d)", fontSize: 15, fontWeight: 500, color: "var(--b0)", letterSpacing: "-.02em" }}>
-            Бібліотека ХДАК
-          </span>
         </div>
 
-        <div id="main-content" className="flex-1 h-full overflow-hidden relative">
+        {/* Dark mahogany header — always visible */}
+        <Header
+          onToggleResources={toggleResources}
+          resourcesOpen={resourcesOpen}
+        />
+
+        {/* Resources drawer — slides in below header */}
+        <ResourcesDrawer open={resourcesOpen} onClose={closeResources} />
+
+        <div id="main-content" className="flex-1 overflow-hidden relative">
           {children}
         </div>
       </main>

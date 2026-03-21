@@ -40,6 +40,46 @@
   --error-bd: rgba(180,30,30,0.22);
   --error-tx: #991a1a;
 
+  /* ── NEW DESIGN TOKENS (HDAK v2) ────────── */
+
+  /* Backgrounds */
+  --bg-page:    #faf8f5;
+  --bg-surface: #f4ede0;
+  --bg-raised:  #ede0c8;
+  --bg-input:   #ffffff;
+
+  /* Dark header — mahogany wood */
+  --hdr-bg:     #221208;
+  --hdr-border: #0e0704;
+  --hdr-text:   #f0dfc0;
+  --hdr-muted:  rgba(220,175,110,0.75);
+  --hdr-btn-bg: rgba(255,255,255,0.07);
+  --hdr-btn-bd: rgba(200,140,60,0.25);
+
+  /* Browns */
+  --brown-0: #1c1008;
+  --brown-1: #2e1c0c;
+  --brown-2: #4a2e14;
+  --brown-3: #7a5230;
+  --brown-4: #a87848;
+
+  /* Text */
+  --text-primary:   #1c1008;
+  --text-secondary: #6a4e2c;
+  --text-muted:     #9a7a50;
+  --text-faint:     #c0a070;
+
+  /* Borders */
+  --border-xs: rgba(60,35,10,0.06);
+  --border-sm: rgba(60,35,10,0.12);
+  --border-md: rgba(60,35,10,0.22);
+  --border-lg: rgba(60,35,10,0.38);
+
+  /* Semantic */
+  --error-bg2: rgba(180,40,40,0.06);
+  --error-bd2: rgba(180,40,40,0.22);
+  --error-tx2: #903030;
+
   --ff-d: 'Playfair Display', Georgia, serif;
   --ff-b: 'DM Sans', system-ui, sans-serif;
 
@@ -83,8 +123,10 @@
     height: 100%;
     background: var(--p1);
     font-family: var(--ff-b);
-    font-size: 15px;
+    font-size: 16px;
+    text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     color: var(--text-1);
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
@@ -112,9 +154,10 @@
   /* Markdown inside bubbles */
   .prose-custom {
     color: inherit;
-    line-height: 1.68;
-    font-size: 14px;
+    line-height: 1.72;
+    font-size: 14.5px;
   }
+  .prose-custom ::placeholder { opacity: 0.55; }
   .prose-custom p  { margin-bottom: 0.6rem; }
   .prose-custom p:last-child { margin-bottom: 0; }
   .prose-custom ul { list-style: disc; padding-left: 1.2rem; margin-bottom: 0.6rem; }
