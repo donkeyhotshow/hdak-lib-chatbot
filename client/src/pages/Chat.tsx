@@ -54,7 +54,8 @@ export default function Chat() {
   const id = params.id ? parseInt(params.id) : null;
 
   const { data: conversation, isLoading, error, refetch } = useConversation(id);
-  const { sendMessage, isStreaming, streamedContent, streamedCatalogResult, stopStream } = useChatStream(id);
+  const { sendMessage, isStreaming, streamedContent, streamedCatalogResult, streamError, stopStream, clearError } = useChatStream(id);
+  const lastMessageRef = useRef<string>("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // ── Saved books (localStorage) ─────────────────────────────────────────────
@@ -79,6 +80,19 @@ export default function Chat() {
     () => new Set(savedBooks.map(b => b.title)),
     [savedBooks]
   );
+
+  const handleSend = useCallback((text: string) => {
+    lastMessageRef.current = text;
+    clearError();
+    sendMessage(text);
+  }, [sendMessage, clearError]);
+
+  const retryLastMessage = useCallback(() => {
+    if (lastMessageRef.current) {
+      clearError();
+      sendMessage(lastMessageRef.current);
+    }
+  }, [sendMessage, clearError]);
 
   const scrollToBottom = useCallback(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -273,9 +287,67 @@ export default function Chat() {
         <div ref={scrollRef} className="h-2" />
       </div>
 
+      {/* Error retry bar */}
+      {streamError && (
+        <div
+          style={{
+            flexShrink: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 10,
+            padding: "9px 16px",
+            background: "var(--error-bg)",
+            border: "none",
+            borderTop: "1px solid var(--error-bd)",
+          }}
+        >
+          <span style={{ fontSize: 13, color: "var(--error-tx)", fontWeight: 500 }}>
+            {streamError}
+          </span>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              onClick={retryLastMessage}
+              data-testid="button-retry-stream"
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 5,
+                height: 28, padding: "0 12px",
+                background: "var(--error-tx)",
+                border: "none",
+                borderRadius: 999,
+                color: "#fff",
+                fontSize: 12.5, fontWeight: 500,
+                cursor: "pointer",
+                fontFamily: "var(--ff-b)",
+              }}
+            >
+              ↺ Повторити
+            </button>
+            <button
+              onClick={clearError}
+              data-testid="button-dismiss-error"
+              aria-label="Закрити"
+              style={{
+                display: "inline-flex", alignItems: "center",
+                height: 28, padding: "0 10px",
+                background: "transparent",
+                border: "1px solid var(--error-bd)",
+                borderRadius: 999,
+                color: "var(--error-tx)",
+                fontSize: 12.5,
+                cursor: "pointer",
+                fontFamily: "var(--ff-b)",
+              }}
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Sticky input zone */}
       <ChatInput
-        onSend={sendMessage}
+        onSend={handleSend}
         onStop={stopStream}
         isStreaming={isStreaming}
       />

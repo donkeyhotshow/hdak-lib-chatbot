@@ -122,6 +122,7 @@ export function useChatStream(conversationId: number | null) {
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamedContent, setStreamedContent] = useState("");
   const [streamedCatalogResult, setStreamedCatalogResult] = useState<CatalogResult | null>(null);
+  const [streamError, setStreamError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   // Streaming buffer to reduce re-render frequency
@@ -142,6 +143,7 @@ export function useChatStream(conversationId: number | null) {
     setIsStreaming(true);
     setStreamedContent("");
     setStreamedCatalogResult(null);
+    setStreamError(null);
     streamBufRef.current = "";
 
     const optimisticMsg: Message = {
@@ -213,6 +215,7 @@ export function useChatStream(conversationId: number | null) {
     } catch (err: unknown) {
       if (err instanceof Error && err.name !== "AbortError") {
         console.error("Stream error:", err);
+        setStreamError("Помилка з'єднання. Спробуйте ще раз.");
       }
     } finally {
       flushBuffer();
@@ -245,5 +248,7 @@ export function useChatStream(conversationId: number | null) {
     }
   }, [conversationId, qc]);
 
-  return { sendMessage, isStreaming, streamedContent, streamedCatalogResult, stopStream };
+  const clearError = useCallback(() => setStreamError(null), []);
+
+  return { sendMessage, isStreaming, streamedContent, streamedCatalogResult, streamError, stopStream, clearError };
 }

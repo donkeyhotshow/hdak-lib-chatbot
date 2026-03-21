@@ -6,6 +6,7 @@ interface HeaderProps {
 export function Header({ onToggleResources, resourcesOpen }: HeaderProps) {
   return (
     <header
+      className="hdak-header"
       style={{
         height: 56,
         flexShrink: 0,
