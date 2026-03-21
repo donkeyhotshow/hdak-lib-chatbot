@@ -109,7 +109,7 @@ export const ChatMessage = memo(function ChatMessage({
             }}>
               {isUser ? "Ви" : "Бібліотечний асистент"}
             </span>
-            {createdAt && (
+            {createdAt && !isNaN(new Date(createdAt).getTime()) && (
               <span style={{ fontSize: 11, color: "hsl(var(--muted-foreground))" }}>
                 {format(new Date(createdAt), "HH:mm")}
               </span>

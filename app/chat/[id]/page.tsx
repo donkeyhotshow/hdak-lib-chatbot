@@ -118,6 +118,7 @@ export default function ChatPage() {
     }, false);
 
     abortRef.current = new AbortController();
+    let didMutateOnError = false;
 
     try {
       const res = await fetch(`/api/conversations/${id}/messages`, {
@@ -134,8 +135,9 @@ export default function ChatPage() {
 
       const decoder = new TextDecoder();
       let lineBuffer = "";
+      let serverDone = false;
 
-      while (true) {
+      outer: while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
@@ -150,20 +152,36 @@ export default function ChatPage() {
 
           try {
             const data = JSON.parse(raw);
+            if (data.done === true) {
+              // Server signalled completion — break out of the outer while loop
+              serverDone = true;
+              break outer;
+            }
+            if (data.error) {
+              throw new Error(data.error);
+            }
             if (typeof data.content === "string") {
               streamBufRef.current += data.content;
               scheduleFlush();
             }
-          } catch {
-            // skip malformed frames
+          } catch (parseErr) {
+            // Re-throw intentional errors; skip JSON parse errors
+            if (parseErr instanceof SyntaxError) continue;
+            throw parseErr;
           }
         }
+      }
+
+      if (!serverDone) {
+        // Stream ended without explicit done signal — still valid
+        reader.cancel().catch(() => {});
       }
     } catch (err: unknown) {
       if (err instanceof Error && err.name !== "AbortError") {
         console.error("Stream error:", err);
         setStreamError("Помилка з'єднання. Спробуйте ще раз.");
         // Revert the optimistic update so the user message isn't duplicated on retry
+        didMutateOnError = true;
         mutate(`/api/conversations/${id}`);
       }
     } finally {
@@ -174,7 +192,10 @@ export default function ChatPage() {
       setStreamedContent("");
       streamBufRef.current = "";
       abortRef.current = null;
-      mutate(`/api/conversations/${id}`);
+      // Only revalidate if we haven't already done so in the catch block
+      if (!didMutateOnError) {
+        mutate(`/api/conversations/${id}`);
+      }
     }
   }, [id, scheduleFlush, flushBuffer]);
 
