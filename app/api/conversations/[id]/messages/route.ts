@@ -1,74 +1,64 @@
 import { chatStorage } from "@/lib/storage";
+export const dynamic = "force-dynamic";
 import type { LibraryInfo, LibraryResource } from "@/lib/db";
 
-function buildLibraryContext(
-  libInfo: LibraryInfo[],
-  libResources: LibraryResource[]
-): string {
-  const grouped: Record<string, string[]> = {};
-  for (const item of libInfo) {
-    if (!grouped[item.category]) grouped[item.category] = [];
-    grouped[item.category].push(`${item.key}: ${item.value_uk}`);
-  }
+function buildSystemPrompt(): string {
+  return `Ти — офіційний чат-помічник бібліотеки Харківської державної академії
+культури (ХДАК). Відповідай коротко, точно, по-українськи.
+Якщо не знаєш точної відповіді — направляй на офіційний сайт або контакти.
 
-  const infoBlock = Object.entries(grouped)
-    .map(([cat, entries]) => `[${cat.toUpperCase()}]\n${entries.join("\n")}`)
-    .join("\n\n");
+=== КОНТАКТИ ===
+Адреса: вул. Бурсацький узвіз, 4, м. Харків, 61057
+(ст. метро «Історичний музей»)
+Телефони: (057) 731-27-83, (057) 731-13-85
+Email (запис): abon@xdak.ukr.education
+Viber/Telegram: +380661458484
+Instagram: @hdak_lib
+Facebook: http://m.me/641740969354328
+Сайт: https://lib-hdak.in.ua/
 
-  const resourceBlock = libResources
-    .filter(r => r.is_official)
-    .map(r => {
-      const authNote = r.requires_auth ? " (потрібна авторизація/VPN)" : "";
-      return `- [${r.type.toUpperCase()}] ${r.name}${authNote}\n  URL: ${r.url}\n  Опис: ${r.description_uk}`;
-    })
-    .join("\n\n");
+=== ГРАФІК РОБОТИ ===
+Загальний: 9:00–17:00
+Абонементи: 9:00–16:45, перерва 13:00–13:45, вихідні сб/нд,
+санітарний день — остання п'ятниця місяця.
+Читальна зала: 9:00–16:45, субота 9:00–13:30,
+санітарний день — останній четвер місяця.
+Сектор автоматизації: 9:00–16:45, перерва 13:00–13:45, вихідні сб/нд,
+санітарний день — останній четвер місяця.
+На час воєнного стану — обслуговування також дистанційно.
 
-  return `=== ДАНІ З БАЗИ ДАНИХ БІБЛІОТЕКИ ===\n\n${infoBlock}\n\n[РЕСУРСИ]\n${resourceBlock}\n\n=== КІНЕЦЬ ДАНИХ ===`;
-}
+=== ЗАПИС ДО БІБЛІОТЕКИ ===
+Особисто: читацький квиток, паспорт або студентський квиток.
+Дистанційно: abon@xdak.ukr.education, Viber/Telegram +380661458484,
+Facebook http://m.me/641740969354328
 
-function buildSystemPrompt(libraryContext: string): string {
-  return `Ти — AI-асистент Наукової бібліотеки Харківської державної академії культури (ХДАК).
-Твоя роль: допомагати користувачам знаходити інформацію про бібліотеку, її ресурси та послуги.
+=== ЕЛЕКТРОННИЙ КАТАЛОГ ===
+Пошук: https://library-service.com.ua:8443/khkhdak/DocumentSearchForm
+Сторінка: https://lib-hdak.in.ua/e-catalog.html
+Пошук за: автором, назвою, темою, роком видання, анотацією.
+Мобільний додаток (Android): https://play.google.com/store/apps/details?id=ush.libclient
 
-${libraryContext}
+=== РЕСУРСИ ===
+Репозитарій ХДАК: https://repository.ac.kharkov.ua/home
+Електронна бібліотека «Культура України»: http://elib.nplu.org/
+Research 4 Life: https://login.research4life.org/tacsgr1portal_research4life_org/
+Springer Link: https://link.springer.com/
+DOAJ: https://lib-hdak.in.ua/catalog-doaj.html
+Артефактні видання: https://lib-hdak.in.ua/artifacts.html
+Нові надходження: https://lib-hdak.in.ua/new-acquisitions.html
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-ПРАВИЛА (дотримуйся суворо)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+=== ПРАВИЛА КОРИСТУВАННЯ ===
+Повні правила: https://lib-hdak.in.ua/rules-library.html
+Коротко: відвідувати з читацьким квитком, повертати видання вчасно,
+дотримуватися тиші, не передавати квиток іншим, при втраті — відшкодувати.
 
-1. ДЖЕРЕЛА ДАНИХ
-   - Використовуй ЛИШЕ інформацію з блоку «ДАНІ З БАЗИ ДАНИХ БІБЛІОТЕКИ» вище.
-   - Якщо дані в БД суперечать попереднім відповідям — правильними вважаються дані з БД.
-   - Не придумуй адреси, телефони, години роботи — бери значення лише з БД.
-
-2. ПОШУК КНИГ / ДОКУМЕНТІВ
-   - Для пошуку будь-якого документа завжди надавай посилання на Електронний каталог.
-   - Для наукових праць, дисертацій, монографій — посилання на Інституційний репозитарій.
-   - НІКОЛИ не вигадуй інвентарні номери, шифри зберігання або шифри УДК/ББК.
-
-3. ПОСИЛАННЯ
-   - Використовуй ЛИШЕ URL з поля url у блоці ресурсів вище.
-   - Якщо потрібного ресурсу немає в БД — не вигадуй URL. Замість цього направ до офіційного сайту або порадь звернутися до бібліотекаря.
-
-4. ПОСЛУГИ ТА ПРАВИЛА
-   - Не обіцяй послуги, яких немає в полі services бази даних.
-   - Для питань про штрафи, продовження, стан читацького рахунку — давай загальну відповідь і додавай:
-     «Точну інформацію щодо вашого читацького рахунку можна отримати безпосередньо в бібліотеці або уточнити в бібліотекаря.»
-
-5. КОЛИ ДАНИХ НЕМАЄ
-   - Якщо запитаної інформації немає в БД — чесно скажи: «У мене немає цих даних» і запропонуй звернутися до бібліотекаря або на офіційний сайт бібліотеки (https://lib-hdak.in.ua/).
-   - Не вигадуй відділи, посади, розклад або правила, яких немає в БД.
-
-6. МОВА
-   - Відповідай мовою, якою пише користувач.
-   - За замовчуванням — українська.
-   - Якщо питання українською → відповідь українською; якщо англійською → англійською.
-   - Якщо питання написане будь-якою іншою мовою — відповідай українською.
-
-7. СТИЛЬ
-   - Будь ввічливим, чітким і лаконічним.
-   - Уникай зайвих слів. Якщо є конкретне посилання — надай його одразу.
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+=== СТРУКТУРА БІБЛІОТЕКИ ===
+Директор: Кирпа Тетяна Олександрівна (кімн. 16)
+Відділ обслуговування (Бєлан Т.І.): читальна зала, загальний,
+науковий та навчальний абонементи, абонемент музики/театру/кіно.
+Інформаційно-бібліографічний відділ (Хижна О.С., кімн. 17)
+Сектор наукометрії (Левченко О.М., кімн. 17)
+Сектор автоматизації / е-читальна зала (Семенова Т.В., кімн. 18а)`;
 }
 
 export async function POST(
@@ -80,19 +70,18 @@ export async function POST(
     const conversationId = parseInt(id);
     const { content } = await request.json();
 
+    if (!process.env.OPENAI_API_KEY && !process.env.GROQ_API_KEY) {
+      return Response.json({ error: "API key not configured" }, { status: 500 });
+    }
+
     // Save user message first
     await chatStorage.createMessage(conversationId, "user", content);
 
     // Fetch library context from DB
-    const [libInfo, libResources, historyMessages] = await Promise.all([
-      chatStorage.getLibraryInfo(),
-      chatStorage.getLibraryResources(),
-      chatStorage.getMessagesByConversation(conversationId),
-    ]);
+    const historyMessages = await chatStorage.getMessagesByConversation(conversationId);
 
     // Build structured context and system prompt
-    const libraryContext = buildLibraryContext(libInfo, libResources);
-    const systemPrompt = buildSystemPrompt(libraryContext);
+    const systemPrompt = buildSystemPrompt();
 
     // Build chat message array
     const chatMessages: { role: "system" | "user" | "assistant"; content: string }[] = [
@@ -166,8 +155,13 @@ export async function POST(
           controller.close();
         } catch (error) {
           console.error("Stream error:", error);
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: "Failed to send message" })}\n\n`));
-          controller.close();
+          // If we haven't closed yet, send an error payload and close
+          try {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: "Failed to send message" })}\n\n`));
+            controller.close();
+          } catch (e) {
+            // Controller might be already closed
+          }
         }
       },
     });

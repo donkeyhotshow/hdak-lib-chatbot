@@ -1,0 +1,9 @@
+{
+  "/api/health/route": "app/api/health/route.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/conversations/route": "app/api/conversations/route.js",
+  "/api/conversations/[id]/route": "app/api/conversations/[id]/route.js",
+  "/api/conversations/[id]/messages/route": "app/api/conversations/[id]/messages/route.js",
+  "/page": "app/page.js",
+  "/chat/[id]/page": "app/chat/[id]/page.js"
+}

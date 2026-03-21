@@ -1,0 +1,9 @@
+{
+  "/api/health/route": "/api/health",
+  "/_not-found/page": "/_not-found",
+  "/api/conversations/route": "/api/conversations",
+  "/api/conversations/[id]/route": "/api/conversations/[id]",
+  "/api/conversations/[id]/messages/route": "/api/conversations/[id]/messages",
+  "/page": "/",
+  "/chat/[id]/page": "/chat/[id]"
+}

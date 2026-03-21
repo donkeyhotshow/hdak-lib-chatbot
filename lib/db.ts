@@ -1,14 +1,18 @@
-import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-http";
 import { pgTable, serial, integer, text, timestamp, boolean } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
-if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL must be set");
+// Using a non-empty fallback URL for build-time safety to satisfy neon() validation.
+// This will not connect until a query is actually performed.
+const connectionString = process.env.DATABASE_URL || "postgres://db:db@localhost:5432/db";
+
+if (!process.env.DATABASE_URL && process.env.NODE_ENV === "production") {
+  console.warn("WARNING: DATABASE_URL is not set. Database calls will fail at runtime.");
 }
 
-const sqlClient = neon(process.env.DATABASE_URL);
-export const db = drizzle(sqlClient);
+const client = neon(connectionString);
+export const db = drizzle(client);
 
 // Schema definitions
 export const conversations = pgTable("conversations", {

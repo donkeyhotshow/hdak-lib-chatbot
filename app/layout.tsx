@@ -1,34 +1,32 @@
-import type { Metadata } from "next";
-import { DM_Sans, Playfair_Display } from "next/font/google";
-import "./globals.css";
+import type { Metadata } from 'next'
+import { EB_Garamond, Geist } from 'next/font/google'
+import './globals.css'
 
-const dmSans = DM_Sans({
-  subsets: ["latin", "latin-ext"],
-  variable: "--font-sans",
-  display: "swap",
-});
+const garamond = EB_Garamond({
+  subsets: ['latin', 'cyrillic'],
+  weight: ['400', '500'],
+  style: ['normal', 'italic'],
+  variable: '--font-serif',
+  display: 'swap',
+})
 
-const playfair = Playfair_Display({
-  subsets: ["latin", "cyrillic"],
-  variable: "--font-serif",
-  display: "swap",
-});
+const geist = Geist({
+  subsets: ['latin'],
+  variable: '--font-sans',
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
-  title: "Бібліотечний асистент ХДАК",
-  description: "AI-асистент Наукової бібліотеки Харківської державної академії культури",
-};
+  title: 'Бібліотека ХДАК',
+  description: 'Чат-помічник бібліотеки Харківської державної академії культури',
+}
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="uk" className={`${dmSans.variable} ${playfair.variable}`}>
-      <body className="min-h-screen bg-background font-sans antialiased">
+    <html lang="uk" className={`${garamond.variable} ${geist.variable}`}>
+      <body className="flex flex-col h-dvh overflow-hidden bg-[var(--color-paper)]">
         {children}
       </body>
     </html>
-  );
+  )
 }
