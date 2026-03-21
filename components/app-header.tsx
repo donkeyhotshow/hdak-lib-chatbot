@@ -69,8 +69,9 @@ export function AppHeader({ showBackButton, onBack }: AppHeaderProps) {
           <span
             style={{
               fontFamily: "var(--ff-s)",
-              fontSize: 15,
-              color: "rgba(245,230,205,0.88)",
+              fontSize: 15.5,
+              fontWeight: 500,
+              color: "rgba(250,238,218,0.96)",
               letterSpacing: "0.01em",
             }}
           >
@@ -82,29 +83,31 @@ export function AppHeader({ showBackButton, onBack }: AppHeaderProps) {
           <button
             onClick={() => setResourcesOpen(!resourcesOpen)}
             style={{
-              height: 26,
-              padding: "0 11px",
-              background: resourcesOpen ? "rgba(192,136,64,0.1)" : "transparent",
-              border: `0.5px solid ${resourcesOpen ? "rgba(192,136,64,0.5)" : "rgba(192,136,64,0.2)"}`,
+              height: 27,
+              padding: "0 13px",
+              background: resourcesOpen ? "rgba(192,136,64,0.14)" : "rgba(255,255,255,0.05)",
+              border: `0.5px solid ${resourcesOpen ? "rgba(192,136,64,0.6)" : "rgba(192,136,64,0.32)"}`,
               borderRadius: 100,
-              color: resourcesOpen ? "rgba(220,168,90,0.95)" : "rgba(192,136,64,0.6)",
-              fontSize: 11.5,
+              color: resourcesOpen ? "rgba(225,178,100,1)" : "rgba(210,168,100,0.88)",
+              fontSize: 12,
+              fontWeight: 400,
               cursor: "pointer",
               transition: "all 0.14s",
             }}
           >
             Ресурси
           </button>
-          <div style={{ width: 0.5, height: 13, background: "rgba(255,255,255,0.07)", margin: "0 1px" }} />
+          <div style={{ width: 0.5, height: 14, background: "rgba(255,255,255,0.1)", margin: "0 2px" }} />
           <button
             style={{
-              height: 26,
+              height: 27,
               padding: "0 11px",
-              background: "transparent",
-              border: "0.5px solid rgba(192,136,64,0.2)",
+              background: "rgba(255,255,255,0.05)",
+              border: "0.5px solid rgba(192,136,64,0.28)",
               borderRadius: 100,
-              color: "rgba(192,136,64,0.6)",
-              fontSize: 11.5,
+              color: "rgba(210,168,100,0.88)",
+              fontSize: 12,
+              fontWeight: 400,
               cursor: "pointer",
               transition: "all 0.14s",
             }}

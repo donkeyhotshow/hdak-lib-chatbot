@@ -7,12 +7,12 @@
 
 /* ── DESIGN TOKENS ───────────────────────────────────────────────────── */
 :root {
-  /* Dark theme for header/nav */
-  --dk0: #130a04;
-  --dk1: #1e0f07;
-  --dk2: #271508;
-  --dk3: #34190a;
-  --dk4: #46230e;
+  /* Dark theme for header/nav — slightly lighter for readability */
+  --dk0: #1c1008;
+  --dk1: #2c1a0e;
+  --dk2: #361f10;
+  --dk3: #4a2912;
+  --dk4: #5e3418;
 
   /* Paper / light backgrounds */
   --paper:  #faf8f4;
@@ -20,15 +20,15 @@
   --paper3: #e8dfd2;
   --paper4: #ddd0be;
 
-  /* Ink / text colors */
-  --ink:  #1a0e06;
-  --ink2: #3e2a14;
-  --ink3: #7a6048;
-  --ink4: #b09878;
+  /* Ink / text colors — stronger contrast */
+  --ink:  #140a02;
+  --ink2: #352010;
+  --ink3: #6b4f32;
+  --ink4: #9e8060;
 
-  /* Lines / borders */
-  --ln:  rgba(26,14,6,0.08);
-  --ln2: rgba(26,14,6,0.14);
+  /* Lines / borders — slightly more visible */
+  --ln:  rgba(26,14,6,0.10);
+  --ln2: rgba(26,14,6,0.18);
 
   /* Gold accent */
   --gold:  #c08840;
@@ -101,57 +101,62 @@
   .font-sans  { font-family: var(--ff-b); }
 
   /* ── Markdown prose ── */
-  .prose-custom { color: var(--ink); line-height: 1.75; }
-  .prose-custom p { margin-bottom: 0.75rem; }
+  .prose-custom { color: var(--ink); line-height: 1.78; font-size: 14.5px; }
+  .prose-custom p { margin-bottom: 0.8rem; }
   .prose-custom p:last-child { margin-bottom: 0; }
-  .prose-custom ul { list-style: disc; padding-left: 1.25rem; margin-bottom: 0.75rem; }
-  .prose-custom ol { list-style: decimal; padding-left: 1.25rem; margin-bottom: 0.75rem; }
-  .prose-custom li { margin-bottom: 0.25rem; }
+  .prose-custom ul { list-style: disc; padding-left: 1.4rem; margin-bottom: 0.8rem; }
+  .prose-custom ol { list-style: decimal; padding-left: 1.4rem; margin-bottom: 0.8rem; }
+  .prose-custom li { margin-bottom: 0.3rem; line-height: 1.7; }
   .prose-custom a { color: var(--gold); border-bottom: 0.5px solid var(--goldb); }
   .prose-custom a:hover { border-bottom-color: var(--gold); text-decoration: none; }
-  .prose-custom strong { font-weight: 500; color: var(--ink); }
+  .prose-custom strong { font-weight: 600; color: var(--ink); }
+  .prose-custom em { color: var(--ink2); }
   .prose-custom code {
     background: var(--paper3);
-    padding: 0.15em 0.4em;
+    padding: 0.15em 0.45em;
     border-radius: 4px;
-    font-size: 0.875em;
+    font-size: 0.85em;
     font-family: ui-monospace, monospace;
+    color: var(--ink2);
   }
   .prose-custom pre {
-    background: var(--dk1);
-    color: rgba(240,225,200,0.9);
-    padding: 1rem;
-    border-radius: 0.5rem;
+    background: var(--dk2);
+    color: rgba(245,232,210,0.92);
+    padding: 1rem 1.1rem;
+    border-radius: 0.6rem;
     overflow-x: auto;
-    margin-bottom: 0.75rem;
-    font-size: 0.875em;
+    margin-bottom: 0.8rem;
+    font-size: 0.85em;
+    border: 0.5px solid rgba(192,136,64,0.12);
   }
   .prose-custom pre code { background: transparent; padding: 0; color: inherit; }
-  .prose-custom h1, .prose-custom h2, .prose-custom h3 {
-    font-family: var(--ff-s);
-    font-weight: 500;
-    margin-top: 1.25rem;
-    margin-bottom: 0.5rem;
-    color: var(--ink);
-  }
+  .prose-custom h1 { font-family: var(--ff-s); font-size: 1.3em; font-weight: 600; margin-top: 1.4rem; margin-bottom: 0.5rem; color: var(--ink); }
+  .prose-custom h2 { font-family: var(--ff-s); font-size: 1.15em; font-weight: 600; margin-top: 1.2rem; margin-bottom: 0.45rem; color: var(--ink); }
+  .prose-custom h3 { font-family: var(--ff-s); font-size: 1.05em; font-weight: 600; margin-top: 1rem; margin-bottom: 0.4rem; color: var(--ink2); }
   .prose-custom blockquote {
-    border-left: 3px solid var(--ln2);
+    border-left: 2.5px solid var(--goldb);
     padding-left: 1rem;
     color: var(--ink3);
     font-style: italic;
-    margin: 0.75rem 0;
+    margin: 0.8rem 0;
+    background: rgba(192,136,64,0.03);
+    border-radius: 0 4px 4px 0;
+    padding-top: 0.35rem;
+    padding-bottom: 0.35rem;
   }
-  .prose-custom table { width: 100%; border-collapse: collapse; margin-bottom: 0.75rem; }
+  .prose-custom table { width: 100%; border-collapse: collapse; margin-bottom: 0.8rem; font-size: 0.93em; }
   .prose-custom th {
     border: 1px solid var(--ln2);
-    padding: 0.4rem 0.75rem;
+    padding: 0.45rem 0.8rem;
     background: var(--paper2);
     text-align: left;
-    font-weight: 500;
+    font-weight: 600;
+    color: var(--ink2);
   }
   .prose-custom td {
     border: 1px solid var(--ln2);
-    padding: 0.4rem 0.75rem;
+    padding: 0.4rem 0.8rem;
+    color: var(--ink);
   }
 }
 
