@@ -1,8 +1,7 @@
 import { memo } from "react";
-import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Bot, User, Clock } from "lucide-react";
+import { Clock } from "lucide-react";
 import { format } from "date-fns";
 
 interface ChatMessageProps {
@@ -15,7 +14,6 @@ interface ChatMessageProps {
   onChipClick?: (text: string) => void;
 }
 
-// ── Client-side chip generator ─────────────────────────────────────────────
 function getSuggestions(content: string): string[] {
   const lower = content.toLowerCase();
   const chips: string[] = [];
@@ -31,14 +29,11 @@ function getSuggestions(content: string): string[] {
   if (lower.includes("послуг") || lower.includes("сервіс"))
     chips.push("Які послуги надає бібліотека?");
   if (lower.includes("контакт") || lower.includes("адрес") || lower.includes("телефон"))
-    chips.push("Як зв'язатися з бібліотекою?");
-  if (lower.includes("електрон") || lower.includes("онлайн"))
-    chips.push("Електронні ресурси бібліотеки");
+    chips.push("Як зв'язатися?");
 
   if (chips.length === 0) {
     chips.push("Які послуги надає бібліотека?", "Контакти бібліотеки");
   }
-
   return chips.slice(0, 3);
 }
 
@@ -57,76 +52,140 @@ export const ChatMessage = memo(function ChatMessage({
     : [];
 
   const respLabel = responseMs != null
-    ? responseMs < 1000
-      ? `${responseMs}мс`
-      : `${(responseMs / 1000).toFixed(1)}с`
+    ? responseMs < 1000 ? `${responseMs}мс` : `${(responseMs / 1000).toFixed(1)}с`
     : null;
 
   return (
-    <div className={cn(
-      "group w-full py-6 px-4 transition-colors duration-150",
-      isUser ? "bg-transparent" : "bg-muted/30 border-y border-border/40"
-    )}>
-      <div className="max-w-3xl mx-auto flex gap-5">
+    <div
+      style={{
+        width: "100%",
+        padding: "14px 16px",
+        background: isUser ? "transparent" : "hsl(38 55% 95%)",
+        borderBottom: "0.5px solid hsl(var(--border))",
+      }}
+    >
+      <div style={{ maxWidth: 680, margin: "0 auto", display: "flex", gap: 12 }}>
 
         {/* Avatar */}
-        <div className={cn(
-          "shrink-0 w-9 h-9 rounded-xl flex items-center justify-center shadow-sm border mt-0.5",
-          isUser
-            ? "bg-white border-border text-foreground"
-            : "bg-primary text-primary-foreground border-primary/80"
-        )}>
-          {isUser ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+        <div
+          style={{
+            flexShrink: 0,
+            width: 28,
+            height: 28,
+            borderRadius: 6,
+            background: isUser ? "hsl(37 35% 88%)" : "hsl(var(--b0))",
+            border: `1px solid ${isUser ? "hsl(var(--border))" : "hsl(25 40% 18%)"}`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            marginTop: 2,
+            flexDirection: "column" as const,
+          }}
+        >
+          {isUser ? (
+            <span style={{ fontSize: 10, fontWeight: 600, color: "hsl(var(--b3))" }}>Ви</span>
+          ) : (
+            <span style={{ fontSize: 10, color: "hsl(37 50% 78%)", fontFamily: "var(--font-serif)", fontStyle: "italic" }}>б</span>
+          )}
         </div>
 
-        {/* Content */}
-        <div className="flex-1 space-y-2 min-w-0">
-          <div className="flex items-baseline gap-2 flex-wrap">
-            <span className="font-semibold text-sm text-foreground">
+        {/* Content block */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+
+          {/* Name + time + response time */}
+          <div style={{
+            display: "flex",
+            alignItems: "baseline",
+            gap: 8,
+            marginBottom: 4,
+            flexWrap: "wrap" as const,
+          }}>
+            <span style={{
+              fontSize: 12,
+              fontWeight: 500,
+              color: "hsl(var(--b2))",
+            }}>
               {isUser ? "Ви" : "Бібліотечний асистент"}
             </span>
             {createdAt && (
-              <span className="text-xs text-muted-foreground">
+              <span style={{ fontSize: 11, color: "hsl(var(--muted-foreground))" }}>
                 {format(new Date(createdAt), "HH:mm")}
               </span>
             )}
             {!isUser && respLabel && (
               <span
-                className="flex items-center gap-1 text-xs text-muted-foreground/70 ml-auto"
                 title="Час відповіді"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 3,
+                  fontSize: 11,
+                  color: "hsl(var(--muted-foreground))",
+                  marginLeft: "auto",
+                }}
               >
-                <Clock className="w-3 h-3" />
+                <Clock style={{ width: 11, height: 11 }} />
                 {respLabel}
               </span>
             )}
           </div>
 
-          <div className={cn(
-            "prose-custom max-w-none text-[15px]",
-            isStreaming && "animate-pulse-subtle"
-          )}>
+          {/* Message body */}
+          <div
+            className={`prose-custom ${isStreaming ? "animate-pulse-subtle" : ""}`}
+            style={{ fontSize: 14.5, lineHeight: 1.7 }}
+          >
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {content || (isStreaming ? "" : "")}
+              {content || ""}
             </ReactMarkdown>
             {isStreaming && (
-              <span className="inline-block w-1.5 h-4 ml-0.5 bg-primary/50 animate-cursor rounded-sm" />
+              <span
+                className="animate-cursor"
+                style={{
+                  display: "inline-block",
+                  width: 2,
+                  height: 16,
+                  marginLeft: 2,
+                  background: "hsl(var(--b3))",
+                  borderRadius: 1,
+                  verticalAlign: "text-bottom",
+                }}
+              />
             )}
           </div>
 
-          {/* Contextual follow-up chips */}
+          {/* Follow-up chips */}
           {chips.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 pt-1">
+            <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 6, marginTop: 10 }}>
               {chips.map((chip) => (
                 <button
                   key={chip}
                   onClick={() => onChipClick?.(chip)}
-                  className="
-                    px-3 py-1 text-xs rounded-full border border-border/70
-                    bg-background hover:bg-muted/60 text-muted-foreground
-                    hover:text-foreground transition-colors duration-150
-                    whitespace-nowrap
-                  "
+                  className="chip-sm"
                   data-testid={`chip-suggestion-${chip.slice(0, 20)}`}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    height: 28,
+                    padding: "0 10px",
+                    background: "transparent",
+                    border: "0.5px solid hsl(var(--border))",
+                    borderRadius: 999,
+                    fontSize: 12,
+                    color: "hsl(var(--b3))",
+                    cursor: "pointer",
+                    fontFamily: "var(--font-sans)",
+                    whiteSpace: "nowrap",
+                    transition: "all 0.12s",
+                  }}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLButtonElement).style.background = "hsl(37 35% 88%)";
+                    (e.currentTarget as HTMLButtonElement).style.color = "hsl(var(--b1))";
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+                    (e.currentTarget as HTMLButtonElement).style.color = "hsl(var(--b3))";
+                  }}
                 >
                   {chip}
                 </button>

@@ -1,7 +1,6 @@
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { useConversations, useDeleteConversation, useCreateConversation } from "@/hooks/use-chat";
-import { Plus, MessageSquare, Trash2, Library, ExternalLink } from "lucide-react";
+import { Plus, MessageSquare, Trash2, ExternalLink } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { format } from "date-fns";
 import {
@@ -38,39 +37,61 @@ export function Sidebar({ className }: { className?: string }) {
   };
 
   return (
-    <div className={cn("flex flex-col h-full bg-muted/50 border-r border-border", className)}>
-
+    <div
+      className={cn("flex flex-col h-full", className)}
+      style={{
+        background: "hsl(25 54% 11%)",
+        borderRight: "1px solid hsl(25 50% 8%)",
+      }}
+    >
       {/* Header */}
-      <div className="p-4 border-b border-border/40">
-        <Link href="/" className="flex items-center gap-2 px-2 py-3 mb-4 group cursor-pointer">
-          <div className="w-8 h-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center shadow-lg shadow-primary/20 group-hover:scale-105 transition-transform duration-200">
-            <Library className="w-4 h-4" />
-          </div>
-          <span className="font-serif font-bold text-lg text-primary tracking-tight">HDAK Library</span>
-        </Link>
+      <div style={{ padding: "16px", borderBottom: "1px solid hsl(25 40% 18%)" }}>
+        <p style={{
+          fontSize: 10,
+          fontWeight: 500,
+          letterSpacing: "0.08em",
+          textTransform: "uppercase",
+          color: "hsl(29 30% 50%)",
+          marginBottom: 10,
+        }}>
+          Історія
+        </p>
 
-        <Button
+        <button
           onClick={handleNewChat}
           disabled={createMutation.isPending}
           data-testid="button-new-conversation"
-          className="w-full justify-start gap-2 h-11 shadow-sm bg-white hover:bg-white/70 text-foreground border border-border/60"
-          variant="outline"
+          style={{
+            width: "100%",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            height: 36,
+            padding: "0 12px",
+            background: "hsl(25 40% 18%)",
+            border: "1px solid hsl(25 30% 28%)",
+            borderRadius: 8,
+            color: "hsl(37 50% 78%)",
+            fontSize: 13,
+            fontFamily: "var(--font-sans)",
+            cursor: "pointer",
+            transition: "all 0.12s",
+          }}
         >
-          <Plus className="w-4 h-4" />
+          <Plus style={{ width: 14, height: 14 }} />
           {createMutation.isPending ? "Створення..." : "Нова розмова"}
-        </Button>
+        </button>
       </div>
 
       {/* Conversation list */}
-      <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1 scrollbar-thin">
+      <div className="flex-1 overflow-y-auto scrollbar-thin py-2 px-2 space-y-0.5">
         {isLoading ? (
-          <div className="text-center py-8 text-sm text-muted-foreground animate-pulse">
+          <div style={{ padding: "24px 8px", textAlign: "center", fontSize: 12, color: "hsl(29 30% 50%)" }}>
             Завантаження...
           </div>
         ) : conversations?.length === 0 ? (
-          <div className="text-center py-8 px-4">
-            <p className="text-sm text-muted-foreground mb-1">Ще немає розмов.</p>
-            <p className="text-xs text-muted-foreground/60">Розпочніть нову розмову для пошуку в каталозі.</p>
+          <div style={{ padding: "24px 8px", textAlign: "center" }}>
+            <p style={{ fontSize: 12, color: "hsl(29 30% 50%)" }}>Ще немає розмов.</p>
           </div>
         ) : (
           conversations?.map((conv) => {
@@ -79,27 +100,50 @@ export function Sidebar({ className }: { className?: string }) {
               <Link key={conv.id} href={`/chat/${conv.id}`} className="block">
                 <div
                   data-testid={`conv-item-${conv.id}`}
-                  className={cn(
-                    "group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-150 cursor-pointer",
-                    isActive
-                      ? "bg-white text-primary font-medium shadow-sm border border-border/50"
-                      : "text-muted-foreground hover:bg-white/60 hover:text-foreground"
-                  )}
+                  className="group relative"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "8px 10px",
+                    borderRadius: 7,
+                    cursor: "pointer",
+                    background: isActive ? "hsl(25 40% 18%)" : "transparent",
+                    transition: "background 0.12s",
+                  }}
+                  onMouseEnter={e => {
+                    if (!isActive) (e.currentTarget as HTMLDivElement).style.background = "hsl(25 35% 16%)";
+                  }}
+                  onMouseLeave={e => {
+                    if (!isActive) (e.currentTarget as HTMLDivElement).style.background = "transparent";
+                  }}
                 >
-                  <MessageSquare className={cn(
-                    "w-4 h-4 shrink-0",
-                    isActive ? "text-primary" : "text-muted-foreground/60"
-                  )} />
+                  <MessageSquare style={{
+                    width: 14,
+                    height: 14,
+                    flexShrink: 0,
+                    color: isActive ? "hsl(37 50% 75%)" : "hsl(29 20% 40%)",
+                  }} />
 
-                  <div className="flex-1 min-w-0 truncate pr-6">
+                  <div style={{
+                    flex: 1,
+                    minWidth: 0,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    fontSize: 13,
+                    color: isActive ? "hsl(37 50% 85%)" : "hsl(37 30% 60%)",
+                    paddingRight: 24,
+                  }}>
                     {conv.title || "Без назви"}
                   </div>
 
                   {conv.createdAt && (
-                    <span className={cn(
-                      "text-[10px] shrink-0 tabular-nums",
-                      isActive ? "text-primary/50" : "text-muted-foreground/40"
-                    )}>
+                    <span style={{
+                      fontSize: 10,
+                      color: "hsl(29 20% 38%)",
+                      flexShrink: 0,
+                    }}>
                       {format(new Date(conv.createdAt), "d MMM")}
                     </span>
                   )}
@@ -110,9 +154,16 @@ export function Sidebar({ className }: { className?: string }) {
                         <button
                           onClick={(e) => e.stopPropagation()}
                           data-testid={`button-delete-conv-${conv.id}`}
-                          className="p-1.5 rounded-md hover:bg-destructive/10 hover:text-destructive transition-colors"
+                          style={{
+                            padding: "4px",
+                            borderRadius: 4,
+                            background: "transparent",
+                            border: "none",
+                            cursor: "pointer",
+                            color: "hsl(0 60% 60%)",
+                          }}
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 style={{ width: 13, height: 13 }} />
                         </button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
@@ -141,28 +192,33 @@ export function Sidebar({ className }: { className?: string }) {
         )}
       </div>
 
-      {/* Footer links */}
-      <div className="p-4 border-t border-border/40 bg-muted/30 space-y-1">
-        <a
-          href="https://lib-hdak.in.ua/"
-          target="_blank"
-          rel="noopener noreferrer"
-          data-testid="link-library-website"
-          className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-primary transition-colors p-2 rounded-md hover:bg-white/60"
-        >
-          <ExternalLink className="w-3.5 h-3.5 shrink-0" />
-          Офіційний сайт бібліотеки
-        </a>
-        <a
-          href="https://library-service.com.ua:8443/khkhdak/DocumentSearchForm"
-          target="_blank"
-          rel="noopener noreferrer"
-          data-testid="link-catalog"
-          className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-primary transition-colors p-2 rounded-md hover:bg-white/60"
-        >
-          <ExternalLink className="w-3.5 h-3.5 shrink-0" />
-          Електронний каталог
-        </a>
+      {/* Footer */}
+      <div style={{ padding: "12px", borderTop: "1px solid hsl(25 40% 18%)" }}>
+        {[
+          { label: "Офіційний сайт", href: "https://lib-hdak.in.ua/" },
+          { label: "Електронний каталог", href: "https://library-service.com.ua:8443/khkhdak/DocumentSearchForm" },
+        ].map(({ label, href }) => (
+          <a
+            key={label}
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "6px 8px",
+              fontSize: 11.5,
+              color: "hsl(29 25% 45%)",
+              textDecoration: "none",
+              borderRadius: 6,
+              transition: "color 0.12s",
+            }}
+          >
+            <ExternalLink style={{ width: 11, height: 11, flexShrink: 0 }} />
+            {label}
+          </a>
+        ))}
       </div>
     </div>
   );

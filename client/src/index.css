@@ -1,189 +1,201 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap');
 
 @tailwind base;
-@tailwind components;
 @tailwind utilities;
+@tailwind components;
 
+/* ── BROWN TOKENS ────────────────────────────────────────────────────── */
 :root {
-  /* Library Theme — Soft, Intellectual, Calming */
-  --font-sans: 'Inter', sans-serif;
-  --font-serif: 'Lora', serif;
+  --font-sans: 'DM Sans', system-ui, sans-serif;
+  --font-serif: 'Playfair Display', Georgia, serif;
 
-  --background: 210 20% 98%;
-  --foreground: 220 15% 20%;
+  /* Parchment backgrounds */
+  --background:     37 62% 90%;   /* #f5ead8 */
+  --card:           38 70% 97%;   /* #fdf9f4 */
+  --card-border:    37 30% 82%;   /* subtle border */
 
-  --primary: 215 25% 27%;
-  --primary-foreground: 210 20% 98%;
+  /* Brown scale */
+  --b0: 25 54% 11%;   /* #2d1b0e — darkest */
+  --b1: 25 50% 16%;   /* #3d2614 */
+  --b2: 25 52% 24%;   /* #5c3a1e */
+  --b3: 27 42% 32%;   /* #7a5230 */
+  --b4: 29 36% 45%;   /* #9e7248 */
 
-  --secondary: 210 20% 90%;
-  --secondary-foreground: 220 15% 20%;
+  /* Tailwind / shadcn aliases */
+  --foreground:          25 54% 11%;
+  --primary:             25 54% 11%;
+  --primary-foreground:  37 62% 90%;
 
-  --muted: 210 15% 95%;
-  --muted-foreground: 215 10% 45%;
+  --secondary:           37 40% 86%;
+  --secondary-foreground:25 54% 20%;
 
-  --accent: 35 30% 92%;
-  --accent-foreground: 220 15% 20%;
+  --muted:               37 35% 88%;
+  --muted-foreground:    29 30% 45%;
 
-  --destructive: 0 60% 55%;
-  --destructive-foreground: 0 0% 98%;
+  --accent:              37 40% 84%;
+  --accent-foreground:   25 54% 11%;
 
-  --border: 215 15% 88%;
-  --input: 215 15% 88%;
-  --ring: 215 25% 27%;
+  --destructive:         0 65% 48%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 37 25% 80%;
+  --input:  37 25% 80%;
+  --ring:   25 54% 11%;
 
   --radius: 0.75rem;
+
+  /* Error */
+  --error-bg: hsl(0 60% 98%);
+  --error-bd: hsl(0 60% 55% / 0.2);
+  --error-tx: hsl(0 70% 40%);
 }
+
+/* ── BASE ────────────────────────────────────────────────────────────── */
+*,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 @layer base {
-  body {
-    @apply bg-background text-foreground antialiased font-sans;
+  html, body {
+    height: 100%;
+    background: hsl(var(--background));
+    font-family: var(--font-sans);
+    color: hsl(var(--foreground));
     -webkit-font-smoothing: antialiased;
   }
-  * {
-    @apply selection:bg-primary/10;
-  }
   h1, h2, h3, h4, h5, h6 {
-    @apply font-serif font-medium tracking-tight text-primary;
+    font-family: var(--font-serif);
+    color: hsl(var(--foreground));
   }
+  * { @apply selection:bg-primary/10; }
 }
 
+/* ── SCROLLBAR ───────────────────────────────────────────────────────── */
 @layer utilities {
-  .font-serif {
-    font-family: var(--font-serif);
-  }
-
-  /* Scrollbar */
-  .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
-  }
-  .scrollbar-thin::-webkit-scrollbar-track {
-    @apply bg-transparent;
-  }
+  .scrollbar-thin::-webkit-scrollbar { width: 4px; height: 4px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    @apply bg-muted-foreground/20 rounded-full hover:bg-muted-foreground/40 transition-colors;
+    background: hsl(var(--border));
+    border-radius: 99px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--b4));
   }
 
-  /* Markdown */
-  .prose-custom {
-    @apply text-foreground leading-relaxed;
-  }
-  .prose-custom p {
-    @apply mb-3 last:mb-0;
-  }
-  .prose-custom ul {
-    @apply list-disc pl-4 mb-3 space-y-1;
-  }
-  .prose-custom ol {
-    @apply list-decimal pl-4 mb-3 space-y-1;
-  }
+  .font-serif { font-family: var(--font-serif); }
+  .font-sans  { font-family: var(--font-sans); }
+
+  /* ── Markdown prose ── */
+  .prose-custom { color: hsl(var(--foreground)); line-height: 1.7; }
+  .prose-custom p { margin-bottom: 0.75rem; }
+  .prose-custom p:last-child { margin-bottom: 0; }
+  .prose-custom ul { list-style: disc; padding-left: 1.25rem; margin-bottom: 0.75rem; }
+  .prose-custom ol { list-style: decimal; padding-left: 1.25rem; margin-bottom: 0.75rem; }
+  .prose-custom li { margin-bottom: 0.25rem; }
   .prose-custom a {
-    @apply text-primary underline underline-offset-4 hover:text-primary/80 transition-colors;
+    color: hsl(var(--b2));
+    text-decoration: underline;
+    text-underline-offset: 3px;
   }
+  .prose-custom a:hover { color: hsl(var(--b1)); }
+  .prose-custom strong { font-weight: 600; color: hsl(var(--b0)); }
   .prose-custom code {
-    @apply bg-muted px-1.5 py-0.5 rounded text-sm font-mono text-primary;
+    background: hsl(var(--muted));
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-size: 0.875em;
+    font-family: ui-monospace, monospace;
   }
   .prose-custom pre {
-    @apply bg-muted p-4 rounded-lg overflow-x-auto mb-3 text-sm;
+    background: hsl(var(--b0));
+    color: hsl(var(--primary-foreground));
+    padding: 1rem;
+    border-radius: 0.5rem;
+    overflow-x: auto;
+    margin-bottom: 0.75rem;
+    font-size: 0.875em;
   }
-  .prose-custom pre code {
-    @apply bg-transparent p-0 text-inherit;
-  }
+  .prose-custom pre code { background: transparent; padding: 0; color: inherit; }
   .prose-custom h1, .prose-custom h2, .prose-custom h3 {
-    @apply font-serif font-bold mt-6 mb-3 text-primary;
+    font-family: var(--font-serif);
+    font-weight: 600;
+    margin-top: 1.25rem;
+    margin-bottom: 0.5rem;
+    color: hsl(var(--b0));
   }
   .prose-custom blockquote {
-    @apply border-l-4 border-primary/20 pl-4 italic text-muted-foreground my-3;
+    border-left: 3px solid hsl(var(--border));
+    padding-left: 1rem;
+    color: hsl(var(--muted-foreground));
+    font-style: italic;
+    margin: 0.75rem 0;
   }
-  .prose-custom strong {
-    @apply font-semibold;
-  }
-  .prose-custom table {
-    @apply w-full border-collapse text-sm mb-3;
-  }
+  .prose-custom table { width: 100%; border-collapse: collapse; margin-bottom: 0.75rem; }
   .prose-custom th {
-    @apply border border-border px-3 py-2 text-left font-semibold bg-muted/50;
+    border: 1px solid hsl(var(--border));
+    padding: 0.4rem 0.75rem;
+    background: hsl(var(--muted));
+    text-align: left;
+    font-weight: 500;
   }
   .prose-custom td {
-    @apply border border-border px-3 py-2;
+    border: 1px solid hsl(var(--border));
+    padding: 0.4rem 0.75rem;
   }
 }
 
-/* ── Animations ── */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(5px); }
+/* ── ANIMATIONS ──────────────────────────────────────────────────────── */
+@keyframes rise {
+  from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-.animate-fade-in {
-  animation: fadeIn 0.28s ease-out forwards;
+.animate-rise { animation: rise 0.3s cubic-bezier(0.22, 0.8, 0.36, 1) both; }
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
+.animate-fade-in { animation: fadeIn 0.25s ease-out forwards; }
 
 @keyframes pulse-subtle {
   0%, 100% { opacity: 1; }
-  50%       { opacity: 0.7; }
+  50%       { opacity: 0.6; }
 }
-.animate-pulse-subtle {
-  animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
+.animate-pulse-subtle { animation: pulse-subtle 1.8s ease-in-out infinite; }
 
 @keyframes cursor-blink {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0; }
 }
-.animate-cursor {
-  animation: cursor-blink 0.85s step-end infinite;
-}
+.animate-cursor { animation: cursor-blink 0.85s step-end infinite; }
 
-/* ── Accessibility ── */
+/* ── ACCESSIBILITY ───────────────────────────────────────────────────── */
 :focus-visible {
   outline: 2px solid hsl(var(--primary));
   outline-offset: 2px;
   border-radius: 6px;
 }
 
-/* Skip-to-content for keyboard/screen-reader users */
 .skip-link {
-  position: absolute;
-  top: -100%;
-  left: 1rem;
-  z-index: 9999;
+  position: absolute; top: -100%; left: 1rem; z-index: 9999;
   padding: 0.4rem 0.875rem;
-  background: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
-  font-size: 0.8rem;
-  font-weight: 600;
+  background: hsl(var(--primary)); color: hsl(var(--primary-foreground));
+  font-size: 0.8rem; font-weight: 600;
   border-radius: 0 0 0.5rem 0.5rem;
   transition: top 0.15s;
 }
-.skip-link:focus {
-  top: 0;
+.skip-link:focus { top: 0; }
+
+/* ── TOUCH / MOBILE ──────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  input, textarea, select { font-size: 16px !important; }
+}
+@media (pointer: coarse) {
+  button:not(.chip-sm), [role="button"]:not(.chip-sm) { min-height: 44px; }
 }
 
-/* Respect reduced-motion preference */
+/* ── REDUCED MOTION ──────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
-}
-
-/* ── Touch / mobile fixes ────────────────────────────────────────────────── */
-/* Prevent iOS Safari from zooming on input focus */
-@media (max-width: 768px) {
-  input, textarea, select {
-    font-size: 16px !important;
-  }
-}
-
-/* Minimum touch target size (WCAG 2.5.5) — only on coarse pointer (touch) */
-@media (pointer: coarse) {
-  button:not(.chip-sm), [role="button"]:not(.chip-sm) {
-    min-height: 44px;
-  }
-}
-
-/* ── Error / status CSS variables ───────────────────────────────────────── */
-:root {
-  --error-bg: hsl(0 60% 98%);
-  --error-bd: hsl(0 60% 55% / 0.2);
-  --error-tx: hsl(0 70% 40%);
 }

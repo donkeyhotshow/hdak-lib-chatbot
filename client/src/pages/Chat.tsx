@@ -162,11 +162,19 @@ export default function Chat() {
       {!isOnline && (
         <div
           data-testid="banner-offline"
-          className="flex-shrink-0 flex items-center justify-center gap-2 px-4 py-2
-            bg-yellow-50 dark:bg-yellow-900/30 border-b border-yellow-200 dark:border-yellow-700"
+          style={{
+            flexShrink: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            padding: "6px 16px",
+            background: "hsl(37 60% 92%)",
+            borderBottom: "0.5px solid hsl(37 40% 78%)",
+          }}
         >
-          <WifiOff className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
-          <span className="text-xs font-medium text-yellow-700 dark:text-yellow-300">
+          <WifiOff style={{ width: 14, height: 14, color: "hsl(var(--b3))" }} />
+          <span style={{ fontSize: 12, color: "hsl(var(--b2))", fontWeight: 500 }}>
             Немає з'єднання з інтернетом. Перевірте мережу.
           </span>
         </div>
