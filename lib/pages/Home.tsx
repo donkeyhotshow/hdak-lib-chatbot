@@ -45,10 +45,10 @@ type LocalConversation = {
 
 const CHAT_TITLE_MAX_LENGTH = 50;
 const SEND_DEBOUNCE_MS = 350;
-const TYPING_BASE_DELAY_MS = 20;
-const TYPING_DELAY_VARIANCE_MS = 10;
-const TYPING_PUNCTUATION_PAUSE_MS = 60;
-const TYPING_MIN_DELAY_MS = 6;
+const TYPING_BASE_DELAY_MS = 10;
+const TYPING_DELAY_VARIANCE_MS = 5;
+const TYPING_PUNCTUATION_PAUSE_MS = 30;
+const TYPING_MIN_DELAY_MS = 3;
 const TYPING_FAST_THRESHOLD_CHARS = 700;
 const TYPING_MEDIUM_THRESHOLD_CHARS = 350;
 const TYPING_PUNCTUATION_REGEX = /[.!?;:,]/;
@@ -211,12 +211,24 @@ function getMessageText(msg: DisplayMessage): string {
   return "";
 }
 
-function stripQuickReplyHeading(text: string): string {
-  return text
+function stripQuickReplyHeading(text: string, previousUserText?: string): string {
+  if (!text) return text;
+  let result = text
     .replace(/^#{1,3}\s*Швидка відповідь[^\n]*\n*/i, "")
     .replace(/^\*(\*?)Швидка відповідь\*\1[^\n]*\n*/i, "")
     .replace(/^Швидка відповідь[^\n]*\n*/i, "")
     .trimStart();
+
+  const lowerText = result.toLowerCase().trim();
+  const lowerPrev = previousUserText?.toLowerCase().trim();
+  if (lowerPrev && lowerText.startsWith(lowerPrev)) {
+    let sliced = result.slice(lowerPrev.length).trim();
+    if (sliced.startsWith(":") || sliced.startsWith("-") || sliced.startsWith("—")) {
+      sliced = sliced.slice(1).trim();
+    }
+    result = sliced;
+  }
+  return result;
 }
 
 function extractOfficialSourceLinksFromText(text: string): string[] {
@@ -625,16 +637,22 @@ const MessageItem = memo(function MessageItem({
               !completedTypingIds[responseId] ? (
                 typedMessageText.length > 0 ? (
                   <div className="typing-message">
-                    <Markdown>
-                      {stripQuickReplyHeading(typedMessageText)}
-                    </Markdown>
+                      <Markdown>
+                        {stripQuickReplyHeading(
+                          typedMessageText,
+                          previousUserMessage ? getMessageText(previousUserMessage) : undefined
+                        )}
+                      </Markdown>
                   </div>
                 ) : (
                   <div className="typing-skeleton" />
                 )
               ) : (
                 <Markdown>
-                  {stripQuickReplyHeading(getMessageText(msg))}
+                  {stripQuickReplyHeading(
+                    getMessageText(msg),
+                    previousUserMessage ? getMessageText(previousUserMessage) : undefined
+                  )}
                 </Markdown>
               )}
               {/* Inline source link at bottom of bubble */}
@@ -725,7 +743,7 @@ const MessageItem = memo(function MessageItem({
             </a>
           </div>
         )}
-        {!isStreaming && !isCurrentlyTyping && isLastAssistant && (
+        {!isStreaming && isLastAssistant && (
           <div
             style={{
               display: "flex",
@@ -838,7 +856,7 @@ const MessageItem = memo(function MessageItem({
                   overflowX: "auto",
                 }}
               >
-                {followUpPrompts.map((prompt, pIdx) => (
+                {followUpPrompts.slice(0, 2).map((prompt, pIdx) => (
                   <button
                     key={prompt}
                     className="hdak-followup-chip"
@@ -988,6 +1006,7 @@ export default function Home() {
   }
 
   const [language, setLanguage] = useState<Language>("uk");
+  const [inputFocused, setInputFocused] = useState(false);
   const [conversations, setConversations] = useState<LocalConversation[]>([]);
   const [guestConversations, setGuestConversations] = useState<
     LocalConversation[]
@@ -1370,7 +1389,14 @@ export default function Home() {
       typingTimeoutRef.current = null;
     }
 
-    const fullText = stripQuickReplyHeading(getMessageText(lastMessage));
+    const previousUserMessage = [...allMessages]
+      .slice(0, allMessages.length - 1)
+      .reverse()
+      .find(m => m.role === "user");
+    const fullText = stripQuickReplyHeading(
+      getMessageText(lastMessage),
+      previousUserMessage ? getMessageText(previousUserMessage) : undefined
+    );
     setTypingMessageId(responseId);
     setTypedMessageText("");
 
@@ -1809,6 +1835,8 @@ export default function Home() {
         .hdak-msg-scroll::-webkit-scrollbar-track { background: transparent; }
         .hdak-msg-scroll { padding-bottom: 10px; }
         .hdak-textarea { resize: none; background: transparent; border: none; outline: none; color: #5f4b3a; font-family: 'DM Sans', system-ui, sans-serif; font-size: 16px; line-height: 1.62; min-height: 22px; max-height: 100px; width: 100%; }
+        .hdak-kb-hint { display: flex; justify-content: center; }
+        @media (max-width: 639px) { .hdak-kb-hint { display: none; } }
         .hdak-textarea::placeholder { color: #5f4b3a; opacity: 0.82; }
         .hdak-bubble a { color: #8b5e3c; text-underline-offset: 3px; font-weight: 500; }
         .hdak-bubble a:hover { color: #5c3a1e; }
@@ -1874,8 +1902,6 @@ export default function Home() {
           animation: shimmerSlide 1.2s linear infinite;
         }
         @media (max-width: 480px) { .tb-label { display: none; } }
-        @media (max-width: 640px) { .hdak-input-hint { display: none; } }
-        @media (pointer: coarse) { .hdak-input-hint { display: none; } }
       `}</style>
 
       <div className="hdak-body">
@@ -2360,8 +2386,16 @@ export default function Home() {
               >
                 <span aria-hidden="true">🌐</span>{" "}
                 <span className="tb-label">{langLabels[language]}</span>
+                <span
+                  style={{
+                    fontSize: 10,
+                    transition: "transform 0.2s",
+                    transform: openDropdown === "lang" ? "rotate(180deg)" : "rotate(0deg)",
+                  }}
+                >
+                  ▾
+                </span>
               </button>
-
               {openDropdown === "lang" && (
                 <div
                   style={{
@@ -2435,15 +2469,14 @@ export default function Home() {
 
         {/* ── MAIN ── */}
         <main
+          className="hdak-main-container"
           style={{
             flex: 1,
             overflow: "hidden",
             display: "flex",
             flexDirection: "column",
-            maxWidth: 740,
             width: "100%",
             margin: "0 auto",
-            padding: "0 24px",
             position: "relative",
             zIndex: 1,
           }}
@@ -2783,11 +2816,13 @@ export default function Home() {
                 alignItems: "flex-end",
                 gap: 8,
                 background: "#f5efe6",
-                border: "1.5px solid #c8b898",
+                border: inputFocused ? "1.5px solid #8b5e3c" : "1.5px solid #c8b898",
                 borderRadius: 16,
                 padding: "8px 8px 8px 14px",
-                transition: "border-color 0.2s, box-shadow 0.2s",
-                boxShadow: "0 2px 8px rgba(90,50,20,0.07)",
+                transition: "border-color 0.15s, box-shadow 0.15s",
+                boxShadow: inputFocused
+                  ? "0 0 0 3px rgba(139,94,60,0.12)"
+                  : "0 2px 8px rgba(90,50,20,0.07)",
               }}
             >
               <textarea
@@ -2832,6 +2867,8 @@ export default function Home() {
                     }
                   }
                 }}
+                onFocus={() => setInputFocused(true)}
+                onBlur={() => setInputFocused(false)}
                 placeholder={t.typeMessage}
                 disabled={isStreaming}
               />
@@ -2878,18 +2915,16 @@ export default function Home() {
               </button>
             </div>
             <div
-              className="hdak-input-hint"
-              id="keyboard-hints"
+              classNam            <div
+              className="hdak-kb-hint"
               style={{
                 fontSize: 11,
                 color: "#795a39",
-                textAlign: "center",
                 marginTop: 7,
               }}
             >
               {t.hint}
-            </div>
-            {/* Visually-hidden accessible description for screen readers */}
+            </div>        {/* Visually-hidden accessible description for screen readers */}
             <span
               id="keyboard-hints-sr"
               style={{
