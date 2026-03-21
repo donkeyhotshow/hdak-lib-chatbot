@@ -5,50 +5,56 @@
 @tailwind utilities;
 
 :root {
-  /* Library Theme — Soft, Intellectual, Calming */
   --font-sans: 'DM Sans', sans-serif;
   --font-serif: 'Lora', serif;
 
-  --background: 210 20% 98%;
-  --foreground: 220 15% 20%;
+  /* ── Brown palette ── */
+  --brown-50:  248 244 240;
+  --brown-100: 237 229 220;
+  --brown-200: 226 210 189;
+  --brown-300: 212 196 168;
+  --brown-400: 200 184 152;
+  --brown-500: 168 95 46;
+  --brown-600: 139 94 60;
+  --brown-700: 92 58 30;
+  --brown-800: 74 47 25;
+  --brown-900: 45 31 20;
+  --brown-950: 26 19 13;
 
-  --primary: 215 25% 27%;
-  --primary-foreground: 210 20% 98%;
+  /* ── Semantic tokens mapped to brown ── */
+  --background: var(--brown-50);
+  --foreground: var(--brown-900);
 
-  --secondary: 210 20% 90%;
-  --secondary-foreground: 220 15% 20%;
+  --primary: var(--brown-700);
+  --primary-foreground: 248 244 240;
 
-  --muted: 210 15% 95%;
-  --muted-foreground: 215 10% 45%;
+  --secondary: var(--brown-100);
+  --secondary-foreground: var(--brown-900);
 
-  --accent: 35 30% 92%;
-  --accent-foreground: 220 15% 20%;
+  --muted: var(--brown-100);
+  --muted-foreground: var(--brown-600);
 
-  --destructive: 0 60% 55%;
-  --destructive-foreground: 0 0% 98%;
+  --accent: var(--brown-200);
+  --accent-foreground: var(--brown-900);
 
-  --border: 215 15% 88%;
-  --input: 215 15% 88%;
-  --ring: 215 25% 27%;
+  --destructive: 239 68 68;
+  --destructive-foreground: 255 255 255;
+
+  --border: var(--brown-200);
+  --input: var(--brown-200);
+  --ring: var(--brown-500);
 
   --radius: 0.75rem;
 
-  /* ── Spacing tokens (8pt grid) ── */
-  --spacing-xs: 0.5rem;   /* 8px */
-  --spacing-sm: 0.75rem;  /* 12px */
-  --spacing-md: 1rem;     /* 16px */
-  --spacing-lg: 1.5rem;   /* 24px */
-  --spacing-xl: 2rem;     /* 32px */
-
-  /* ── Typography scale ── */
-  --font-title-size: 28px;
-  --font-title-lh: 1.2;
-  --font-h2-size: 22px;
-  --font-h2-lh: 1.3;
-  --font-body-size: 16px;
-  --font-body-lh: 1.5;
-  --font-caption-size: 13px;
-  --font-caption-lh: 1.4;
+  /* ── Spacing tokens (8px grid) ── */
+  --spacing-1: 0.25rem;
+  --spacing-2: 0.5rem;
+  --spacing-3: 0.75rem;
+  --spacing-4: 1rem;
+  --spacing-6: 1.5rem;
+  --spacing-8: 2rem;
+  --radius-sm: 0.5rem;
+  --radius-xl: 1.5rem;
 }
 
 @layer base {
@@ -56,12 +62,11 @@
     @apply bg-background text-foreground antialiased;
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
-    /* Safe area support for notched devices */
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
   }
   * {
-    @apply selection:bg-primary/10;
+    @apply selection:bg-primary/15;
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-serif font-medium tracking-tight text-primary;
@@ -75,16 +80,36 @@
 
   /* Scrollbar */
   .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
+    width: 5px;
   }
   .scrollbar-thin::-webkit-scrollbar-track {
     @apply bg-transparent;
   }
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    @apply bg-muted-foreground/20 rounded-full hover:bg-muted-foreground/40 transition-colors;
+    background: hsl(var(--brown-300) / 0.5);
+    border-radius: 999px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--brown-400) / 0.7);
   }
 
-  /* Markdown */
+  /* ── Chat bubble variants ── */
+  .hdak-bubble {
+    background: hsl(var(--brown-50));
+    border: 1px solid hsl(var(--brown-200));
+    border-radius: var(--radius-xl) var(--radius-xl) var(--radius-xl) 0.5rem;
+    box-shadow: 0 2px 8px rgb(92 58 30 / 0.08);
+    padding: var(--spacing-4);
+    margin-bottom: var(--spacing-3);
+  }
+  .hdak-bubble-user {
+    background: hsl(var(--brown-700));
+    color: white;
+    border-radius: var(--radius-xl) var(--radius-xl) 0.5rem var(--radius-xl);
+    box-shadow: 0 2px 8px rgb(92 58 30 / 0.2);
+  }
+
+  /* ── Markdown ── */
   .prose-custom {
     @apply text-foreground leading-relaxed;
   }
@@ -98,13 +123,20 @@
     @apply list-decimal pl-4 mb-3 space-y-1;
   }
   .prose-custom a {
-    @apply text-primary underline underline-offset-4 hover:text-primary/80 transition-colors;
+    @apply underline underline-offset-4 transition-colors;
+    color: hsl(var(--brown-500));
+  }
+  .prose-custom a:hover {
+    color: hsl(var(--brown-600));
   }
   .prose-custom code {
-    @apply bg-muted px-1.5 py-0.5 rounded text-sm font-mono text-primary;
+    @apply px-1.5 py-0.5 rounded text-sm font-mono;
+    background: hsl(var(--brown-100));
+    color: hsl(var(--brown-700));
   }
   .prose-custom pre {
-    @apply bg-muted p-4 rounded-lg overflow-x-auto mb-3 text-sm;
+    @apply p-4 rounded-xl overflow-x-auto mb-3 text-sm;
+    background: hsl(var(--brown-100));
   }
   .prose-custom pre code {
     @apply bg-transparent p-0 text-inherit;
@@ -113,7 +145,9 @@
     @apply font-serif font-bold mt-6 mb-3 text-primary;
   }
   .prose-custom blockquote {
-    @apply border-l-4 border-primary/20 pl-4 italic text-muted-foreground my-3;
+    @apply pl-4 italic my-3;
+    border-left: 4px solid hsl(var(--brown-300));
+    color: hsl(var(--brown-600));
   }
   .prose-custom strong {
     @apply font-semibold;
@@ -122,29 +156,31 @@
     @apply w-full border-collapse text-sm mb-3;
   }
   .prose-custom th {
-    @apply border border-border px-3 py-2 text-left font-semibold bg-muted/50;
+    @apply px-3 py-2 text-left font-semibold;
+    border: 1px solid hsl(var(--brown-200));
+    background: hsl(var(--brown-100));
   }
   .prose-custom td {
-    @apply border border-border px-3 py-2;
+    @apply px-3 py-2;
+    border: 1px solid hsl(var(--brown-200));
   }
 }
 
 /* ── Animations ── */
+@keyframes bubbleIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-bubble-in {
+  animation: bubbleIn 0.22s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(5px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 .animate-fade-in {
   animation: fadeIn 0.28s ease-out forwards;
-}
-
-/* Message bubble entrance */
-@keyframes bubbleIn {
-  from { opacity: 0; transform: translateY(12px) scale(0.95); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-.animate-bubble-in {
-  animation: bubbleIn 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 @keyframes pulse-subtle {
@@ -165,20 +201,19 @@
 
 /* ── Accessibility ── */
 :focus-visible {
-  outline: 2px solid hsl(var(--primary));
+  outline: 2px solid hsl(var(--brown-500));
   outline-offset: 2px;
   border-radius: 6px;
 }
 
-/* Skip-to-content for keyboard/screen-reader users */
 .skip-link {
   position: absolute;
   top: -100%;
   left: 1rem;
   z-index: 9999;
   padding: 0.4rem 0.875rem;
-  background: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
+  background: hsl(var(--brown-700));
+  color: hsl(var(--brown-50));
   font-size: 0.8rem;
   font-weight: 600;
   border-radius: 0 0 0.5rem 0.5rem;
@@ -188,7 +223,6 @@
   top: 0;
 }
 
-/* Respect reduced-motion preference */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

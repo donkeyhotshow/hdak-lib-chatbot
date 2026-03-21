@@ -8,21 +8,21 @@ import Home from "@/pages/Home";
 import Chat from "@/pages/Chat";
 import { Sidebar } from "@/components/Sidebar";
 import { useState, useCallback } from "react";
-import { Menu, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Menu } from "lucide-react";
 
 function AppLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const closeSidebar = useCallback(() => setIsSidebarOpen(false), []);
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-background">
+    <div className="flex h-screen w-full overflow-hidden" style={{ background: "hsl(var(--brown-50))" }}>
       <a href="#main-content" className="skip-link">Перейти до змісту</a>
 
       {/* Mobile overlay */}
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 md:hidden backdrop-blur-sm"
+          className="fixed inset-0 z-40 md:hidden backdrop-blur-sm"
+          style={{ background: "hsl(var(--brown-900) / 0.5)" }}
           onClick={closeSidebar}
           aria-hidden="true"
         />
@@ -41,18 +41,25 @@ function AppLayout({ children }: { children: React.ReactNode }) {
       <main className="flex-1 flex flex-col h-full min-w-0 relative">
 
         {/* Mobile header */}
-        <div className="md:hidden flex items-center p-4 border-b border-border bg-background/80 backdrop-blur">
-          <Button
-            variant="ghost"
-            size="icon"
+        <div
+          className="md:hidden flex items-center p-4 backdrop-blur"
+          style={{
+            borderBottom: "1px solid hsl(var(--brown-200))",
+            background: "hsl(var(--brown-50) / 0.85)",
+          }}
+        >
+          <button
             onClick={() => setIsSidebarOpen(true)}
             data-testid="button-open-sidebar"
-            className="mr-2"
             aria-label="Відкрити меню"
+            className="mr-3 p-2 rounded-lg transition-colors"
+            style={{ color: "hsl(var(--brown-700))" }}
           >
             <Menu className="w-5 h-5" />
-          </Button>
-          <span className="font-serif font-bold text-lg text-primary">HDAK Library</span>
+          </button>
+          <span className="font-serif font-bold text-lg" style={{ color: "hsl(var(--brown-800))" }}>
+            HDAK Library
+          </span>
         </div>
 
         <div id="main-content" className="flex-1 h-full overflow-hidden relative">

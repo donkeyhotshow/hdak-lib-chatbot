@@ -1,5 +1,4 @@
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { useConversations, useDeleteConversation, useCreateConversation } from "@/hooks/use-chat";
 import { Plus, MessageSquare, Trash2, Library, ExternalLink } from "lucide-react";
 import { Link, useLocation } from "wouter";
@@ -38,39 +37,74 @@ export function Sidebar({ className }: { className?: string }) {
   };
 
   return (
-    <div className={cn("flex flex-col h-full bg-muted/50 border-r border-border", className)}>
-
+    <div
+      className={cn("flex flex-col h-full", className)}
+      style={{
+        background: "hsl(var(--brown-100))",
+        borderRight: "1px solid hsl(var(--brown-200))",
+      }}
+    >
       {/* Header */}
-      <div className="p-4 border-b border-border/40">
-        <Link href="/" className="flex items-center gap-2 px-2 py-3 mb-4 group cursor-pointer">
-          <div className="w-8 h-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center shadow-lg shadow-primary/20 group-hover:scale-105 transition-transform duration-200">
-            <Library className="w-4 h-4" />
+      <div
+        className="p-4"
+        style={{ borderBottom: "1px solid hsl(var(--brown-200))" }}
+      >
+        <Link href="/" className="flex items-center gap-2.5 px-2 py-3 mb-4 group cursor-pointer">
+          <div
+            className="w-9 h-9 rounded-xl flex items-center justify-center shadow-md group-hover:scale-105 transition-transform duration-200"
+            style={{
+              background: "hsl(var(--brown-700))",
+              color: "hsl(var(--brown-50))",
+            }}
+          >
+            <Library className="w-4.5 h-4.5" />
           </div>
-          <span className="font-serif font-bold text-lg text-primary tracking-tight">HDAK Library</span>
+          <span className="font-serif font-bold text-lg tracking-tight" style={{ color: "hsl(var(--brown-800))" }}>
+            HDAK Library
+          </span>
         </Link>
 
-        <Button
+        <button
           onClick={handleNewChat}
           disabled={createMutation.isPending}
           data-testid="button-new-conversation"
-          className="w-full justify-start gap-2 h-11 shadow-sm bg-white hover:bg-white/70 text-foreground border border-border/60"
-          variant="outline"
+          className="
+            w-full flex items-center justify-center gap-2 h-11 rounded-xl
+            text-sm font-medium
+            border transition-all duration-150
+            shadow-sm hover:shadow-md
+            disabled:opacity-60 disabled:cursor-not-allowed
+          "
+          style={{
+            background: "hsl(var(--brown-700))",
+            borderColor: "hsl(var(--brown-600))",
+            color: "hsl(var(--brown-50))",
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.background = "hsl(var(--brown-600))";
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.background = "hsl(var(--brown-700))";
+          }}
         >
           <Plus className="w-4 h-4" />
           {createMutation.isPending ? "Створення..." : "Нова розмова"}
-        </Button>
+        </button>
       </div>
 
       {/* Conversation list */}
-      <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1 scrollbar-thin">
+      <div className="flex-1 overflow-y-auto py-3 px-3 space-y-1 scrollbar-thin">
         {isLoading ? (
-          <div className="text-center py-8 text-sm text-muted-foreground animate-pulse">
+          <div
+            className="text-center py-8 text-sm animate-pulse"
+            style={{ color: "hsl(var(--brown-500))" }}
+          >
             Завантаження...
           </div>
         ) : conversations?.length === 0 ? (
           <div className="text-center py-8 px-4">
-            <p className="text-sm text-muted-foreground mb-1">Ще немає розмов.</p>
-            <p className="text-xs text-muted-foreground/60">Розпочніть нову розмову для пошуку в каталозі.</p>
+            <p className="text-sm mb-1" style={{ color: "hsl(var(--brown-600))" }}>Ще немає розмов.</p>
+            <p className="text-xs" style={{ color: "hsl(var(--brown-400))" }}>Розпочніть нову розмову для пошуку в каталозі.</p>
           </div>
         ) : (
           conversations?.map((conv) => {
@@ -79,27 +113,40 @@ export function Sidebar({ className }: { className?: string }) {
               <Link key={conv.id} href={`/chat/${conv.id}`} className="block">
                 <div
                   data-testid={`conv-item-${conv.id}`}
-                  className={cn(
-                    "group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-150 cursor-pointer",
-                    isActive
-                      ? "bg-white text-primary font-medium shadow-sm border border-border/50"
-                      : "text-muted-foreground hover:bg-white/60 hover:text-foreground"
-                  )}
+                  className="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-150 cursor-pointer"
+                  style={{
+                    background: isActive ? "hsl(var(--brown-50))" : "transparent",
+                    border: isActive ? "1px solid hsl(var(--brown-300))" : "1px solid transparent",
+                    boxShadow: isActive ? "0 1px 4px rgb(92 58 30 / 0.1)" : "none",
+                    color: isActive ? "hsl(var(--brown-800))" : "hsl(var(--brown-600))",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isActive) {
+                      (e.currentTarget as HTMLDivElement).style.background = "hsl(var(--brown-200) / 0.5)";
+                      (e.currentTarget as HTMLDivElement).style.color = "hsl(var(--brown-800))";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) {
+                      (e.currentTarget as HTMLDivElement).style.background = "transparent";
+                      (e.currentTarget as HTMLDivElement).style.color = "hsl(var(--brown-600))";
+                    }
+                  }}
                 >
-                  <MessageSquare className={cn(
-                    "w-4 h-4 shrink-0",
-                    isActive ? "text-primary" : "text-muted-foreground/60"
-                  )} />
+                  <MessageSquare
+                    className="w-4 h-4 shrink-0"
+                    style={{ color: isActive ? "hsl(var(--brown-500))" : "hsl(var(--brown-400))" }}
+                  />
 
-                  <div className="flex-1 min-w-0 truncate pr-6">
+                  <div className="flex-1 min-w-0 truncate pr-6 font-medium">
                     {conv.title || "Без назви"}
                   </div>
 
                   {conv.createdAt && (
-                    <span className={cn(
-                      "text-[10px] shrink-0 tabular-nums",
-                      isActive ? "text-primary/50" : "text-muted-foreground/40"
-                    )}>
+                    <span
+                      className="text-[10px] shrink-0 tabular-nums"
+                      style={{ color: isActive ? "hsl(var(--brown-400))" : "hsl(var(--brown-400))" }}
+                    >
                       {format(new Date(conv.createdAt), "d MMM")}
                     </span>
                   )}
@@ -110,7 +157,16 @@ export function Sidebar({ className }: { className?: string }) {
                         <button
                           onClick={(e) => e.stopPropagation()}
                           data-testid={`button-delete-conv-${conv.id}`}
-                          className="p-1.5 rounded-md hover:bg-destructive/10 hover:text-destructive transition-colors"
+                          className="p-1.5 rounded-md transition-colors"
+                          style={{ color: "hsl(var(--brown-400))" }}
+                          onMouseEnter={(e) => {
+                            (e.currentTarget as HTMLButtonElement).style.background = "hsl(239 68 68 / 0.1)";
+                            (e.currentTarget as HTMLButtonElement).style.color = "hsl(239 68 68)";
+                          }}
+                          onMouseLeave={(e) => {
+                            (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+                            (e.currentTarget as HTMLButtonElement).style.color = "hsl(var(--brown-400))";
+                          }}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -142,27 +198,38 @@ export function Sidebar({ className }: { className?: string }) {
       </div>
 
       {/* Footer links */}
-      <div className="p-4 border-t border-border/40 bg-muted/30 space-y-1">
-        <a
-          href="https://lib-hdak.in.ua/"
-          target="_blank"
-          rel="noopener noreferrer"
-          data-testid="link-library-website"
-          className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-primary transition-colors p-2 rounded-md hover:bg-white/60"
-        >
-          <ExternalLink className="w-3.5 h-3.5 shrink-0" />
-          Офіційний сайт бібліотеки
-        </a>
-        <a
-          href="https://library-service.com.ua:8443/khkhdak/DocumentSearchForm"
-          target="_blank"
-          rel="noopener noreferrer"
-          data-testid="link-catalog"
-          className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-primary transition-colors p-2 rounded-md hover:bg-white/60"
-        >
-          <ExternalLink className="w-3.5 h-3.5 shrink-0" />
-          Електронний каталог
-        </a>
+      <div
+        className="p-4 space-y-1"
+        style={{
+          borderTop: "1px solid hsl(var(--brown-200))",
+          background: "hsl(var(--brown-200) / 0.4)",
+        }}
+      >
+        {[
+          { href: "https://lib-hdak.in.ua/", label: "Офіційний сайт бібліотеки", testid: "link-library-website" },
+          { href: "https://library-service.com.ua:8443/khkhdak/DocumentSearchForm", label: "Електронний каталог", testid: "link-catalog" },
+        ].map(({ href, label, testid }) => (
+          <a
+            key={href}
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-testid={testid}
+            className="flex items-center gap-2 text-xs font-medium p-2 rounded-lg transition-all duration-150"
+            style={{ color: "hsl(var(--brown-600))" }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLAnchorElement).style.background = "hsl(var(--brown-200))";
+              (e.currentTarget as HTMLAnchorElement).style.color = "hsl(var(--brown-800))";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLAnchorElement).style.background = "transparent";
+              (e.currentTarget as HTMLAnchorElement).style.color = "hsl(var(--brown-600))";
+            }}
+          >
+            <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+            {label}
+          </a>
+        ))}
       </div>
     </div>
   );

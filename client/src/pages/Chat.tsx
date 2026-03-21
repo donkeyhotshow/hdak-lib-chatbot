@@ -24,8 +24,8 @@ export default function Chat() {
 
   if (isLoading) {
     return (
-      <div className="h-full flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+      <div className="h-full flex items-center justify-center" style={{ background: "hsl(var(--brown-50))" }}>
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: "hsl(var(--brown-500))" }} />
       </div>
     );
   }
@@ -33,24 +33,30 @@ export default function Chat() {
   if (error || !conversation) {
     return (
       <div className="h-full flex flex-col items-center justify-center gap-4 text-center p-8">
-        <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center">
-          <AlertCircle className="w-8 h-8 text-destructive" />
+        <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: "hsl(var(--brown-100))" }}>
+          <AlertCircle className="w-8 h-8" style={{ color: "hsl(var(--brown-500))" }} />
         </div>
         <div>
-          <h2 className="text-xl font-serif font-bold text-foreground">
+          <h2 className="text-xl font-serif font-bold" style={{ color: "hsl(var(--brown-900))" }}>
             Не вдалося завантажити розмову
           </h2>
-          <p className="text-muted-foreground mt-2 text-sm">
+          <p className="mt-2 text-sm" style={{ color: "hsl(var(--brown-600))" }}>
             Розмову могло бути видалено або вона не існує.
           </p>
         </div>
-        <Button onClick={() => refetch()} variant="outline">Спробувати ще раз</Button>
+        <Button
+          onClick={() => refetch()}
+          variant="outline"
+          style={{ borderColor: "hsl(var(--brown-300))", color: "hsl(var(--brown-700))" }}
+        >
+          Спробувати ще раз
+        </Button>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full bg-background relative">
+    <div className="flex flex-col h-full relative" style={{ background: "hsl(var(--brown-50))" }}>
 
       {/* Messages */}
       <div
@@ -63,14 +69,15 @@ export default function Chat() {
 
           {/* Empty state */}
           {conversation.messages.length === 0 && !isStreaming && (
-            <div className="max-w-3xl mx-auto px-4 py-12 text-center space-y-4">
-              <h2 className="text-2xl font-serif font-bold text-primary">
+            <div className="max-w-3xl mx-auto px-4 py-14 text-center space-y-4">
+              <h2 className="text-2xl font-serif font-bold" style={{ color: "hsl(var(--brown-800))" }}>
                 {conversation.title || "Нова розмова"}
               </h2>
-              <p className="text-muted-foreground text-sm">
+              <p className="text-sm" style={{ color: "hsl(var(--brown-600))" }}>
                 Привіт! Я — бібліотечний асистент ХДАК. Чим можу допомогти?
               </p>
-              {/* Quick prompts — WCAG: min 44px touch target */}
+
+              {/* Action chips — 44px touch target */}
               <div className="flex flex-wrap justify-center gap-2 pt-2">
                 {[
                   "Як знайти книгу в каталозі?",
@@ -82,19 +89,27 @@ export default function Chat() {
                     onClick={() => sendMessage(prompt)}
                     disabled={isStreaming}
                     data-testid={`chip-prompt-${prompt.slice(0, 20)}`}
-                    className="
-                      min-h-[44px] min-w-[80px] px-4 py-2
-                      text-[13px] font-medium rounded-full
-                      border border-border bg-white
-                      shadow-sm hover:shadow-md
-                      text-foreground
-                      transition-all duration-200
-                      ease-in-out
-                      hover:-translate-y-0.5 hover:bg-muted/30
-                      disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0
-                      focus-visible:ring-2 focus-visible:ring-primary/50
-                    "
                     aria-label={`Запитати: ${prompt}`}
+                    className="
+                      inline-flex items-center justify-center
+                      min-h-[44px] min-w-[80px] px-4
+                      text-[13px] font-medium rounded-full
+                      border transition-all duration-200 ease-in-out
+                      shadow-sm hover:shadow-md
+                      hover:-translate-y-0.5
+                      disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0
+                    "
+                    style={{
+                      background: "hsl(var(--brown-100))",
+                      borderColor: "hsl(var(--brown-300))",
+                      color: "hsl(var(--brown-800))",
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLButtonElement).style.background = "hsl(var(--brown-200))";
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLButtonElement).style.background = "hsl(var(--brown-100))";
+                    }}
                   >
                     {prompt}
                   </button>
@@ -126,8 +141,13 @@ export default function Chat() {
         </div>
       </div>
 
-      {/* Input — gradient fade over bottom of message list */}
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-background via-background/95 to-transparent pt-10 pb-[env(safe-area-inset-bottom,0px)]">
+      {/* Input with gradient fade */}
+      <div
+        className="absolute bottom-0 left-0 right-0 pt-10 pb-[env(safe-area-inset-bottom,0px)]"
+        style={{
+          background: "linear-gradient(to top, hsl(var(--brown-50)) 70%, transparent)",
+        }}
+      >
         <ChatInput
           onSend={sendMessage}
           onStop={stopStream}

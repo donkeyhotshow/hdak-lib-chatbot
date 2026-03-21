@@ -1,7 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { SendHorizontal, StopCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 
 interface ChatInputProps {
   onSend: (message: string) => void;
@@ -41,16 +39,29 @@ export function ChatInput({ onSend, onStop, disabled, isStreaming }: ChatInputPr
     }
   }, [handleSubmit]);
 
+  const canSend = !!input.trim() && !disabled && !isStreaming;
+
   return (
     <div className="w-full max-w-3xl mx-auto px-4 pb-2">
-      <form onSubmit={handleSubmit} className="relative group">
-        <div className="
-          relative flex items-end p-2 bg-background
-          border-2 border-border/60 rounded-2xl shadow-sm
-          focus-within:border-primary/40 focus-within:ring-4 focus-within:ring-primary/5
-          transition-all duration-200
-        ">
-          <Textarea
+      <form onSubmit={handleSubmit}>
+        <div
+          className="relative flex items-end p-2 rounded-2xl shadow-md transition-all duration-200"
+          style={{
+            background: "hsl(var(--brown-50))",
+            border: "2px solid hsl(var(--brown-200))",
+          }}
+          onFocusCapture={(e) => {
+            (e.currentTarget as HTMLDivElement).style.borderColor = "hsl(var(--brown-400))";
+            (e.currentTarget as HTMLDivElement).style.boxShadow = "0 0 0 4px hsl(var(--brown-200) / 0.4)";
+          }}
+          onBlurCapture={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget)) {
+              (e.currentTarget as HTMLDivElement).style.borderColor = "hsl(var(--brown-200))";
+              (e.currentTarget as HTMLDivElement).style.boxShadow = "0 4px 12px rgb(92 58 30 / 0.08)";
+            }
+          }}
+        >
+          <textarea
             ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -58,45 +69,50 @@ export function ChatInput({ onSend, onStop, disabled, isStreaming }: ChatInputPr
             placeholder="Запитайте про книги, послуги або ресурси бібліотеки..."
             data-testid="input-chat-message"
             aria-label="Повідомлення"
-            className="
-              min-h-[56px] w-full resize-none bg-transparent border-0
-              focus-visible:ring-0 focus-visible:ring-offset-0
-              py-4 px-4 placeholder:text-muted-foreground/60
-              text-[16px] leading-relaxed
-            "
-            style={{ fontSize: "16px" }}
+            className="flex-1 resize-none bg-transparent border-0 outline-none min-h-[56px] py-4 px-3 leading-relaxed placeholder:opacity-50"
+            style={{
+              fontSize: "16px",
+              color: "hsl(var(--brown-900))",
+              fontFamily: "var(--font-sans)",
+            }}
             rows={1}
             disabled={disabled || isStreaming}
           />
 
-          <div className="pb-2 pr-2">
+          <div className="pb-2 pr-1 shrink-0">
             {isStreaming ? (
-              <Button
+              <button
                 type="button"
                 onClick={onStop}
-                size="icon"
                 data-testid="button-stop-stream"
                 aria-label="Зупинити відповідь"
-                className="rounded-xl h-11 w-11 shrink-0 bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                className="flex items-center justify-center w-11 h-11 rounded-xl transition-all duration-150 shadow-sm"
+                style={{
+                  background: "hsl(239 68 68)",
+                  color: "white",
+                }}
               >
                 <StopCircle className="w-5 h-5" />
-              </Button>
+              </button>
             ) : (
-              <Button
+              <button
                 type="submit"
-                size="icon"
-                disabled={!input.trim() || disabled}
+                disabled={!canSend}
                 data-testid="button-send-message"
                 aria-label="Надіслати повідомлення"
-                className="rounded-xl h-11 w-11 shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm"
+                className="flex items-center justify-center w-11 h-11 rounded-xl transition-all duration-150 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{
+                  background: canSend ? "hsl(var(--brown-700))" : "hsl(var(--brown-300))",
+                  color: "hsl(var(--brown-50))",
+                }}
               >
                 <SendHorizontal className="w-4 h-4" />
-              </Button>
+              </button>
             )}
           </div>
         </div>
 
-        <p className="mt-2 text-center text-xs text-muted-foreground/60">
+        <p className="mt-2 text-center text-xs" style={{ color: "hsl(var(--brown-400))" }}>
           ШІ може помилятися. Перевіряйте важливу інформацію в офіційних джерелах.
         </p>
       </form>

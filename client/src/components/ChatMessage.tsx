@@ -22,44 +22,70 @@ export const ChatMessage = memo(function ChatMessage({
 
   return (
     <div className={cn(
-      "group w-full py-6 px-4 transition-colors duration-150 animate-bubble-in",
-      isUser ? "bg-transparent" : "bg-muted/30 border-y border-border/40"
-    )}>
+      "group w-full px-4 py-5 transition-colors duration-150 animate-bubble-in",
+      isUser
+        ? "bg-transparent"
+        : "border-y"
+    )}
+      style={isUser ? {} : {
+        backgroundColor: "hsl(var(--brown-50))",
+        borderColor: "hsl(var(--brown-200) / 0.6)",
+      }}
+    >
       <div className="max-w-3xl mx-auto flex gap-4">
 
         {/* Avatar */}
-        <div className={cn(
-          "shrink-0 w-9 h-9 rounded-xl flex items-center justify-center shadow-sm border mt-0.5",
-          isUser
-            ? "bg-white border-border text-foreground"
-            : "bg-primary text-primary-foreground border-primary/80"
-        )}>
-          {isUser ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
-        </div>
+        {isUser ? (
+          <div
+            className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center shadow-sm border mt-0.5"
+            style={{
+              background: "hsl(var(--brown-100))",
+              borderColor: "hsl(var(--brown-300))",
+              color: "hsl(var(--brown-700))",
+            }}
+          >
+            <User className="w-4 h-4" />
+          </div>
+        ) : (
+          <div
+            className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center shadow-md mt-0.5"
+            style={{
+              background: "hsl(var(--brown-700))",
+              color: "hsl(var(--brown-50))",
+            }}
+          >
+            <Bot className="w-4 h-4" />
+          </div>
+        )}
 
         {/* Content */}
         <div className="flex-1 space-y-1.5 min-w-0">
           <div className="flex items-baseline gap-2">
-            <span className="font-semibold text-sm text-foreground">
+            <span
+              className="font-semibold text-sm"
+              style={{ color: isUser ? "hsl(var(--brown-800))" : "hsl(var(--brown-700))" }}
+            >
               {isUser ? "Ви" : "Бібліотечний асистент"}
             </span>
             {createdAt && (
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs" style={{ color: "hsl(var(--brown-400))" }}>
                 {format(new Date(createdAt), "HH:mm")}
               </span>
             )}
           </div>
 
           <div className={cn(
-            "prose-custom max-w-none",
-            "text-[15px] leading-relaxed",
+            "prose-custom max-w-none text-[15px] leading-relaxed",
             isStreaming && "animate-pulse-subtle"
           )}>
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
               {content || ""}
             </ReactMarkdown>
             {isStreaming && (
-              <span className="inline-block w-1.5 h-4 ml-0.5 bg-primary/50 animate-cursor rounded-sm" />
+              <span
+                className="inline-block w-1.5 h-4 ml-0.5 animate-cursor rounded-sm"
+                style={{ background: "hsl(var(--brown-500) / 0.6)" }}
+              />
             )}
           </div>
         </div>
