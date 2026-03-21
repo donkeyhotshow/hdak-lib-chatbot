@@ -11,6 +11,14 @@ export default {
         sm: ".1875rem", /* 3px */
       },
       colors: {
+        hdak: {
+          wood:      '#221208',
+          brown:     '#4a2e14',
+          accent:    '#7a5230',
+          gold:      '#c8904a',
+          parchment: '#f4ede0',
+          cream:     '#faf8f5',
+        },
         // Flat / base colors (regular buttons)
         background: "hsl(var(--background) / <alpha-value>)",
         foreground: "hsl(var(--foreground) / <alpha-value>)",

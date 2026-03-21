@@ -1,0 +1,84 @@
+```text
+🎨 HDAK Chatbot — PRACTICAL BROWN DESIGN SYSTEM v4.0
+
+═══ КОРИЧНЕВА ТЕМА + ПРАКТИЧНИЙ ДИЗАЙН ═══
+
+КОЛІРНА ПАЛІТРА (коричневий як основа):
+```
+:root {
+  /* Primary Brown Palette */
+  --brown-50:  #f8f4f0;    /* lightest */
+  --brown-100: #ede5dc;
+  --brown-200: #e2d2bd;
+  --brown-300: #d4c4a8;    /* parchment bg */
+  --brown-400: #c8b898;
+  --brown-500: #a85f2e;    /* primary button */
+  --brown-600: #8b5e3c;    /* hover */
+  --brown-700: #5c3a1e;    /* main brand */
+  --brown-800: #4a2f19;
+  --brown-900: #2d1f14;    /* text primary */
+  --brown-950: #1a130d;    /* dark mode */
+
+  /* Neutrals */
+  --gray-50: #f9f9f9;
+  --gray-900: #1a1a1a;
+
+  /* Accents */
+  --success: #10b981;
+  --warning: #f59e0b;
+  --error:   #ef4444;
+}
+```
+
+═══ TYPOGRAPHY (практична) ═══
+```
+--font-title:     1.75rem / 1.25   /* 28px */
+--font-h2:       1.375rem / 1.3   /* 22px */
+--font-body:     1rem / 1.5       /* 16px */
+--font-caption:  0.8125rem / 1.4  /* 13px */
+--font-xs:       0.6875rem / 1.4  /* 11px */
+```
+
+═══ PRACTICAL SPACING (8px grid) ═══
+```
+--spacing-1: 0.25rem;  /* 4px  */
+--spacing-2: 0.5rem;   /* 8px  */
+--spacing-3: 0.75rem;  /* 12px */
+--spacing-4: 1rem;     /* 16px */
+--spacing-6: 1.5rem;   /* 24px */
+--spacing-8: 2rem;     /* 32px */
+--radius-sm: 0.5rem;
+--radius:    0.75rem;
+--radius-xl: 1.5rem;
+```
+
+═══ COMPONENTS (коричневі + практичні) ═══
+
+1. CHAT BUBBLE:
+```css
+.hdak-bubble {
+  background: var(--brown-50);
+  border: 1px solid var(--brown-200);
+  border-radius: var(--radius-xl) var(--radius-xl) var(--radius-xl) 0.5rem;
+  box-shadow: 0 2px 8px rgba(92,58,30,0.08);
+  padding: var(--spacing-4);
+  margin-bottom: var(--spacing-3);
+}
+.hdak-bubble-user {
+  background: var(--brown-700);
+  color: white;
+  border-radius: var(--radius-xl) var(--radius-xl) 0.5rem var(--radius-xl);
+}
+```
+
+2. ACTION CHIPS (44px touch):
+```css
+.hdak-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 44px;
+  min-width: 80px;
+  padding: 0 var(--spacing-4);
+  gap: var(--spacing-2);
+  background: var(--brown-100);
+  border: 1px solid var(--brown-300

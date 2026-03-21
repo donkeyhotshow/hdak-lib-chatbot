@@ -25,8 +25,13 @@ Preferred communication style: Simple, everyday language.
 - **Custom Components**:
   - `Sidebar.tsx` — Conversation list with create/delete functionality
   - `ChatMessage.tsx` — Individual message display with markdown rendering (react-markdown + remark-gfm)
-  - `ChatInput.tsx` — Auto-resizing textarea with send/stop controls
-- **Streaming**: Messages are streamed via SSE (Server-Sent Events) using fetch API's ReadableStream, handled in `client/src/hooks/use-chat.ts` via the `useChatStream` hook
+  - `ChatInput.tsx` — Auto-resizing textarea (useCallback + requestAnimationFrame) with send/stop controls and chips
+  - `Header.tsx` — Dark mahogany wood-themed header with book-spine logo, nav buttons, and Resources toggle
+  - `ResourcesDrawer.tsx` — Slide-down drawer with grid of library resource links (opens below header)
+  - `CatalogResults.tsx` — Displays catalog search results with save-to-localStorage functionality
+- **Streaming**: Messages are streamed via SSE (Server-Sent Events) using fetch API's ReadableStream, handled in `client/src/hooks/use-chat.ts` via the `useChatStream` hook. Buffer (32ms throttle) prevents re-render storms during streaming.
+- **Catalog Results**: The AI can call `search_catalog` tool; results are embedded in message content as `<!--CATALOG:{...}-->` markers and rendered as `CatalogResults` below the message bubble.
+- **Saved Books**: Users can save catalog books to localStorage (`hdak_saved`). Persists across page reloads.
 - **Path aliases**: `@/` → `client/src/`, `@shared/` → `shared/`
 
 ### Backend (Express)
@@ -39,9 +44,11 @@ Preferred communication style: Simple, everyday language.
   - `GET /api/conversations/:id` — Get conversation with messages
   - `POST /api/conversations` — Create new conversation
   - `DELETE /api/conversations/:id` — Delete conversation
-  - `POST /api/conversations/:id/messages` — Send message and stream AI response (SSE)
+  - `POST /api/conversations/:id/messages` — Send message and stream AI response (SSE). Supports `search_catalog` tool calls.
+  - `GET /api/catalog` — Search library catalog (query params: author, title, topic, limit). Returns CatalogResult JSON.
+  - `POST /api/catalog/live` — Legacy catalog search (POST body: query, author)
   - `GET /api/health` — Health check
-- **AI Integration**: Uses OpenAI SDK pointed at Replit AI Integrations endpoint (`AI_INTEGRATIONS_OPENAI_API_KEY` and `AI_INTEGRATIONS_OPENAI_BASE_URL` env vars)
+- **AI Integration**: Uses OpenAI SDK pointed at Replit AI Integrations endpoint. Chat route includes `search_catalog` tool — when AI uses it, results are fetched and streamed as `catalogResult` SSE event, then embedded in the saved message content as a `<!--CATALOG:{...}-->` marker.
 - **Chat Storage**: `server/replit_integrations/chat/storage.ts` implements `IChatStorage` interface using Drizzle ORM directly against PostgreSQL
 
 ### Shared Code
