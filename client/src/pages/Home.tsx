@@ -1,181 +1,237 @@
 import { useCreateConversation } from "@/hooks/use-chat";
 import { useLocation } from "wouter";
-import { Library, Search, BookOpen, MessageCircle, ArrowRight } from "lucide-react";
-import { motion } from "framer-motion";
 
-const features = [
+const STEPS = [
   {
-    icon: Search,
-    emoji: "📂",
-    title: "Пошук у каталозі",
-    desc: "Знайдіть книги та матеріали в електронному каталозі бібліотеки.",
+    n: "1",
+    title: "Оберіть запит",
+    desc: "нижче або напишіть своє",
   },
   {
-    icon: BookOpen,
-    emoji: "📘",
-    title: "Довідник бібліотеки",
-    desc: "Дізнайтесь про правила, графік роботи та послуги.",
+    n: "2",
+    title: "Уточніть тему",
+    desc: "— автор, предмет, ключові слова",
   },
   {
-    icon: MessageCircle,
-    emoji: "🔬",
-    title: "Наукові ресурси",
-    desc: "Отримайте допомогу в пошуку академічних матеріалів.",
+    n: "3",
+    title: "Відкрийте посилання",
+    desc: "з офіційного джерела",
   },
+];
+
+const QUICK_CHIPS = [
+  { emoji: "🔍", label: "Шукати в каталозі" },
+  { emoji: "⚡", label: "Як записатися?" },
+  { emoji: "📋", label: "Правила користування" },
+  { emoji: "🕐", label: "Графік роботи" },
+  { emoji: "🗂️", label: "Репозитарій" },
 ];
 
 export default function Home() {
   const [_, setLocation] = useLocation();
   const createMutation = useCreateConversation();
 
-  const handleStartChat = () => {
-    createMutation.mutate(undefined, {
+  const startChat = (msg?: string) => {
+    createMutation.mutate(msg || "Нова розмова", {
       onSuccess: (newConv) => setLocation(`/chat/${newConv.id}`),
     });
   };
 
   return (
     <div
-      className="h-full overflow-y-auto flex flex-col items-center justify-center p-6 text-center"
-      style={{ background: "var(--p0)" }}
+      className="h-full flex flex-col overflow-hidden"
+      style={{ background: "hsl(var(--background))" }}
     >
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.42 }}
-        className="w-full max-w-lg mx-auto space-y-7"
-      >
-        {/* Logo */}
-        <div className="flex justify-center">
-          <div style={{
-            width: 64, height: 64,
-            borderRadius: "var(--r-lg)",
-            background: "var(--b1)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            position: "relative", overflow: "hidden",
-            boxShadow: "0 8px 24px rgba(45,27,14,.25)",
-          }}>
-            <span style={{
-              position: "absolute", left: 12, top: 10, right: 12, bottom: 10,
-              borderLeft: "3px solid rgba(245,234,216,.6)",
-              borderRight: "3px solid rgba(245,234,216,.6)",
-            }} />
-            <span style={{
-              position: "absolute", left: "50%", top: 10, bottom: 10,
-              width: 2, background: "rgba(245,234,216,.4)",
-              transform: "translateX(-50%)",
-            }} />
+      {/* ── Scrollable area ── */}
+      <div className="flex-1 overflow-y-auto scrollbar-thin flex flex-col items-center justify-center px-4 py-8">
+        <div className="w-full max-w-md animate-rise">
+
+          {/* Diamond glyph */}
+          <div className="text-center mb-5">
+            <span
+              style={{
+                fontSize: 28,
+                color: "hsl(var(--b3))",
+                display: "inline-block",
+              }}
+            >
+              ✦
+            </span>
+          </div>
+
+          {/* Title */}
+          <h1
+            className="text-center font-serif"
+            style={{
+              fontSize: "clamp(26px, 6vw, 34px)",
+              fontWeight: 500,
+              color: "hsl(var(--b0))",
+              letterSpacing: "-0.02em",
+              lineHeight: 1.15,
+              marginBottom: 10,
+            }}
+          >
+            Чим можу допомогти?
+          </h1>
+
+          <p
+            className="text-center"
+            style={{
+              fontSize: 14,
+              color: "hsl(var(--b4))",
+              lineHeight: 1.6,
+              maxWidth: 320,
+              margin: "0 auto 28px",
+              fontWeight: 300,
+            }}
+          >
+            Знайду книги в каталозі, розповім про ресурси і
+            допоможу орієнтуватися на сайті бібліотеки ХДАК.
+          </p>
+
+          {/* Steps */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 28 }}>
+            {STEPS.map((step, i) => (
+              <div
+                key={step.n}
+                className="animate-rise"
+                style={{
+                  animationDelay: `${0.06 + i * 0.06}s`,
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: 10,
+                  padding: "10px 14px",
+                  background: "hsl(38 70% 97%)",
+                  border: "0.5px solid hsl(var(--border))",
+                  borderRadius: 10,
+                }}
+              >
+                <div
+                  style={{
+                    width: 22,
+                    height: 22,
+                    borderRadius: "50%",
+                    background: "hsl(37 35% 88%)",
+                    border: "1px solid hsl(var(--border))",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 11,
+                    fontWeight: 500,
+                    color: "hsl(var(--b3))",
+                    flexShrink: 0,
+                    marginTop: 1,
+                  }}
+                >
+                  {step.n}
+                </div>
+                <p style={{ fontSize: 13.5, color: "hsl(var(--b1))", lineHeight: 1.45 }}>
+                  <strong style={{ fontWeight: 500 }}>{step.title}</strong>{" "}
+                  <span style={{ color: "hsl(var(--b3))" }}>{step.desc}</span>
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {/* Quick chip row */}
+          <div
+            style={{
+              display: "flex",
+              gap: 7,
+              overflowX: "auto",
+              paddingBottom: 4,
+              scrollbarWidth: "none",
+            }}
+          >
+            {QUICK_CHIPS.map((chip, i) => (
+              <button
+                key={chip.label}
+                onClick={() => startChat(chip.label)}
+                disabled={createMutation.isPending}
+                data-testid={`chip-home-${i}`}
+                className="chip-sm"
+                style={{
+                  flexShrink: 0,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 5,
+                  height: 34,
+                  padding: "0 12px",
+                  background: i === 0 ? "hsl(var(--b0))" : "hsl(38 70% 97%)",
+                  border: "0.5px solid",
+                  borderColor: i === 0 ? "transparent" : "hsl(var(--border))",
+                  borderRadius: 999,
+                  color: i === 0 ? "hsl(var(--primary-foreground))" : "hsl(var(--b2))",
+                  fontSize: 12.5,
+                  fontFamily: "var(--font-sans)",
+                  fontWeight: i === 0 ? 500 : 400,
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  transition: "all 0.12s",
+                }}
+              >
+                <span style={{ fontSize: 13 }}>{chip.emoji}</span>
+                {chip.label}
+              </button>
+            ))}
           </div>
         </div>
+      </div>
 
-        {/* Heading */}
-        <div>
-          <h1 style={{
-            fontFamily: "var(--ff-d)",
-            fontSize: 30,
-            fontWeight: 500,
-            color: "var(--b0)",
-            letterSpacing: "-.025em",
-            lineHeight: 1.2,
-            marginBottom: 10,
-          }}>
-            Бібліотечний асистент ХДАК
-          </h1>
-          <p style={{ fontSize: 14.5, color: "var(--text-3)", lineHeight: 1.65, fontWeight: 300, maxWidth: 360, margin: "0 auto" }}>
-            AI-провідник по каталогу, ресурсах та послугах Наукової бібліотеки ХДАК.
-          </p>
-        </div>
-
-        {/* Feature cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-left">
-          {features.map((f, i) => (
-            <motion.div
-              key={f.title}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 + i * 0.07, duration: 0.28 }}
-              style={{
-                padding: "10px 12px",
-                background: "rgba(255,252,245,.9)",
-                border: "0.5px solid var(--border-light)",
-                borderRadius: "var(--r-md)",
-                boxShadow: "0 1px 4px rgba(45,27,14,.05)",
-              }}
-            >
-              <div style={{ fontSize: 18, marginBottom: 6 }}>{f.emoji}</div>
-              <h3 style={{ fontSize: 13, fontWeight: 500, color: "var(--text-1)", marginBottom: 3 }}>
-                {f.title}
-              </h3>
-              <p style={{ fontSize: 12, color: "var(--text-3)", lineHeight: 1.5, fontWeight: 300 }}>
-                {f.desc}
-              </p>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* CTA */}
-        <div>
-          <button
-            onClick={handleStartChat}
-            disabled={createMutation.isPending}
-            data-testid="button-start-chat"
+      {/* ── Bottom input teaser ── */}
+      <div
+        style={{
+          flexShrink: 0,
+          padding: "10px 16px 16px",
+          borderTop: "0.5px solid hsl(var(--border))",
+          background: "hsl(38 70% 97%)",
+        }}
+      >
+        <button
+          onClick={() => startChat()}
+          disabled={createMutation.isPending}
+          data-testid="button-start-chat"
+          style={{
+            width: "100%",
+            maxWidth: 440,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            margin: "0 auto",
+            height: 50,
+            padding: "0 16px",
+            background: "hsl(38 70% 97%)",
+            border: "1px solid hsl(var(--border))",
+            borderRadius: 14,
+            cursor: "pointer",
+            transition: "border-color 0.12s",
+          }}
+          onMouseEnter={e => {
+            (e.currentTarget as HTMLButtonElement).style.borderColor = "hsl(var(--b4))";
+          }}
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLButtonElement).style.borderColor = "hsl(var(--border))";
+          }}
+        >
+          <span style={{ fontSize: 14, color: "hsl(var(--muted-foreground))", fontFamily: "var(--font-sans)" }}>
+            {createMutation.isPending ? "Створення..." : "Введіть запитання..."}
+          </span>
+          <div
             style={{
-              display: "inline-flex", alignItems: "center", gap: 8,
-              height: 48, padding: "0 28px",
-              background: "var(--b1)",
-              border: "none",
-              borderRadius: "var(--r-pill)",
-              color: "var(--p1)",
-              fontSize: 14.5, fontWeight: 500,
-              fontFamily: "var(--ff-b)",
-              boxShadow: "0 4px 16px rgba(45,27,14,.3)",
-              cursor: createMutation.isPending ? "not-allowed" : "pointer",
-              opacity: createMutation.isPending ? 0.7 : 1,
-              transition: "background .12s, transform .1s",
+              width: 32,
+              height: 32,
+              borderRadius: "50%",
+              background: "hsl(var(--b0))",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
             }}
-            onMouseEnter={(e) => { if (!createMutation.isPending) (e.currentTarget as HTMLButtonElement).style.background = "var(--b0)"; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "var(--b1)"; }}
           >
-            {createMutation.isPending ? "Створення..." : "Розпочати розмову"}
-            {!createMutation.isPending && <ArrowRight style={{ width: 15, height: 15 }} />}
-          </button>
-        </div>
-
-        {/* Quick links */}
-        <div style={{ display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
-          {[
-            { href: "https://lib-hdak.in.ua/", label: "Сайт бібліотеки" },
-            { href: "https://library-service.com.ua:8443/khkhdak/DocumentSearchForm", label: "Е-каталог" },
-            { href: "https://repository.ac.kharkov.ua/home", label: "Репозитарій" },
-          ].map(({ href, label }) => (
-            <a
-              key={href}
-              href={href}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: "inline-flex", alignItems: "center",
-                height: 28, padding: "0 12px",
-                background: "transparent",
-                border: "1px solid var(--border-mid)",
-                borderRadius: "var(--r-pill)",
-                color: "var(--text-3)", fontSize: 12,
-                transition: "all .12s",
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLAnchorElement).style.background = "var(--p2)";
-                (e.currentTarget as HTMLAnchorElement).style.color = "var(--text-1)";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLAnchorElement).style.background = "transparent";
-                (e.currentTarget as HTMLAnchorElement).style.color = "var(--text-3)";
-              }}
-            >
-              {label}
-            </a>
-          ))}
-        </div>
-      </motion.div>
+            <span style={{ color: "hsl(var(--primary-foreground))", fontSize: 16, lineHeight: 1 }}>→</span>
+          </div>
+        </button>
+      </div>
     </div>
   );
 }
