@@ -15,14 +15,17 @@ function AppLayout({ children }: { children: React.ReactNode }) {
   const closeSidebar = useCallback(() => setIsSidebarOpen(false), []);
 
   return (
-    <div className="flex h-screen w-full overflow-hidden" style={{ background: "hsl(var(--brown-50))" }}>
+    <div
+      className="flex h-screen w-full overflow-hidden"
+      style={{ background: "var(--p1)" }}
+    >
       <a href="#main-content" className="skip-link">Перейти до змісту</a>
 
       {/* Mobile overlay */}
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 z-40 md:hidden backdrop-blur-sm"
-          style={{ background: "hsl(var(--brown-900) / 0.5)" }}
+          className="fixed inset-0 z-40 md:hidden"
+          style={{ background: "rgba(45,27,14,.5)", backdropFilter: "blur(4px)" }}
           onClick={closeSidebar}
           aria-hidden="true"
         />
@@ -42,23 +45,47 @@ function AppLayout({ children }: { children: React.ReactNode }) {
 
         {/* Mobile header */}
         <div
-          className="md:hidden flex items-center p-4 backdrop-blur"
+          className="md:hidden flex items-center gap-3 px-4"
           style={{
-            borderBottom: "1px solid hsl(var(--brown-200))",
-            background: "hsl(var(--brown-50) / 0.85)",
+            height: 56,
+            background: "rgba(245,234,216,.92)",
+            backdropFilter: "blur(10px)",
+            WebkitBackdropFilter: "blur(10px)",
+            borderBottom: "1px solid var(--border-mid)",
+            flexShrink: 0,
           }}
         >
           <button
             onClick={() => setIsSidebarOpen(true)}
             data-testid="button-open-sidebar"
             aria-label="Відкрити меню"
-            className="mr-3 p-2 rounded-lg transition-colors"
-            style={{ color: "hsl(var(--brown-700))" }}
+            style={{
+              width: 32, height: 32,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              background: "transparent",
+              border: "1px solid var(--border-mid)",
+              borderRadius: "var(--r-sm)",
+              color: "var(--text-2)",
+              cursor: "pointer",
+              transition: "all .12s",
+              flexShrink: 0,
+            }}
           >
-            <Menu className="w-5 h-5" />
+            <Menu style={{ width: 16, height: 16 }} />
           </button>
-          <span className="font-serif font-bold text-lg" style={{ color: "hsl(var(--brown-800))" }}>
-            HDAK Library
+          {/* Book spine mini-logo */}
+          <div style={{
+            width: 26, height: 26,
+            borderRadius: "var(--r-sm)",
+            background: "var(--b1)",
+            position: "relative", overflow: "hidden",
+            flexShrink: 0,
+          }}>
+            <span style={{ position: "absolute", left: 5, top: 4, right: 5, bottom: 4, borderLeft: "2px solid rgba(245,234,216,.6)", borderRight: "2px solid rgba(245,234,216,.6)" }} />
+            <span style={{ position: "absolute", left: "50%", top: 4, bottom: 4, width: 1, background: "rgba(245,234,216,.4)", transform: "translateX(-50%)" }} />
+          </div>
+          <span style={{ fontFamily: "var(--ff-d)", fontSize: 15, fontWeight: 500, color: "var(--b0)", letterSpacing: "-.02em" }}>
+            Бібліотека ХДАК
           </span>
         </div>
 
