@@ -1,5 +1,8 @@
+import { streamText } from "ai";
 import { chatStorage } from "@/lib/storage";
 import type { LibraryInfo, LibraryResource } from "@/lib/db";
+
+export const maxDuration = 60;
 
 function buildLibraryContext(
   libInfo: LibraryInfo[],
@@ -83,7 +86,8 @@ export async function POST(
     // Save user message first
     await chatStorage.createMessage(conversationId, "user", content);
 
-    // Fetch library context from DB
+    // Ensure library data is seeded, then fetch context
+    await chatStorage.seedLibraryData();
     const [libInfo, libResources, historyMessages] = await Promise.all([
       chatStorage.getLibraryInfo(),
       chatStorage.getLibraryResources(),
@@ -94,79 +98,47 @@ export async function POST(
     const libraryContext = buildLibraryContext(libInfo, libResources);
     const systemPrompt = buildSystemPrompt(libraryContext);
 
-    // Build chat message array
-    const chatMessages: { role: "system" | "user" | "assistant"; content: string }[] = [
-      { role: "system", content: systemPrompt },
-      ...historyMessages.map(m => ({
+    // Build chat message array for AI SDK
+    const messages: { role: "user" | "assistant"; content: string }[] = 
+      historyMessages.map(m => ({
         role: m.role as "user" | "assistant",
         content: m.content,
-      })),
-    ];
+      }));
 
-    // Create a ReadableStream for SSE
+    // Use AI SDK streamText with Vercel AI Gateway (zero config)
+    const result = streamText({
+      model: "openai/gpt-4o-mini",
+      system: systemPrompt,
+      messages,
+      maxTokens: 8192,
+      abortSignal: request.signal,
+    });
+
+    // Create custom SSE stream to save message at the end
     const encoder = new TextEncoder();
     let fullResponse = "";
 
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          const response = await fetch("https://api.openai.com/v1/chat/completions", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-            },
-            body: JSON.stringify({
-              model: "gpt-4o-mini",
-              messages: chatMessages,
-              stream: true,
-              max_completion_tokens: 8192,
-            }),
-          });
-
-          if (!response.ok) {
-            throw new Error(`OpenAI API error: ${response.status}`);
+          for await (const chunk of result.textStream) {
+            fullResponse += chunk;
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify({ content: chunk })}\n\n`)
+            );
           }
 
-          const reader = response.body?.getReader();
-          if (!reader) throw new Error("No response stream");
-
-          const decoder = new TextDecoder();
-          let buffer = "";
-
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split("\n");
-            buffer = lines.pop() ?? "";
-
-            for (const line of lines) {
-              if (!line.startsWith("data: ")) continue;
-              const raw = line.slice(6).trim();
-              if (!raw || raw === "[DONE]") continue;
-
-              try {
-                const data = JSON.parse(raw);
-                const delta = data.choices?.[0]?.delta?.content;
-                if (typeof delta === "string") {
-                  fullResponse += delta;
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: delta })}\n\n`));
-                }
-              } catch {
-                // Skip malformed frames
-              }
-            }
-          }
-
-          // Save assistant reply
+          // Save assistant reply after stream completes
           await chatStorage.createMessage(conversationId, "assistant", fullResponse);
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`));
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`)
+          );
           controller.close();
         } catch (error) {
           console.error("Stream error:", error);
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: "Failed to send message" })}\n\n`));
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify({ error: "Failed to send message" })}\n\n`)
+          );
           controller.close();
         }
       },
