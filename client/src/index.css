@@ -165,3 +165,25 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ── Touch / mobile fixes ────────────────────────────────────────────────── */
+/* Prevent iOS Safari from zooming on input focus */
+@media (max-width: 768px) {
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+}
+
+/* Minimum touch target size (WCAG 2.5.5) — only on coarse pointer (touch) */
+@media (pointer: coarse) {
+  button:not(.chip-sm), [role="button"]:not(.chip-sm) {
+    min-height: 44px;
+  }
+}
+
+/* ── Error / status CSS variables ───────────────────────────────────────── */
+:root {
+  --error-bg: hsl(0 60% 98%);
+  --error-bd: hsl(0 60% 55% / 0.2);
+  --error-tx: hsl(0 70% 40%);
+}

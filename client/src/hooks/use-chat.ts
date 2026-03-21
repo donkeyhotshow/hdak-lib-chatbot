@@ -100,15 +100,43 @@ export function useChatStream(conversationId: number | null) {
   const qc = useQueryClient();
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamedContent, setStreamedContent] = useState("");
+  const [streamError, setStreamError] = useState<string | null>(null);
+  const [lastResponseMs, setLastResponseMs] = useState<number | null>(null);
+
   const abortRef = useRef<AbortController | null>(null);
+  // 32ms render buffer — prevents removeChild errors during rapid streaming
+  const streamBufRef = useRef("");
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const startTimeRef = useRef<number>(0);
+
+  const scheduleFlush = useCallback(() => {
+    if (!timerRef.current) {
+      timerRef.current = setTimeout(() => {
+        setStreamedContent(streamBufRef.current);
+        timerRef.current = null;
+      }, 32);
+    }
+  }, []);
+
+  const flushBuffer = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    setStreamedContent(streamBufRef.current);
+  }, []);
+
+  const clearError = useCallback(() => setStreamError(null), []);
 
   const sendMessage = useCallback(async (content: string) => {
     if (!conversationId) return;
 
     setIsStreaming(true);
     setStreamedContent("");
+    setStreamError(null);
+    streamBufRef.current = "";
+    startTimeRef.current = Date.now();
 
-    // Optimistic update — show user message immediately
     const optimisticMsg: Message = {
       id: Date.now(),
       conversationId,
@@ -138,8 +166,6 @@ export function useChatStream(conversationId: number | null) {
       if (!reader) throw new Error("No response stream");
 
       const decoder = new TextDecoder();
-      let accumulated = "";
-      // lineBuffer holds partial lines across chunk boundaries
       let lineBuffer = "";
 
       while (true) {
@@ -148,7 +174,6 @@ export function useChatStream(conversationId: number | null) {
 
         lineBuffer += decoder.decode(value, { stream: true });
         const lines = lineBuffer.split("\n");
-        // Keep the last (potentially incomplete) line in the buffer
         lineBuffer = lines.pop() ?? "";
 
         for (const line of lines) {
@@ -159,8 +184,9 @@ export function useChatStream(conversationId: number | null) {
           try {
             const data = JSON.parse(raw);
             if (typeof data.content === "string") {
-              accumulated += data.content;
-              setStreamedContent(accumulated);
+              // Buffer to prevent removeChild errors
+              streamBufRef.current += data.content;
+              scheduleFlush();
             }
           } catch {
             // skip malformed frames
@@ -168,28 +194,41 @@ export function useChatStream(conversationId: number | null) {
         }
       }
     } catch (err: unknown) {
-      // AbortError is intentional (user stopped) — don't surface as error
       if (err instanceof Error && err.name !== "AbortError") {
         console.error("Stream error:", err);
+        setStreamError("Помилка з'єднання. Спробуйте ще раз.");
       }
     } finally {
+      flushBuffer();
+      const elapsed = Date.now() - startTimeRef.current;
+      setLastResponseMs(elapsed);
       setIsStreaming(false);
       setStreamedContent("");
+      streamBufRef.current = "";
       abortRef.current = null;
-      // Refetch to get real persisted messages from DB
       qc.invalidateQueries({ queryKey: conversationKey(conversationId) });
     }
-  }, [conversationId, qc]);
+  }, [conversationId, qc, scheduleFlush, flushBuffer]);
 
   const stopStream = useCallback(() => {
     if (abortRef.current) {
       abortRef.current.abort();
       abortRef.current = null;
+      flushBuffer();
       setIsStreaming(false);
       setStreamedContent("");
+      streamBufRef.current = "";
       qc.invalidateQueries({ queryKey: conversationKey(conversationId) });
     }
-  }, [conversationId, qc]);
+  }, [conversationId, qc, flushBuffer]);
 
-  return { sendMessage, isStreaming, streamedContent, stopStream };
+  return {
+    sendMessage,
+    isStreaming,
+    streamedContent,
+    streamError,
+    lastResponseMs,
+    clearError,
+    stopStream,
+  };
 }

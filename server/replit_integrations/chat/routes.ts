@@ -1,5 +1,6 @@
 import type { Express, Request, Response } from "express";
 import OpenAI from "openai";
+import * as cheerio from "cheerio";
 import { chatStorage } from "./storage";
 
 const openai = new OpenAI({
@@ -196,6 +197,51 @@ export function registerChatRoutes(app: Express): void {
       } else {
         res.status(500).json({ error: "Failed to send message" });
       }
+    }
+  });
+
+  // ── Catalog search — always returns 200 with fallback ─────────────────────
+  app.get("/api/catalog", async (req: Request, res: Response) => {
+    const { author, title, topic, limit = "5" } = req.query;
+    const query = [author, title, topic].filter(Boolean).join(" ").trim();
+
+    if (!query) {
+      return res.json({ ok: true, results: [], query: "" });
+    }
+
+    try {
+      const encoded = encodeURIComponent(query);
+      const url = `http://library-service.com.ua:8443/cgi-bin/zgate?action=search&P_find_data=${encoded}&P_find_mode=1&P_db_list=BOOKS&P_page_size=${limit}`;
+
+      const signal = AbortSignal.timeout(8000);
+      const response = await fetch(url, { signal });
+
+      if (!response.ok) {
+        return res.json({ ok: false, results: [], query, error: "Каталог тимчасово недоступний" });
+      }
+
+      const html = await response.text();
+      const $ = cheerio.load(html);
+      const results: { title: string; author: string; year?: string; url?: string }[] = [];
+
+      $("table.res_table tr").each((_i, el) => {
+        const title = $(el).find(".res_title").text().trim();
+        const author = $(el).find(".res_author").text().trim();
+        const year = $(el).find(".res_year").text().trim() || undefined;
+        const href = $(el).find("a").attr("href");
+        if (title) {
+          results.push({
+            title,
+            author,
+            year,
+            url: href ? `http://library-service.com.ua:8443${href}` : undefined,
+          });
+        }
+      });
+
+      return res.json({ ok: true, results, query });
+    } catch {
+      return res.json({ ok: false, results: [], query, error: "Каталог тимчасово недоступний" });
     }
   });
 }

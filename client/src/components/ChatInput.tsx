@@ -58,15 +58,19 @@ export function ChatInput({ onSend, onStop, disabled, isStreaming }: ChatInputPr
             placeholder="Запитайте про книги, послуги або ресурси бібліотеки..."
             data-testid="input-chat-message"
             className="
-              min-h-[56px] w-full resize-none bg-transparent border-0
+              w-full resize-none bg-transparent border-0
               focus-visible:ring-0 focus-visible:ring-offset-0
-              text-base py-4 px-4 placeholder:text-muted-foreground/60
+              py-3 px-4 placeholder:text-muted-foreground/60
             "
+            style={{
+              minHeight: 44,
+              fontSize: 16,
+            }}
             rows={1}
             disabled={disabled || isStreaming}
           />
 
-          <div className="pb-2 pr-2">
+          <div className="pb-1.5 pr-1.5">
             {isStreaming ? (
               <Button
                 type="button"
@@ -85,7 +89,7 @@ export function ChatInput({ onSend, onStop, disabled, isStreaming }: ChatInputPr
                 data-testid="button-send-message"
                 className="rounded-xl h-10 w-10 shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm"
               >
-                <SendHorizontal className="w-4.5 h-4.5" />
+                <SendHorizontal className="w-4 h-4" />
               </Button>
             )}
           </div>
