@@ -1,282 +1,201 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;1,400&family=DM+Sans:wght@300;400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap');
 
 @tailwind base;
-@tailwind components;
 @tailwind utilities;
+@tailwind components;
 
-/* ── DESIGN TOKENS ─────────────────────── */
+/* ── BROWN TOKENS ────────────────────────────────────────────────────── */
 :root {
-  /* Parchment palette */
-  --p0: #fdf9f4;
-  --p1: #f5ead8;
-  --p2: #ede0c8;
-  --p3: #deccad;
-  --p4: #c9b08a;
+  --font-sans: 'DM Sans', system-ui, sans-serif;
+  --font-serif: 'Playfair Display', Georgia, serif;
 
-  /* Brown palette */
-  --b0: #2d1b0e;
-  --b1: #3d2614;
-  --b2: #5c3a1e;
-  --b3: #7a5230;
-  --b4: #9e7248;
+  /* Parchment backgrounds */
+  --background:     37 62% 90%;   /* #f5ead8 */
+  --card:           38 70% 97%;   /* #fdf9f4 */
+  --card-border:    37 30% 82%;   /* subtle border */
 
-  /* Borders */
-  --border-light: rgba(92,58,30,0.12);
-  --border-mid:   rgba(92,58,30,0.22);
-  --border-strong:rgba(92,58,30,0.42);
+  /* Brown scale */
+  --b0: 25 54% 11%;   /* #2d1b0e — darkest */
+  --b1: 25 50% 16%;   /* #3d2614 */
+  --b2: 25 52% 24%;   /* #5c3a1e */
+  --b3: 27 42% 32%;   /* #7a5230 */
+  --b4: 29 36% 45%;   /* #9e7248 */
 
-  /* Text */
-  --text-0: #1a0f06;
-  --text-1: #2d1b0e;
-  --text-2: #5c3a1e;
-  --text-3: #9e7248;
-  --text-4: #c9b08a;
+  /* Tailwind / shadcn aliases */
+  --foreground:          25 54% 11%;
+  --primary:             25 54% 11%;
+  --primary-foreground:  37 62% 90%;
 
-  --accent:   #5c3a1e;
-  --accent-h: #3d2614;
-  --gold:     #b8843c;
+  --secondary:           37 40% 86%;
+  --secondary-foreground:25 54% 20%;
 
-  --error-bg: #fff0f0;
-  --error-bd: rgba(180,30,30,0.22);
-  --error-tx: #991a1a;
+  --muted:               37 35% 88%;
+  --muted-foreground:    29 30% 45%;
 
-  /* ── NEW DESIGN TOKENS (HDAK v2) ────────── */
+  --accent:              37 40% 84%;
+  --accent-foreground:   25 54% 11%;
 
-  /* Backgrounds */
-  --bg-page:    #faf8f5;
-  --bg-surface: #f4ede0;
-  --bg-raised:  #ede0c8;
-  --bg-input:   #ffffff;
+  --destructive:         0 65% 48%;
+  --destructive-foreground: 0 0% 100%;
 
-  /* Dark header — mahogany wood */
-  --hdr-bg:     #221208;
-  --hdr-border: #0e0704;
-  --hdr-text:   #f0dfc0;
-  --hdr-muted:  rgba(220,175,110,0.75);
-  --hdr-btn-bg: rgba(255,255,255,0.07);
-  --hdr-btn-bd: rgba(200,140,60,0.25);
-
-  /* Browns */
-  --brown-0: #1c1008;
-  --brown-1: #2e1c0c;
-  --brown-2: #4a2e14;
-  --brown-3: #7a5230;
-  --brown-4: #a87848;
-
-  /* Text */
-  --text-primary:   #1c1008;
-  --text-secondary: #6a4e2c;
-  --text-muted:     #9a7a50;
-  --text-faint:     #c0a070;
-
-  /* Borders */
-  --border-xs: rgba(60,35,10,0.06);
-  --border-sm: rgba(60,35,10,0.12);
-  --border-md: rgba(60,35,10,0.22);
-  --border-lg: rgba(60,35,10,0.38);
-
-  /* Semantic */
-  --error-bg2: rgba(180,40,40,0.06);
-  --error-bd2: rgba(180,40,40,0.22);
-  --error-tx2: #903030;
-
-  --ff-d: 'Playfair Display', Georgia, serif;
-  --ff-b: 'DM Sans', system-ui, sans-serif;
-
-  --r-sm:  6px;
-  --r-md:  10px;
-  --r-lg:  16px;
-  --r-xl:  20px;
-  --r-pill:999px;
-
-  /* ── Shadcn semantic tokens mapped to palette ── */
-  --background: 38 67% 97%;
-  --foreground: 22 55% 12%;
-
-  --primary: 22 55% 24%;
-  --primary-foreground: 38 67% 97%;
-
-  --secondary: 36 47% 90%;
-  --secondary-foreground: 22 55% 12%;
-
-  --muted: 36 47% 87%;
-  --muted-foreground: 28 36% 46%;
-
-  --accent: 36 47% 87%;
-  --accent-foreground: 22 55% 12%;
-
-  --destructive: 0 60% 55%;
-  --destructive-foreground: 0 0% 98%;
-
-  --border: 36 30% 82%;
-  --input:  36 30% 82%;
-  --ring:   22 55% 24%;
+  --border: 37 25% 80%;
+  --input:  37 25% 80%;
+  --ring:   25 54% 11%;
 
   --radius: 0.75rem;
+
+  /* Error */
+  --error-bg: hsl(0 60% 98%);
+  --error-bd: hsl(0 60% 55% / 0.2);
+  --error-tx: hsl(0 70% 40%);
 }
 
-/* ── GLOBAL ─────────────────────────────── */
-*, *::before, *::after { box-sizing: border-box; }
+/* ── BASE ────────────────────────────────────────────────────────────── */
+*,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 @layer base {
   html, body {
     height: 100%;
-    background: var(--p1);
-    font-family: var(--ff-b);
-    font-size: 16px;
-    text-rendering: optimizeLegibility;
+    background: hsl(var(--background));
+    font-family: var(--font-sans);
+    color: hsl(var(--foreground));
     -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    color: var(--text-1);
-    padding-left: env(safe-area-inset-left);
-    padding-right: env(safe-area-inset-right);
   }
-  button { font-family: var(--ff-b); cursor: pointer; }
-  a { color: var(--accent); text-decoration: none; }
-
   h1, h2, h3, h4, h5, h6 {
-    font-family: var(--ff-d);
-    color: var(--text-1);
+    font-family: var(--font-serif);
+    color: hsl(var(--foreground));
   }
-
-  ::-webkit-scrollbar { width: 3px; height: 3px; }
-  ::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 99px; }
-
-  :focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-    border-radius: var(--r-sm);
-  }
+  * { @apply selection:bg-primary/10; }
 }
 
-/* ── UTILITIES ──────────────────────────── */
+/* ── SCROLLBAR ───────────────────────────────────────────────────────── */
 @layer utilities {
-  /* Markdown inside bubbles */
-  .prose-custom {
-    color: inherit;
-    line-height: 1.72;
-    font-size: 14.5px;
+  .scrollbar-thin::-webkit-scrollbar { width: 4px; height: 4px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 99px;
   }
-  .prose-custom ::placeholder { opacity: 0.55; }
-  .prose-custom p  { margin-bottom: 0.6rem; }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--b4));
+  }
+
+  .font-serif { font-family: var(--font-serif); }
+  .font-sans  { font-family: var(--font-sans); }
+
+  /* ── Markdown prose ── */
+  .prose-custom { color: hsl(var(--foreground)); line-height: 1.7; }
+  .prose-custom p { margin-bottom: 0.75rem; }
   .prose-custom p:last-child { margin-bottom: 0; }
-  .prose-custom ul { list-style: disc; padding-left: 1.2rem; margin-bottom: 0.6rem; }
-  .prose-custom ol { list-style: decimal; padding-left: 1.2rem; margin-bottom: 0.6rem; }
-  .prose-custom li { margin-bottom: 0.2rem; }
-  .prose-custom strong { color: var(--b0); font-weight: 500; }
-  .prose-custom a  {
-    color: var(--b2);
-    border-bottom: 0.5px solid rgba(92,58,30,.3);
-    transition: border-color .12s;
+  .prose-custom ul { list-style: disc; padding-left: 1.25rem; margin-bottom: 0.75rem; }
+  .prose-custom ol { list-style: decimal; padding-left: 1.25rem; margin-bottom: 0.75rem; }
+  .prose-custom li { margin-bottom: 0.25rem; }
+  .prose-custom a {
+    color: hsl(var(--b2));
+    text-decoration: underline;
+    text-underline-offset: 3px;
   }
-  .prose-custom a:hover { border-bottom-color: var(--b2); }
+  .prose-custom a:hover { color: hsl(var(--b1)); }
+  .prose-custom strong { font-weight: 600; color: hsl(var(--b0)); }
   .prose-custom code {
-    background: var(--p2);
-    color: var(--b2);
-    padding: 0.1em 0.4em;
-    border-radius: var(--r-sm);
-    font-size: 0.9em;
+    background: hsl(var(--muted));
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-size: 0.875em;
     font-family: ui-monospace, monospace;
   }
   .prose-custom pre {
-    background: var(--p2);
-    padding: 0.75rem 1rem;
-    border-radius: var(--r-md);
+    background: hsl(var(--b0));
+    color: hsl(var(--primary-foreground));
+    padding: 1rem;
+    border-radius: 0.5rem;
     overflow-x: auto;
-    margin-bottom: 0.6rem;
-    font-size: 0.85em;
+    margin-bottom: 0.75rem;
+    font-size: 0.875em;
   }
-  .prose-custom pre code { background: transparent; padding: 0; }
-  .prose-custom blockquote {
-    border-left: 3px solid var(--border-mid);
-    padding-left: 0.75rem;
-    color: var(--text-3);
-    font-style: italic;
-    margin: 0.5rem 0;
-  }
+  .prose-custom pre code { background: transparent; padding: 0; color: inherit; }
   .prose-custom h1, .prose-custom h2, .prose-custom h3 {
-    font-family: var(--ff-d);
-    color: var(--b0);
-    margin: 1rem 0 0.4rem;
-    line-height: 1.2;
+    font-family: var(--font-serif);
+    font-weight: 600;
+    margin-top: 1.25rem;
+    margin-bottom: 0.5rem;
+    color: hsl(var(--b0));
   }
-  .prose-custom table { width: 100%; border-collapse: collapse; font-size: 0.9em; margin-bottom: 0.6rem; }
-  .prose-custom th { border: 1px solid var(--border-mid); padding: 0.4rem 0.6rem; background: var(--p2); font-weight: 500; text-align: left; }
-  .prose-custom td { border: 1px solid var(--border-light); padding: 0.4rem 0.6rem; }
-
-  /* Chips scrollable row */
-  .chips-row {
-    display: flex;
-    gap: 5px;
-    overflow-x: auto;
-    scrollbar-width: none;
-    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 3%, #000 97%, transparent 100%);
-    padding-bottom: 2px;
+  .prose-custom blockquote {
+    border-left: 3px solid hsl(var(--border));
+    padding-left: 1rem;
+    color: hsl(var(--muted-foreground));
+    font-style: italic;
+    margin: 0.75rem 0;
   }
-  .chips-row::-webkit-scrollbar { display: none; }
-
-  /* Skip link */
-  .skip-link {
-    position: absolute;
-    top: -100%;
-    left: 1rem;
-    z-index: 9999;
-    padding: 0.4rem 0.875rem;
-    background: var(--b1);
-    color: var(--p1);
-    font-size: 0.8rem;
+  .prose-custom table { width: 100%; border-collapse: collapse; margin-bottom: 0.75rem; }
+  .prose-custom th {
+    border: 1px solid hsl(var(--border));
+    padding: 0.4rem 0.75rem;
+    background: hsl(var(--muted));
+    text-align: left;
     font-weight: 500;
-    border-radius: 0 0 var(--r-md) var(--r-md);
-    transition: top 0.15s;
   }
-  .skip-link:focus { top: 0; }
+  .prose-custom td {
+    border: 1px solid hsl(var(--border));
+    padding: 0.4rem 0.75rem;
+  }
 }
 
-/* ── ANIMATIONS ─────────────────────────── */
+/* ── ANIMATIONS ──────────────────────────────────────────────────────── */
 @keyframes rise {
   from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-.animate-rise { animation: rise 0.22s cubic-bezier(.22,.8,.36,1) both; }
-
-@keyframes tpulse {
-  0%, 80%, 100% { opacity: .3; transform: scale(1); }
-  40%           { opacity: 1;  transform: scale(1.35); }
-}
-
-@keyframes cblink {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: 0; }
-}
+.animate-rise { animation: rise 0.3s cubic-bezier(0.22, 0.8, 0.36, 1) both; }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(5px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
-.animate-fade-in { animation: fadeIn 0.28s ease-out forwards; }
+.animate-fade-in { animation: fadeIn 0.25s ease-out forwards; }
 
-/* Used during streaming pulse */
 @keyframes pulse-subtle {
   0%, 100% { opacity: 1; }
-  50%      { opacity: 0.75; }
+  50%       { opacity: 0.6; }
 }
-.animate-pulse-subtle { animation: pulse-subtle 2s ease-in-out infinite; }
+.animate-pulse-subtle { animation: pulse-subtle 1.8s ease-in-out infinite; }
 
-/* ── REDUCED MOTION ─────────────────────── */
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+.animate-cursor { animation: cursor-blink 0.85s step-end infinite; }
+
+/* ── ACCESSIBILITY ───────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.skip-link {
+  position: absolute; top: -100%; left: 1rem; z-index: 9999;
+  padding: 0.4rem 0.875rem;
+  background: hsl(var(--primary)); color: hsl(var(--primary-foreground));
+  font-size: 0.8rem; font-weight: 600;
+  border-radius: 0 0 0.5rem 0.5rem;
+  transition: top 0.15s;
+}
+.skip-link:focus { top: 0; }
+
+/* ── TOUCH / MOBILE ──────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  input, textarea, select { font-size: 16px !important; }
+}
+@media (pointer: coarse) {
+  button:not(.chip-sm), [role="button"]:not(.chip-sm) { min-height: 44px; }
+}
+
+/* ── REDUCED MOTION ──────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
-}
-
-/* ── HEADER MAHOGANY GUARANTEE ──────────── */
-/* Fallback for any CSS-reset specificity conflicts */
-header, .hdak-header {
-  background: #221208 !important;
-  background-image:
-    repeating-linear-gradient(90deg,transparent 0px,transparent 22px,rgba(0,0,0,.045) 22px,rgba(0,0,0,.045) 23px),
-    repeating-linear-gradient(180deg,transparent 0px,transparent 5px,rgba(200,140,60,.02) 5px,rgba(200,140,60,.02) 6px) !important;
-  border-bottom: 1px solid #0e0704 !important;
-  box-shadow: inset 0 1px 0 rgba(200,140,60,.12),0 2px 6px rgba(0,0,0,.14) !important;
 }
