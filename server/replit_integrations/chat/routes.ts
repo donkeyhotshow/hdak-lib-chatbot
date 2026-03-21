@@ -3,9 +3,10 @@ import OpenAI from "openai";
 import * as cheerio from "cheerio";
 import { chatStorage } from "./storage";
 
+// Use Vercel AI Gateway (zero config in v0)
 const openai = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY || "dummy",
+  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL || "https://gateway.ai.cloudflare.com/v1/v0/v0/openai",
 });
 
 function buildLibraryContext(
@@ -168,7 +169,7 @@ export function registerChatRoutes(app: Express): void {
 
       // Stream from OpenAI
       const stream = await openai.chat.completions.create({
-        model: "gpt-5.1",
+        model: "gpt-4o-mini",
         messages: chatMessages,
         stream: true,
         max_completion_tokens: 8192,
