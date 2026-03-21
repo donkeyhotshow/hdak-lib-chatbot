@@ -1,86 +1,100 @@
-import { useEffect, useRef, useCallback, useState, useMemo, memo } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { useParams } from "wouter";
-import { useConversation, useChatStream, parseCatalogFromContent } from "@/hooks/use-chat";
-import { ChatMessage, TypingIndicator } from "@/components/ChatMessage";
+import { useConversation, useChatStream } from "@/hooks/use-chat";
+import { ChatMessage } from "@/components/ChatMessage";
 import { ChatInput } from "@/components/ChatInput";
-import { CatalogResults, type CatalogBook, type CatalogResult } from "@/components/CatalogResults";
-import { Loader2, AlertCircle, RotateCcw } from "lucide-react";
-import { format } from "date-fns";
-import { uk } from "date-fns/locale";
-import type { Message } from "@shared/schema";
+import { Loader2, AlertCircle, WifiOff, BookMarked, Copy, Check, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
-interface MessageWithCatalog extends Message {
-  catalogResult?: CatalogResult | null;
-  displayContent: string;
+// ── ДСТУ 8302:2015 formatter ─────────────────────────────────────────────────
+interface SavedBook {
+  id: string;
+  title: string;
+  author?: string;
+  year?: string;
+  city?: string;
+  publisher?: string;
+  pages?: string;
+  url?: string;
 }
 
-function useProcessedMessages(rawMessages: Message[]): MessageWithCatalog[] {
-  return useMemo(() => rawMessages.map(msg => {
-    const { text, catalogResult } = parseCatalogFromContent(msg.content);
-    return { ...msg, displayContent: text, catalogResult };
-  }), [rawMessages]);
+function formatDstu(book: SavedBook): string {
+  const parts: string[] = [];
+  if (book.author) parts.push(`${book.author}.`);
+  parts.push(book.title);
+  if (book.author) parts.push(`/ ${book.author}.`);
+  const location = [book.city, book.publisher].filter(Boolean).join(" : ");
+  if (location || book.year) {
+    parts.push(`— ${[location, book.year].filter(Boolean).join(", ")}.`);
+  }
+  if (book.pages) parts.push(`— ${book.pages} с.`);
+  if (book.url) parts.push(`URL: ${book.url}`);
+  return parts.join(" ");
 }
 
-const MessageRow = memo(function MessageRow({
-  msg,
-  savedTitles,
-  onSave,
-}: {
-  msg: MessageWithCatalog;
-  savedTitles: Set<string>;
-  onSave: (book: CatalogBook) => void;
-}) {
-  return (
-    <>
-      <ChatMessage
-        key={msg.id}
-        role={msg.role as "user" | "assistant"}
-        content={msg.displayContent}
-        createdAt={msg.createdAt}
-      />
-      {msg.catalogResult && (
-        <CatalogResults
-          data={msg.catalogResult}
-          savedTitles={savedTitles}
-          onSave={onSave}
-        />
-      )}
-    </>
-  );
-});
+const SAVED_KEY = "hdak_saved";
+
+function loadSavedBooks(): SavedBook[] {
+  try {
+    return JSON.parse(localStorage.getItem(SAVED_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function persistBooks(books: SavedBook[]) {
+  localStorage.setItem(SAVED_KEY, JSON.stringify(books));
+}
+
+// ── Offline hook ─────────────────────────────────────────────────────────────
+function useOnlineStatus() {
+  const [online, setOnline] = useState(navigator.onLine);
+  useEffect(() => {
+    const on = () => setOnline(true);
+    const off = () => setOnline(false);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => {
+      window.removeEventListener("online", on);
+      window.removeEventListener("offline", off);
+    };
+  }, []);
+  return online;
+}
 
 export default function Chat() {
   const params = useParams();
   const id = params.id ? parseInt(params.id) : null;
 
   const { data: conversation, isLoading, error, refetch } = useConversation(id);
-  const { sendMessage, isStreaming, streamedContent, streamedCatalogResult, streamError, stopStream, clearError } = useChatStream(id);
-  const lastMessageRef = useRef<string>("");
+  const {
+    sendMessage,
+    isStreaming,
+    streamedContent,
+    streamError,
+    lastResponseMs,
+    clearError,
+    stopStream,
+  } = useChatStream(id);
+
   const scrollRef = useRef<HTMLDivElement>(null);
+  const lastMessageRef = useRef<string>("");
 
-  // ── Saved books (localStorage) ─────────────────────────────────────────────
-  const [savedBooks, setSavedBooks] = useState<CatalogBook[]>(() => {
-    if (typeof window === "undefined") return [];
-    try { return JSON.parse(localStorage.getItem("hdak_saved") ?? "[]"); }
-    catch { return []; }
-  });
+  const isOnline = useOnlineStatus();
+  const [savedBooks, setSavedBooks] = useState<SavedBook[]>(loadSavedBooks);
+  const [showSaved, setShowSaved] = useState(false);
+  const [copiedDstu, setCopiedDstu] = useState(false);
 
-  const toggleSave = useCallback((book: CatalogBook) => {
-    setSavedBooks(prev => {
-      const has  = prev.some(b => b.title === book.title);
-      const next = has
-        ? prev.filter(b => b.title !== book.title)
-        : [...prev, book];
-      localStorage.setItem("hdak_saved", JSON.stringify(next));
-      return next;
-    });
+  // ── Scroll ────────────────────────────────────────────────────────────────
+  const scrollToBottom = useCallback(() => {
+    scrollRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, []);
 
-  const savedTitles = useMemo(
-    () => new Set(savedBooks.map(b => b.title)),
-    [savedBooks]
-  );
+  useEffect(() => {
+    scrollToBottom();
+  }, [conversation?.messages.length, streamedContent, scrollToBottom]);
 
+  // ── Send + retry ──────────────────────────────────────────────────────────
   const handleSend = useCallback((text: string) => {
     lastMessageRef.current = text;
     clearError();
@@ -94,232 +108,229 @@ export default function Chat() {
     }
   }, [sendMessage, clearError]);
 
-  const scrollToBottom = useCallback(() => {
-    scrollRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  // ── Saved books ───────────────────────────────────────────────────────────
+  const removeBook = useCallback((bookId: string) => {
+    setSavedBooks(prev => {
+      const next = prev.filter(b => b.id !== bookId);
+      persistBooks(next);
+      return next;
+    });
   }, []);
 
-  // Fix: use messages.length not messages to avoid infinite loop
-  const messageCount = conversation?.messages.length ?? 0;
-  useEffect(() => {
-    scrollToBottom();
-  }, [messageCount, streamedContent, scrollToBottom]);
-
-  const processedMessages = useProcessedMessages(conversation?.messages ?? []);
+  const copyDstu = useCallback(async () => {
+    if (savedBooks.length === 0) return;
+    const text = savedBooks.map((b, i) => `${i + 1}. ${formatDstu(b)}`).join("\n");
+    await navigator.clipboard.writeText(text);
+    setCopiedDstu(true);
+    setTimeout(() => setCopiedDstu(false), 2000);
+  }, [savedBooks]);
 
   if (isLoading) {
     return (
-      <div className="h-full flex items-center justify-center" style={{ background: "var(--p0)" }}>
-        <Loader2 className="w-7 h-7 animate-spin" style={{ color: "var(--b3)" }} />
+      <div className="h-full flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
       </div>
     );
   }
 
   if (error || !conversation) {
     return (
-      <div className="h-full flex flex-col items-center justify-center gap-4 text-center p-8" style={{ background: "var(--p0)" }}>
-        <div style={{
-          width: 56, height: 56, borderRadius: "50%",
-          background: "var(--error-bg)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-        }}>
-          <AlertCircle style={{ width: 24, height: 24, color: "var(--error-tx)" }} />
+      <div className="h-full flex flex-col items-center justify-center gap-4 text-center p-8">
+        <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center">
+          <AlertCircle className="w-8 h-8 text-destructive" />
         </div>
         <div>
-          <h2 style={{ fontFamily: "var(--ff-d)", fontSize: 20, color: "var(--b0)", marginBottom: 6 }}>
+          <h2 className="text-xl font-serif font-bold text-foreground">
             Не вдалося завантажити розмову
           </h2>
-          <p style={{ fontSize: 13.5, color: "var(--text-3)" }}>
+          <p className="text-muted-foreground mt-2 text-sm">
             Розмову могло бути видалено або вона не існує.
           </p>
         </div>
-        <button
-          onClick={() => refetch()}
-          style={{
-            display: "inline-flex", alignItems: "center", gap: 6,
-            height: 34, padding: "0 16px",
-            background: "transparent",
-            border: "1px solid var(--border-strong)",
-            borderRadius: "var(--r-pill)",
-            color: "var(--text-2)", fontSize: 13, fontWeight: 500,
-            cursor: "pointer",
-            transition: "all .12s",
-            fontFamily: "var(--ff-b)",
-          }}
-        >
-          <RotateCcw style={{ width: 13, height: 13 }} />
-          Спробувати ще раз
-        </button>
+        <Button onClick={() => refetch()} variant="outline">Спробувати ще раз</Button>
       </div>
     );
   }
 
-  const today = format(new Date(), "EEEE, d MMMM", { locale: uk });
+  const messages = conversation.messages;
+  const lastAssistantIdx = messages.map(m => m.role).lastIndexOf("assistant");
 
   return (
-    <div className="flex flex-col h-full" style={{ background: "var(--p0)" }}>
+    <div className="flex flex-col h-full bg-background relative">
 
-      {/* Chat scroll area */}
-      <div
-        className="flex-1 overflow-y-auto"
-        role="log"
-        aria-live="polite"
-        aria-label="Повідомлення чату"
-        style={{ padding: "20px 16px 8px" }}
-      >
-        {/* Empty state */}
-        {conversation.messages.length === 0 && !isStreaming && (
-          <div
-            className="flex flex-col items-center justify-center text-center h-full"
-            style={{ padding: "32px 20px", animation: "rise .45s cubic-bezier(.22,.8,.36,1) both" }}
-          >
-            <div style={{
-              fontFamily: "var(--ff-d)",
-              fontSize: 48,
-              lineHeight: 1,
-              fontStyle: "italic",
-              color: "var(--b3)",
-              marginBottom: 18,
-              opacity: .55,
-            }}>
-              ✦
-            </div>
-            <h1 style={{
-              fontFamily: "var(--ff-d)",
-              fontSize: 24,
-              fontWeight: 500,
-              color: "var(--b0)",
-              letterSpacing: "-.025em",
-              lineHeight: 1.2,
-              marginBottom: 8,
-            }}>
-              Чим можу допомогти?
-            </h1>
-            <p style={{
-              fontSize: 13.5,
-              color: "var(--text-3)",
-              lineHeight: 1.65,
-              maxWidth: 310,
-              marginBottom: 28,
-              fontWeight: 300,
-            }}>
-              Знайду книги в каталозі, розповім про ресурси і допоможу орієнтуватися на сайті бібліотеки ХДАК.
-            </p>
+      {/* ── Offline banner ──────────────────────────────────────────────── */}
+      {!isOnline && (
+        <div
+          data-testid="banner-offline"
+          style={{
+            flexShrink: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            padding: "6px 16px",
+            background: "hsl(37 60% 92%)",
+            borderBottom: "0.5px solid hsl(37 40% 78%)",
+          }}
+        >
+          <WifiOff style={{ width: 14, height: 14, color: "hsl(var(--b3))" }} />
+          <span style={{ fontSize: 12, color: "hsl(var(--b2))", fontWeight: 500 }}>
+            Немає з'єднання з інтернетом. Перевірте мережу.
+          </span>
+        </div>
+      )}
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 5, width: "100%", maxWidth: 340 }}>
-              {[
-                { n: "1", text: <><b>Оберіть запит</b> нижче або напишіть своє</> },
-                { n: "2", text: <><b>Уточніть тему</b> — автор, предмет, ключові слова</> },
-                { n: "3", text: <><b>Відкрийте посилання</b> з офіційного джерела</> },
-              ].map(({ n, text }, i) => (
-                <div
-                  key={n}
-                  style={{
-                    display: "flex", alignItems: "flex-start", gap: 9,
-                    padding: "9px 13px",
-                    background: "rgba(255,252,245,.8)",
-                    border: "0.5px solid var(--border-light)",
-                    borderRadius: "var(--r-md)",
-                    textAlign: "left",
-                    animation: `rise .45s cubic-bezier(.22,.8,.36,1) ${(i + 1) * 0.06}s both`,
-                  }}
+      {/* ── Saved books panel ────────────────────────────────────────────── */}
+      {showSaved && (
+        <div className="flex-shrink-0 border-b border-border bg-muted/40 max-h-60 overflow-y-auto">
+          <div className="flex items-center justify-between px-4 py-2">
+            <span className="text-xs font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
+              <BookMarked className="w-3.5 h-3.5" />
+              Збережені книги ({savedBooks.length})
+            </span>
+            <div className="flex items-center gap-2">
+              {savedBooks.length > 0 && (
+                <button
+                  onClick={copyDstu}
+                  data-testid="button-copy-dstu"
+                  className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full
+                    border border-primary/30 text-primary hover:bg-primary/10 transition-colors"
                 >
-                  <div style={{
-                    width: 20, height: 20, borderRadius: "50%",
-                    background: "var(--p2)", border: "1px solid var(--border-mid)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 10.5, fontWeight: 500, color: "var(--text-2)",
-                    flexShrink: 0, marginTop: 1,
-                  }}>
-                    {n}
-                  </div>
-                  <div style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.45 }}>
-                    {text}
-                  </div>
-                </div>
-              ))}
+                  {copiedDstu
+                    ? <><Check className="w-3 h-3" /> Скопійовано</>
+                    : <><Copy className="w-3 h-3" /> Список літератури ДСТУ</>
+                  }
+                </button>
+              )}
+              <button
+                onClick={() => setShowSaved(false)}
+                data-testid="button-close-saved"
+                className="text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Закрити"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
           </div>
-        )}
 
-        {/* Day separator */}
-        {conversation.messages.length > 0 && (
-          <div style={{
-            display: "flex", alignItems: "center", gap: 10,
-            fontSize: 10.5, color: "var(--text-4)",
-            letterSpacing: ".04em", textTransform: "uppercase",
-            margin: "0 0 14px",
-          }}>
-            <span style={{ flex: 1, height: "0.5px", background: "var(--border-light)", display: "block" }} />
-            {today}
-            <span style={{ flex: 1, height: "0.5px", background: "var(--border-light)", display: "block" }} />
-          </div>
-        )}
+          {savedBooks.length === 0 ? (
+            <p className="text-xs text-muted-foreground px-4 pb-3">
+              Поки що нічого не збережено. Запитайте асистента про книги!
+            </p>
+          ) : (
+            <ul className="px-4 pb-3 space-y-1.5">
+              {savedBooks.map((book) => (
+                <li key={book.id} className="flex items-start gap-2 text-xs text-foreground">
+                  <span className="flex-1 leading-relaxed">{formatDstu(book)}</span>
+                  <button
+                    onClick={() => removeBook(book.id)}
+                    data-testid={`button-remove-book-${book.id}`}
+                    className="text-muted-foreground hover:text-destructive transition-colors mt-0.5 flex-shrink-0"
+                    aria-label="Видалити"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
-        {/* Messages with catalog results */}
-        {processedMessages.map((msg) => (
-          <MessageRow
-            key={msg.id}
-            msg={msg}
-            savedTitles={savedTitles}
-            onSave={toggleSave}
-          />
-        ))}
+      {/* ── Messages ─────────────────────────────────────────────────────── */}
+      <div className="flex-1 overflow-y-auto scrollbar-thin scroll-smooth">
+        <div className="min-h-full pb-36">
 
-        {/* Streaming */}
-        {isStreaming && streamedContent && (
-          <>
+          {/* Saved books toggle button */}
+          {!showSaved && (
+            <div className="flex justify-end px-4 pt-3">
+              <button
+                onClick={() => setShowSaved(true)}
+                data-testid="button-show-saved"
+                className="flex items-center gap-1.5 text-xs text-muted-foreground
+                  hover:text-foreground transition-colors"
+              >
+                <BookMarked className="w-3.5 h-3.5" />
+                Збережені книги{savedBooks.length > 0 && ` (${savedBooks.length})`}
+              </button>
+            </div>
+          )}
+
+          {/* Empty state */}
+          {messages.length === 0 && !isStreaming && (
+            <div className="max-w-3xl mx-auto px-4 py-10 text-center space-y-3">
+              <h2 className="text-2xl font-serif font-bold text-primary">
+                {conversation.title || "Нова розмова"}
+              </h2>
+              <p className="text-muted-foreground text-sm">
+                Привіт! Я — бібліотечний асистент ХДАК. Чим можу допомогти?
+              </p>
+              <div className="flex flex-wrap justify-center gap-2 pt-3">
+                {[
+                  "Як знайти книгу в каталозі?",
+                  "Коли працює бібліотека?",
+                  "Що таке репозитарій ХДАК?",
+                ].map((prompt) => (
+                  <button
+                    key={prompt}
+                    onClick={() => handleSend(prompt)}
+                    disabled={isStreaming}
+                    data-testid={`chip-starter-${prompt.slice(0, 15)}`}
+                    className="
+                      px-3 py-1.5 text-xs rounded-full
+                      border border-border bg-white hover:bg-muted/50
+                      text-foreground transition-colors duration-150 font-medium
+                    "
+                  >
+                    {prompt}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Messages list */}
+          {messages.map((msg, idx) => (
+            <ChatMessage
+              key={msg.id}
+              role={msg.role as "user" | "assistant"}
+              content={msg.content}
+              createdAt={msg.createdAt}
+              responseMs={idx === lastAssistantIdx && !isStreaming ? lastResponseMs : null}
+              onChipClick={!isStreaming ? handleSend : undefined}
+            />
+          ))}
+
+          {/* Streaming placeholder */}
+          {isStreaming && (
             <ChatMessage
               role="assistant"
               content={streamedContent}
               isStreaming={true}
             />
-            {streamedCatalogResult && (
-              <CatalogResults
-                data={streamedCatalogResult}
-                savedTitles={savedTitles}
-                onSave={toggleSave}
-              />
-            )}
-          </>
-        )}
-        {isStreaming && !streamedContent && <TypingIndicator />}
+          )}
 
-        <div ref={scrollRef} className="h-2" />
+          <div ref={scrollRef} className="h-4" />
+        </div>
       </div>
 
-      {/* Error retry bar */}
+      {/* ── Error retry bar ──────────────────────────────────────────────── */}
       {streamError && (
         <div
-          style={{
-            flexShrink: 0,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 10,
-            padding: "9px 16px",
-            background: "var(--error-bg)",
-            border: "none",
-            borderTop: "1px solid var(--error-bd)",
-          }}
+          data-testid="bar-stream-error"
+          className="flex-shrink-0 flex items-center justify-between gap-3
+            px-4 py-2.5 bg-destructive/8 border-t border-destructive/20"
         >
-          <span style={{ fontSize: 13, color: "var(--error-tx)", fontWeight: 500 }}>
+          <span className="text-sm text-destructive font-medium flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-destructive inline-block flex-shrink-0" />
             {streamError}
           </span>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div className="flex items-center gap-2">
             <button
               onClick={retryLastMessage}
               data-testid="button-retry-stream"
-              style={{
-                display: "inline-flex", alignItems: "center", gap: 5,
-                height: 28, padding: "0 12px",
-                background: "var(--error-tx)",
-                border: "none",
-                borderRadius: 999,
-                color: "#fff",
-                fontSize: 12.5, fontWeight: 500,
-                cursor: "pointer",
-                fontFamily: "var(--ff-b)",
-              }}
+              className="flex items-center gap-1 h-7 px-3 text-xs font-medium rounded-full
+                bg-destructive text-white hover:bg-destructive/90 transition-colors"
             >
               ↺ Повторити
             </button>
@@ -327,30 +338,24 @@ export default function Chat() {
               onClick={clearError}
               data-testid="button-dismiss-error"
               aria-label="Закрити"
-              style={{
-                display: "inline-flex", alignItems: "center",
-                height: 28, padding: "0 10px",
-                background: "transparent",
-                border: "1px solid var(--error-bd)",
-                borderRadius: 999,
-                color: "var(--error-tx)",
-                fontSize: 12.5,
-                cursor: "pointer",
-                fontFamily: "var(--ff-b)",
-              }}
+              className="h-7 px-2 text-xs rounded-full border border-destructive/30
+                text-destructive hover:bg-destructive/10 transition-colors"
             >
-              ✕
+              <X className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
       )}
 
-      {/* Sticky input zone */}
-      <ChatInput
-        onSend={handleSend}
-        onStop={stopStream}
-        isStreaming={isStreaming}
-      />
+      {/* ── Input zone ───────────────────────────────────────────────────── */}
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-background via-background/95 to-transparent pt-10 pb-2">
+        <ChatInput
+          onSend={handleSend}
+          onStop={stopStream}
+          isStreaming={isStreaming}
+          disabled={!isOnline}
+        />
+      </div>
     </div>
   );
 }
