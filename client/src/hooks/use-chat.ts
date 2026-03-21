@@ -2,7 +2,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { type Conversation, type Message } from "@shared/schema";
 import { useState, useCallback, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
-import type { CatalogResult } from "@/components/CatalogResults";
 
 interface ConversationWithMessages extends Conversation {
   messages: Message[];
@@ -10,26 +9,6 @@ interface ConversationWithMessages extends Conversation {
 
 const CONVERSATIONS_KEY = ["/api/conversations"] as const;
 const conversationKey = (id: number | null) => ["/api/conversations", id] as const;
-
-// ─── Parse catalog result embedded in message content ─────────────────────────
-export function parseCatalogFromContent(content: string): { text: string; catalogResult: CatalogResult | null } {
-  const MARKER_START = "<!--CATALOG:";
-  const MARKER_END = "-->";
-  const idx = content.indexOf(MARKER_START);
-  if (idx === -1) return { text: content, catalogResult: null };
-
-  const text = content.slice(0, idx).trimEnd();
-  const jsonStart = idx + MARKER_START.length;
-  const jsonEnd = content.indexOf(MARKER_END, jsonStart);
-  if (jsonEnd === -1) return { text, catalogResult: null };
-
-  try {
-    const catalogResult = JSON.parse(content.slice(jsonStart, jsonEnd)) as CatalogResult;
-    return { text, catalogResult };
-  } catch {
-    return { text, catalogResult: null };
-  }
-}
 
 // ─── Conversations list ───────────────────────────────────────────────────────
 export function useConversations() {
@@ -121,30 +100,42 @@ export function useChatStream(conversationId: number | null) {
   const qc = useQueryClient();
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamedContent, setStreamedContent] = useState("");
-  const [streamedCatalogResult, setStreamedCatalogResult] = useState<CatalogResult | null>(null);
   const [streamError, setStreamError] = useState<string | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
+  const [lastResponseMs, setLastResponseMs] = useState<number | null>(null);
 
-  // Streaming buffer to reduce re-render frequency
-  const streamBufRef   = useRef("");
-  const streamTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  // 32ms render buffer — prevents removeChild errors during rapid streaming
+  const streamBufRef = useRef("");
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const startTimeRef = useRef<number>(0);
+
+  const scheduleFlush = useCallback(() => {
+    if (!timerRef.current) {
+      timerRef.current = setTimeout(() => {
+        setStreamedContent(streamBufRef.current);
+        timerRef.current = null;
+      }, 32);
+    }
+  }, []);
 
   const flushBuffer = useCallback(() => {
-    if (streamTimerRef.current) {
-      clearTimeout(streamTimerRef.current);
-      streamTimerRef.current = null;
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
     }
     setStreamedContent(streamBufRef.current);
   }, []);
+
+  const clearError = useCallback(() => setStreamError(null), []);
 
   const sendMessage = useCallback(async (content: string) => {
     if (!conversationId) return;
 
     setIsStreaming(true);
     setStreamedContent("");
-    setStreamedCatalogResult(null);
     setStreamError(null);
     streamBufRef.current = "";
+    startTimeRef.current = Date.now();
 
     const optimisticMsg: Message = {
       id: Date.now(),
@@ -192,20 +183,10 @@ export function useChatStream(conversationId: number | null) {
 
           try {
             const data = JSON.parse(raw);
-
             if (typeof data.content === "string") {
+              // Buffer to prevent removeChild errors
               streamBufRef.current += data.content;
-              // Throttle state updates to ~30fps
-              if (!streamTimerRef.current) {
-                streamTimerRef.current = setTimeout(() => {
-                  setStreamedContent(streamBufRef.current);
-                  streamTimerRef.current = null;
-                }, 32);
-              }
-            }
-
-            if (data.catalogResult) {
-              setStreamedCatalogResult(data.catalogResult as CatalogResult);
+              scheduleFlush();
             }
           } catch {
             // skip malformed frames
@@ -219,36 +200,35 @@ export function useChatStream(conversationId: number | null) {
       }
     } finally {
       flushBuffer();
-      if (streamTimerRef.current) {
-        clearTimeout(streamTimerRef.current);
-        streamTimerRef.current = null;
-      }
-      streamBufRef.current = "";
+      const elapsed = Date.now() - startTimeRef.current;
+      setLastResponseMs(elapsed);
       setIsStreaming(false);
       setStreamedContent("");
-      setStreamedCatalogResult(null);
+      streamBufRef.current = "";
       abortRef.current = null;
       qc.invalidateQueries({ queryKey: conversationKey(conversationId) });
     }
-  }, [conversationId, qc, flushBuffer]);
+  }, [conversationId, qc, scheduleFlush, flushBuffer]);
 
   const stopStream = useCallback(() => {
     if (abortRef.current) {
       abortRef.current.abort();
       abortRef.current = null;
-      if (streamTimerRef.current) {
-        clearTimeout(streamTimerRef.current);
-        streamTimerRef.current = null;
-      }
-      streamBufRef.current = "";
+      flushBuffer();
       setIsStreaming(false);
       setStreamedContent("");
-      setStreamedCatalogResult(null);
+      streamBufRef.current = "";
       qc.invalidateQueries({ queryKey: conversationKey(conversationId) });
     }
-  }, [conversationId, qc]);
+  }, [conversationId, qc, flushBuffer]);
 
-  const clearError = useCallback(() => setStreamError(null), []);
-
-  return { sendMessage, isStreaming, streamedContent, streamedCatalogResult, streamError, stopStream, clearError };
+  return {
+    sendMessage,
+    isStreaming,
+    streamedContent,
+    streamError,
+    lastResponseMs,
+    clearError,
+    stopStream,
+  };
 }
