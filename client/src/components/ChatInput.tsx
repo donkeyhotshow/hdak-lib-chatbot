@@ -1,56 +1,43 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { ArrowRight, Square } from "lucide-react";
+import { StopCircle } from "lucide-react";
 
 interface ChatInputProps {
   onSend: (message: string) => void;
   onStop: () => void;
   disabled?: boolean;
   isStreaming?: boolean;
-  chips?: { label: string; icon?: string }[];
-  primaryChip?: string;
 }
 
-const DEFAULT_CHIPS = [
-  { label: "Шукати в каталозі", icon: "🔍", primary: true },
-  { label: "Як записатися?", icon: "⚡" },
-  { label: "Правила користування", icon: "📘" },
-  { label: "Графік роботи", icon: "🕐" },
-  { label: "Контакти", icon: "📞" },
+const CHIPS = [
+  { emoji: "🔍", label: "Шукати в каталозі" },
+  { emoji: "⚡", label: "Як записатися?" },
+  { emoji: "📋", label: "Правила бібліотеки" },
+  { emoji: "🕐", label: "Графік роботи" },
+  { emoji: "🔗", label: "Ресурси" },
 ];
 
-export function ChatInput({ onSend, onStop, disabled, isStreaming, chips, primaryChip }: ChatInputProps) {
+export function ChatInput({ onSend, onStop, disabled, isStreaming }: ChatInputProps) {
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const [focused, setFocused] = useState(false);
-
-  const activeChips = chips
-    ? chips.map(c => ({ label: c.label, icon: c.icon, primary: c.label === primaryChip }))
-    : DEFAULT_CHIPS;
-
-  const grow = useCallback(() => {
-    requestAnimationFrame(() => {
-      if (!textareaRef.current) return;
-      textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 120) + "px";
-    });
-  }, []);
 
   useEffect(() => {
-    grow();
-  }, [input, grow]);
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 180)}px`;
+  }, [input]);
 
   useEffect(() => {
     if (!isStreaming) textareaRef.current?.focus();
   }, [isStreaming]);
 
-  const handleSubmit = useCallback((text?: string) => {
-    const trimmed = (text ?? input).trim();
+  const handleSubmit = useCallback((e?: React.FormEvent) => {
+    e?.preventDefault();
+    const trimmed = input.trim();
     if (!trimmed || disabled || isStreaming) return;
     onSend(trimmed);
     setInput("");
-    requestAnimationFrame(() => {
-      if (textareaRef.current) textareaRef.current.style.height = "auto";
-    });
+    if (textareaRef.current) textareaRef.current.style.height = "auto";
   }, [input, disabled, isStreaming, onSend]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -60,167 +47,158 @@ export function ChatInput({ onSend, onStop, disabled, isStreaming, chips, primar
     }
   }, [handleSubmit]);
 
+  const handleChip = useCallback((label: string) => {
+    if (disabled || isStreaming) return;
+    onSend(label);
+  }, [disabled, isStreaming, onSend]);
+
   return (
-    <div
-      style={{
-        flexShrink: 0,
-        background: "rgba(237,224,200,.92)",
-        backdropFilter: "blur(8px)",
-        WebkitBackdropFilter: "blur(8px)",
-        borderTop: "1px solid var(--border-mid)",
-        padding: "10px 14px",
-        paddingBottom: "max(10px, env(safe-area-inset-bottom))",
-      }}
-    >
+    <div style={{ width: "100%" }}>
       {/* Chips row */}
       <div
-        className="chips-row"
-        role="list"
-        aria-label="Швидкі запити"
         style={{
-          marginBottom: 8,
-          WebkitMaskImage: "linear-gradient(to right, transparent 0%, #000 4%, #000 96%, transparent 100%)",
-          maskImage: "linear-gradient(to right, transparent 0%, #000 4%, #000 96%, transparent 100%)",
-          opacity: isStreaming ? 0.45 : 1,
-          pointerEvents: isStreaming ? "none" : "auto",
-          transition: "opacity .12s",
+          display: "flex",
+          gap: 6,
+          overflowX: "auto",
+          padding: "8px 16px 0",
+          scrollbarWidth: "none",
         }}
       >
-        {activeChips.map(({ label, icon, primary }) => (
+        {CHIPS.map((chip, i) => (
           <button
-            key={label}
-            role="listitem"
-            onClick={() => handleSubmit(label)}
-            disabled={isStreaming || disabled}
-            data-testid={`button-chip-${label}`}
+            key={chip.label}
+            onClick={() => handleChip(chip.label)}
+            disabled={disabled || isStreaming}
+            className="chip-sm"
+            data-testid={`chip-input-${i}`}
             style={{
               flexShrink: 0,
               display: "inline-flex",
               alignItems: "center",
-              gap: 4,
-              height: 30,
-              padding: "0 12px",
-              background: primary ? "var(--brown-1)" : "rgba(255,252,245,.8)",
-              border: `1.5px solid ${primary ? "var(--brown-1)" : "var(--border-md)"}`,
+              gap: 5,
+              height: 32,
+              padding: "0 11px",
+              background: "hsl(38 70% 97%)",
+              border: "0.5px solid hsl(var(--border))",
               borderRadius: 999,
-              color: primary ? "rgba(245,234,216,.95)" : "var(--text-2)",
-              fontSize: 12.5,
-              fontWeight: 500,
+              fontSize: 12,
+              fontFamily: "var(--font-sans)",
+              color: "hsl(var(--b2))",
+              cursor: disabled || isStreaming ? "not-allowed" : "pointer",
+              opacity: disabled || isStreaming ? 0.5 : 1,
               whiteSpace: "nowrap",
-              transition: "all .12s",
-              cursor: isStreaming || disabled ? "not-allowed" : "pointer",
-              fontFamily: "var(--ff-b)",
+              transition: "all 0.12s",
             }}
           >
-            {icon && <span style={{ fontSize: 13 }}>{icon}</span>}
-            {label}
+            <span style={{ fontSize: 12 }}>{chip.emoji}</span>
+            {chip.label}
           </button>
         ))}
       </div>
 
-      {/* Input row */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-end",
-          gap: 8,
-          background: "var(--bg-input)",
-          border: `1.5px solid ${focused ? "var(--border-lg)" : "var(--border-md)"}`,
-          borderRadius: 22,
-          padding: "5px 6px 5px 16px",
-          boxShadow: focused ? "0 0 0 3px rgba(60,35,10,.06)" : "none",
-          transition: "border-color .12s, box-shadow .12s",
-        }}
-      >
-        <textarea
-          ref={textareaRef}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          placeholder={isStreaming ? "Зачекайте відповіді…" : "Введіть запитання…"}
-          data-testid="input-chat-message"
-          aria-label="Введіть запитання до бібліотеки"
-          aria-describedby="kb-hint"
-          disabled={disabled || isStreaming}
-          rows={1}
-          inputMode="text"
-          autoComplete="off"
+      {/* Input area */}
+      <div style={{ padding: "8px 16px 12px" }}>
+        <form
+          onSubmit={handleSubmit}
           style={{
-            flex: 1,
-            background: "transparent",
-            border: "none",
-            outline: "none",
-            color: "var(--text-0)",
-            fontSize: 15.5,
-            fontFamily: "var(--ff-b)",
-            fontWeight: 400,
-            resize: "none",
-            lineHeight: 1.55,
-            padding: "8px 0",
-            minHeight: 36,
-            maxHeight: 120,
+            display: "flex",
+            alignItems: "flex-end",
+            gap: 8,
+            maxWidth: 680,
+            margin: "0 auto",
+            background: "hsl(38 70% 97%)",
+            border: "1px solid hsl(var(--border))",
+            borderRadius: 14,
+            padding: "6px 6px 6px 14px",
+            transition: "border-color 0.15s",
           }}
-        />
-
-        {isStreaming ? (
-          <button
-            type="button"
-            onClick={onStop}
-            data-testid="button-stop-stream"
-            aria-label="Зупинити відповідь"
+          onFocus={e => (e.currentTarget.style.borderColor = "hsl(var(--b4))")}
+          onBlur={e => (e.currentTarget.style.borderColor = "hsl(var(--border))")}
+        >
+          <textarea
+            ref={textareaRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Введіть запитання..."
+            data-testid="input-chat-message"
+            rows={1}
+            disabled={disabled || isStreaming}
             style={{
-              width: 36, height: 36, flexShrink: 0,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              background: "#991a1a",
+              flex: 1,
+              resize: "none",
+              background: "transparent",
               border: "none",
-              borderRadius: "var(--r-md)",
-              color: "var(--p1)",
-              transition: "background .12s",
-              cursor: "pointer",
+              outline: "none",
+              fontFamily: "var(--font-sans)",
+              fontSize: 15,
+              color: "hsl(var(--b0))",
+              lineHeight: 1.5,
+              minHeight: 36,
+              maxHeight: 180,
+              padding: "6px 0",
             }}
-          >
-            <Square style={{ width: 13, height: 13, fill: "currentColor" }} />
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={() => handleSubmit()}
-            disabled={!input.trim() || disabled}
-            data-testid="button-send-message"
-            aria-label="Надіслати"
-            style={{
-              width: 36, height: 36, flexShrink: 0,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              background: "var(--brown-1)",
-              border: "none",
-              borderRadius: "var(--r-md)",
-              color: "var(--p1)",
-              transition: "background .12s, transform .1s",
-              cursor: !input.trim() || disabled ? "not-allowed" : "pointer",
-              opacity: !input.trim() || disabled ? 0.45 : 1,
-            }}
-          >
-            <ArrowRight style={{ width: 14, height: 14 }} />
-          </button>
-        )}
-      </div>
+          />
 
-      {/* Keyboard hints — hidden on touch devices */}
-      <p
-        id="kb-hint"
-        style={{
-          fontSize: 10.5,
-          color: "var(--text-faint)",
+          {isStreaming ? (
+            <button
+              type="button"
+              onClick={onStop}
+              data-testid="button-stop-stream"
+              style={{
+                flexShrink: 0,
+                width: 36,
+                height: 36,
+                borderRadius: "50%",
+                background: "hsl(0 65% 48%)",
+                border: "none",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+                transition: "opacity 0.12s",
+              }}
+            >
+              <StopCircle style={{ width: 18, height: 18, color: "#fff" }} />
+            </button>
+          ) : (
+            <button
+              type="submit"
+              disabled={!input.trim() || disabled}
+              data-testid="button-send-message"
+              style={{
+                flexShrink: 0,
+                width: 36,
+                height: 36,
+                borderRadius: "50%",
+                background: !input.trim() || disabled ? "hsl(37 35% 88%)" : "hsl(var(--b0))",
+                border: "none",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: !input.trim() || disabled ? "not-allowed" : "pointer",
+                transition: "background 0.15s",
+              }}
+            >
+              <span style={{
+                color: !input.trim() || disabled ? "hsl(var(--b4))" : "hsl(var(--primary-foreground))",
+                fontSize: 16,
+                lineHeight: 1,
+              }}>→</span>
+            </button>
+          )}
+        </form>
+
+        <p style={{
+          marginTop: 5,
           textAlign: "center",
-          paddingTop: 5,
-          letterSpacing: ".01em",
-        }}
-        className="hidden sm:block"
-      >
-        Enter — надіслати · Shift+Enter — новий рядок · ↑ — редагувати
-      </p>
+          fontSize: 11,
+          color: "hsl(var(--muted-foreground))",
+          opacity: 0.7,
+        }}>
+          ШІ може помилятися. Перевіряйте інформацію в офіційних джерелах.
+        </p>
+      </div>
     </div>
   );
 }
