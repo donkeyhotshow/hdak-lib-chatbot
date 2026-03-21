@@ -1,108 +1,125 @@
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: 'DM Sans', system-ui, sans-serif;
-  --font-serif: 'Playfair Display', Georgia, serif;
+  --font-sans: 'Geist', system-ui, sans-serif;
+  --font-serif: 'EB Garamond', Georgia, serif;
 }
 
-/* ── BROWN TOKENS ────────────────────────────────────────────────────── */
+/* ── DESIGN TOKENS ───────────────────────────────────────────────────── */
 :root {
-  --font-sans: 'DM Sans', system-ui, sans-serif;
-  --font-serif: 'Playfair Display', Georgia, serif;
+  /* Dark theme for header/nav */
+  --dk0: #130a04;
+  --dk1: #1e0f07;
+  --dk2: #271508;
+  --dk3: #34190a;
+  --dk4: #46230e;
 
-  /* Parchment backgrounds */
-  --background:     37 62% 90%;
+  /* Paper / light backgrounds */
+  --paper:  #faf8f4;
+  --paper2: #f3ede4;
+  --paper3: #e8dfd2;
+  --paper4: #ddd0be;
+
+  /* Ink / text colors */
+  --ink:  #1a0e06;
+  --ink2: #3e2a14;
+  --ink3: #7a6048;
+  --ink4: #b09878;
+
+  /* Lines / borders */
+  --ln:  rgba(26,14,6,0.08);
+  --ln2: rgba(26,14,6,0.14);
+
+  /* Gold accent */
+  --gold:  #c08840;
+  --goldb: rgba(192,136,64,0.35);
+
+  /* Font families */
+  --ff-s: 'EB Garamond', Georgia, serif;
+  --ff-b: 'Geist', system-ui, sans-serif;
+
+  /* Tailwind/shadcn aliases */
+  --background:     37 62% 96%;
+  --foreground:     25 54% 8%;
+
   --card:           38 70% 97%;
-  --card-border:    37 30% 82%;
+  --card-foreground: 25 54% 8%;
 
-  /* Brown scale */
-  --b0: 25 54% 11%;
-  --b1: 25 50% 16%;
-  --b2: 25 52% 24%;
-  --b3: 27 42% 32%;
-  --b4: 29 36% 45%;
+  --primary:        25 54% 11%;
+  --primary-foreground: 37 62% 90%;
 
-  /* Tailwind / shadcn aliases */
-  --foreground:          25 54% 11%;
-  --primary:             25 54% 11%;
-  --primary-foreground:  37 62% 90%;
+  --secondary:      37 40% 90%;
+  --secondary-foreground: 25 54% 20%;
 
-  --secondary:           37 40% 86%;
-  --secondary-foreground:25 54% 20%;
+  --muted:          37 35% 92%;
+  --muted-foreground: 29 30% 45%;
 
-  --muted:               37 35% 88%;
-  --muted-foreground:    29 30% 45%;
+  --accent:         37 40% 88%;
+  --accent-foreground: 25 54% 11%;
 
-  --accent:              37 40% 84%;
-  --accent-foreground:   25 54% 11%;
-
-  --destructive:         0 65% 48%;
+  --destructive:    0 65% 48%;
   --destructive-foreground: 0 0% 100%;
 
-  --border: 37 25% 80%;
-  --input:  37 25% 80%;
-  --ring:   25 54% 11%;
+  --border: 37 25% 85%;
+  --input:  37 25% 85%;
+  --ring:   33 50% 50%;
 
   --radius: 0.75rem;
 }
 
 /* ── BASE ────────────────────────────────────────────────────────────── */
-*,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 @layer base {
   html, body {
     height: 100%;
-    background: hsl(var(--background));
-    font-family: var(--font-sans);
-    color: hsl(var(--foreground));
+    background: var(--paper);
+    font-family: var(--ff-b);
+    color: var(--ink);
     -webkit-font-smoothing: antialiased;
   }
   h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-serif);
-    color: hsl(var(--foreground));
+    font-family: var(--ff-s);
+    color: var(--ink);
   }
-  * { @apply selection:bg-primary/10; }
+  a { color: var(--gold); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  button { font-family: var(--ff-b); cursor: pointer; }
 }
 
 /* ── SCROLLBAR ───────────────────────────────────────────────────────── */
-@layer utilities {
-  .scrollbar-thin::-webkit-scrollbar { width: 4px; height: 4px; }
-  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
-  .scrollbar-thin::-webkit-scrollbar-thumb {
-    background: hsl(var(--border));
-    border-radius: 99px;
-  }
-  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--b4));
-  }
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-thumb { background: var(--ln2); border-radius: 99px; }
 
-  .font-serif { font-family: var(--font-serif); }
-  .font-sans  { font-family: var(--font-sans); }
+@layer utilities {
+  .scrollbar-thin::-webkit-scrollbar { width: 3px; height: 3px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: var(--ln2); border-radius: 99px; }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: var(--ink4); }
+
+  .font-serif { font-family: var(--ff-s); }
+  .font-sans  { font-family: var(--ff-b); }
 
   /* ── Markdown prose ── */
-  .prose-custom { color: hsl(var(--foreground)); line-height: 1.7; }
+  .prose-custom { color: var(--ink); line-height: 1.75; }
   .prose-custom p { margin-bottom: 0.75rem; }
   .prose-custom p:last-child { margin-bottom: 0; }
   .prose-custom ul { list-style: disc; padding-left: 1.25rem; margin-bottom: 0.75rem; }
   .prose-custom ol { list-style: decimal; padding-left: 1.25rem; margin-bottom: 0.75rem; }
   .prose-custom li { margin-bottom: 0.25rem; }
-  .prose-custom a {
-    color: hsl(var(--b2));
-    text-decoration: underline;
-    text-underline-offset: 3px;
-  }
-  .prose-custom a:hover { color: hsl(var(--b1)); }
-  .prose-custom strong { font-weight: 600; color: hsl(var(--b0)); }
+  .prose-custom a { color: var(--gold); border-bottom: 0.5px solid var(--goldb); }
+  .prose-custom a:hover { border-bottom-color: var(--gold); text-decoration: none; }
+  .prose-custom strong { font-weight: 500; color: var(--ink); }
   .prose-custom code {
-    background: hsl(var(--muted));
+    background: var(--paper3);
     padding: 0.15em 0.4em;
     border-radius: 4px;
     font-size: 0.875em;
     font-family: ui-monospace, monospace;
   }
   .prose-custom pre {
-    background: hsl(var(--b0));
-    color: hsl(var(--primary-foreground));
+    background: var(--dk1);
+    color: rgba(240,225,200,0.9);
     padding: 1rem;
     border-radius: 0.5rem;
     overflow-x: auto;
@@ -111,29 +128,29 @@
   }
   .prose-custom pre code { background: transparent; padding: 0; color: inherit; }
   .prose-custom h1, .prose-custom h2, .prose-custom h3 {
-    font-family: var(--font-serif);
-    font-weight: 600;
+    font-family: var(--ff-s);
+    font-weight: 500;
     margin-top: 1.25rem;
     margin-bottom: 0.5rem;
-    color: hsl(var(--b0));
+    color: var(--ink);
   }
   .prose-custom blockquote {
-    border-left: 3px solid hsl(var(--border));
+    border-left: 3px solid var(--ln2);
     padding-left: 1rem;
-    color: hsl(var(--muted-foreground));
+    color: var(--ink3);
     font-style: italic;
     margin: 0.75rem 0;
   }
   .prose-custom table { width: 100%; border-collapse: collapse; margin-bottom: 0.75rem; }
   .prose-custom th {
-    border: 1px solid hsl(var(--border));
+    border: 1px solid var(--ln2);
     padding: 0.4rem 0.75rem;
-    background: hsl(var(--muted));
+    background: var(--paper2);
     text-align: left;
     font-weight: 500;
   }
   .prose-custom td {
-    border: 1px solid hsl(var(--border));
+    border: 1px solid var(--ln2);
     padding: 0.4rem 0.75rem;
   }
 }
@@ -143,7 +160,7 @@
   from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-.animate-rise { animation: rise 0.3s cubic-bezier(0.22, 0.8, 0.36, 1) both; }
+.animate-rise { animation: rise 0.4s cubic-bezier(0.22, 0.8, 0.36, 1) both; }
 
 @keyframes fadeIn {
   from { opacity: 0; }
@@ -153,21 +170,25 @@
 
 @keyframes pulse-subtle {
   0%, 100% { opacity: 1; }
-  50%       { opacity: 0.6; }
+  50%      { opacity: 0.6; }
 }
 .animate-pulse-subtle { animation: pulse-subtle 1.8s ease-in-out infinite; }
 
 @keyframes cursor-blink {
   0%, 100% { opacity: 1; }
-  50%       { opacity: 0; }
+  50%      { opacity: 0; }
 }
-.animate-cursor { animation: cursor-blink 0.85s step-end infinite; }
+.animate-cursor { animation: cursor-blink 0.65s step-end infinite; }
+
+@keyframes typing-dot {
+  0%, 80%, 100% { opacity: 0.25; transform: scale(1); }
+  40% { opacity: 1; transform: scale(1.4); }
+}
 
 /* ── ACCESSIBILITY ───────────────────────────────────────────────────── */
 :focus-visible {
-  outline: 2px solid hsl(var(--primary));
+  outline: 1px solid var(--gold);
   outline-offset: 2px;
-  border-radius: 6px;
 }
 
 /* ── TOUCH / MOBILE ──────────────────────────────────────────────────── */

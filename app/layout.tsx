@@ -1,22 +1,30 @@
-import type { Metadata } from "next";
-import { DM_Sans, Playfair_Display } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Geist } from "next/font/google";
+import { EB_Garamond } from "next/font/google";
 import "./globals.css";
 
-const dmSans = DM_Sans({
+const geist = Geist({
   subsets: ["latin", "latin-ext"],
   variable: "--font-sans",
   display: "swap",
 });
 
-const playfair = Playfair_Display({
+const ebGaramond = EB_Garamond({
   subsets: ["latin", "cyrillic"],
   variable: "--font-serif",
   display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Бібліотечний асистент ХДАК",
+  title: "ХДАК · Бібліотека",
   description: "AI-асистент Наукової бібліотеки Харківської державної академії культури",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#1e0f07",
 };
 
 export default function RootLayout({
@@ -25,8 +33,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="uk" className={`h-full ${dmSans.variable} ${playfair.variable}`}>
-      <body className="h-full bg-background font-sans antialiased">
+    <html lang="uk" className={`h-full ${geist.variable} ${ebGaramond.variable}`}>
+      <body className="h-full font-sans antialiased" style={{ background: "var(--dk0)" }}>
         {children}
       </body>
     </html>
