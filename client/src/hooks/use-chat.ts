@@ -100,6 +100,7 @@ export function useChatStream(conversationId: number | null) {
   const qc = useQueryClient();
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamedContent, setStreamedContent] = useState("");
+  const [streamedCatalogResult, setStreamedCatalogResult] = useState<any | null>(null);
   const [streamError, setStreamError] = useState<string | null>(null);
   const [lastResponseMs, setLastResponseMs] = useState<number | null>(null);
 
@@ -133,6 +134,7 @@ export function useChatStream(conversationId: number | null) {
 
     setIsStreaming(true);
     setStreamedContent("");
+    setStreamedCatalogResult(null);
     setStreamError(null);
     streamBufRef.current = "";
     startTimeRef.current = Date.now();
@@ -226,6 +228,7 @@ export function useChatStream(conversationId: number | null) {
     sendMessage,
     isStreaming,
     streamedContent,
+    streamedCatalogResult,
     streamError,
     lastResponseMs,
     clearError,

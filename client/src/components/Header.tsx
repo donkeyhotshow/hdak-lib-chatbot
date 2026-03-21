@@ -9,6 +9,7 @@ export function Header({ onToggleResources, resourcesOpen }: HeaderProps) {
       className="hdak-header"
       style={{
         height: 56,
+        background: "#221208",
         flexShrink: 0,
         display: "flex",
         alignItems: "center",

@@ -71,6 +71,7 @@ export default function Chat() {
     sendMessage,
     isStreaming,
     streamedContent,
+    streamedCatalogResult,
     streamError,
     lastResponseMs,
     clearError,
