@@ -125,7 +125,12 @@ export function ChatInput({ onSend, onStop, disabled, isStreaming }: ChatInputPr
                     transition: "all 0.1s",
                   }}
                 >
-                  {chip.highlight && "🔍 "}{chip.label}
+                  {chip.highlight && (
+                    <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 4 }}>
+                      <circle cx="7" cy="7" r="5"/><path d="M14 14l-3.5-3.5"/>
+                    </svg>
+                  )}
+                  {chip.label}
                 </button>
               ))}
             </div>

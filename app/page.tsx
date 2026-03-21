@@ -197,26 +197,35 @@ export default function Home() {
                       type="button"
                       onClick={() => handleChip(chip.label)}
                       disabled={creating}
+                      className="chip-sm"
                       style={{
-                        height: 23,
-                        padding: "0 9px",
+                        height: 25,
+                        padding: "0 11px",
                         flexShrink: 0,
-                        background: "transparent",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4,
+                        background: chip.highlight ? "rgba(192,136,64,0.06)" : "transparent",
                         border: chip.highlight
                           ? "0.5px solid var(--goldb)"
                           : "0.5px solid var(--ln2)",
                         borderRadius: 100,
                         color: chip.highlight ? "var(--gold)" : "var(--ink3)",
-                        fontSize: 11,
-                        fontWeight: 300,
+                        fontSize: 11.5,
+                        fontWeight: 400,
                         fontFamily: "var(--ff-b)",
                         whiteSpace: "nowrap",
                         cursor: creating ? "not-allowed" : "pointer",
                         opacity: creating ? 0.5 : 1,
-                        transition: "all 0.1s",
+                        transition: "all 0.12s",
                       }}
                     >
-                      {chip.highlight && "🔍 "}{chip.label}
+                      {chip.highlight && (
+                        <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="7" cy="7" r="5"/><path d="M14 14l-3.5-3.5"/>
+                        </svg>
+                      )}
+                      {chip.label}
                     </button>
                   ))}
                 </div>
