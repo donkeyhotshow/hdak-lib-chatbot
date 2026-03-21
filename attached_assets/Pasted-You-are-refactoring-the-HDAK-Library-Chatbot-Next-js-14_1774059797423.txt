@@ -1,0 +1,414 @@
+You are refactoring the HDAK Library Chatbot (Next.js 14, TypeScript,
+Tailwind). I'm attaching the current HTML mockup as a reference for
+the existing design and component structure.
+
+Complete ALL tasks below in order. Do not skip any step.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TASK 1 — DESIGN TOKENS (globals.css / tailwind.config.ts)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Replace existing color variables with this exact system.
+Keep ALL existing variable names that are already in use — add
+new ones, do not remove old ones that components reference.
+
+In globals.css :root add:
+
+  /* Backgrounds */
+  --bg-page:     #faf8f5;
+  --bg-surface:  #f4ede0;
+  --bg-raised:   #ede0c8;
+  --bg-input:    #ffffff;
+
+  /* Dark header — mahogany wood */
+  --hdr-bg:      #221208;
+  --hdr-border:  #0e0704;
+  --hdr-text:    #f0dfc0;
+  --hdr-muted:   rgba(220,175,110,0.75);
+  --hdr-btn-bg:  rgba(255,255,255,0.07);
+  --hdr-btn-bd:  rgba(200,140,60,0.25);
+
+  /* Browns */
+  --brown-0:  #1c1008;
+  --brown-1:  #2e1c0c;
+  --brown-2:  #4a2e14;
+  --brown-3:  #7a5230;
+  --brown-4:  #a87848;
+  --gold:     #c8904a;
+
+  /* Text */
+  --text-primary:   #1c1008;
+  --text-secondary: #6a4e2c;
+  --text-muted:     #9a7a50;
+  --text-faint:     #c0a070;
+
+  /* Borders */
+  --border-xs: rgba(60,35,10,0.06);
+  --border-sm: rgba(60,35,10,0.12);
+  --border-md: rgba(60,35,10,0.22);
+  --border-lg: rgba(60,35,10,0.38);
+
+  /* Semantic */
+  --error-bg: rgba(180,40,40,0.06);
+  --error-bd: rgba(180,40,40,0.22);
+  --error-tx: #903030;
+
+In tailwind.config.ts extend.colors add:
+  hdak: {
+    wood:    '#221208',
+    brown:   '#4a2e14',
+    accent:  '#7a5230',
+    gold:    '#c8904a',
+    parchment: '#f4ede0',
+    cream:   '#faf8f5',
+  }
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TASK 2 — HEADER COMPONENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Create components/Header.tsx.
+The header must have a dark mahogany wood appearance.
+
+Key styles (use inline or Tailwind, whatever the project uses):
+
+  background: var(--hdr-bg)
+  background-image:
+    repeating-linear-gradient(90deg,
+      transparent 0px, transparent 22px,
+      rgba(0,0,0,0.045) 22px, rgba(0,0,0,0.045) 23px),
+    repeating-linear-gradient(180deg,
+      transparent 0px, transparent 5px,
+      rgba(200,140,60,0.02) 5px, rgba(200,140,60,0.02) 6px)
+  border-bottom: 1px solid var(--hdr-border)
+  box-shadow: inset 0 1px 0 rgba(200,140,60,0.12), 0 2px 6px rgba(0,0,0,0.14)
+  height: 56px
+
+Logo mark — 4 vertical bars of different heights (book spines):
+  
+    {[9,14,7,11].map((h,i) => (
+      
+    ))}
+  
+
+Title: font-family Playfair Display, color var(--hdr-text), 15px
+Subtitle: 10px, color var(--hdr-muted), uppercase, letter-spacing .09em
+
+Nav buttons — pill shape, background var(--hdr-btn-bg), border var(--hdr-btn-bd),
+color var(--hdr-muted). On hover: background rgba(255,255,255,.12), color var(--hdr-text).
+The "Ресурси" button toggles the ResourcesDrawer open/closed (pass callback as prop).
+The gold dot indicator: width 5px, height 5px, border-radius 50%, background var(--gold).
+
+Language button: same pill style, font-weight 500, letter-spacing .05em.
+
+Export: named export Header + default export.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TASK 3 — RESOURCES DRAWER COMPONENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Create components/ResourcesDrawer.tsx.
+
+Props: { open: boolean; onClose: () => void }
+
+Behaviour: slides DOWN below the header (in document flow, not
+position:fixed/absolute — never overlaps chat content).
+Use max-height transition: 0 → 220px, ease cubic-bezier(.4,0,.2,1).
+
+Background: var(--bg-page), border-bottom 0.5px solid var(--border-md).
+
+Grid of resource links (2–3 columns auto-fill minmax 160px):
+const RESOURCES = [
+  { icon:'📂', name:'Електронний каталог',  url:'https://lib-hdak.in.ua/e-catalog.html' },
+  { icon:'🔍', name:'Пошук АБІС УФД',       url:'https://library-service.com.ua:8443/khkhdak/DocumentSearchForm' },
+  { icon:'📖', name:'Репозитарій ХДАК',      url:'https://repository.ac.kharkov.ua/home' },
+  { icon:'🔬', name:'Наукова інформація',    url:'https://lib-hdak.in.ua/search-scientific-info.html' },
+  { icon:'🔗', name:'Корисні посилання',     url:'https://lib-hdak.in.ua/helpful-links.html' },
+  { icon:'🏛', name:'Сайт бібліотеки',       url:'https://lib-hdak.in.ua/' },
+]
+
+Each link card: background var(--bg-surface), border var(--border-xs),
+border-radius 10px, hover → background var(--bg-raised).
+Name: 12px, font-weight 500, color var(--text-primary).
+URL: 10px, color var(--text-faint).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TASK 4 — CHAT INPUT COMPONENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Create components/ChatInput.tsx.
+
+Props: {
+  onSend: (text: string) => void
+  isStreaming: boolean
+  chips?: { label: string; icon?: string }[]
+  primaryChip?: string
+}
+
+Structure (top to bottom):
+1. Chips row — single horizontally scrollable row, no wrapping.
+   Scroll fade mask: -webkit-mask-image linear-gradient to right
+   transparent 0%→black 4%→black 96%→transparent 100%.
+   Each chip: height 30px, pill shape, border 1.5px solid var(--border-md),
+   background rgba(255,252,245,.8).
+   Primary chip: background var(--brown-1), color rgba(245,234,216,.95),
+   border-color var(--brown-1).
+   All chips hidden (opacity .45, pointer-events none) when isStreaming=true.
+
+2. Input row — all-in-one box:
+   background var(--bg-input), border 1.5px solid var(--border-md),
+   border-radius 22px.
+   On focus-within: border-color var(--border-lg), box-shadow 0 0 0 3px rgba(60,35,10,.06).
+
+   Inside: textarea (auto-grow, min 36px max 120px, font-size 15.5px) +
+   send button (36×36px, background var(--brown-1), border-radius 10px).
+   Send button disabled + opacity .45 when isStreaming.
+
+3. Keyboard hints (hidden on touch: @media pointer:coarse display none):
+   "Enter — надіслати · Shift+Enter — новий рядок · ↑ — редагувати"
+   font-size 10.5px, color var(--text-faint), text-align center.
+
+Textarea auto-grow logic (useCallback, requestAnimationFrame):
+  const grow = useCallback(() => {
+    requestAnimationFrame(() => {
+      if (!ref.current) return
+      ref.current.style.height = 'auto'
+      ref.current.style.height = Math.min(ref.current.scrollHeight, 120) + 'px'
+    })
+  }, [])
+
+Handle Enter (send) / Shift+Enter (newline).
+aria-label="Введіть запитання до бібліотеки"
+inputMode="text" autoComplete="off"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TASK 5 — CATALOG API ROUTE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Run: npm install cheerio
+
+Create app/api/catalog/route.ts:
+
+export const runtime     = "nodejs"
+export const dynamic     = "force-dynamic"
+export const maxDuration = 15
+
+import { NextRequest, NextResponse } from "next/server"
+import * as cheerio from "cheerio"
+
+const BASE = "https://library-service.com.ua:8443/khkhdak"
+const FORM = `${BASE}/DocumentSearchForm`
+
+export interface CatalogBook {
+  title: string; author: string; year: string; type: string; url: string
+}
+
+export async function GET(req: NextRequest) {
+  const sp     = req.nextUrl.searchParams
+  const author = sp.get("author") ?? ""
+  const title  = sp.get("title")  ?? ""
+  const topic  = sp.get("topic")  ?? ""
+  const limit  = Math.min(Number(sp.get("limit") ?? "8"), 30)
+  const qs     = new URLSearchParams()
+  if (author) qs.set("author",  author)
+  if (title)  qs.set("title",   title)
+  if (topic)  qs.set("subject", topic)
+  const searchUrl = `${FORM}?${qs}`
+
+  try {
+    const res = await fetch(searchUrl, {
+      signal: AbortSignal.timeout(8000),
+      headers: { "User-Agent": "HDACLibBot/1.0",
+                 "Referer": "https://lib-hdak.in.ua/" },
+      next: { revalidate: 300 },
+    })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+
+    const $ = cheerio.load(await res.text())
+    const books: CatalogBook[] = []
+    $("table tr").each((i, row) => {
+      if (i === 0) return
+      const td = $(row).find("td")
+      if (td.length < 2) return
+      const href = $(row).find("a").first().attr("href") ?? ""
+      books.push({
+        title:  td.eq(0).text().trim(),
+        author: td.eq(1).text().trim(),
+        year:   td.eq(2).text().trim(),
+        type:   td.eq(3).text().trim(),
+        url:    href.startsWith("http") ? href : `${BASE}${href}`,
+      })
+    })
+
+    return NextResponse.json({
+      ok: true, total: books.length,
+      results: books.slice(0, limit), search_url: searchUrl,
+      empty: books.length === 0,
+    })
+  } catch (err) {
+    console.error("[catalog]", err)
+    return NextResponse.json({
+      ok: false, total: 0, results: [], search_url: searchUrl,
+      error: "unavailable",
+      fallback: [
+        { label: "Відкрити каталог",  url: searchUrl },
+        { label: "Viber бібліотеки",  url: "viber://chat/?number=%2B380661458484" },
+        { label: "Telegram",          url: "https://t.me/+380661458484" },
+      ],
+    })
+  }
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TASK 6 — CATALOG TOOL + RESULTS UI
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+In app/api/chat/route.ts add to the tools array:
+
+{
+  name: "search_catalog",
+  description: `Search HDAK library catalog. Call when user asks about
+    books, authors, reading lists, or whether a specific book exists.
+    Never say you don't know if the library has something without
+    calling this tool first.`,
+  input_schema: {
+    type: "object" as const,
+    properties: {
+      author: { type: "string" },
+      title:  { type: "string" },
+      topic:  { type: "string" },
+      limit:  { type: "number" },
+    },
+    required: [],
+  },
+}
+
+Tool execution handler (add to existing handler):
+if (toolName === "search_catalog") {
+  const qs = new URLSearchParams(
+    Object.fromEntries(Object.entries(toolInput).filter(([,v])=>v))
+    as Record
+  )
+  const base = process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : "http://localhost:3000"
+  return (await fetch(`${base}/api/catalog?${qs}`)).json()
+}
+
+Add to Message type: catalogResult?: CatalogResult
+
+When tool returns, create assistant message with catalogResult attached.
+
+Create components/CatalogResults.tsx:
+
+interface Props {
+  data: CatalogResult
+  savedTitles: Set
+  onSave: (book: CatalogBook) => void
+}
+
+Render each result as a row:
+  - Title (link, color var(--brown-2), font-weight 500, 13.5px)
+  - Author + year (color var(--text-muted), 12px)
+  - Save button (11px pill, toggle saved/unsaved state)
+
+When ok=false: render fallback link buttons.
+Always render "Всі результати ↗" link to search_url at the bottom.
+Padding-left 34px to align with bubble (avatar width + gap).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TASK 7 — SAVED BOOKS (localStorage)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+In the main chat component add:
+
+  const [savedBooks, setSavedBooks] = useState(() => {
+    if (typeof window === "undefined") return []
+    try { return JSON.parse(localStorage.getItem("hdak_saved") ?? "[]") }
+    catch { return [] }
+  })
+
+  const toggleSave = useCallback((book: CatalogBook) => {
+    setSavedBooks(prev => {
+      const has  = prev.some(b => b.title === book.title)
+      const next = has
+        ? prev.filter(b => b.title !== book.title)
+        : [...prev, book]
+      localStorage.setItem("hdak_saved", JSON.stringify(next))
+      return next
+    })
+  }, [])
+
+  const savedTitles = useMemo(
+    () => new Set(savedBooks.map(b => b.title)), [savedBooks]
+  )
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TASK 8 — STREAMING STABILITY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+In the main chat component (Home.tsx or equivalent):
+
+A) Streaming buffer — prevents re-render storm:
+  const streamBufRef   = useRef("")
+  const streamTimerRef = useRef|null>(null)
+
+  // Inside streaming loop, replace per-chunk setState with:
+  streamBufRef.current += chunk
+  if (!streamTimerRef.current) {
+    streamTimerRef.current = setTimeout(() => {
+      setMessages(prev => prev.map((m,i) =>
+        i === prev.length - 1 ? {...m, content: streamBufRef.current} : m
+      ))
+      streamTimerRef.current = null
+    }, 32)
+  }
+  // Cleanup:
+  return () => {
+    cancelled = true
+    if (streamTimerRef.current) clearTimeout(streamTimerRef.current)
+    streamBufRef.current = ""
+  }
+
+B) Memoize message component:
+  const MessageItem = React.memo(function MessageItem(props) { ... })
+
+C) Fix scroll effect dep:
+  useEffect(() => { scrollToBottom() }, [messages.length])
+  // NOT [messages] — new array ref every render = infinite loop
+
+D) Memoize callbacks passed as props:
+  const handleFeedback = useCallback((id, v) => { ... }, [])
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TASK 9 — TYPOGRAPHY + READABILITY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+In globals.css update body:
+  font-size: 16px;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+Chat bubble text: font-size 14.5px, line-height 1.72
+Input textarea: font-size 15.5px
+Placeholder: opacity 0.55
+Contextual chips / action buttons: font-size 12.5px minimum
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VERIFY (run after all tasks)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. npm run build → 0 TypeScript errors
+2. curl "localhost:3000/api/catalog?author=Шевченко&limit=5"
+   → { ok: true|false, results: [...], search_url: "..." }
+3. In chat: ask "Книги Шевченка"
+   → Network tab shows /api/catalog request
+   → Results render below bot bubble with save buttons
+4. Header is dark brown with wood grain texture
+5. Body text 16px, bubbles 14.5px — visibly larger than before
+6. No removeChild console errors during streaming
+7. Saved books persist after page reload (localStorage)
+8. npm run test → all pass
+
+List every file created or modified with a one-line description.
