@@ -42,7 +42,7 @@ export function ChatInput({ onSend, onStop, disabled, isStreaming }: ChatInputPr
   }, [handleSubmit]);
 
   return (
-    <div className="w-full max-w-3xl mx-auto p-4">
+    <div className="w-full max-w-3xl mx-auto px-4 pb-2">
       <form onSubmit={handleSubmit} className="relative group">
         <div className="
           relative flex items-end p-2 bg-background
@@ -57,11 +57,14 @@ export function ChatInput({ onSend, onStop, disabled, isStreaming }: ChatInputPr
             onKeyDown={handleKeyDown}
             placeholder="Запитайте про книги, послуги або ресурси бібліотеки..."
             data-testid="input-chat-message"
+            aria-label="Повідомлення"
             className="
               min-h-[56px] w-full resize-none bg-transparent border-0
               focus-visible:ring-0 focus-visible:ring-offset-0
-              text-base py-4 px-4 placeholder:text-muted-foreground/60
+              py-4 px-4 placeholder:text-muted-foreground/60
+              text-[16px] leading-relaxed
             "
+            style={{ fontSize: "16px" }}
             rows={1}
             disabled={disabled || isStreaming}
           />
@@ -73,7 +76,8 @@ export function ChatInput({ onSend, onStop, disabled, isStreaming }: ChatInputPr
                 onClick={onStop}
                 size="icon"
                 data-testid="button-stop-stream"
-                className="rounded-xl h-10 w-10 shrink-0 bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                aria-label="Зупинити відповідь"
+                className="rounded-xl h-11 w-11 shrink-0 bg-destructive hover:bg-destructive/90 text-destructive-foreground"
               >
                 <StopCircle className="w-5 h-5" />
               </Button>
@@ -83,9 +87,10 @@ export function ChatInput({ onSend, onStop, disabled, isStreaming }: ChatInputPr
                 size="icon"
                 disabled={!input.trim() || disabled}
                 data-testid="button-send-message"
-                className="rounded-xl h-10 w-10 shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm"
+                aria-label="Надіслати повідомлення"
+                className="rounded-xl h-11 w-11 shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm"
               >
-                <SendHorizontal className="w-4.5 h-4.5" />
+                <SendHorizontal className="w-4 h-4" />
               </Button>
             )}
           </div>

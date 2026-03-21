@@ -53,20 +53,25 @@ export default function Chat() {
     <div className="flex flex-col h-full bg-background relative">
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto scrollbar-thin scroll-smooth">
-        <div className="min-h-full pb-32">
+      <div
+        className="flex-1 overflow-y-auto scrollbar-thin scroll-smooth"
+        role="log"
+        aria-live="polite"
+        aria-label="Повідомлення чату"
+      >
+        <div className="min-h-full pb-36">
 
           {/* Empty state */}
           {conversation.messages.length === 0 && !isStreaming && (
-            <div className="max-w-3xl mx-auto px-4 py-12 text-center space-y-3">
+            <div className="max-w-3xl mx-auto px-4 py-12 text-center space-y-4">
               <h2 className="text-2xl font-serif font-bold text-primary">
                 {conversation.title || "Нова розмова"}
               </h2>
               <p className="text-muted-foreground text-sm">
                 Привіт! Я — бібліотечний асистент ХДАК. Чим можу допомогти?
               </p>
-              {/* Quick prompts */}
-              <div className="flex flex-wrap justify-center gap-2 pt-3">
+              {/* Quick prompts — WCAG: min 44px touch target */}
+              <div className="flex flex-wrap justify-center gap-2 pt-2">
                 {[
                   "Як знайти книгу в каталозі?",
                   "Коли працює бібліотека?",
@@ -76,11 +81,20 @@ export default function Chat() {
                     key={prompt}
                     onClick={() => sendMessage(prompt)}
                     disabled={isStreaming}
+                    data-testid={`chip-prompt-${prompt.slice(0, 20)}`}
                     className="
-                      px-3 py-1.5 text-xs rounded-full
-                      border border-border bg-white hover:bg-muted/50
-                      text-foreground transition-colors duration-150 font-medium
+                      min-h-[44px] min-w-[80px] px-4 py-2
+                      text-[13px] font-medium rounded-full
+                      border border-border bg-white
+                      shadow-sm hover:shadow-md
+                      text-foreground
+                      transition-all duration-200
+                      ease-in-out
+                      hover:-translate-y-0.5 hover:bg-muted/30
+                      disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0
+                      focus-visible:ring-2 focus-visible:ring-primary/50
                     "
+                    aria-label={`Запитати: ${prompt}`}
                   >
                     {prompt}
                   </button>
@@ -113,7 +127,7 @@ export default function Chat() {
       </div>
 
       {/* Input — gradient fade over bottom of message list */}
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-background via-background/95 to-transparent pt-10 pb-2">
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-background via-background/95 to-transparent pt-10 pb-[env(safe-area-inset-bottom,0px)]">
         <ChatInput
           onSend={sendMessage}
           onStop={stopStream}

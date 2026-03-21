@@ -22,10 +22,10 @@ export const ChatMessage = memo(function ChatMessage({
 
   return (
     <div className={cn(
-      "group w-full py-7 px-4 transition-colors duration-150",
+      "group w-full py-6 px-4 transition-colors duration-150 animate-bubble-in",
       isUser ? "bg-transparent" : "bg-muted/30 border-y border-border/40"
     )}>
-      <div className="max-w-3xl mx-auto flex gap-5">
+      <div className="max-w-3xl mx-auto flex gap-4">
 
         {/* Avatar */}
         <div className={cn(
@@ -51,11 +51,12 @@ export const ChatMessage = memo(function ChatMessage({
           </div>
 
           <div className={cn(
-            "prose-custom max-w-none text-[15px]",
+            "prose-custom max-w-none",
+            "text-[15px] leading-relaxed",
             isStreaming && "animate-pulse-subtle"
           )}>
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {content || (isStreaming ? "" : "")}
+              {content || ""}
             </ReactMarkdown>
             {isStreaming && (
               <span className="inline-block w-1.5 h-4 ml-0.5 bg-primary/50 animate-cursor rounded-sm" />

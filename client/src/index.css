@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,7 +6,7 @@
 
 :root {
   /* Library Theme — Soft, Intellectual, Calming */
-  --font-sans: 'Inter', sans-serif;
+  --font-sans: 'DM Sans', sans-serif;
   --font-serif: 'Lora', serif;
 
   --background: 210 20% 98%;
@@ -32,12 +32,33 @@
   --ring: 215 25% 27%;
 
   --radius: 0.75rem;
+
+  /* ── Spacing tokens (8pt grid) ── */
+  --spacing-xs: 0.5rem;   /* 8px */
+  --spacing-sm: 0.75rem;  /* 12px */
+  --spacing-md: 1rem;     /* 16px */
+  --spacing-lg: 1.5rem;   /* 24px */
+  --spacing-xl: 2rem;     /* 32px */
+
+  /* ── Typography scale ── */
+  --font-title-size: 28px;
+  --font-title-lh: 1.2;
+  --font-h2-size: 22px;
+  --font-h2-lh: 1.3;
+  --font-body-size: 16px;
+  --font-body-lh: 1.5;
+  --font-caption-size: 13px;
+  --font-caption-lh: 1.4;
 }
 
 @layer base {
   body {
-    @apply bg-background text-foreground antialiased font-sans;
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    /* Safe area support for notched devices */
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
   }
   * {
     @apply selection:bg-primary/10;
@@ -115,6 +136,15 @@
 }
 .animate-fade-in {
   animation: fadeIn 0.28s ease-out forwards;
+}
+
+/* Message bubble entrance */
+@keyframes bubbleIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-bubble-in {
+  animation: bubbleIn 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 @keyframes pulse-subtle {
