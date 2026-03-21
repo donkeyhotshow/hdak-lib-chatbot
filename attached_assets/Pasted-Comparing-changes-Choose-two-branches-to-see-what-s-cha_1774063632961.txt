@@ -1,0 +1,268 @@
+Comparing changes
+Choose two branches to see what’s changed or to start a new pull request. If you need to, you can also  or learn more about diff comparisons.
+...
+There isn’t anything to compare.
+main and feature/replit-production-fixes are entirely different commit histories.
+
+ Showing  with 165 additions and 3 deletions.
++73 −0  attached_assets/Pasted--0-12-0--1774061083290_1774061083291.txt
++1 −0  client/src/components/Header.tsx
++6 −1  client/src/hooks/use-chat.ts
++11 −0  client/src/index.css
++74 −2  client/src/pages/Chat.tsx
+ 73 changes: 73 additions & 0 deletions73  
+attached_assets/Pasted--0-12-0--1774061083290_1774061083291.txt
+Original file line number	Diff line number	Diff line change
+@@ -0,0 +1,73 @@
+еревір в браузері — клікай щоб відмічати
+0 / 12
+0%
+Шапка темно-коричнева з деревною текстурою
+Відкрий app → шапка має бути #221208, не бежева
+Кнопки шапки з золотою обводкою, текст кремовий #f0dfc0
+"Ресурси" відкриває drawer нижче шапки (не поверх чату)
+Клік → drawer slide-down, чат залишається видимим
+Шрифт в чаті читається — 16px base, бабли 14.5px
+API каталогу відповідає
+curl "localhost:3000/api/catalog?author=Шевченко&limit=3"
+Очікування: JSON з ok:true/false та results або fallback
+runtime="nodejs" є в route.ts каталогу
+Без цього Vercel Edge блокує порт 8443 — тихий timeout
+grep -n "runtime" app/api/catalog/route.ts
+В чаті: "Книги Шевченка" → каталог викликається
+Network tab → запит до /api/catalog → картки книг під баблом
+Кнопка "+ Зберегти" зберігає книгу в localStorage
+localStorage.getItem("hdak_saved")
+Немає removeChild помилок під час стрімінгу
+Console → відправ 3 повідомлення підряд → 0 errors
+Build без помилок
+npm run build
+Chips — один рядок зі scroll, без дублювання
+Error bar з "↺ Повторити" з'являється при помилці стрімінгу
+Типові проблеми після агента — готові фікси
+якщо щось зламалось
+Якщо каталог повертає 503 або timeout на Vercel:
+
+    Copy# app/api/catalog/route.ts — перший рядок файлу
+export const runtime     = "nodejs"
+export const dynamic     = "force-dynamic"
+export const maxDuration = 15
+Якщо removeChild все ще є — streaming buffer не застосовано:
+
+    Copy// В основному компоненті чату — замінити setState per-chunk:
+const bufRef   = useRef("")
+const timerRef = useRef|null>(null)
+
+// Всередині streaming loop:
+bufRef.current += chunk
+if (!timerRef.current) {
+  timerRef.current = setTimeout(() => {
+    setMessages(p => p.map((m,i) =>
+      i === p.length-1 ? {...m, content: bufRef.current} : m))
+    timerRef.current = null
+  }, 32)
+}
+// В cleanup return:
+return () => { cancelled = true; if(timerRef.current) clearTimeout(timerRef.current); bufRef.current="" }
+Якщо шапка не змінила колір — CSS specificity конфлікт:
+
+    Copy/* globals.css — додай в кінець файлу */
+header, [data-component="header"], .header {
+  background: #221208 !important;
+  background-image:
+    repeating-linear-gradient(90deg,
+      transparent 0px,transparent 22px,
+      rgba(0,0,0,0.045) 22px,rgba(0,0,0,0.045) 23px),
+    repeating-linear-gradient(180deg,
+      transparent 0px,transparent 5px,
+      rgba(200,140,60,0.02) 5px,rgba(200,140,60,0.02) 6px) !important;
+  border-bottom: 1px solid #0e0704 !important;
+  box-shadow: inset 0 1px 0 rgba(200,140,60,0.12),
+              0 2px 6px rgba(0,0,0,0.14) !important;
+}
+header *, [data-component="header"] * { color: #f0dfc0 !important; }
+header button, [data-component="header"] button {
+  border-color: rgba(200,140,60,0.28) !important;
+  background: rgba(255,255,255,0.07) !important;
+  color: rgba(220,175,110,0.82) !important;
+}
+header button:hover { background: rgba(255,255,255,0.13) !important; color: #f0dfc0 !important; }
+  1 change: 1 addition & 0 deletions1  
+client/src/components/Header.tsx
+Original file line number	Diff line number	Diff line change
+@@ -6,6 +6,7 @@ interface HeaderProps {
+export function Header({ onToggleResources, resourcesOpen }: HeaderProps) {
+  return (
+    <header
+      className="hdak-header"
+      style={{
+        height: 56,
+        flexShrink: 0,
+  7 changes: 6 additions & 1 deletion7  
+client/src/hooks/use-chat.ts
+Original file line number	Diff line number	Diff line change
+@@ -122,6 +122,7 @@ export function useChatStream(conversationId: number | null) {
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamedContent, setStreamedContent] = useState("");
+  const [streamedCatalogResult, setStreamedCatalogResult] = useState<CatalogResult | null>(null);
+  const [streamError, setStreamError] = useState<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  // Streaming buffer to reduce re-render frequency
+@@ -142,6 +143,7 @@ export function useChatStream(conversationId: number | null) {
+    setIsStreaming(true);
+    setStreamedContent("");
+    setStreamedCatalogResult(null);
+    setStreamError(null);
+    streamBufRef.current = "";
+
+    const optimisticMsg: Message = {
+@@ -213,6 +215,7 @@ export function useChatStream(conversationId: number | null) {
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name !== "AbortError") {
+        console.error("Stream error:", err);
+        setStreamError("Помилка з'єднання. Спробуйте ще раз.");
+      }
+    } finally {
+      flushBuffer();
+@@ -245,5 +248,7 @@ export function useChatStream(conversationId: number | null) {
+    }
+  }, [conversationId, qc]);
+
+  return { sendMessage, isStreaming, streamedContent, streamedCatalogResult, stopStream };
+  const clearError = useCallback(() => setStreamError(null), []);
+
+  return { sendMessage, isStreaming, streamedContent, streamedCatalogResult, streamError, stopStream, clearError };
+}
+  11 changes: 11 additions & 0 deletions11  
+client/src/index.css
+Original file line number	Diff line number	Diff line change
+@@ -269,3 +269,14 @@
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── HEADER MAHOGANY GUARANTEE ──────────── */
+/* Fallback for any CSS-reset specificity conflicts */
+header, .hdak-header {
+  background: #221208 !important;
+  background-image:
+    repeating-linear-gradient(90deg,transparent 0px,transparent 22px,rgba(0,0,0,.045) 22px,rgba(0,0,0,.045) 23px),
+    repeating-linear-gradient(180deg,transparent 0px,transparent 5px,rgba(200,140,60,.02) 5px,rgba(200,140,60,.02) 6px) !important;
+  border-bottom: 1px solid #0e0704 !important;
+  box-shadow: inset 0 1px 0 rgba(200,140,60,.12),0 2px 6px rgba(0,0,0,.14) !important;
+}
+  76 changes: 74 additions & 2 deletions76  
+client/src/pages/Chat.tsx
+Original file line number	Diff line number	Diff line change
+@@ -54,7 +54,8 @@ export default function Chat() {
+  const id = params.id ? parseInt(params.id) : null;
+
+  const { data: conversation, isLoading, error, refetch } = useConversation(id);
+  const { sendMessage, isStreaming, streamedContent, streamedCatalogResult, stopStream } = useChatStream(id);
+  const { sendMessage, isStreaming, streamedContent, streamedCatalogResult, streamError, stopStream, clearError } = useChatStream(id);
+  const lastMessageRef = useRef<string>("");
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // ── Saved books (localStorage) ─────────────────────────────────────────────
+@@ -80,6 +81,19 @@ export default function Chat() {
+    [savedBooks]
+  );
+
+  const handleSend = useCallback((text: string) => {
+    lastMessageRef.current = text;
+    clearError();
+    sendMessage(text);
+  }, [sendMessage, clearError]);
+
+  const retryLastMessage = useCallback(() => {
+    if (lastMessageRef.current) {
+      clearError();
+      sendMessage(lastMessageRef.current);
+    }
+  }, [sendMessage, clearError]);
+
+  const scrollToBottom = useCallback(() => {
+    scrollRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, []);
+@@ -273,9 +287,67 @@ export default function Chat() {
+        <div ref={scrollRef} className="h-2" />
+      </div>
+
+      {/* Error retry bar */}
+      {streamError && (
+        <div
+          style={{
+            flexShrink: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 10,
+            padding: "9px 16px",
+            background: "var(--error-bg)",
+            border: "none",
+            borderTop: "1px solid var(--error-bd)",
+          }}
+        >
+          <span style={{ fontSize: 13, color: "var(--error-tx)", fontWeight: 500 }}>
+            {streamError}
+          </span>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              onClick={retryLastMessage}
+              data-testid="button-retry-stream"
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 5,
+                height: 28, padding: "0 12px",
+                background: "var(--error-tx)",
+                border: "none",
+                borderRadius: 999,
+                color: "#fff",
+                fontSize: 12.5, fontWeight: 500,
+                cursor: "pointer",
+                fontFamily: "var(--ff-b)",
+              }}
+            >
+              ↺ Повторити
+            </button>
+            <button
+              onClick={clearError}
+              data-testid="button-dismiss-error"
+              aria-label="Закрити"
+              style={{
+                display: "inline-flex", alignItems: "center",
+                height: 28, padding: "0 10px",
+                background: "transparent",
+                border: "1px solid var(--error-bd)",
+                borderRadius: 999,
+                color: "var(--error-tx)",
+                fontSize: 12.5,
+                cursor: "pointer",
+                fontFamily: "var(--ff-b)",
+              }}
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Sticky input zone */}
+      <ChatInput
+        onSend={sendMessage}
+        onSend={handleSend}
+        onStop={stopStream}
+        isStreaming={isStreaming}
+      />
+Footer
+© 2026 GitHub, Inc.
+Footer navigation
+Terms
+Privacy
+Security
+Status
+Community
+Docs
+Contact
+Manage cookies
+Do not share my personal information
