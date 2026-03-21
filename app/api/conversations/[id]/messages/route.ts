@@ -75,6 +75,13 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!process.env.OPENAI_API_KEY) {
+    return new Response(
+      JSON.stringify({ error: "OPENAI_API_KEY is not configured on the server." }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
   try {
     const { id } = await params;
     const conversationId = parseInt(id);
@@ -83,7 +90,8 @@ export async function POST(
     // Save user message first
     await chatStorage.createMessage(conversationId, "user", content);
 
-    // Fetch library context from DB
+    // Ensure library data is seeded, then fetch context
+    await chatStorage.seedLibraryData();
     const [libInfo, libResources, historyMessages] = await Promise.all([
       chatStorage.getLibraryInfo(),
       chatStorage.getLibraryResources(),

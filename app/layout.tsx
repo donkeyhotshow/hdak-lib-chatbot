@@ -25,8 +25,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="uk" className={`${dmSans.variable} ${playfair.variable}`}>
-      <body className="min-h-screen bg-background font-sans antialiased">
+    <html lang="uk" className={`h-full ${dmSans.variable} ${playfair.variable}`}>
+      <body className="h-full bg-background font-sans antialiased">
         {children}
       </body>
     </html>

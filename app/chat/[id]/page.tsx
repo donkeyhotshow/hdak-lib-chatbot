@@ -163,6 +163,8 @@ export default function ChatPage() {
       if (err instanceof Error && err.name !== "AbortError") {
         console.error("Stream error:", err);
         setStreamError("Помилка з'єднання. Спробуйте ще раз.");
+        // Revert the optimistic update so the user message isn't duplicated on retry
+        mutate(`/api/conversations/${id}`);
       }
     } finally {
       flushBuffer();
