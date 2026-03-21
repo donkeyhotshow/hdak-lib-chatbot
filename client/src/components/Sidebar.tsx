@@ -15,14 +15,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-const RESOURCES = [
-  { href: "https://lib-hdak.in.ua/e-catalog.html", emoji: "📂", name: "Електронний каталог", url: "lib-hdak.in.ua" },
-  { href: "https://library-service.com.ua:8443/khkhdak/DocumentSearchForm", emoji: "🔍", name: "Пошук АБІС УФД", url: "library-service.com.ua" },
-  { href: "https://lib-hdak.in.ua/search-scientific-info.html", emoji: "🔬", name: "Наукова інформація", url: "lib-hdak.in.ua/search" },
-  { href: "https://repository.ac.kharkov.ua/home", emoji: "📖", name: "Репозитарій ХДАК", url: "repository.ac.kharkov.ua" },
-  { href: "https://lib-hdak.in.ua/", emoji: "🏛", name: "Сайт бібліотеки", url: "lib-hdak.in.ua" },
-];
-
 export function Sidebar({ className }: { className?: string }) {
   const [location, setLocation] = useLocation();
   const { data: conversations, isLoading } = useConversations();
@@ -48,96 +40,58 @@ export function Sidebar({ className }: { className?: string }) {
     <div
       className={cn("flex flex-col h-full", className)}
       style={{
-        background: "var(--p1)",
-        borderRight: "1px solid var(--border-mid)",
+        background: "hsl(25 54% 11%)",
+        borderRight: "1px solid hsl(25 50% 8%)",
       }}
     >
-      {/* Brand header */}
-      <div style={{
-        padding: "0 18px",
-        height: 56,
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        borderBottom: "1px solid var(--border-mid)",
-        background: "rgba(245,234,216,.92)",
-        backdropFilter: "blur(10px)",
-        flexShrink: 0,
-      }}>
-        <Link href="/" className="flex items-center gap-2.5 flex-1 group cursor-pointer">
-          {/* Book spine logo */}
-          <div style={{
-            width: 32, height: 32,
-            borderRadius: "var(--r-sm)",
-            background: "var(--b1)",
-            position: "relative",
-            overflow: "hidden",
-            flexShrink: 0,
-            transition: "transform .2s",
-          }}
-          className="group-hover:scale-105"
-          >
-            <span style={{
-              position: "absolute", left: 6, top: 6, right: 6, bottom: 6,
-              borderLeft: "2.5px solid var(--p2)",
-              borderRight: "2.5px solid var(--p2)",
-              opacity: .7,
-            }} />
-            <span style={{
-              position: "absolute", left: "50%", top: 6, bottom: 6,
-              width: 1.5, background: "var(--p2)",
-              transform: "translateX(-50%)", opacity: .5,
-            }} />
-          </div>
-          <div>
-            <div style={{ fontFamily: "var(--ff-d)", fontSize: 15, fontWeight: 500, color: "var(--b0)", letterSpacing: "-.02em", lineHeight: 1.1 }}>
-              Бібліотека ХДАК
-            </div>
-            <div style={{ fontSize: 10, color: "var(--text-3)", letterSpacing: ".08em", textTransform: "uppercase", marginTop: 1 }}>
-              Чат-помічник
-            </div>
-          </div>
-        </Link>
-      </div>
+      {/* Header */}
+      <div style={{ padding: "16px", borderBottom: "1px solid hsl(25 40% 18%)" }}>
+        <p style={{
+          fontSize: 10,
+          fontWeight: 500,
+          letterSpacing: "0.08em",
+          textTransform: "uppercase",
+          color: "hsl(29 30% 50%)",
+          marginBottom: 10,
+        }}>
+          Історія
+        </p>
 
-      {/* New conversation button */}
-      <div style={{ padding: "10px 12px", borderBottom: "0.5px solid var(--border-light)" }}>
         <button
           onClick={handleNewChat}
           disabled={createMutation.isPending}
           data-testid="button-new-conversation"
           style={{
             width: "100%",
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-            height: 34,
-            background: "transparent",
-            border: "1px solid var(--border-mid)",
-            borderRadius: "var(--r-pill)",
-            color: "var(--text-2)",
-            fontSize: 13, fontWeight: 500,
-            fontFamily: "var(--ff-b)",
-            cursor: createMutation.isPending ? "not-allowed" : "pointer",
-            opacity: createMutation.isPending ? 0.6 : 1,
-            transition: "all .12s",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            height: 36,
+            padding: "0 12px",
+            background: "hsl(25 40% 18%)",
+            border: "1px solid hsl(25 30% 28%)",
+            borderRadius: 8,
+            color: "hsl(37 50% 78%)",
+            fontSize: 13,
+            fontFamily: "var(--font-sans)",
+            cursor: "pointer",
+            transition: "all 0.12s",
           }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "var(--p2)"; (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border-strong)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--text-1)"; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border-mid)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--text-2)"; }}
         >
           <Plus style={{ width: 14, height: 14 }} />
           {createMutation.isPending ? "Створення..." : "Нова розмова"}
         </button>
       </div>
 
-      {/* Conversations list */}
-      <div className="flex-1 overflow-y-auto" style={{ padding: "8px 6px" }}>
+      {/* Conversation list */}
+      <div className="flex-1 overflow-y-auto scrollbar-thin py-2 px-2 space-y-0.5">
         {isLoading ? (
-          <p style={{ textAlign: "center", padding: "24px 0", fontSize: 13, color: "var(--text-4)" }} className="animate-pulse">
+          <div style={{ padding: "24px 8px", textAlign: "center", fontSize: 12, color: "hsl(29 30% 50%)" }}>
             Завантаження...
-          </p>
+          </div>
         ) : conversations?.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "24px 16px" }}>
-            <p style={{ fontSize: 13, color: "var(--text-3)", marginBottom: 4 }}>Ще немає розмов.</p>
-            <p style={{ fontSize: 11, color: "var(--text-4)" }}>Розпочніть нову розмову вище.</p>
+          <div style={{ padding: "24px 8px", textAlign: "center" }}>
+            <p style={{ fontSize: 12, color: "hsl(29 30% 50%)" }}>Ще немає розмов.</p>
           </div>
         ) : (
           conversations?.map((conv) => {
@@ -148,49 +102,68 @@ export function Sidebar({ className }: { className?: string }) {
                   data-testid={`conv-item-${conv.id}`}
                   className="group relative"
                   style={{
-                    display: "flex", alignItems: "center", gap: 8,
-                    padding: "7px 10px",
-                    borderRadius: "var(--r-md)",
-                    marginBottom: 2,
-                    background: isActive ? "rgba(255,252,245,.9)" : "transparent",
-                    border: `0.5px solid ${isActive ? "var(--border-mid)" : "transparent"}`,
-                    color: isActive ? "var(--text-1)" : "var(--text-3)",
-                    fontSize: 13,
-                    fontWeight: isActive ? 500 : 400,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "8px 10px",
+                    borderRadius: 7,
                     cursor: "pointer",
-                    transition: "all .12s",
+                    background: isActive ? "hsl(25 40% 18%)" : "transparent",
+                    transition: "background 0.12s",
                   }}
-                  onMouseEnter={(e) => { if (!isActive) { (e.currentTarget as HTMLDivElement).style.background = "rgba(255,252,245,.6)"; (e.currentTarget as HTMLDivElement).style.color = "var(--text-2)"; } }}
-                  onMouseLeave={(e) => { if (!isActive) { (e.currentTarget as HTMLDivElement).style.background = "transparent"; (e.currentTarget as HTMLDivElement).style.color = "var(--text-3)"; } }}
+                  onMouseEnter={e => {
+                    if (!isActive) (e.currentTarget as HTMLDivElement).style.background = "hsl(25 35% 16%)";
+                  }}
+                  onMouseLeave={e => {
+                    if (!isActive) (e.currentTarget as HTMLDivElement).style.background = "transparent";
+                  }}
                 >
-                  <MessageSquare style={{ width: 14, height: 14, flexShrink: 0, color: isActive ? "var(--b3)" : "var(--text-4)" }} />
-                  <span className="flex-1 truncate pr-6">{conv.title || "Без назви"}</span>
+                  <MessageSquare style={{
+                    width: 14,
+                    height: 14,
+                    flexShrink: 0,
+                    color: isActive ? "hsl(37 50% 75%)" : "hsl(29 20% 40%)",
+                  }} />
+
+                  <div style={{
+                    flex: 1,
+                    minWidth: 0,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    fontSize: 13,
+                    color: isActive ? "hsl(37 50% 85%)" : "hsl(37 30% 60%)",
+                    paddingRight: 24,
+                  }}>
+                    {conv.title || "Без назви"}
+                  </div>
+
                   {conv.createdAt && (
-                    <span style={{ fontSize: 10, color: "var(--text-4)", flexShrink: 0, tabularNums: true } as any}>
+                    <span style={{
+                      fontSize: 10,
+                      color: "hsl(29 20% 38%)",
+                      flexShrink: 0,
+                    }}>
                       {format(new Date(conv.createdAt), "d MMM")}
                     </span>
                   )}
 
-                  <div className="opacity-0 group-hover:opacity-100 absolute right-1.5 top-1/2 -translate-y-1/2 transition-opacity z-10">
+                  <div className="opacity-0 group-hover:opacity-100 absolute right-2 top-1/2 -translate-y-1/2 transition-opacity z-10">
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <button
                           onClick={(e) => e.stopPropagation()}
                           data-testid={`button-delete-conv-${conv.id}`}
                           style={{
-                            width: 24, height: 24,
-                            display: "flex", alignItems: "center", justifyContent: "center",
+                            padding: "4px",
+                            borderRadius: 4,
                             background: "transparent",
-                            border: "0.5px solid var(--border-light)",
-                            borderRadius: "var(--r-sm)",
-                            color: "var(--text-4)",
+                            border: "none",
                             cursor: "pointer",
-                            transition: "all .12s",
+                            color: "hsl(0 60% 60%)",
                           }}
-                          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(180,30,30,.08)"; (e.currentTarget as HTMLButtonElement).style.color = "#c62828"; }}
-                          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; (e.currentTarget as HTMLButtonElement).style.color = "var(--text-4)"; }}
                         >
-                          <Trash2 style={{ width: 11, height: 11 }} />
+                          <Trash2 style={{ width: 13, height: 13 }} />
                         </button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
@@ -219,45 +192,31 @@ export function Sidebar({ className }: { className?: string }) {
         )}
       </div>
 
-      {/* Resources footer */}
-      <div style={{
-        borderTop: "1px solid var(--border-mid)",
-        padding: "10px 8px",
-        background: "rgba(237,224,200,.5)",
-        flexShrink: 0,
-      }}>
-        <div style={{ fontSize: 10, color: "var(--text-4)", letterSpacing: ".08em", textTransform: "uppercase", padding: "2px 8px 6px" }}>
-          Ресурси
-        </div>
-        {RESOURCES.map(({ href, emoji, name, url }) => (
+      {/* Footer */}
+      <div style={{ padding: "12px", borderTop: "1px solid hsl(25 40% 18%)" }}>
+        {[
+          { label: "Офіційний сайт", href: "https://lib-hdak.in.ua/" },
+          { label: "Електронний каталог", href: "https://library-service.com.ua:8443/khkhdak/DocumentSearchForm" },
+        ].map(({ label, href }) => (
           <a
-            key={href}
+            key={label}
             href={href}
             target="_blank"
             rel="noopener noreferrer"
             style={{
-              display: "flex", alignItems: "flex-start", gap: 7,
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
               padding: "6px 8px",
-              borderRadius: "var(--r-md)",
+              fontSize: 11.5,
+              color: "hsl(29 25% 45%)",
               textDecoration: "none",
-              transition: "all .12s",
+              borderRadius: 6,
+              transition: "color 0.12s",
             }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--p2)"; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent"; }}
           >
-            <span style={{
-              width: 18, height: 18,
-              borderRadius: "var(--r-sm)",
-              background: "var(--p2)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 10, flexShrink: 0, marginTop: 1,
-            }}>
-              {emoji}
-            </span>
-            <div>
-              <div style={{ fontSize: 11.5, fontWeight: 500, color: "var(--text-1)", lineHeight: 1.3 }}>{name}</div>
-              <div style={{ fontSize: 10, color: "var(--text-4)", marginTop: 1 }}>{url}</div>
-            </div>
+            <ExternalLink style={{ width: 11, height: 11, flexShrink: 0 }} />
+            {label}
           </a>
         ))}
       </div>
