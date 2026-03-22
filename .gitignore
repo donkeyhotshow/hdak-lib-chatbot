@@ -9,3 +9,10 @@ vite.config.ts.*
 .env.development.local
 .env.production.local
 drizzle
+.next
+.next/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
