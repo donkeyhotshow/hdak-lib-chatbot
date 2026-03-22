@@ -17,6 +17,10 @@ function getModel(): LanguageModel {
     const openrouter = createOpenRouter({
       apiKey: openRouterKey,
       baseURL: openRouterUrl.replace('/chat/completions', ''),
+      headers: {
+        "HTTP-Referer": process.env.OPENROUTER_HTTP_REFERER || "https://hdak-lib-chatbot.onrender.com",
+        "X-Title": process.env.OPENROUTER_X_TITLE || "HDAK Library Chatbot",
+      }
     });
     return openrouter(modelName);
   }
@@ -34,12 +38,27 @@ function buildSystemPrompt(): string {
 
 === ПРАВИЛА ВІДПОВІДЕЙ ===
 1. Відповідай коротко, точно, по-українськи.
-2. Використовуй тільки перевірену інформацію з бази знань бібліотеки.
+2. Використовуй тільки перевірену інформацію.
 3. Якщо користувач запитує те, чого немає в базі — направляй на офіційний сайт (https://lib-hdak.in.ua/) або контакти директора (кімн. 16).
 4. Обов'язково додавай посилання, якщо вони є в тексті.
 
-=== ПРИМІТКА ===
-Використовуй дані про бібліотеку (каталог, запис, графік, контакти, правила), які ти отримав з бази знань.`;
+=== БАЗА ЗНАНЬ (Фактичні дані бібліотеки ХДАК) ===
+Графік роботи:
+Пн-Пт: 9:00 - 17:00 (Абонемент, Читальний зал)
+Сб-Нд: Вихідні
+Остання п'ятниця місяця - санітарний день.
+
+Контакти:
+Директор бібліотеки: кімн. 16, тел. 731-27-83.
+Електронна пошта: admin@lib-hdak.in.ua.
+
+Ресурси:
+Електронний каталог (АБІС): https://library-service.com.ua:8443/khkhdak/DocumentSearchForm
+Репозитарій: http://repository.hdak.kharkov.ua/
+Сайт бібліотеки: https://lib-hdak.in.ua/
+
+Запис до бібліотеки:
+Проводиться за списками груп або особисто (через читацький чи студентський квиток або заставу).`;
 }
 
 // Map some internal triggers to instant response data
