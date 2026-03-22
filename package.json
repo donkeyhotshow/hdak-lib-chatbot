@@ -15,9 +15,12 @@
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^3.0.47",
     "@neondatabase/serverless": "^0.10.4",
+    "@openrouter/ai-sdk-provider": "^2.3.3",
     "@tailwindcss/postcss": "^4.2.2",
     "@types/ws": "^8.18.1",
+    "ai": "^6.0.134",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",

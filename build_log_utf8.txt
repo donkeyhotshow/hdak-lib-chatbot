@@ -1,0 +1,68 @@
+﻿
+> hdak-lib-chatbot@1.0.0 build
+> next build
+
+node.exe :  ΓÜá Warning: Next.js inferred your work
+space root, but it may not be correct.
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ( ΓÜá  
+   Warning: N...not be correct.:String) [], Remot  
+  eException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+ We detected multiple lockfiles and selected the di
+rectory of C:\Users\Administrator\package-lock.json
+ as the root directory.
+ To silence this warning, set `outputFileTracingRoo
+t` in your Next.js config, or consider removing one
+ of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/co
+nfig/next-config-js/output#caveats for more informa
+tion.
+ Detected additional lockfiles: 
+   * C:\Users\Administrator\Documents\dev\hdak-lib-
+chatbot\package-lock.json
+
+   Γû▓ Next.js 15.5.14
+
+   Creating an optimized production build ...
+ Γ£ô Compiled successfully in 8.2s
+   Linting and checking validity of types ...
+ Γ¿» ESLint must be installed in order to run durin
+g builds: npm install --save-dev eslint
+   Collecting page data ...
+WARNING: DATABASE_URL is not set. Database calls wi
+ll fail at runtime.
+WARNING: DATABASE_URL is not set. Database calls wi
+ll fail at runtime.
+WARNING: DATABASE_URL is not set. Database calls wi
+ll fail at runtime.
+   Generating static pages (0/5) ...
+   Generating static pages (1/5) 
+   Generating static pages (2/5) 
+   Generating static pages (3/5) 
+ Γ£ô Generating static pages (5/5)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                 Size  First Load JS
+Γöî Γùï /                                    1.21 kB         110 kB
+Γö£ Γùï /_not-found                            994 B         103 kB
+Γö£ ╞Æ /api/conversations                     134 B         102 kB
+Γö£ ╞Æ /api/conversations/[id]                134 B         102 kB
+Γö£ ╞Æ /api/conversations/[id]/messages       134 B         102 kB
+Γö£ ╞Æ /api/health                            134 B         102 kB
+Γöö ╞Æ /chat/[id]                           46.8 kB         156 kB
++ First Load JS shared by all             102 kB
+  Γö£ chunks/255-38b49df12a94ee57.js         46 kB
+  Γö£ chunks/4bd1b696-c023c6e3521b1417.js  54.2 kB
+  Γöö other shared chunks (total)             2 kB
+
+
+Γùï  (Static)   prerendered as static content
+╞Æ  (Dynamic)  server-rendered on demand
+
