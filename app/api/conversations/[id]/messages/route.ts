@@ -1,4 +1,4 @@
-import { streamText, type LanguageModelV1 } from "ai";
+import { streamText, type LanguageModel } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { chatStorage } from "@/lib/storage";
@@ -7,7 +7,7 @@ export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
 // Select the best available model provider
-function getModel(): LanguageModelV1 {
+function getModel(): LanguageModel {
   const openRouterKey = process.env.BUILT_IN_FORGE_API_KEY;
   const openRouterUrl = process.env.BUILT_IN_FORGE_API_URL;
   const openaiKey = process.env.OPENAI_API_KEY;
