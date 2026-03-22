@@ -27,10 +27,6 @@
 }
 
 :root {
-  --bg:     var(--color-paper);
-  --bg2:    var(--color-paper-2);
-  --bg3:    var(--color-paper-3);
-  --bg4:    var(--color-paper-4);
   --d0:     #120804;
   --d1:     #1c0f06;
   --d2:     #281508;
@@ -63,8 +59,13 @@ html, body {
 ::-webkit-scrollbar-thumb { background: var(--b2); border-radius: 2px; }
 
 @keyframes fade-up {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: none; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 @keyframes blink { 
@@ -77,9 +78,19 @@ html, body {
   40% { opacity: 1; transform: scale(1.35); } 
 }
 
+.animate-fade-up { animation: fade-up 0.28s cubic-bezier(0.22,1,0.36,1) both; }
+.animate-fade-in { animation: fade-in 0.22s ease both; }
+
 .scrollbar-none { scrollbar-width: none; }
 .scrollbar-none::-webkit-scrollbar { display: none; }
 
-.prose-hdak strong { font-weight: 500; }
-.prose-hdak a { color: var(--gold); border-bottom: 0.5px solid rgba(184,124,50,0.22); transition: border-color 0.1s; }
+/* Enhanced prose styles for bot messages */
+.prose-hdak { line-height: 1.7; }
+.prose-hdak strong { font-weight: 600; color: #1c0f06; }
+.prose-hdak a { color: var(--gold); border-bottom: 0.5px solid rgba(184,124,50,0.22); transition: border-color 0.15s; }
 .prose-hdak a:hover { border-bottom-color: var(--gold); }
+.prose-hdak p { margin-bottom: 0.6em; }
+.prose-hdak p:last-child { margin-bottom: 0; }
+.prose-hdak ul, .prose-hdak ol { padding-left: 1.2em; margin: 0.4em 0; }
+.prose-hdak li { margin-bottom: 0.25em; }
+.prose-hdak code { background: rgba(23,12,4,0.07); padding: 0.1em 0.4em; border-radius: 4px; font-size: 0.88em; }

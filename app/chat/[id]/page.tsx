@@ -92,12 +92,36 @@ function ChatPageInner() {
 
       const decoder = new TextDecoder()
       let full = ''
+      let buffer = ''
 
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
-        full += decoder.decode(value, { stream: true })
-        setStreamContent(full)
+        buffer += decoder.decode(value, { stream: true })
+
+        // Parse Vercel AI SDK Data Stream Protocol: lines like `0:"text chunk"`
+        const lines = buffer.split('\n')
+        buffer = lines.pop() ?? ''
+
+        for (const line of lines) {
+          if (line.startsWith('0:')) {
+            try {
+              const text = JSON.parse(line.slice(2))
+              if (typeof text === 'string') {
+                full += text
+                setStreamContent(full)
+              }
+            } catch {
+              // also try plain text fallback
+              const plain = line.slice(2).replace(/^"|"$/g, '')
+              if (plain) { full += plain; setStreamContent(full) }
+            }
+          } else if (!line.startsWith('d:') && !line.startsWith('e:') && line.trim() && !line.startsWith('f:')) {
+            // plain-text fallback (non-Vercel SDK responses)
+            full += line
+            setStreamContent(full)
+          }
+        }
       }
 
       if (full) {
@@ -146,22 +170,30 @@ function ChatPageInner() {
           )}
 
           {error && (
-            <div className="flex items-center justify-between p-[7px_11px] mt-1 bg-[#8c2323]/04 border border-[#8c2323]/12 rounded-[9px] animate-fade-up">
-              <div className="text-[12px] text-[#7a4040] flex items-center gap-1">
-                <span className="w-1 h-1 rounded-full bg-[#7a4040] flex-shrink-0" />
-                {error}
+            <div className="flex items-start justify-between p-3 mt-2 mb-1 bg-[#fff8f6] border border-[#d9887a]/25 rounded-[12px] animate-fade-up gap-3">
+              <div className="flex items-start gap-2.5 flex-1 min-w-0">
+                <span className="text-[16px] flex-shrink-0 mt-[1px]">⚠️</span>
+                <div>
+                  <div className="text-[12.5px] font-medium text-[#7a3a2e] leading-snug">
+                    {error === 'Service unavailable' ? 'Сервіс тимчасово недоступний' : error}
+                  </div>
+                  <div className="text-[11px] text-[#9e6d62] mt-[2px]">
+                    Можливо, не налаштований API-ключ або сервер перезапускається
+                  </div>
+                </div>
               </div>
               <button 
                 onClick={() => {
                   const lastUserMsg = [...messages].reverse().find(m => m.role === 'user')
                   if (lastUserMsg) send(lastUserMsg.content)
                 }}
-                className="h-[21px] px-[9px] bg-transparent border border-[#8c2323]/20 rounded-full text-[#7a4040] text-[10.5px] font-medium hover:bg-[#8c2323]/05 transition-all outline-none"
+                className="flex-shrink-0 h-[28px] px-3 bg-white border border-[#d9887a]/35 rounded-full text-[#7a3a2e] text-[11px] font-medium hover:bg-[#fef0ee] transition-all outline-none whitespace-nowrap"
               >
-                ↺ Повторити
+                ↺ Ще раз
               </button>
             </div>
           )}
+
         </main>
 
         <button
