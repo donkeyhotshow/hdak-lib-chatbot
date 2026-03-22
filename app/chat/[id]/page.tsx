@@ -1,10 +1,11 @@
 'use client'
 
-import { Suspense, useEffect, useRef, useState } from 'react'
-import { useParams, useRouter, useSearchParams } from 'next/navigation'
-import Link from 'next/link'
-import { ChatMessage } from '@/components/ChatMessage'
+import React, { useEffect, useRef, useState, Suspense } from 'react'
+import { useParams, useSearchParams } from 'next/navigation'
+import { Header } from '@/components/Header'
+import { ChatMessage, TypingIndicator } from '@/components/ChatMessage'
 import { ChatInput } from '@/components/ChatInput'
+import { Tabs } from '@/components/Tabs'
 
 interface Message {
   id: number | string
@@ -12,49 +13,63 @@ interface Message {
   content: string
 }
 
-function ChatContent() {
-  const { id } = useParams<{ id: string }>()
-  const router = useRouter()
+function ChatPageInner() {
+  const { id } = useParams()
   const searchParams = useSearchParams()
-  const bottomRef = useRef<HTMLDivElement>(null)
-
   const [messages, setMessages] = useState<Message[]>([])
   const [streaming, setStreaming] = useState(false)
   const [streamContent, setStreamContent] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [showScrollBtn, setShowScrollBtn] = useState(false)
   const [loaded, setLoaded] = useState(false)
-  const didAutoSend = useRef(false)
+  
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const hasInited = useRef(false)
 
-  /* Load existing messages */
+  const scrollToBottom = (behavior: 'smooth' | 'auto' = 'smooth') => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTo({
+        top: scrollRef.current.scrollHeight,
+        behavior,
+      })
+    }
+  }
+
+  const handleScroll = () => {
+    if (scrollRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = scrollRef.current
+      const isBottom = scrollHeight - scrollTop - clientHeight < 60
+      setShowScrollBtn(!isBottom)
+    }
+  }
+
   useEffect(() => {
-    fetch(`/api/conversations/${id}`)
-      .then(r => r.json())
+    fetch(`/api/conversations/${id}/messages`)
+      .then(res => res.json())
       .then(data => {
-        setMessages(data.messages ?? [])
+        if (Array.isArray(data)) setMessages(data)
         setLoaded(true)
       })
       .catch(() => setLoaded(true))
   }, [id])
 
-  /* Auto-send initial query from landing page */
   useEffect(() => {
-    if (!loaded || didAutoSend.current) return
-    const q = searchParams.get('q')
-    if (q) {
-      didAutoSend.current = true
-      send(q)
+    if (loaded && searchParams.get('q') && !hasInited.current) {
+      const q = searchParams.get('q')
+      if (q) {
+        hasInited.current = true
+        send(q)
+      }
     }
-  }, [loaded])
+  }, [loaded, searchParams])
 
-  /* Scroll to bottom */
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, streamContent])
+    scrollToBottom(streaming ? 'smooth' : 'auto')
+  }, [messages, streamContent, streaming])
 
   async function send(text: string) {
-    if (streaming) return
+    if (!text.trim() || streaming) return
     setError(null)
-
     const userMsg: Message = { id: Date.now(), role: 'user', content: text }
     setMessages(prev => [...prev, userMsg])
     setStreaming(true)
@@ -81,134 +96,103 @@ function ChatContent() {
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
-        const chunk = decoder.decode(value, { stream: true })
-        full += chunk
+        full += decoder.decode(value, { stream: true })
         setStreamContent(full)
       }
 
-      setMessages(prev => [...prev, {
-        id: Date.now() + 1,
-        role: 'assistant',
-        content: full,
-      }])
+      if (full) {
+        setMessages(prev => [
+          ...prev,
+          { id: Date.now() + 1, role: 'assistant', content: full },
+        ])
+      }
+      setStreamContent('')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Невідома помилка')
-      setMessages(prev => prev.filter(m => m.id !== userMsg.id))
     } finally {
       setStreaming(false)
-      setStreamContent('')
     }
   }
 
   return (
-    <div className="flex flex-col h-dvh overflow-hidden bg-[var(--color-paper)]">
-
-      {/* Header */}
-      <header className="flex-shrink-0 flex items-center justify-between h-[52px] px-5
-                         bg-[var(--color-ink)] border-b border-black/20 z-10">
-        <div className="flex items-center gap-3">
-          <Link href="/" className="flex items-center gap-2 group">
-            <svg width="22" height="17" viewBox="0 0 22 17" fill="none">
-              <path d="M11 2C11 2 7.5 1 3 2.5L2.5 14.5C7 13 10.5 14 11 14L11 2Z"
-                fill="rgba(192,136,64,0.2)" stroke="rgba(192,136,64,0.6)" strokeWidth="0.7"/>
-              <path d="M11 2C11 2 14.5 1 19 2.5L19.5 14.5C15 13 11.5 14 11 14L11 2Z"
-                fill="rgba(192,136,64,0.14)" stroke="rgba(192,136,64,0.5)" strokeWidth="0.7"/>
-              <line x1="11" y1="1.5" x2="11" y2="14" stroke="rgba(192,136,64,0.8)" strokeWidth="0.8"/>
-            </svg>
-            <span className="font-[var(--font-serif)] text-[15px] text-white/88 tracking-[0.01em]
-                             group-hover:text-white transition-colors">
-              Бібліотека ХДАК
-            </span>
-          </Link>
-        </div>
-        <div className="flex items-center gap-2">
-          <Link href="/"
-            className="h-[26px] px-3 rounded-full border border-[rgba(192,136,64,0.25)]
-                       text-[rgba(192,136,64,0.65)] text-[11.5px]
-                       hover:border-[rgba(192,136,64,0.5)] hover:text-[rgba(220,168,90,0.9)]
-                       transition-all duration-150 flex items-center gap-1">
-            + Новий чат
-          </Link>
-        </div>
-      </header>
-
-      {/* Messages */}
-      <main className="flex-1 overflow-y-auto px-4 py-6">
-        <div className="max-w-[680px] mx-auto space-y-5">
-
-          {/* Loading skeleton */}
-          {!loaded && (
-            <div className="flex flex-col gap-4">
-              {[1,2,3].map(i => (
-                <div key={i} className={`flex ${i % 2 === 0 ? 'justify-end' : ''}`}>
-                  <div className={`h-10 rounded-2xl animate-pulse bg-[var(--color-paper-3)]
-                                  ${i % 2 === 0 ? 'w-48' : 'w-64'}`}/>
-                </div>
-              ))}
+    <div className="flex flex-col h-full bg-[#f7f4ef]">
+      <Header showNewChat />
+      <Tabs />
+      
+      <div className="flex-1 overflow-hidden relative flex flex-col">
+        <main 
+          ref={scrollRef}
+          onScroll={handleScroll}
+          className="flex-1 overflow-y-auto p-[24px_18px_12px] flex flex-col scrollbar-none"
+        >
+          {messages.length > 0 && (
+            <div className="flex items-center gap-2 text-[9.5px] font-medium tracking-[0.09em] uppercase text-[#c4a882] mb-[18px] before:content-[''] before:flex-1 before:h-[0.5px] before:bg-[#170c04]/06 after:content-[''] after:flex-1 after:h-[0.5px] after:bg-[#170c04]/06">
+              сьогодні
             </div>
           )}
 
-          {/* Messages list */}
-          {loaded && messages.map(msg => (
-            <ChatMessage key={msg.id} role={msg.role} content={msg.content}/>
+          {messages.map((m) => (
+            <ChatMessage key={m.id} role={m.role} content={m.content} onChipClick={send} />
           ))}
 
-          {/* Streaming response */}
-          {streaming && streamContent && (
-            <ChatMessage role="assistant" content={streamContent} isStreaming/>
+          {streaming && (
+            <>
+              {streamContent ? (
+                <ChatMessage role="assistant" content={streamContent} isStreaming onChipClick={send} />
+              ) : (
+                <TypingIndicator />
+              )}
+            </>
           )}
 
-          {/* Typing indicator (before first chunk) */}
-          {streaming && !streamContent && (
-            <div className="flex items-end gap-2">
-              <div className="w-[24px] h-[24px] rounded-[5px] bg-[var(--color-ink)]
-                              flex items-center justify-center flex-shrink-0">
-                <svg width="13" height="10" viewBox="0 0 13 10" fill="none">
-                  <path d="M6.5 1C6.5 1 4.2.5 2 1L1.5 8.8C3.8 8.3 6 8.8 6.5 8.8L6.5 1Z"
-                    fill="rgba(192,136,64,0.22)" stroke="rgba(192,136,64,0.6)" strokeWidth="0.6"/>
-                  <path d="M6.5 1C6.5 1 8.8.5 11 1L11.5 8.8C9.2 8.3 7 8.8 6.5 8.8L6.5 1Z"
-                    fill="rgba(192,136,64,0.16)" stroke="rgba(192,136,64,0.48)" strokeWidth="0.6"/>
-                  <line x1="6.5" y1="1" x2="6.5" y2="8.8" stroke="rgba(192,136,64,0.8)" strokeWidth="0.8"/>
-                </svg>
-              </div>
-              <div className="bg-white border border-[rgba(26,14,6,0.08)]
-                              rounded-[16px_16px_16px_3px] px-4 py-3 flex gap-1 items-center">
-                {[0, 0.18, 0.36].map((delay, i) => (
-                  <span key={i}
-                    className="w-[4px] h-[4px] rounded-full bg-[var(--color-ink-4)]
-                               animate-[typing_1.3s_ease-in-out_infinite]"
-                    style={{ animationDelay: `${delay}s` }}/>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Error banner */}
           {error && (
-            <div className="flex items-center justify-between gap-3 px-4 py-3
-                            bg-[#FEF2F2] border border-[#FECACA] rounded-[10px]
-                            text-[#991B1B] text-[13px]">
-              <span>{error}</span>
-              <button onClick={() => setError(null)}
-                      className="text-[#991B1B]/60 hover:text-[#991B1B] text-[16px] leading-none">
-                ×
+            <div className="flex items-center justify-between p-[7px_11px] mt-1 bg-[#8c2323]/04 border border-[#8c2323]/12 rounded-[9px] animate-fade-up">
+              <div className="text-[12px] text-[#7a4040] flex items-center gap-1">
+                <span className="w-1 h-1 rounded-full bg-[#7a4040] flex-shrink-0" />
+                {error}
+              </div>
+              <button 
+                onClick={() => {
+                  const lastUserMsg = [...messages].reverse().find(m => m.role === 'user')
+                  if (lastUserMsg) send(lastUserMsg.content)
+                }}
+                className="h-[21px] px-[9px] bg-transparent border border-[#8c2323]/20 rounded-full text-[#7a4040] text-[10.5px] font-medium hover:bg-[#8c2323]/05 transition-all outline-none"
+              >
+                ↺ Повторити
               </button>
             </div>
           )}
+        </main>
 
-          <div ref={bottomRef}/>
+        <button
+          onClick={() => scrollToBottom()}
+          className={`absolute bottom-[90px] right-[18px] z-10 w-8 h-8 rounded-full bg-[#1c0f06] border border-[#b87c32]/20 text-[#f0e4c8]/75 flex items-center justify-center shadow-[0_2px_8px_rgba(0,0,0,0.2)] transition-opacity duration-200 outline-none
+            ${showScrollBtn ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+          aria-label="Прокрутити вниз"
+        >
+          <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M7 1v12"/><path d="M3 9l4 4 4-4"/>
+          </svg>
+        </button>
+
+        <div className="flex-shrink-0 px-[18px] py-[9px] pb-[max(9px,env(safe-area-inset-bottom))] bg-[#f7f4ef] border-t border-[#170c04]/06">
+          <ChatInput onSend={send} disabled={streaming} />
         </div>
-      </main>
+      </div>
 
-      <ChatInput onSend={send} disabled={streaming}/>
+       {/* Bottom Status Bar */}
+       <div className="flex-shrink-0 flex items-center gap-2 px-5 py-2 bg-[#120804] text-[10px] text-[#f7f4ef]/25 border-t border-black/20">
+        <span className="w-1 h-1 rounded-full bg-[#4e8a4e]/50 flex-shrink-0" />
+        вул. Бурсацький узвіз, 4, Харків · (057) 731-27-83 · +380 66 145 84 84
+      </div>
     </div>
   )
 }
 
 export default function ChatPage() {
   return (
-    <Suspense fallback={<div className="flex h-dvh items-center justify-center">Завантаження...</div>}>
-      <ChatContent />
+    <Suspense fallback={null}>
+      <ChatPageInner />
     </Suspense>
   )
 }

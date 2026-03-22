@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: hdak-lib-chatbot # Имя вашего сервиса на Render
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_VERSION
+        value: 20.10.0 # Принудительно задаем современную версию
+      - key: DATABASE_URL
+        sync: false # Нужно будет добавить в Dashboard Render
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: NEXTAUTH_SECRET
+        sync: false
+      - key: NEXTAUTH_URL
+        value: https://hdak-lib-chatbot.onrender.com

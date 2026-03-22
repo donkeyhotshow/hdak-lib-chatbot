@@ -19,7 +19,10 @@ export async function POST(request: Request) {
     const conversation = await chatStorage.createConversation(title || "Нова розмова");
     return NextResponse.json(conversation, { status: 201 });
   } catch (error) {
-    console.error("Error creating conversation:", error);
-    return NextResponse.json({ error: "Failed to create conversation" }, { status: 500 });
+    console.error("CRITICAL ERROR in POST /api/conversations:", error);
+    return NextResponse.json({ 
+      error: "Failed to create conversation", 
+      details: error instanceof Error ? error.message : String(error) 
+    }, { status: 500 });
   }
 }
