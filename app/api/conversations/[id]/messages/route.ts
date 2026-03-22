@@ -32,31 +32,31 @@ function getModel(): LanguageModel {
   throw new Error("Missing AI API key (BUILT_IN_FORGE_API_KEY or OPENAI_API_KEY)");
 }
 
-function buildSystemPrompt(): string {
+async function buildSystemPrompt(): Promise<string> {
+  const info = await chatStorage.getLibraryInfo();
+  const resources = await chatStorage.getLibraryResources();
+
+  let infoString = "=== БАЗА ЗНАНЬ (Фактичні дані бібліотеки ХДАК) ===\n\n";
+  
+  if (info && info.length > 0) {
+    infoString += "ЗАГАЛЬНА ІНФОРМАЦІЯ:\n" + info.map(i => `- ${i.key}: ${i.value_uk}`).join("\n") + "\n\n";
+  }
+
+  if (resources && resources.length > 0) {
+    infoString += "РЕСУРСИ:\n" + resources.map(r => `- ${r.name} (${r.type}): ${r.url}\n  Опис: ${r.description_uk}`).join("\n") + "\n\n";
+  }
+
   return `Ти — офіційний чат-помічник бібліотеки Харківської державної академії культури (ХДАК). 
 Твоя мета: допомагати користувачам знаходити книги, записуватися до бібліотеки та користуватися її ресурсами.
 
 === ПРАВИЛА ВІДПОВІДЕЙ ===
 1. Відповідай коротко, точно, по-українськи.
 2. Використовуй тільки перевірену інформацію.
-3. Якщо користувач запитує те, чого немає в базі — направляй на офіційний сайт (https://lib-hdak.in.ua/) або контакти директора (кімн. 16).
+3. Якщо користувач запитує те, чого немає в базі — направляй на офіційний сайт (https://lib-hdak.in.ua/) або на контактну пошту/телефон з розділу контактів.
 4. Обов'язково додавай посилання, якщо вони є в тексті.
 
-=== БАЗА ЗНАНЬ (Фактичні дані бібліотеки ХДАК) ===
-Графік роботи:
-Пн-Пт: 9:00 - 17:00 (Абонемент, Читальний зал)
-Сб-Нд: Вихідні
-Остання п'ятниця місяця - санітарний день.
-
-Контакти:
-Директор бібліотеки: кімн. 16, тел. 731-27-83.
-Електронна пошта: admin@lib-hdak.in.ua.
-
-Ресурси:
-Електронний каталог (АБІС): https://library-service.com.ua:8443/khkhdak/DocumentSearchForm
-Репозитарій: http://repository.hdak.kharkov.ua/
-Сайт бібліотеки: https://lib-hdak.in.ua/
-
+${infoString}
+=== КІНЕЦЬ БАЗИ ЗНАНЬ ===
 Запис до бібліотеки:
 Проводиться за списками груп або особисто (через читацький чи студентський квиток або заставу).`;
 }
@@ -105,9 +105,11 @@ export async function POST(
     const history = await chatStorage.getMessagesByConversation(conversationId);
     
     // 4. Stream response using AI SDK
+    const systemPrompt = await buildSystemPrompt();
+
     const result = streamText({
       model: getModel(),
-      system: buildSystemPrompt(),
+      system: systemPrompt,
       messages: history.map(m => ({
         role: m.role as "user" | "assistant",
         content: m.content,
