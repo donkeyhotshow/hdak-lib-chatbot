@@ -34,22 +34,24 @@ function buildSystemPrompt(): string {
 
 === ПРАВИЛА ВІДПОВІДЕЙ ===
 1. Відповідай коротко, точно, по-українськи.
-2. Використовуй тільки перевірену інформацію з бази знань нижче.
+2. Використовуй тільки перевірену інформацію з бази знань бібліотеки.
 3. Якщо користувач запитує те, чого немає в базі — направляй на офіційний сайт (https://lib-hdak.in.ua/) або контакти директора (кімн. 16).
 4. Обов'язково додавай посилання, якщо вони є в тексті.
 
-=== БАЗА ЗНАНЬ ===
-(библиотечные данные: каталог, запись, график, контакты, правила)
-... [остальная база знаний] ...`;
+=== ПРИМІТКА ===
+Використовуй дані про бібліотеку (каталог, запис, графік, контакти, правила), які ти отримав з бази знань.`;
 }
 
-// Map the internal triggers to response data
+// Map some internal triggers to instant response data
 const AUTOMATED_REPLIES: Record<string, { content: string; chips: string[] }> = {
   "каталог": {
-    content: "Електронний каталог ХДАК: [Пошук](https://library-service.com.ua:8443/khkhdak/DocumentSearchForm).",
-    chips: ["Як шукати?", "АБІС", "Репозитарій"]
+    content: "Електронний каталог бібліотеки ХДАК доступний за посиланням: [Пошук в каталозі](https://library-service.com.ua:8443/khkhdak/DocumentSearchForm).",
+    chips: ["Як шукати?", "Репозитарій", "Контакти"]
   },
-  // ... other replies ...
+  "графік": {
+    content: "Бібліотека працює з 9:00 до 17:00 (Пн-Пт). Детальніше про графік абонементів та читальних залів можна дізнатися в розділі контактів.",
+    chips: ["Записатися", "Де знаходиться?", "Правила"]
+  }
 };
 
 export async function POST(
@@ -63,22 +65,26 @@ export async function POST(
 
     if (!content) return Response.json({ error: "Empty message" }, { status: 400 });
 
+    // Ensure DB context is seeded (runs in background)
+    chatStorage.seedLibraryData().catch(console.error);
+
     // 1. Save user message
     await chatStorage.createMessage(conversationId, "user", content);
 
-    // 2. Fetch history
-    const history = await chatStorage.getMessagesByConversation(conversationId);
-    
-    // 3. Simple automated reply check (optional, but keep it for speed)
+    // 2. Simple automated reply check for instant feedback
     const lower = content.toLowerCase();
     const trigger = Object.keys(AUTOMATED_REPLIES).find(t => lower.includes(t));
     if (trigger) {
       const reply = AUTOMATED_REPLIES[trigger];
       const responseText = `${reply.content}\n\n[CHIPS: ${reply.chips.join(', ')}]`;
       await chatStorage.createMessage(conversationId, "assistant", responseText);
-      return new Response(responseText + "[DONE]", { headers: { "Content-Type": "text/plain" } });
+      // We return text directly for speed in this branch
+      return new Response(responseText, { headers: { "Content-Type": "text/plain" } });
     }
 
+    // 3. Fetch history
+    const history = await chatStorage.getMessagesByConversation(conversationId);
+    
     // 4. Stream response using AI SDK
     const result = streamText({
       model: getModel(),
@@ -100,7 +106,10 @@ export async function POST(
 
   } catch (error) {
     console.error("Critical API Error:", error);
-    return Response.json({ error: "Service unavailable" }, { status: 500 });
+    return Response.json({ 
+      error: "Service unavailable",
+      details: error instanceof Error ? error.message : String(error)
+    }, { status: 500 });
   }
 }
 
@@ -108,8 +117,11 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
-  const messages = await chatStorage.getMessagesByConversation(parseInt(id));
-  return Response.json(messages);
-}
+  try {
+    const { id } = await params;
+    const messages = await chatStorage.getMessagesByConversation(parseInt(id));
+    return Response.json(messages);
+  } catch (error) {
+    return Response.json({ error: "Failed to fetch messages" }, { status: 500 });
+  }
 }
