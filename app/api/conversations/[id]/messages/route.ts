@@ -116,8 +116,8 @@ export async function POST(
       })),
     });
 
-    return result.toDataStreamResponse({
-      async onFlush({ text }) {
+    return result.toTextStreamResponse({
+      async onFinish({ text }) {
         if (text) {
           // Final save after stream is complete
           await chatStorage.createMessage(conversationId, "assistant", text);
