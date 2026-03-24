@@ -1,15 +1,20 @@
 'use client'
 
-import React, { useState, useRef } from 'react'
-import { useRouter } from 'next/navigation'
-import { Header } from '@/components/Header'
-import { BookLogo } from '@/components/BookLogo'
-import { ChatInput } from '@/components/ChatInput'
-import { Tabs } from '@/components/Tabs'
+import React, { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 
-export default function LandingPage() {
+function LandingPageInner() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
+  const [inputTitle, setInputTitle] = useState('')
+
+  useEffect(() => {
+    const q = searchParams.get('q')
+    if (q) {
+      start(q)
+    }
+  }, [searchParams])
 
   async function start(text: string) {
     const t = text.trim()
@@ -30,33 +35,70 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-[#f7f4ef]">
-      <Header />
-      <Tabs />
-      
-      <main className="flex-1 flex flex-col items-center justify-center p-6 md:p-12 animate-fade-up">
-        <div className="flex flex-col items-center gap-6 mb-10 text-center w-full max-w-[420px]">
-          <BookLogo size="lg" />
-          <div className="space-y-3">
-            <h1 className="font-serif text-[32px] sm:text-[40px] font-normal tracking-tight leading-[1.1] text-[#170c04]">
-              Чим можу <br /><em className="italic text-[#382010] opacity-90">допомогти?</em>
-            </h1>
-            <p className="text-[14px] sm:text-[15px] font-light leading-relaxed text-[#9e7d5e] px-4">
-              Ваш персональний гід по фондах та ресурсах бібліотеки ХДАК.
-            </p>
+    <>
+      <section id="chat-window">
+        <div className="chat-container">
+          <div className="hero" id="hero">
+            <div className="ornament"></div>
+            <h2>Вітаємо Вас.<br />Який запит ми <i>розглянемо</i>?</h2>
+            
+            <div className="suggestions">
+              <div className="suggest-card" onClick={() => setInputTitle('Де знаходиться бібліотека?')}>
+                <small>Навігація</small>
+                <span>Як дістатися до медіатеки?</span>
+              </div>
+              <div className="suggest-card" onClick={() => setInputTitle('Як стати читачем?')}>
+                <small>Доступ</small>
+                <span>Оформлення читацького квитка</span>
+              </div>
+            </div>
           </div>
         </div>
+      </section>
 
-        <div className="w-full max-w-[550px] px-2">
-          <ChatInput onSend={start} disabled={loading} />
+      <div className="input-area-wrapper">
+        <div className="input-container">
+          <textarea 
+            rows={1} 
+            placeholder="Ваше звернення..." 
+            value={inputTitle}
+            onChange={e => {
+              setInputTitle(e.target.value)
+              e.target.style.height = 'auto'
+              e.target.style.height = Math.min(e.target.scrollHeight, 160) + 'px'
+            }}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                start(inputTitle)
+              }
+            }}
+            disabled={loading}
+          />
+          <button 
+            className="send-btn" 
+            onClick={() => start(inputTitle)}
+            disabled={loading || !inputTitle.trim()}
+          >
+            {loading ? (
+              <div className="dot" style={{ animation: 'pulse 1s infinite alternate' }} />
+            ) : (
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+            )}
+          </button>
         </div>
-      </main>
-      
-      {/* Bottom Status Bar */}
-      <div className="flex-shrink-0 flex items-center gap-2 px-5 py-2.5 bg-[#120804] text-[11px] text-[#f7f4ef]/35 tracking-[0.02em]">
-        <span className="w-1.5 h-1.5 rounded-full bg-[#4e8a4e] flex-shrink-0" />
-        вул. Бурсацький узвіз, 4, Харків · (057) 731-27-83 · +380 66 145 84 84
       </div>
-    </div>
+    </>
+  )
+}
+
+export default function LandingPage() {
+  return (
+    <Suspense fallback={null}>
+      <LandingPageInner />
+    </Suspense>
   )
 }

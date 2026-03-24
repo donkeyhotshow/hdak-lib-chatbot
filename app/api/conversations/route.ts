@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
+import { chatStorage } from "../../../lib/storage";
+
 export const dynamic = "force-dynamic";
-import { chatStorage } from "@/lib/storage";
 
 export async function GET() {
   try {
@@ -16,13 +17,13 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const { title } = await request.json();
-    const conversation = await chatStorage.createConversation(title || "Нова розмова");
+    const safeTitle = typeof title === "string" && title.trim()
+      ? title.trim().slice(0, 200)
+      : "Нова розмова";
+    const conversation = await chatStorage.createConversation(safeTitle);
     return NextResponse.json(conversation, { status: 201 });
   } catch (error) {
     console.error("CRITICAL ERROR in POST /api/conversations:", error);
-    return NextResponse.json({ 
-      error: "Failed to create conversation", 
-      details: error instanceof Error ? error.message : String(error) 
-    }, { status: 500 });
+    return NextResponse.json({ error: "Failed to create conversation" }, { status: 500 });
   }
 }
