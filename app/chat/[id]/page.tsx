@@ -2,64 +2,47 @@
 
 import React, { useEffect, useRef, useState, Suspense } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
-import { Header } from '@/components/Header'
 import { ChatMessage, TypingIndicator } from '@/components/ChatMessage'
-import { ChatInput } from '@/components/ChatInput'
-import { Tabs } from '@/components/Tabs'
 
 interface Message {
   id: number | string
   role: 'user' | 'assistant'
   content: string
+  created_at?: string
+  createdAt?: string
 }
 
 function ChatPageInner() {
   const { id } = useParams()
   const searchParams = useSearchParams()
+  
   const [messages, setMessages] = useState<Message[]>([])
   const [streaming, setStreaming] = useState(false)
   const [streamContent, setStreamContent] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [showScrollBtn, setShowScrollBtn] = useState(false)
   const [loaded, setLoaded] = useState(false)
-  
+  const [input, setInput] = useState('')
+
   const scrollRef = useRef<HTMLDivElement>(null)
   const hasInited = useRef(false)
 
   const scrollToBottom = (behavior: 'smooth' | 'auto' = 'smooth') => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTo({
-        top: scrollRef.current.scrollHeight,
-        behavior,
-      })
-    }
-  }
-
-  const handleScroll = () => {
-    if (scrollRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } = scrollRef.current
-      const isBottom = scrollHeight - scrollTop - clientHeight < 60
-      setShowScrollBtn(!isBottom)
+      scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior })
     }
   }
 
   useEffect(() => {
     fetch(`/api/conversations/${id}/messages`)
       .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) setMessages(data)
-        setLoaded(true)
-      })
+      .then(data => { if (Array.isArray(data)) setMessages(data); setLoaded(true) })
       .catch(() => setLoaded(true))
   }, [id])
 
   useEffect(() => {
     if (loaded && searchParams.get('q') && !hasInited.current) {
       const q = searchParams.get('q')
-      if (q) {
-        hasInited.current = true
-        send(q)
-      }
+      if (q) { hasInited.current = true; send(q) }
     }
   }, [loaded, searchParams])
 
@@ -70,8 +53,14 @@ function ChatPageInner() {
   async function send(text: string) {
     if (!text.trim() || streaming) return
     setError(null)
-    const userMsg: Message = { id: Date.now(), role: 'user', content: text }
+    const userMsg: Message = { id: Date.now(), role: 'user', content: text, createdAt: new Date().toISOString() }
     setMessages(prev => [...prev, userMsg])
+    setInput('')
+    
+    // reset textarea height
+    const ta = document.querySelector('textarea')
+    if (ta) ta.style.height = 'auto'
+
     setStreaming(true)
     setStreamContent('')
 
@@ -98,126 +87,115 @@ function ChatPageInner() {
         const { done, value } = await reader.read()
         if (done) break
         buffer += decoder.decode(value, { stream: true })
-
-        // Parse Vercel AI SDK Data Stream Protocol: lines like `0:"text chunk"`
         const lines = buffer.split('\n')
         buffer = lines.pop() ?? ''
 
         for (const line of lines) {
           if (line.startsWith('0:')) {
             try {
-              const text = JSON.parse(line.slice(2))
-              if (typeof text === 'string') {
-                full += text
-                setStreamContent(full)
-              }
+              const chunk = JSON.parse(line.slice(2))
+              if (typeof chunk === 'string') { full += chunk; setStreamContent(full) }
             } catch {
-              // also try plain text fallback
               const plain = line.slice(2).replace(/^"|"$/g, '')
               if (plain) { full += plain; setStreamContent(full) }
             }
-          } else if (!line.startsWith('d:') && !line.startsWith('e:') && line.trim() && !line.startsWith('f:')) {
-            // plain-text fallback (non-Vercel SDK responses)
-            full += line
-            setStreamContent(full)
+          } else if (!line.startsWith('d:') && !line.startsWith('e:') && !line.startsWith('f:') && line.trim()) {
+            full += line; setStreamContent(full)
           }
         }
       }
 
       if (full) {
-        setMessages(prev => [
-          ...prev,
-          { id: Date.now() + 1, role: 'assistant', content: full },
-        ])
+        setMessages(prev => [...prev, { id: Date.now() + 1, role: 'assistant', content: full, createdAt: new Date().toISOString() }])
       }
-      setStreamContent('')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Невідома помилка')
     } finally {
       setStreaming(false)
+      setStreamContent('')
     }
   }
 
   return (
-    <div className="flex flex-col h-full bg-[#f7f4ef]">
-      <Header showNewChat />
-      <Tabs />
-      
-      <div className="flex-1 overflow-hidden relative flex flex-col">
-        <main 
-          ref={scrollRef}
-          onScroll={handleScroll}
-          className="flex-1 overflow-y-auto p-[24px_18px_12px] flex flex-col scrollbar-none"
-        >
-          {messages.length > 0 && (
-            <div className="flex items-center gap-2 text-[9.5px] font-medium tracking-[0.09em] uppercase text-[#c4a882] mb-[18px] before:content-[''] before:flex-1 before:h-[0.5px] before:bg-[#170c04]/06 after:content-[''] after:flex-1 after:h-[0.5px] after:bg-[#170c04]/06">
-              сьогодні
-            </div>
-          )}
-
-          {messages.map((m) => (
-            <ChatMessage key={m.id} role={m.role} content={m.content} onChipClick={send} />
-          ))}
-
-          {streaming && (
-            <>
-              {streamContent ? (
-                <ChatMessage role="assistant" content={streamContent} isStreaming onChipClick={send} />
-              ) : (
-                <TypingIndicator />
-              )}
-            </>
-          )}
-
-          {error && (
-            <div className="flex items-start justify-between p-3 mt-2 mb-1 bg-[#fff8f6] border border-[#d9887a]/25 rounded-[12px] animate-fade-up gap-3">
-              <div className="flex items-start gap-2.5 flex-1 min-w-0">
-                <span className="text-[16px] flex-shrink-0 mt-[1px]">⚠️</span>
-                <div>
-                  <div className="text-[12.5px] font-medium text-[#7a3a2e] leading-snug">
-                    {error === 'Service unavailable' ? 'Сервіс тимчасово недоступний' : error}
-                  </div>
-                  <div className="text-[11px] text-[#9e6d62] mt-[2px]">
-                    Можливо, не налаштований API-ключ або сервер перезапускається
-                  </div>
-                </div>
+    <>
+      <section id="chat-window" ref={scrollRef}>
+        <div className="chat-container">
+          <div id="chat-content">
+            {messages.length === 0 && loaded && !searchParams.get('q') && (
+              <div style={{ textAlign: 'center', opacity: 0.5, marginTop: '20vh', fontSize: 14 }}>
+                Почніть діалог...
               </div>
-              <button 
-                onClick={() => {
-                  const lastUserMsg = [...messages].reverse().find(m => m.role === 'user')
-                  if (lastUserMsg) send(lastUserMsg.content)
-                }}
-                className="flex-shrink-0 h-[28px] px-3 bg-white border border-[#d9887a]/35 rounded-full text-[#7a3a2e] text-[11px] font-medium hover:bg-[#fef0ee] transition-all outline-none whitespace-nowrap"
-              >
-                ↺ Ще раз
-              </button>
-            </div>
-          )}
+            )}
+            
+            {messages.map(m => (
+              <ChatMessage
+                key={m.id}
+                role={m.role as 'user' | 'assistant'}
+                content={m.content}
+                timestamp={m.createdAt}
+                onChipClick={(chip) => send(chip)}
+              />
+            ))}
+            
+            {streaming && streamContent && (
+              <ChatMessage role="assistant" content={streamContent} isStreaming={true} />
+            )}
+            
+            {streaming && !streamContent && <TypingIndicator />}
+            
+            {error && (
+              <div style={{ color: '#b87c32', textAlign: 'center', margin: '20px 0', fontSize: 13, background: 'rgba(184,124,50,0.1)', padding: 16, borderRadius: 16 }}>
+                <strong>Помилка:</strong> {error}
+                <br/>
+                <button 
+                  onClick={() => {
+                    const lastUserMsg = [...messages].reverse().find(m => m.role === 'user')
+                    if (lastUserMsg) send(lastUserMsg.content)
+                  }} 
+                  style={{ padding: '8px 16px', background: 'var(--white)', border: '1px solid var(--border-mocha)', borderRadius: 12, marginTop: 12, cursor: 'pointer' }}
+                >
+                  Спробувати ще
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
 
-        </main>
-
-        <button
-          onClick={() => scrollToBottom()}
-          className={`absolute bottom-[90px] right-[18px] z-10 w-8 h-8 rounded-full bg-[#1c0f06] border border-[#b87c32]/20 text-[#f0e4c8]/75 flex items-center justify-center shadow-[0_2px_8px_rgba(0,0,0,0.2)] transition-opacity duration-200 outline-none
-            ${showScrollBtn ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
-          aria-label="Прокрутити вниз"
-        >
-          <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M7 1v12"/><path d="M3 9l4 4 4-4"/>
-          </svg>
-        </button>
-
-        <div className="flex-shrink-0 px-[18px] py-[9px] pb-[max(9px,env(safe-area-inset-bottom))] bg-[#f7f4ef] border-t border-[#170c04]/06">
-          <ChatInput onSend={send} disabled={streaming} />
+      <div className="input-area-wrapper">
+        <div className="input-container">
+          <textarea 
+            rows={1}
+            placeholder="Ваше звернення..."
+            value={input}
+            onChange={(e) => {
+              setInput(e.target.value)
+              e.target.style.height = 'auto'
+              e.target.style.height = Math.min(e.target.scrollHeight, 160) + 'px'
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                send(input)
+              }
+            }}
+            disabled={streaming}
+            aria-label="Текст повідомлення"
+          />
+          <button 
+            className="send-btn" 
+            onClick={() => send(input)}
+            disabled={streaming || !input.trim()}
+            aria-label="Надіслати"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+          </button>
         </div>
       </div>
-
-       {/* Bottom Status Bar */}
-       <div className="flex-shrink-0 flex items-center gap-2 px-5 py-2 bg-[#120804] text-[10px] text-[#f7f4ef]/25 border-t border-black/20">
-        <span className="w-1 h-1 rounded-full bg-[#4e8a4e]/50 flex-shrink-0" />
-        вул. Бурсацький узвіз, 4, Харків · (057) 731-27-83 · +380 66 145 84 84
-      </div>
-    </div>
+    </>
   )
 }
 

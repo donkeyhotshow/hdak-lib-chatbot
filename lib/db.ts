@@ -5,13 +5,13 @@ import { sql } from "drizzle-orm";
 
 // Using a non-empty fallback URL for build-time safety to satisfy neon() validation.
 // This will not connect until a query is actually performed.
-const connectionString = process.env.DATABASE_URL || "postgres://db:db@localhost:5432/db";
+const connectionString = process.env.DATABASE_URL;
 
-if (!process.env.DATABASE_URL && process.env.NODE_ENV === "production") {
-  console.warn("WARNING: DATABASE_URL is not set. Database calls will fail at runtime.");
+if (!connectionString) {
+  console.warn("⚠️ DATABASE_URL is not set. Database queries will fail until a valid connection string is provided.");
 }
 
-const client = neon(connectionString);
+const client = neon(connectionString || "postgres://localhost:5432/placeholder");
 export const db = drizzle(client);
 
 // Schema definitions

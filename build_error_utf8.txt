@@ -1,0 +1,76 @@
+﻿
+> hdak-lib-chatbot@1.0.0 build C:\Users\Administrator\Documents\dev\hdak-lib-chatbot
+> next build
+
+node.exe :  ΓÜá Warning: Next.js inferred yo
+ur workspace root, but it may not be correct
+.
+At C:\Program Files\nodejs\pnpm.ps1:16 char:
+5
++     & "$basedir/node$exe"  "$basedir/node_
+modules/corepack/dist/pnpm. ...
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: 
+    ( ΓÜá Warning: N...not be correct.:Str  
+  ing) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommand 
+   Error
+ 
+ We detected multiple lockfiles and selected
+ the directory of C:\Users\Administrator\pac
+kage-lock.json as the root directory.
+ To silence this warning, set `outputFileTra
+cingRoot` in your Next.js config, or conside
+r removing one of the lockfiles if it's not 
+needed.
+   See https://nextjs.org/docs/app/api-refer
+ence/config/next-config-js/output#caveats fo
+r more information.
+ Detected additional lockfiles: 
+   * C:\Users\Administrator\Documents\dev\hd
+ak-lib-chatbot\pnpm-lock.yaml
+
+   Γû▓ Next.js 15.5.14
+
+   Creating an optimized production build ...
+ Γ£ô Compiled successfully in 9.5s
+   Skipping validation of types
+   Skipping linting
+   Collecting page data ...
+Error: CRITICAL: DATABASE_URL is not set. Pr
+oduction environment requires a valid databa
+se connection.
+    at 52326 (C:\Users\Administrator\Documen
+ts\dev\hdak-lib-chatbot\.next\server\app\api
+\conversations\[id]\route.js:1:848)
+    at c (C:\Users\Administrator\Documents\d
+ev\hdak-lib-chatbot\.next\server\webpack-run
+time.js:1:128)
+    at 65731 (C:\Users\Administrator\Documen
+ts\dev\hdak-lib-chatbot\.next\server\app\api
+\conversations\[id]\route.js:1:5751)
+    at c (C:\Users\Administrator\Documents\d
+ev\hdak-lib-chatbot\.next\server\webpack-run
+time.js:1:128)
+    at <unknown> (C:\Users\Administrator\Doc
+uments\dev\hdak-lib-chatbot\.next\server\app
+\api\conversations\[id]\route.js:1:12122)
+    at c.X (C:\Users\Administrator\Documents
+\dev\hdak-lib-chatbot\.next\server\webpack-r
+untime.js:1:1206)
+    at <unknown> (C:\Users\Administrator\Doc
+uments\dev\hdak-lib-chatbot\.next\server\app
+\api\conversations\[id]\route.js:1:12100)
+    at Object.<anonymous> (C:\Users\Administ
+rator\Documents\dev\hdak-lib-chatbot\.next\s
+erver\app\api\conversations\[id]\route.js:1:
+12154)
+
+> Build error occurred
+[Error: Failed to collect page data for /api
+/conversations/[id]] {
+  type: 'Error'
+}
+ΓÇëELIFECYCLEΓÇë Command failed with exit code 1.
+

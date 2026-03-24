@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
+import { chatStorage } from "../../../../lib/storage";
+
 export const dynamic = "force-dynamic";
-import { chatStorage } from "@/lib/storage";
 
 export async function GET(
   request: Request,
@@ -9,6 +10,9 @@ export async function GET(
   try {
     const { id } = await params;
     const conversationId = parseInt(id);
+    if (isNaN(conversationId)) {
+      return NextResponse.json({ error: "Invalid conversation ID" }, { status: 400 });
+    }
     const conversation = await chatStorage.getConversation(conversationId);
     if (!conversation) {
       return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
@@ -27,7 +31,11 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    await chatStorage.deleteConversation(parseInt(id));
+    const conversationId = parseInt(id);
+    if (isNaN(conversationId)) {
+      return NextResponse.json({ error: "Invalid conversation ID" }, { status: 400 });
+    }
+    await chatStorage.deleteConversation(conversationId);
     return new NextResponse(null, { status: 204 });
   } catch (error) {
     console.error("Error deleting conversation:", error);
