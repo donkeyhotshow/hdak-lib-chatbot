@@ -121,28 +121,20 @@ function ChatPageInner() {
 
       const decoder = new TextDecoder()
       let full = ''
-      let buffer = ''
 
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n')
-        buffer = lines.pop() ?? ''
-
-        for (const line of lines) {
-          if (line.startsWith('0:')) {
-            try {
-              const chunk = JSON.parse(line.slice(2))
-              if (typeof chunk === 'string') { full += chunk; setStreamContent(full) }
-            } catch {
-              const plain = line.slice(2).replace(/^"|"$/g, '')
-              if (plain) { full += plain; setStreamContent(full) }
-            }
-          } else if (!line.startsWith('d:') && !line.startsWith('e:') && !line.startsWith('f:') && line.trim()) {
-            full += line; setStreamContent(full)
-          }
+        const chunk = decoder.decode(value, { stream: true })
+        if (chunk) {
+          full += chunk
+          setStreamContent(full)
         }
+      }
+      const lastChunk = decoder.decode()
+      if (lastChunk) {
+        full += lastChunk
+        setStreamContent(full)
       }
 
       if (full) {
