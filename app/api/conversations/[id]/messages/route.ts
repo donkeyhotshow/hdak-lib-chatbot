@@ -30,7 +30,10 @@ function isRateLimited(ip: string): boolean {
 
 async function googleGeminiGenerate(prompt: string): Promise<string> {
   const key = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-  if (!key) throw new Error("Missing Google API Key");
+  if (!key) {
+    console.warn("GOOGLE_GENERATIVE_AI_API_KEY missing - skipping manual Gemini call");
+    return "";
+  }
   
   try {
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
@@ -79,7 +82,10 @@ function getModel(primary = true): LanguageModel {
   }
 
   if (openaiKey) return openai("gpt-4o-mini");
-  throw new Error("Missing AI API key");
+  
+  // Last resort internal fallback (if model provided by ai sdk is configured)
+  console.warn("No API Keys for OpenRouter or OpenAI - system might rely on local mocks or automated replies");
+  throw new Error("Missing AI API keys. Ensure BUILT_IN_FORGE_API_KEY or OPENAI_API_KEY is set.");
 }
 
 async function buildSystemPrompt(): Promise<string> {
