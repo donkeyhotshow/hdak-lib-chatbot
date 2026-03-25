@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { StopCircle } from "lucide-react";
+import { CHIPS } from "@/pages/Home";
 
 interface ChatInputProps {
   onSend: (message: string) => void;
@@ -7,14 +8,6 @@ interface ChatInputProps {
   disabled?: boolean;
   isStreaming?: boolean;
 }
-
-const CHIPS = [
-  { emoji: "🔍", label: "Шукати в каталозі" },
-  { emoji: "⚡", label: "Як записатися?" },
-  { emoji: "📋", label: "Правила бібліотеки" },
-  { emoji: "🕐", label: "Графік роботи" },
-  { emoji: "🔗", label: "Ресурси" },
-];
 
 export function ChatInput({ onSend, onStop, disabled, isStreaming }: ChatInputProps) {
   const [input, setInput] = useState("");

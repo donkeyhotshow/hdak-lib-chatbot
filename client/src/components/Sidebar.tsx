@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { useConversations, useDeleteConversation, useCreateConversation } from "@/hooks/use-chat";
-import { Plus, MessageSquare, Trash2, ExternalLink } from "lucide-react";
+import { Plus, MessageSquare, Trash2, ExternalLink, BookOpen, Search } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { format } from "date-fns";
 import {
@@ -40,22 +40,56 @@ export function Sidebar({ className }: { className?: string }) {
     <div
       className={cn("flex flex-col h-full", className)}
       style={{
-        background: "hsl(25 54% 11%)",
-        borderRight: "1px solid hsl(25 50% 8%)",
+        background: "linear-gradient(180deg, hsl(var(--dark-bg)) 0%, hsl(25 54% 5%) 100%)",
+        borderRight: "1px solid hsl(var(--dark-border))",
       }}
     >
       {/* Header */}
-      <div style={{ padding: "16px", borderBottom: "1px solid hsl(25 40% 18%)" }}>
-        <p style={{
-          fontSize: 10,
-          fontWeight: 500,
-          letterSpacing: "0.08em",
-          textTransform: "uppercase",
-          color: "hsl(29 30% 50%)",
-          marginBottom: 10,
+      <div style={{ 
+        padding: "20px 16px 16px", 
+        borderBottom: "1px solid hsl(25 40% 12%)",
+        background: "linear-gradient(180deg, hsl(25 48% 10%) 0%, transparent 100%)",
+      }}>
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          marginBottom: 14,
         }}>
-          Історія
-        </p>
+          <div style={{
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            background: "linear-gradient(135deg, hsl(37 45% 25%) 0%, hsl(25 50% 15%) 100%)",
+            border: "1px solid hsl(25 35% 20%)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)",
+          }}>
+            <BookOpen style={{ width: 18, height: 18, color: "hsl(37 50% 75%)" }} />
+          </div>
+          <div>
+            <p style={{
+              fontSize: 11,
+              fontWeight: 600,
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
+              color: "hsl(37 45% 65%)",
+              fontFamily: "var(--font-serif)",
+            }}>
+              Бібліотека ХДАК
+            </p>
+            <p style={{
+              fontSize: 9,
+              color: "hsl(29 20% 35%)",
+              letterSpacing: "0.1em",
+              marginTop: 2,
+            }}>
+              Асистент
+            </p>
+          </div>
+        </div>
 
         <button
           onClick={handleNewChat}
@@ -65,26 +99,57 @@ export function Sidebar({ className }: { className?: string }) {
             width: "100%",
             display: "flex",
             alignItems: "center",
+            justifyContent: "center",
             gap: 8,
-            height: 36,
-            padding: "0 12px",
-            background: "hsl(25 40% 18%)",
-            border: "1px solid hsl(25 30% 28%)",
-            borderRadius: 8,
-            color: "hsl(37 50% 78%)",
+            height: 40,
+            background: "linear-gradient(135deg, hsl(25 50% 18%) 0%, hsl(25 45% 14%) 100%)",
+            border: "1px solid hsl(25 35% 22%)",
+            borderRadius: 10,
+            color: "hsl(37 50% 82%)",
             fontSize: 13,
+            fontWeight: 500,
             fontFamily: "var(--font-sans)",
-            cursor: "pointer",
-            transition: "all 0.12s",
+            cursor: createMutation.isPending ? "not-allowed" : "pointer",
+            transition: "all 0.2s ease",
+            boxShadow: "0 2px 6px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.03)",
+          }}
+          onMouseEnter={e => {
+            if (!createMutation.isPending) {
+              (e.currentTarget as HTMLButtonElement).style.background = "linear-gradient(135deg, hsl(25 50% 22%) 0%, hsl(25 45% 18%) 100%)";
+              (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-1px)";
+              (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 4px 12px rgba(0,0,0,0.3)";
+            }
+          }}
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLButtonElement).style.background = "linear-gradient(135deg, hsl(25 50% 18%) 0%, hsl(25 45% 14%) 100%)";
+            (e.currentTarget as HTMLButtonElement).style.transform = "translateY(0)";
+            (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 2px 6px rgba(0,0,0,0.2)";
           }}
         >
-          <Plus style={{ width: 14, height: 14 }} />
+          <Plus style={{ width: 16, height: 16 }} />
           {createMutation.isPending ? "Створення..." : "Нова розмова"}
         </button>
       </div>
 
+      {/* Search hint */}
+      <div style={{
+        padding: "12px 16px 8px",
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+      }}>
+        <Search style={{ width: 12, height: 12, color: "hsl(29 20% 30%)" }} />
+        <span style={{
+          fontSize: 10,
+          color: "hsl(29 20% 35%)",
+          letterSpacing: "0.05em",
+        }}>
+          Ваші розмови
+        </span>
+      </div>
+
       {/* Conversation list */}
-      <div className="flex-1 overflow-y-auto scrollbar-thin py-2 px-2 space-y-0.5">
+      <div className="flex-1 overflow-y-auto scrollbar-thin py-1 px-2 space-y-1">
         {isLoading ? (
           <div style={{ padding: "24px 8px", textAlign: "center", fontSize: 12, color: "hsl(29 30% 50%)" }}>
             Завантаження...
@@ -104,26 +169,43 @@ export function Sidebar({ className }: { className?: string }) {
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: 8,
-                    padding: "8px 10px",
-                    borderRadius: 7,
+                    gap: 10,
+                    padding: "10px 12px",
+                    borderRadius: 8,
                     cursor: "pointer",
-                    background: isActive ? "hsl(25 40% 18%)" : "transparent",
-                    transition: "background 0.12s",
+                    background: isActive ? "linear-gradient(135deg, hsl(25 50% 18%) 0%, hsl(25 45% 14%) 100%)" : "transparent",
+                    border: isActive ? "1px solid hsl(25 35% 20%)" : "1px solid transparent",
+                    transition: "all 0.2s ease",
                   }}
                   onMouseEnter={e => {
-                    if (!isActive) (e.currentTarget as HTMLDivElement).style.background = "hsl(25 35% 16%)";
+                    if (!isActive) {
+                      (e.currentTarget as HTMLDivElement).style.background = "hsl(25 45% 12%)";
+                      (e.currentTarget as HTMLDivElement).style.borderColor = "hsl(25 35% 18%)";
+                    }
                   }}
                   onMouseLeave={e => {
-                    if (!isActive) (e.currentTarget as HTMLDivElement).style.background = "transparent";
+                    if (!isActive) {
+                      (e.currentTarget as HTMLDivElement).style.background = "transparent";
+                      (e.currentTarget as HTMLDivElement).style.borderColor = "transparent";
+                    }
                   }}
                 >
-                  <MessageSquare style={{
-                    width: 14,
-                    height: 14,
+                  <div style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 6,
+                    background: isActive ? "hsl(25 45% 20%)" : "hsl(25 40% 12%)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
                     flexShrink: 0,
-                    color: isActive ? "hsl(37 50% 75%)" : "hsl(29 20% 40%)",
-                  }} />
+                  }}>
+                    <MessageSquare style={{
+                      width: 13,
+                      height: 13,
+                      color: isActive ? "hsl(37 50% 75%)" : "hsl(29 20% 40%)",
+                    }} />
+                  </div>
 
                   <div style={{
                     flex: 1,
@@ -132,7 +214,9 @@ export function Sidebar({ className }: { className?: string }) {
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
                     fontSize: 13,
-                    color: isActive ? "hsl(37 50% 85%)" : "hsl(37 30% 60%)",
+                    fontWeight: isActive ? 500 : 400,
+                    fontFamily: "var(--font-serif)",
+                    color: isActive ? "hsl(37 50% 90%)" : "hsl(37 40% 70%)",
                     paddingRight: 24,
                   }}>
                     {conv.title || "Без назви"}
@@ -141,8 +225,10 @@ export function Sidebar({ className }: { className?: string }) {
                   {conv.createdAt && (
                     <span style={{
                       fontSize: 10,
-                      color: "hsl(29 20% 38%)",
+                      color: "hsl(29 15% 35%)",
                       flexShrink: 0,
+                      fontFamily: "var(--font-sans)",
+                      letterSpacing: "0.02em",
                     }}>
                       {format(new Date(conv.createdAt), "d MMM")}
                     </span>
@@ -170,7 +256,7 @@ export function Sidebar({ className }: { className?: string }) {
                         <AlertDialogHeader>
                           <AlertDialogTitle>Видалити розмову?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Цю дію не можна скасувати. Всю историю розмови буде видалено.
+                            Цю дію не можна скасувати. Всю історію розмови буде видалено.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -193,11 +279,26 @@ export function Sidebar({ className }: { className?: string }) {
       </div>
 
       {/* Footer */}
-      <div style={{ padding: "12px", borderTop: "1px solid hsl(25 40% 18%)" }}>
+      <div style={{ 
+        padding: "16px 12px", 
+        borderTop: "1px solid hsl(25 35% 12%)",
+        background: "linear-gradient(180deg, transparent 0%, hsl(25 48% 8%) 100%)",
+      }}>
+        <p style={{
+          fontSize: 9,
+          fontWeight: 500,
+          letterSpacing: "0.1em",
+          textTransform: "uppercase",
+          color: "hsl(29 15% 30%)",
+          marginBottom: 10,
+          paddingLeft: 4,
+        }}>
+          Посилання
+        </p>
         {[
-          { label: "Офіційний сайт", href: "https://lib-hdak.in.ua/" },
-          { label: "Електронний каталог", href: "https://library-service.com.ua:8443/khkhdak/DocumentSearchForm" },
-        ].map(({ label, href }) => (
+          { label: "Офіційний сайт", href: "https://lib-hdak.in.ua/", icon: "🌐" },
+          { label: "Електронний каталог", href: "https://library-service.com.ua:8443/khkhdak/DocumentSearchForm", icon: "📚" },
+        ].map(({ label, href, icon }) => (
           <a
             key={label}
             href={href}
@@ -206,17 +307,31 @@ export function Sidebar({ className }: { className?: string }) {
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 6,
-              padding: "6px 8px",
-              fontSize: 11.5,
-              color: "hsl(29 25% 45%)",
+              gap: 8,
+              padding: "8px 10px",
+              fontSize: 12,
+              color: "hsl(37 40% 65%)",
               textDecoration: "none",
-              borderRadius: 6,
-              transition: "color 0.12s",
+              borderRadius: 8,
+              marginBottom: 4,
+              transition: "all 0.15s ease",
+              background: "hsl(25 40% 10%)",
+              border: "1px solid hsl(25 35% 12%)",
+            }}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLAnchorElement).style.background = "hsl(25 45% 14%)";
+              (e.currentTarget as HTMLAnchorElement).style.color = "hsl(37 50% 80%)";
+              (e.currentTarget as HTMLAnchorElement).style.transform = "translateX(2px)";
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLAnchorElement).style.background = "hsl(25 40% 10%)";
+              (e.currentTarget as HTMLAnchorElement).style.color = "hsl(37 40% 65%)";
+              (e.currentTarget as HTMLAnchorElement).style.transform = "translateX(0)";
             }}
           >
-            <ExternalLink style={{ width: 11, height: 11, flexShrink: 0 }} />
-            {label}
+            <span style={{ fontSize: 14 }}>{icon}</span>
+            <span style={{ fontFamily: "var(--font-sans)", fontWeight: 500 }}>{label}</span>
+            <ExternalLink style={{ width: 12, height: 12, marginLeft: "auto", flexShrink: 0, opacity: 0.5 }} />
           </a>
         ))}
       </div>

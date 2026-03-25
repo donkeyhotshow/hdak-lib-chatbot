@@ -6,19 +6,20 @@
 }
 
 :root {
-  --dark-espresso: #3E2723;
-  --deep-brown:   #4e342e;
-  --gold:         #C08840;
-  --gold-muted:   #ad7b3a;
-  --gold-light:   #f5eadb;
-  --cream-bg:     #FAF9F6;
+  --dark-espresso: #2D1B13; /* Глубокий кофейный */
+  --deep-brown:   #3E2723;
+  --leather:      #1A0F0A; /* Очень темный коричневый для фонов */
+  --gold:         #D4A373; /* Благородное золото */
+  --gold-muted:   #B08968;
+  --gold-light:   #F5EBE0;
+  --cream-bg:     #FDFBFA; /* Ультра-светлый кремовый */
   --white:        #ffffff;
-  --text-main:    #3E2723;
-  --text-muted:   #8d6e63;
-  --border-mocha: rgba(62, 39, 35, 0.08); /* Ink based border */
-  --sb-width:     260px;
-  --transition:   all 0.35s cubic-bezier(0.25, 1, 0.5, 1);
-  --shadow-premium: 0 4px 20px rgba(62, 39, 35, 0.04);
+  --text-main:    #2D1B13;
+  --text-muted:   #8A7365;
+  --border-mocha: rgba(45, 27, 19, 0.08); 
+  --sb-width:     270px; /* Немного шире для воздуха */
+  --transition:   all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); /* Более плавная анимация */
+  --shadow-premium: 0 8px 30px rgba(26, 15, 10, 0.06); /* Мягкие тени */
   
   --font-serif: var(--font-serif);
   --font-sans: var(--font-sans);
@@ -57,15 +58,16 @@ html, body {
 /* --- Sidebar: Fixed & Pushing Architecture --- */
 .sidebar {
   width: var(--sb-width);
-  background: var(--dark-espresso);
+  background: var(--leather); /* Темно-коричневая, почти черная кожа */
   color: var(--white);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
   z-index: 1000;
   transition: var(--transition);
-  border-right: 1px solid rgba(197, 164, 126, 0.15);
+  border-right: 1px solid rgba(212, 163, 115, 0.1); /* Тонкая золотая граница */
   position: relative;
+  box-shadow: 5px 0 25px rgba(26, 15, 10, 0.3); /* Глубокая тень панели */
 }
 
 .app-wrapper.sidebar-collapsed .sidebar {
@@ -230,29 +232,30 @@ html, body {
 }
 
 .new-chat-btn {
-  background: var(--gold);
-  color: var(--dark-espresso);
-  border: none;
+  background: transparent;
+  color: var(--gold);
+  border: 1px solid rgba(212, 163, 115, 0.3);
   padding: 14px;
   width: 100%;
   border-radius: 12px;
-  font-weight: 600;
-  font-size: 11px;
+  font-weight: 500;
+  font-size: 12px;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 10px;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
-  box-shadow: 0 4px 15px rgba(184, 120, 48, 0.2);
+  transition: var(--transition);
+  box-shadow: inset 0 0 0 0 rgba(212, 163, 115, 0);
 }
 
 .new-chat-btn:hover {
-  background: var(--gold-light);
+  background: rgba(212, 163, 115, 0.1);
+  border-color: var(--gold);
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(184, 120, 48, 0.3);
+  box-shadow: inset 0 0 20px 0 rgba(212, 163, 115, 0.05), 0 6px 20px rgba(0, 0, 0, 0.2);
 }
 
 .new-chat-btn:focus-visible {

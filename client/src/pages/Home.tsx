@@ -27,6 +27,8 @@ const QUICK_CHIPS = [
   { emoji: "🗂️", label: "Репозитарій" },
 ];
 
+export const CHIPS = QUICK_CHIPS;
+
 export default function Home() {
   const [_, setLocation] = useLocation();
   const createMutation = useCreateConversation();

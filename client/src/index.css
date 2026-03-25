@@ -14,12 +14,21 @@
   --card:           38 70% 97%;   /* #fdf9f4 */
   --card-border:    37 30% 82%;   /* subtle border */
 
-  /* Brown scale */
+  /* Brown scale - enhanced premium palette */
   --b0: 25 54% 11%;   /* #2d1b0e — darkest */
   --b1: 25 50% 16%;   /* #3d2614 */
   --b2: 25 52% 24%;   /* #5c3a1e */
   --b3: 27 42% 32%;   /* #7a5230 */
   --b4: 29 36% 45%;   /* #9e7248 */
+
+  /* Premium dark brown variants for sidebar/header */
+  --dark-bg:       25 54% 7%;     /* #1a1008 */
+  --dark-surface:  25 52% 10%;    /* #261a10 */
+  --dark-elevated: 25 48% 14%;    /* #352219 */
+  --dark-border:   25 40% 18%;   /* #4a3020 */
+  --dark-text:     37 50% 85%;   /* warm white */
+  --dark-muted:    29 25% 50%;   /* muted gold */
+  --dark-accent:   37 45% 65%;   /* warm accent */
 
   /* Tailwind / shadcn aliases */
   --foreground:          25 54% 11%;

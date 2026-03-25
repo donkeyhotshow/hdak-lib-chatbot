@@ -14,24 +14,41 @@ const RESOURCES = [
 
 export function ResourcesDrawer({ open, onClose }: ResourcesDrawerProps) {
   return (
-    <div
-      style={{
-        maxHeight: open ? 220 : 0,
-        overflow: "hidden",
-        transition: "max-height 0.28s cubic-bezier(.4,0,.2,1)",
-        background: "var(--bg-page)",
-        borderBottom: open ? "0.5px solid var(--border-md)" : "none",
-        flexShrink: 0,
-      }}
-    >
-      <div style={{ padding: "12px 16px 14px" }}>
+    <>
+      {open && (
         <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
-            gap: 8,
-          }}
-        >
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+          onClick={onClose}
+          aria-hidden="true"
+        />
+      )}
+      <div
+        style={{
+          position: "fixed",
+          top: 56,
+          right: open ? 0 : -320,
+          width: 300,
+          height: "calc(100% - 56px)",
+          background: "hsl(38 70% 97%)",
+          borderLeft: "1px solid hsl(var(--border))",
+          boxShadow: "-4px 0 20px rgba(0,0,0,0.1)",
+          transition: "right 0.28s cubic-bezier(.4,0,.2,1)",
+          zIndex: 50,
+          overflow: "auto",
+        }}
+      >
+        <div style={{ padding: "16px", borderBottom: "1px solid hsl(var(--border))" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span style={{ fontSize: 12, fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase", color: "hsl(var(--b2))" }}>Ресурси</span>
+            <button
+              onClick={onClose}
+              style={{ padding: 4, borderRadius: 4, background: "transparent", border: "none", cursor: "pointer", color: "hsl(var(--muted-foreground))" }}
+            >
+              <X style={{ width: 16, height: 16 }} />
+            </button>
+          </div>
+        </div>
+        <div style={{ padding: "12px", display: "flex", flexDirection: "column", gap: 8 }}>
           {RESOURCES.map(({ icon, name, url }) => (
             <a
               key={url}
@@ -39,38 +56,33 @@ export function ResourcesDrawer({ open, onClose }: ResourcesDrawerProps) {
               target="_blank"
               rel="noopener noreferrer"
               data-testid={`link-resource-${name}`}
-              onClick={onClose}
               style={{
                 display: "flex",
                 alignItems: "flex-start",
-                gap: 8,
-                padding: "9px 11px",
-                background: "var(--bg-surface)",
-                border: "1px solid var(--border-xs)",
+                gap: 10,
+                padding: "10px 12px",
+                background: "hsl(var(--card))",
+                border: "0.5px solid hsl(var(--border))",
                 borderRadius: 10,
                 textDecoration: "none",
                 transition: "background .12s",
               }}
-              onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--bg-raised)"; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "var(--bg-surface)"; }}
+              onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = "hsl(var(--muted))"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = "hsl(var(--card))"; }}
             >
-              <span style={{ fontSize: 16, lineHeight: 1, flexShrink: 0 }}>{icon}</span>
+              <span style={{ fontSize: 18, lineHeight: 1, flexShrink: 0 }}>{icon}</span>
               <div style={{ minWidth: 0 }}>
                 <div style={{
-                  fontSize: 12,
+                  fontSize: 13,
                   fontWeight: 500,
-                  color: "var(--text-primary)",
+                  color: "hsl(var(--foreground))",
                   lineHeight: 1.3,
-                  marginBottom: 2,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
                 }}>
                   {name}
                 </div>
                 <div style={{
-                  fontSize: 10,
-                  color: "var(--text-faint)",
+                  fontSize: 11,
+                  color: "hsl(var(--muted-foreground))",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap",
@@ -82,7 +94,7 @@ export function ResourcesDrawer({ open, onClose }: ResourcesDrawerProps) {
           ))}
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
