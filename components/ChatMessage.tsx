@@ -29,7 +29,7 @@ export function ChatMessage({ role, content, isStreaming = false, onChipClick }:
         {isUser ? (
           <span style={{ display: 'block', whiteSpace: 'pre-wrap' }}>{cleanContent}</span>
         ) : (
-          <div className="prose-hdak" style={{ overflow: 'hidden' }}>
+          <div className="prose-hdak">
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               skipHtml={true}
@@ -64,15 +64,17 @@ export function ChatMessage({ role, content, isStreaming = false, onChipClick }:
       </div>
       
       {!isUser && !isStreaming && chips.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 12 }}>
+        <div className="chips-container">
           {chips.map((chip, idx) => (
             <button
               key={idx}
               onClick={() => onChipClick?.(chip)}
-              className="suggest-card"
-              style={{ padding: '8px 14px', borderRadius: 12, fontSize: 13, border: '1px solid var(--border-mocha)', background: 'var(--white)' }}
+              className="suggest-chip"
             >
-              <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-main)' }}>{chip}</span>
+              <span>{chip}</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
             </button>
           ))}
         </div>

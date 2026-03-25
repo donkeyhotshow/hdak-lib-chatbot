@@ -1,11 +1,11 @@
 import React from 'react'
 import type { Metadata } from 'next'
-import { EB_Garamond, Inter } from 'next/font/google'
+import { Playfair_Display, Montserrat } from 'next/font/google'
 import { SplashScreen } from '@/components/SplashScreen'
 import './globals.css'
 import { ClientLayout } from '@/components/ClientLayout'
 
-const serif = EB_Garamond({
+const serif = Playfair_Display({
   subsets: ['latin', 'cyrillic'],
   weight: ['400', '500', '600', '700'],
   style: ['normal', 'italic'],
@@ -13,7 +13,7 @@ const serif = EB_Garamond({
   display: 'swap',
 })
 
-const sans = Inter({
+const sans = Montserrat({
   subsets: ['latin', 'cyrillic'],
   weight: ['300', '400', '500', '600'],
   variable: '--font-sans',

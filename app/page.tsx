@@ -9,15 +9,48 @@ import {
 
 const MAX_TITLE_LENGTH = 200;
 
-const CARDS = [
-  { Icon: Clock,         title: 'Графік',       sub: 'Розклад роботи',      query: 'Графік роботи бібліотеки' },
-  { Icon: Search,        title: 'Каталог',      sub: 'Пошук видань',        query: 'Електронний каталог' },
-  { Icon: ClipboardList, title: 'Записатися',   sub: 'Отримати квиток',     query: 'Як записатися до бібліотеки' },
-  { Icon: FlaskConical,  title: 'Наука',        sub: 'Scopus, WoS',         query: 'Наукові бази даних' },
-  { Icon: MapPin,        title: 'Контакти',     sub: 'Адреса, телефони',    query: 'Контакти та адреса' },
-  { Icon: BookOpen,      title: 'Репозитарій',  sub: 'Підручники онлайн',   query: 'Репозитарій ХДАК' },
-  { Icon: Presentation,  title: 'Виставки',     sub: 'Віртуальні колекції', query: 'Віртуальні виставки' },
-  { Icon: CreditCard,    title: 'Єдина картка', sub: '20+ бібліотек',       query: 'Єдина картка читача' },
+interface QuickReply {
+  id: string
+  title: string
+  subtitle: string
+  highlights: string[]
+  query: string
+  Icon: React.ComponentType<{ size?: number; strokeWidth?: number }>
+}
+
+const QUICK_REPLIES: QuickReply[] = [
+  {
+    id: 'schedule',
+    title: 'Графік роботи',
+    subtitle: 'Режим роботи читалень',
+    highlights: ['Пн-Пт: 9:00–16:45', 'Сб: 9:00–13:30', 'Обід: 13:00–13:45'],
+    query: 'Графік роботи бібліотеки',
+    Icon: Clock,
+  },
+  {
+    id: '如何',
+    title: 'Як записатися',
+    subtitle: 'Отримання читацького квитка',
+    highlights: ['Паспорт + ІПН', 'Безкоштовно', 'Термін дії — 5 років'],
+    query: 'Як записатися до бібліотеки',
+    Icon: ClipboardList,
+  },
+  {
+    id: 'catalog',
+    title: 'Електронний каталог',
+    subtitle: 'Пошук книг та видань',
+    highlights: ['250 000+ видань', 'Онлайн пошук', 'Бронювання онлайн'],
+    query: 'Електронний каталог',
+    Icon: Search,
+  },
+  {
+    id: 'contacts',
+    title: 'Контакти',
+    subtitle: 'Адреса та телефони',
+    highlights: ['Бурсацький узвіз, 4', '(057) 731-27-83', 't.me/hdak_lib'],
+    query: 'Контакти та адреса',
+    Icon: MapPin,
+  },
 ]
 
 
@@ -68,38 +101,33 @@ function LandingPageInner() {
             </h2>
 
             {/* CARDS GRID */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(2, 1fr)',
-              gap: '6px',
-              width: '100%',
-              maxWidth: '480px',
-              margin: '0 auto 20px',
-            }}
-            >
-              {CARDS.map(({ Icon, title, sub, query }) => (
+            <div className="cards-grid">
+              {QUICK_REPLIES.map(({ id, title, subtitle, highlights, query, Icon }, idx) => (
                 <button
-                  key={query}
+                  key={id}
                   disabled={loading}
                   onClick={() => start(query)}
-                  className="home-card"
+                  className="quick-reply-card"
+                  style={{ animationDelay: `${idx * 0.08}s` }}
                 >
-                  <div style={{
-                    width: '32px', height: '32px',
-                    background: 'rgba(184,120,48,0.09)',
-                    borderRadius: '8px',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    flexShrink: 0,
-                  }}>
-                    <Icon size={15} strokeWidth={1.5} color="#b87830" />
+                  <div className="quick-reply-header">
+                    <div className="quick-reply-icon">
+                      <Icon size={20} strokeWidth={1.5} />
+                    </div>
+                    <div className="quick-reply-title-block">
+                      <span className="quick-reply-title">{title}</span>
+                      <span className="quick-reply-subtitle">{subtitle}</span>
+                    </div>
                   </div>
-                  <div>
-                    <div style={{ fontSize: '13px', fontWeight: 500, color: '#180c05', lineHeight: 1.2, marginBottom: '2px' }}>
-                      {title}
-                    </div>
-                    <div style={{ fontSize: '11px', fontWeight: 300, color: '#a07a54', lineHeight: 1.2 }}>
-                      {sub}
-                    </div>
+                  <div className="quick-reply-highlights">
+                    {highlights.map((hl, i) => (
+                      <span key={i} className="highlight-tag">{hl}</span>
+                    ))}
+                  </div>
+                  <div className="quick-reply-arrow">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
                   </div>
                 </button>
               ))}
@@ -145,32 +173,186 @@ function LandingPageInner() {
       </div>
 
       <style>{`
-        .home-card {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 11px 13px;
-          background: #ffffff;
-          border: 0.5px solid rgba(24,12,5,0.09);
-          border-radius: 10px;
-          cursor: pointer;
-          transition: all 0.13s ease;
-          text-align: left;
-          width: 100%;
-          font-family: inherit;
-        }
-        .home-card:hover {
-          border-color: rgba(184,120,48,0.35);
-          background: #fdfbf8;
-          transform: translateY(-1px);
-          box-shadow: 0 2px 8px rgba(24,12,5,0.06);
-        }
         .hero-title-main { font-size: clamp(26px, 5vw, 42px); }
         .hero-title-sub { font-size: clamp(22px, 4vw, 36px); color: var(--gold); font-style: italic; }
+
+/* Quick Reply Cards - 4 columns grid */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto 32px;
+}
+
+.quick-reply-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+  background: #ffffff;
+  border: 0.5px solid rgba(24, 12, 5, 0.08);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: left;
+  width: 100%;
+  font-family: inherit;
+  position: relative;
+  overflow: hidden;
+}
+
+.quick-reply-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(184, 120, 48, 0.05) 0%, transparent 60%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.quick-reply-card:hover::before {
+  opacity: 1;
+}
+
+.quick-reply-card:hover {
+  border-color: rgba(184, 120, 48, 0.3);
+  background: #fefdfb;
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px rgba(24, 12, 5, 0.1);
+}
+
+.quick-reply-card:active {
+  transform: translateY(0);
+}
+
+.quick-reply-card:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.quick-reply-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.quick-reply-icon {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, rgba(184, 120, 48, 0.15) 0%, rgba(184, 120, 48, 0.06) 100%);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #b87830;
+  transition: all 0.3s ease;
+}
+
+.quick-reply-card:hover .quick-reply-icon {
+  background: linear-gradient(135deg, rgba(184, 120, 48, 0.22) 0%, rgba(184, 120, 48, 0.1) 100%);
+  transform: scale(1.08);
+}
+
+.quick-reply-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.quick-reply-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #180c05;
+  line-height: 1.3;
+}
+
+.quick-reply-subtitle {
+  font-size: 12px;
+  font-weight: 400;
+  color: #a07a54;
+  line-height: 1.3;
+}
+
+.quick-reply-highlights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.highlight-tag {
+  display: inline-block;
+  padding: 6px 12px;
+  background: linear-gradient(135deg, rgba(184, 120, 48, 0.1) 0%, rgba(184, 120, 48, 0.04) 100%);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #8a5a2a;
+  transition: all 0.2s ease;
+}
+
+.quick-reply-card:hover .highlight-tag {
+  background: linear-gradient(135deg, rgba(184, 120, 48, 0.15) 0%, rgba(184, 120, 48, 0.08) 100%);
+}
+
+.quick-reply-arrow {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(184, 120, 48, 0.3);
+  transition: all 0.3s ease;
+}
+
+.quick-reply-card:hover .quick-reply-arrow {
+  color: #b87830;
+  transform: translateY(-50%) translateX(4px);
+}
+
+/* Card entrance animation */
+.quick-reply-card {
+  animation: cardFadeIn 0.5s ease-out forwards;
+  opacity: 0;
+}
+
+@keyframes cardFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
         
         @media (max-width: 767px) {
           .hero-title-main { font-size: 22px; }
           .hero-title-sub { font-size: 20px; }
+          .cards-grid {
+            grid-template-columns: 1fr;
+            gap: 12px;
+          }
+          .quick-reply-card {
+            padding: 16px;
+          }
+          .quick-reply-highlights {
+            gap: 6px;
+          }
+          .highlight-tag {
+            font-size: 11px;
+            padding: 5px 10px;
+          }
         }
       `}</style>
     </>

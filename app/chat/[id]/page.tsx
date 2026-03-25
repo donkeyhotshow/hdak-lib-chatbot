@@ -205,7 +205,7 @@ function ChatPageInner() {
           <textarea
             ref={textareaRef}
             rows={1}
-            placeholder="Ваше звернення..."
+            placeholder="Запитайте про бібліотеку…"
             value={input}
             onChange={(e) => {
               setInput(e.target.value)

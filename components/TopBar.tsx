@@ -28,8 +28,8 @@ export function TopBar({ onToggle, sidebarOpen }: { onToggle: () => void; sideba
           <BookOpenText size={18} strokeWidth={1.5} color="#C08840" />
         </div>
         <div className="brand-text">
-          <h2>HDAK Intelligence</h2>
-          <span>KNOWLEDGE CONCIERGE</span>
+          <h2>Бібліотека ХДАК</h2>
+          <span>ЧАТ-ПОМІЧНИК</span>
         </div>
       </div>
 

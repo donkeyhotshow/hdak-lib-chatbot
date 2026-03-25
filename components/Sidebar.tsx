@@ -4,8 +4,20 @@ import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import {
-  Search, BookOpen, Sparkles, FileText, GalleryVertical,
-  FlaskConical, UserCircle, Link2, Globe, ChevronLeft, Plus, Trash2, MoreHorizontal
+  Search,
+  Sparkles,
+  Link2,
+  Globe,
+  BookOpen,
+  FlaskConical,
+  UserCircle,
+  GalleryVertical,
+  ChevronRight,
+  ChevronDown,
+  Plus,
+  ChevronLeft,
+  Trash2,
+  MoreHorizontal,
 } from 'lucide-react'
 
 interface Conversation {
@@ -14,35 +26,84 @@ interface Conversation {
   createdAt: string
 }
 
-const NAV = [
+const sectionLabelStyle: React.CSSProperties = {
+  fontSize: '9px',
+  fontWeight: 500,
+  letterSpacing: '0.13em',
+  textTransform: 'uppercase',
+  color: 'rgba(184,120,48,0.42)',
+  padding: '0 16px',
+  marginTop: '4px',
+  marginBottom: '4px'
+}
+
+const dividerStyle: React.CSSProperties = {
+  height: '0.5px',
+  background: 'rgba(255,255,255,0.06)',
+  margin: '10px 16px'
+}
+
+// Секція 1: Швидкі запити
+const QUICK = [
+  { label: 'Графік роботи',  query: 'Графік роботи бібліотеки' },
+  { label: 'Записатися',     query: 'Як записатися до бібліотеки' },
+  { label: 'Контакти',       query: 'Контакти та адреса' },
+  { label: 'Правила',        query: 'Правила бібліотеки' },
+]
+
+// Секція 2: Ресурси бібліотеки
+const MAIN_LINKS = [
   {
-    section: 'КАТАЛОГИ',
-    items: [
-      { Icon: Search,          label: 'Пошук в каталозі',    href: 'https://library-service.com.ua:8443/khkhdak/DocumentSearchForm' },
-      { Icon: BookOpen,        label: 'Репозитарій ХДАК',     href: 'https://repository.ac.kharkov.ua/home' },
-    ]
+    Icon: Search,
+    label: 'Пошук в каталозі',
+    sub: 'Знайти книги за автором або темою',
+    href: 'https://library-service.com.ua:8443/khkhdak/DocumentSearchForm',
   },
   {
-    section: 'ЧИТАЧАМ',
-    items: [
-      { Icon: Sparkles,        label: 'Нові надходження',     href: 'https://lib-hdak.in.ua/new-acquisitions.html' },
-      { Icon: FileText,        label: 'Правила',              href: 'https://lib-hdak.in.ua/rules-library.html' },
-      { Icon: GalleryVertical, label: 'Виставки',             href: 'https://lib-hdak.in.ua/virtual-exhibitions.html' },
-    ]
+    Icon: Sparkles,
+    label: 'Нові надходження',
+    sub: 'Що з\'явилось у фонді бібліотеки',
+    href: 'https://lib-hdak.in.ua/new-acquisitions.html',
   },
   {
-    section: 'НАУКА',
-    items: [
-      { Icon: FlaskConical, label: 'Наукова інформація',    href: 'https://lib-hdak.in.ua/search-scientific-info.html' },
-      { Icon: UserCircle,   label: 'Авторські профілі',     href: 'https://lib-hdak.in.ua/author-profiles-instructions.html' },
-    ]
+    Icon: Link2,
+    label: 'Корисні посилання',
+    sub: 'Зовнішні бази даних і портали',
+    href: 'https://lib-hdak.in.ua/helpful-links.html',
   },
   {
-    section: 'ПОСИЛАННЯ',
-    items: [
-      { Icon: Link2, label: 'Корисні посилання', href: 'https://lib-hdak.in.ua/helpful-links.html' },
-      { Icon: Globe, label: 'Сайт бібліотеки',   href: 'https://lib-hdak.in.ua/' },
-    ]
+    Icon: Globe,
+    label: 'Сайт бібліотеки',
+    sub: 'lib-hdak.in.ua',
+    href: 'https://lib-hdak.in.ua/',
+  },
+]
+
+// Секція 3: Більше ресурсів
+const EXTRA_LINKS = [
+  {
+    Icon: BookOpen,
+    label: 'Репозитарій ХДАК',
+    sub: 'Підручники, статті, кваліфікаційні роботи',
+    href: 'https://repository.ac.kharkov.ua/home',
+  },
+  {
+    Icon: FlaskConical,
+    label: 'Наукова інформація',
+    sub: 'Пошук наукових джерел за запитом',
+    href: 'https://lib-hdak.in.ua/search-scientific-info.html',
+  },
+  {
+    Icon: UserCircle,
+    label: 'Авторські профілі',
+    sub: 'ORCID, Scopus, Google Scholar',
+    href: 'https://lib-hdak.in.ua/author-profiles-instructions.html',
+  },
+  {
+    Icon: GalleryVertical,
+    label: 'Виставки',
+    sub: 'Віртуальні тематичні колекції',
+    href: 'https://lib-hdak.in.ua/virtual-exhibitions.html',
   },
 ]
 
@@ -60,6 +121,13 @@ export function Sidebar({
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [showAllChats, setShowAllChats] = useState(false)
   const [deleteId, setDeleteId] = useState<number | null>(null)
+  const [expanded, setExpanded] = useState(false)
+
+  // Функція для відправки запиту
+  const handleQuickQuery = (query: string) => {
+    router.push(`/?q=${encodeURIComponent(query)}`)
+    if (onClose) onClose()
+  }
 
   useEffect(() => {
     fetch('/api/conversations')
@@ -108,8 +176,39 @@ export function Sidebar({
               style={{ cursor: 'pointer' }}
               onClick={() => { router.push('/'); if (onClose) onClose() }}
             >
-              <h1 className="sidebar-main-title">HDAK<span className="gold-accent"> Intelligence</span></h1>
-              <span className="sidebar-sub-title">KNOWLEDGE CONCIERGE</span>
+              {/* SVG book logo */}
+              <div style={{ marginBottom: '10px' }}>
+                <svg width="28" height="20" viewBox="0 0 28 20" fill="none">
+                  <path d="M14 2.5C14 2.5 10 1.5 4 3L3.5 17C9 15.5 13 16.5 14 16.5L14 2.5Z" fill="rgba(184,120,48,0.18)" stroke="rgba(184,120,48,0.55)" strokeWidth="0.75"/>
+                  <path d="M14 2.5C14 2.5 18 1.5 24 3L24.5 17C19 15.5 15 16.5 14 16.5L14 2.5Z" fill="rgba(184,120,48,0.12)" stroke="rgba(184,120,48,0.44)" strokeWidth="0.75"/>
+                  <line x1="14" y1="2" x2="14" y2="16.5" stroke="rgba(184,120,48,0.75)" strokeWidth="0.8"/>
+                </svg>
+              </div>
+
+              <div style={{
+                fontFamily: 'var(--font-serif)',
+                fontSize: '20px',
+                fontWeight: '500',
+                fontStyle: 'italic',
+                color: 'rgba(240,222,195,0.88)',
+                lineHeight: '1.1',
+                letterSpacing: '-0.01em',
+              }}>
+                Бібліотека
+              </div>
+              <div style={{
+                display: 'flex',
+                whiteSpace: 'nowrap',
+                fontFamily: 'var(--font-serif)',
+                fontSize: '11px',
+                fontWeight: '500',
+                letterSpacing: '0.14em',
+                color: 'rgba(184,120,48,0.72)',
+                marginTop: '1px',
+                marginBottom: '8px',
+              }}>
+                ХДАК <span style={{ marginLeft: '6px', fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontWeight: 400 }}>Intelligence</span>
+              </div>
             </div>
 
             {/* Collapse button — inside header (visible on desktop) */}
@@ -125,31 +224,223 @@ export function Sidebar({
 
           <div className="status-indicator">
             <div className="pulse-dot" aria-hidden="true" />
-            <span>Чат-помічник бібліотеки</span>
+            <span>Онлайн</span>
           </div>
         </div>
 
         {/* NAV */}
         <nav className="sidebar-nav scrollbar-none">
-          {NAV.map(({ section, items }, gi) => (
-            <div key={section}>
-              <div className="nav-group-label" style={{ marginTop: gi === 0 ? 0 : 20 }}>
-                {section}
+          
+          {/* СЕКЦІЯ 1: ШВИДКІ ЗАПИТИ */}
+          <div style={sectionLabelStyle}>ШВИДКІ ЗАПИТИ</div>
+          {QUICK.map((item) => (
+            <button
+              key={item.label}
+              onClick={() => handleQuickQuery(item.query)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '6px 16px',
+                fontSize: '12.5px',
+                fontWeight: 400,
+                color: 'rgba(235,215,185,0.58)',
+                cursor: 'pointer',
+                border: 'none',
+                background: 'transparent',
+                width: '100%',
+                transition: 'all 0.12s',
+                textAlign: 'left'
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
+                e.currentTarget.style.color = 'rgba(235,215,185,0.90)'
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'transparent'
+                e.currentTarget.style.color = 'rgba(235,215,185,0.58)'
+              }}
+            >
+              <span>{item.label}</span>
+              <ChevronRight size={11} color="rgba(184,120,48,0.35)" />
+            </button>
+          ))}
+
+          <div style={dividerStyle} />
+
+          {/* СЕКЦІЯ 2: РЕСУРСИ БІБЛІОТЕКИ */}
+          <div style={sectionLabelStyle}>РЕСУРСИ БІБЛІОТЕКИ</div>
+          {MAIN_LINKS.map((item) => (
+            <a
+              key={item.label}
+              href={item.href}
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '10px',
+                padding: '7px 16px',
+                textDecoration: 'none',
+                transition: 'all 0.12s',
+                background: 'transparent'
+              }}
+              onMouseEnter={e => {
+                const labelEl = e.currentTarget.querySelector('.link-label') as HTMLElement
+                const subEl = e.currentTarget.querySelector('.link-sub') as HTMLElement
+                if (labelEl) labelEl.style.color = 'rgba(235,215,185,0.92)'
+                if (subEl) subEl.style.color = 'rgba(184,120,48,0.55)'
+                const iconEl = e.currentTarget.querySelector('.link-icon') as HTMLElement
+                if (iconEl) iconEl.style.color = 'rgba(184,120,48,0.85)'
+              }}
+              onMouseLeave={e => {
+                const labelEl = e.currentTarget.querySelector('.link-label') as HTMLElement
+                const subEl = e.currentTarget.querySelector('.link-sub') as HTMLElement
+                if (labelEl) labelEl.style.color = 'rgba(235,215,185,0.60)'
+                if (subEl) subEl.style.color = 'rgba(184,120,48,0.35)'
+                const iconEl = e.currentTarget.querySelector('.link-icon') as HTMLElement
+                if (iconEl) iconEl.style.color = 'rgba(184,120,48,0.50)'
+              }}
+            >
+              <div className="link-icon" style={{
+                width: '28px',
+                height: '28px',
+                flexShrink: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginTop: '1px'
+              }}>
+                <item.Icon size={14} color="rgba(184,120,48,0.50)" strokeWidth={1.5} />
               </div>
-              {items.map(({ Icon, label, href }) => (
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="link-label" style={{
+                  fontSize: '12.5px',
+                  fontWeight: 400,
+                  color: 'rgba(235,215,185,0.60)',
+                  lineHeight: '1.2',
+                  marginBottom: '2px'
+                }}>
+                  {item.label}
+                </div>
+                <div className="link-sub" style={{
+                  fontSize: '10px',
+                  fontWeight: 300,
+                  color: 'rgba(184,120,48,0.35)',
+                  lineHeight: '1.2'
+                }}>
+                  {item.sub}
+                </div>
+              </div>
+            </a>
+          ))}
+
+          <div style={dividerStyle} />
+
+          {/* СЕКЦІЯ 3: БІЛЬШЕ РЕСУРСІВ */}
+          <button
+            onClick={() => setExpanded(!expanded)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 16px',
+              fontSize: '11px',
+              fontWeight: 400,
+              color: 'rgba(184,120,48,0.45)',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              width: '100%',
+              letterSpacing: '0.02em',
+              transition: 'color 0.12s'
+            }}
+            onMouseEnter={e => e.currentTarget.style.color = 'rgba(184,120,48,0.75)'}
+            onMouseLeave={e => e.currentTarget.style.color = 'rgba(184,120,48,0.45)'}
+          >
+            <ChevronDown 
+              size={12} 
+              style={{
+                transform: expanded ? 'rotate(180deg)' : 'none',
+                transition: 'transform 0.2s'
+              }}
+            />
+            <span>{expanded ? '▲ Менше' : '▾ Більше ресурсів'}</span>
+          </button>
+
+          {expanded && (
+            <div style={{
+              animation: 'fadeIn 0.18s ease-out',
+              opacity: 1
+            }}>
+              {EXTRA_LINKS.map((item) => (
                 <a
-                  key={href}
-                  href={href}
+                  key={item.label}
+                  href={item.href}
                   target="_blank"
                   rel="noreferrer"
-                  className="nav-link"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '10px',
+                    padding: '7px 16px',
+                    textDecoration: 'none',
+                    transition: 'all 0.12s',
+                    background: 'transparent'
+                  }}
+                  onMouseEnter={e => {
+                    const labelEl = e.currentTarget.querySelector('.link-label') as HTMLElement
+                    const subEl = e.currentTarget.querySelector('.link-sub') as HTMLElement
+                    if (labelEl) labelEl.style.color = 'rgba(235,215,185,0.92)'
+                    if (subEl) subEl.style.color = 'rgba(184,120,48,0.55)'
+                    const iconEl = e.currentTarget.querySelector('.link-icon') as HTMLElement
+                    if (iconEl) iconEl.style.color = 'rgba(184,120,48,0.85)'
+                  }}
+                  onMouseLeave={e => {
+                    const labelEl = e.currentTarget.querySelector('.link-label') as HTMLElement
+                    const subEl = e.currentTarget.querySelector('.link-sub') as HTMLElement
+                    if (labelEl) labelEl.style.color = 'rgba(235,215,185,0.60)'
+                    if (subEl) subEl.style.color = 'rgba(184,120,48,0.35)'
+                    const iconEl = e.currentTarget.querySelector('.link-icon') as HTMLElement
+                    if (iconEl) iconEl.style.color = 'rgba(184,120,48,0.50)'
+                  }}
                 >
-                  <Icon size={14} strokeWidth={1.5} style={{ flexShrink: 0, opacity: 0.7 }} />
-                  <span>{label}</span>
+                  <div className="link-icon" style={{
+                    width: '28px',
+                    height: '28px',
+                    flexShrink: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginTop: '1px'
+                  }}>
+                    <item.Icon size={14} color="rgba(184,120,48,0.50)" strokeWidth={1.5} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="link-label" style={{
+                      fontSize: '12.5px',
+                      fontWeight: 400,
+                      color: 'rgba(235,215,185,0.60)',
+                      lineHeight: '1.2',
+                      marginBottom: '2px'
+                    }}>
+                      {item.label}
+                    </div>
+                    <div className="link-sub" style={{
+                      fontSize: '10px',
+                      fontWeight: 300,
+                      color: 'rgba(184,120,48,0.35)',
+                      lineHeight: '1.2'
+                    }}>
+                      {item.sub}
+                    </div>
+                  </div>
                 </a>
               ))}
             </div>
-          ))}
+          )}
+
+          {expanded && <div style={dividerStyle} />}
 
           {/* HISTORY */}
           {conversations.length > 0 && (
@@ -210,16 +501,47 @@ export function Sidebar({
         {/* FOOTER */}
         <div className="sidebar-footer">
           <button
-            className="new-chat-btn"
             onClick={() => { router.push('/'); if (onClose) onClose() }}
+            style={{
+              width: '100%',
+              height: '34px',
+              background: 'rgba(184,120,48,0.12)',
+              border: '0.5px solid rgba(184,120,48,0.28)',
+              borderRadius: '8px',
+              color: 'rgba(220,168,78,0.82)',
+              fontSize: '11px',
+              fontWeight: 500,
+              letterSpacing: '0.08em',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              transition: 'all 0.13s'
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'rgba(184,120,48,0.20)'
+              e.currentTarget.style.borderColor = 'rgba(184,120,48,0.48)'
+              e.currentTarget.style.color = 'rgba(230,178,90,0.95)'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'rgba(184,120,48,0.12)'
+              e.currentTarget.style.borderColor = 'rgba(184,120,48,0.28)'
+              e.currentTarget.style.color = 'rgba(220,168,78,0.82)'
+            }}
           >
-            <Plus size={13} strokeWidth={2.5} style={{ marginRight: 6 }} />
-            Новий чат
+            <Plus size={13} strokeWidth={1.8} />
+            + НОВИЙ ЧАТ
           </button>
         </div>
       </aside>
 
       <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
         /* Mobile overlay */
         .sb-mobile-overlay {
           display: none;
