@@ -8,10 +8,10 @@ import { sql } from "drizzle-orm";
 const connectionString = process.env.DATABASE_URL;
 
 if (!connectionString) {
-  console.warn("⚠️ DATABASE_URL is not set. Database queries will fail until a valid connection string is provided.");
+  console.warn("⚠️ DATABASE_URL is not set. Using build-time placeholder.");
 }
 
-const client = neon(connectionString || "postgres://localhost:5432/placeholder");
+const client = neon(connectionString || "postgresql://db_user:db_password@db_host:5432/db_name");
 export const db = drizzle(client);
 
 // Schema definitions

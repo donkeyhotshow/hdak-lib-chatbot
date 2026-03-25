@@ -22,8 +22,8 @@ export function TopBar({ onToggle }: { onToggle: () => void }) {
         role="button"
         tabIndex={0}
       >
-        <h2>HDAK Intelligence</h2>
-        <span>Knowledge Concierge</span>
+        <h2>Бібліотека ХДАК</h2>
+        <span>Чат-помічник</span>
       </div>
       <div style={{ width: 40 }} />
     </header>

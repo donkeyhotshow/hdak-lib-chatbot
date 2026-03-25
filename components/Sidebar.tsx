@@ -49,44 +49,49 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
     }
   }
 
+  const DRAWER_LINKS = [
+    { section: 'КАТАЛОГИ' },
+    { icon: '🔍', name: 'Пошук в каталозі',      url: 'https://library-service.com.ua:8443/khkhdak/DocumentSearchForm', dom: 'library-service.com.ua' },
+    { icon: '📖', name: 'Репозитарій ХДАК',       url: 'https://repository.ac.kharkov.ua/home',                        dom: 'repository.ac.kharkov.ua' },
+    { section: 'ЧИТАЧАМ' },
+    { icon: '✨', name: 'Нові надходження',        url: 'https://lib-hdak.in.ua/new-acquisitions.html',                 dom: 'lib-hdak.in.ua' },
+    { icon: '📋', name: 'Правила',                url: 'https://lib-hdak.in.ua/rules-library.html',                    dom: 'lib-hdak.in.ua' },
+    { icon: '🎭', name: 'Виставки',               url: 'https://lib-hdak.in.ua/virtual-exhibitions.html',              dom: 'lib-hdak.in.ua' },
+    { section: 'НАУКА' },
+    { icon: '🔬', name: 'Пошук наукової інф.',      url: 'https://lib-hdak.in.ua/search-scientific-info.html',          dom: 'lib-hdak.in.ua' },
+    { icon: '👤', name: 'Авторські профілі',       url: 'https://lib-hdak.in.ua/author-profiles-instructions.html',    dom: 'lib-hdak.in.ua' },
+    { section: 'ПОСИЛАННЯ' },
+    { icon: '🔗', name: 'Корисні посилання',       url: 'https://lib-hdak.in.ua/helpful-links.html',                   dom: 'lib-hdak.in.ua' },
+    { icon: '🏛',  name: 'Сайт бібліотеки',        url: 'https://lib-hdak.in.ua/',                                      dom: 'lib-hdak.in.ua' },
+  ]
+
   return (
-    <aside className="sidebar" id="sidebar" role="navigation" aria-label="Меню консьєржа">
+    <aside className="sidebar" id="sidebar" role="navigation" aria-label="Меню ресурсів">
       <div className="sidebar-header">
-        <h1>ХДАК<span className="sub">Concierge</span></h1>
+        <h1>Бібліотека<span className="sub">ХДАК</span></h1>
         <div className="status-indicator">
           <div className="pulse-dot" aria-hidden="true"></div>
-          <span aria-hidden="true">Premium Intelligence</span>
+          <span aria-hidden="true">Чат-помічник бібліотеки</span>
         </div>
       </div>
       
       <nav className="sidebar-nav scrollbar-none">
-        <div className="nav-group-label">Сервіси</div>
-        <Link href="/" className={`nav-link ${!currentId ? 'active' : ''}`} onClick={onClose}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-          </svg>
-          Новий сеанс
-        </Link>
-        
-        <div className="nav-group-label">Знання</div>
-        <a href="https://lib-hdak.in.ua/" target="_blank" rel="noreferrer" className="nav-link">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-          </svg>
-          Е-Каталог
-        </a>
-        <Link href="/?q=Режим роботи" className="nav-link" onClick={onClose}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <polyline points="12 6 12 12 16 14"></polyline>
-          </svg>
-          Режим роботи
-        </Link>
+        {DRAWER_LINKS.map((item, i) => {
+          if (item.section) {
+            return <div key={i} className="nav-group-label" style={{ marginTop: i === 0 ? 0 : 20 }}>{item.section}</div>
+          }
+          return (
+            <a key={i} href={item.url} target="_blank" rel="noreferrer" className="nav-link">
+              <span style={{ fontSize: '1.2rem', marginRight: 8, opacity: 0.8 }}>{item.icon}</span>
+              {item.name}
+              {item.dom && <span style={{ fontSize: '0.65rem', marginLeft: 'auto', opacity: 0.4 }}>{item.dom}</span>}
+            </a>
+          )
+        })}
 
         {conversations.length > 0 && (
           <>
-            <div className="nav-group-label" style={{ marginTop: 32 }}>Історія діалогів</div>
+            <div className="nav-group-label" style={{ marginTop: 32 }}>Історії чатів</div>
             {conversations.map(conv => {
               const isActive = Number(currentId) === conv.id
               return (
@@ -116,7 +121,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
 
       <div className="sidebar-footer">
         <button className="new-chat-btn" onClick={handleEndSession}>
-          Завершити візит
+          Новий чат
         </button>
       </div>
     </aside>

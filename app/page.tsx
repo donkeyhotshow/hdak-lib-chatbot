@@ -40,17 +40,25 @@ function LandingPageInner() {
         <div className="chat-container">
           <div className="hero" id="hero">
             <div className="ornament"></div>
-            <h2>Вітаємо Вас.<br />Який запит ми <i>розглянемо</i>?</h2>
+            <h2>Чим можу допомогти?<br /><i>Знайду книги, розповім про послуги…</i></h2>
             
             <div className="suggestions">
-              <div className="suggest-card" onClick={() => setInputTitle('Де знаходиться бібліотека?')}>
-                <small>Навігація</small>
-                <span>Як дістатися до медіатеки?</span>
-              </div>
-              <div className="suggest-card" onClick={() => setInputTitle('Як стати читачем?')}>
-                <small>Доступ</small>
-                <span>Оформлення читацького квитка</span>
-              </div>
+              {[
+                { icon: "🕐", title: "Графік",      sub: "Розклад роботи залів",   query: "Графік роботи бібліотеки" },
+                { icon: "🔍", title: "Каталог",     sub: "Пошук книг і видань",    query: "Електронний каталог" },
+                { icon: "📋", title: "Записатися",  sub: "Отримати читацький квиток", query: "Як записатися до бібліотеки" },
+                { icon: "🔬", title: "Наука",       sub: "Scopus, WoS, Springer",  query: "Наукові бази даних" },
+                { icon: "📍", title: "Контакти",    sub: "Адреса, телефони",        query: "Контакти та адреса" },
+                { icon: "📖", title: "Репозитарій", sub: "Підручники онлайн",       query: "Репозитарій ХДАК" },
+                { icon: "🎭", title: "Виставки",    sub: "Віртуальні колекції",     query: "Віртуальні виставки" },
+                { icon: "💳", title: "Єдина картка",sub: "Доступ до 20+ бібліотек",query: "Єдина картка читача" }
+              ].map((card, i) => (
+                <div key={i} className="suggest-card" onClick={() => start(card.query)}>
+                  <div style={{ fontSize: '24px', marginBottom: '8px' }}>{card.icon}</div>
+                  <strong style={{ display: 'block', fontSize: '15px', color: 'var(--text-main)', marginBottom: '4px' }}>{card.title}</strong>
+                  <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{card.sub}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
