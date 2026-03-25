@@ -1,49 +1,46 @@
 /**
  * Єдине джерело правди — контактні дані та інформація бібліотеки ХДАК.
- * Усі компоненти та API мають імпортувати звідси.
  */
 
 export const LIBRARY = {
   name:    'Бібліотека ХДАК',
   nameEn:  'HDAK Library',
 
-  address:    'вул. Бурсацький узвіз, 4, Харків, 61003',
-  addressUk:  '61003, м. Харків, Бурсацький узвіз, 4 (біля ст. метро «Історичний музей»)',
-  addressEn:  '4 Bursatsky Descent, Kharkiv, 61003, Ukraine',
+  address:    'вул. Бурсацький узвіз, 4, Харків, 61057',
+  addressUk:  '61057, м. Харків, Бурсацький узвіз, 4 (біля ст. метро «Історичний музей»)',
+  addressEn:  '4 Bursatsky Descent, Kharkiv, 61057, Ukraine',
 
   phone:       '(057) 731-27-83',
   phoneFull:   '+38 (057) 731-27-83',
   messenger:   '+380661458484',
-  email:       'bibliohdak@gmail.com',
+  email:       'abon@xdak.ukr.education',
 
-  instagram:   'https://www.instagram.com/library_hdak',
-  facebook:    'https://www.facebook.com/library.hdak',
+  instagram:   'https://www.instagram.com/hdak_lib',
+  facebook:    'http://m.me/641740969354328',
 
-  /** Короткий рядок для статус-бaru */
+  /** Короткий рядок для статус-бару */
   statusBar: 'вул. Бурсацький узвіз, 4, Харків · (057) 731-27-83 · +380 66 145 84 84',
 
   hours: {
     weekdayUk: 'Пн-Пт: 9:00–16:45 (перерва 13:00–13:45)',
-    weekdayEn: 'Mon-Fri: 9:00–16:45 (break 13:00–13:45)',
     saturdayUk: 'Сб: 9:00–13:30',
-    saturdayEn: 'Sat: 9:00–13:30',
     sundayUk: 'Нд — вихідний',
-    sundayEn: 'Sun — closed',
-    sanitaryUk: 'Останній четвер місяця — санітарний день',
-    sanitaryEn: 'Last Thursday of the month — cleaning day',
+    sanitaryUk: 'Остання п\'ятниця місяця — санітарний день (абонементи)',
   },
 
-  resources: {
-    site:       'https://lib-hdak.in.ua/',
-    catalog:    'https://library-service.com.ua:8443/khkhdak/DocumentSearchForm',
-    repository: 'https://repository.ac.kharkov.ua/',
-    eCatalog:   'https://lib-hdak.in.ua/e-catalog.html',
-    newBooks:   'https://lib-hdak.in.ua/new-acquisitions.html',
-    science:    'https://lib-hdak.in.ua/search-scientific-info.html',
-  },
+  links: {
+    catalogSearch:  'https://library-service.com.ua:8443/khkhdak/DocumentSearchForm',
+    repository:     'https://repository.ac.kharkov.ua/home',
+    site:           'https://lib-hdak.in.ua/',
+    rules:          'https://lib-hdak.in.ua/rules-library.html',
+    newAcquisitions:'https://lib-hdak.in.ua/new-acquisitions.html',
+    exhibitions:    'https://lib-hdak.in.ua/virtual-exhibitions.html',
+    scienceInfo:    'https://lib-hdak.in.ua/search-scientific-info.html',
+    authorProfiles: 'https://lib-hdak.in.ua/author-profiles-instructions.html',
+    helpfulLinks:   'https://lib-hdak.in.ua/helpful-links.html',
+  }
 } as const;
 
-/** Перевірка: чи зараз бібліотека відкрита (Пн-Пт 9-16:45, Сб 9-13:30) */
 export function isLibraryOpen(now = new Date()): boolean {
   const day  = now.getDay();
   const hour = now.getHours();

@@ -10,27 +10,40 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
 
   useEffect(() => {
-    if (window.innerWidth > 800) {
-      setIsOpen(true)
-    }
+    if (window.innerWidth >= 768) setIsOpen(true)
   }, [])
 
   // Auto-close sidebar on mobile when navigating
   useEffect(() => {
-    if (window.innerWidth <= 800) {
-      setIsOpen(false)
-    }
+    if (window.innerWidth < 768) setIsOpen(false)
   }, [pathname])
 
-  const handleClose = () => {
-    if (window.innerWidth <= 800) setIsOpen(false)
-  }
-
   return (
-    <div className={`app-wrapper ${!isOpen ? 'sidebar-collapsed' : ''}`}>
-      <Sidebar onClose={handleClose} />
-      <main className="main-content">
-        <TopBar onToggle={() => setIsOpen(!isOpen)} />
+    <div
+      style={{
+        display: 'flex',
+        height: '100dvh',
+        width: '100vw',
+        overflow: 'hidden',
+      }}
+    >
+      <Sidebar
+        isOpen={isOpen}
+        onToggle={() => setIsOpen(v => !v)}
+        onClose={() => setIsOpen(false)}
+      />
+      <main
+        style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          background: 'var(--cream-bg)',
+          overflow: 'hidden',
+          height: '100dvh',
+          minWidth: 0,
+        }}
+      >
+        <TopBar onToggle={() => setIsOpen(v => !v)} sidebarOpen={isOpen} />
         {children}
       </main>
     </div>

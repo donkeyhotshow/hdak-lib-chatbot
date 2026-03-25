@@ -54,7 +54,7 @@ export function SplashScreen() {
           letterSpacing: '-0.02em',
           margin: 0
         }}>
-          ХДАК
+          БІБЛІОТЕКА
           <span style={{
             display: 'block',
             fontSize: 16,
@@ -64,7 +64,7 @@ export function SplashScreen() {
             letterSpacing: '0.15em',
             marginTop: 8,
             textTransform: 'uppercase'
-          }}>Concierge</span>
+          }}>ХДАК</span>
         </h1>
       </div>
 

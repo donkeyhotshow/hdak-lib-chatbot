@@ -130,6 +130,26 @@ html, body {
   animation: pulse-dot 1s infinite alternate;
 }
 
+.collapse-toggle-btn {
+  background: transparent;
+  border: 1px solid rgba(197, 164, 126, 0.2);
+  color: var(--gold-muted);
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.collapse-toggle-btn:hover {
+  background: rgba(197, 164, 126, 0.1);
+  color: var(--gold);
+  border-color: var(--gold);
+}
+
 @keyframes pulse-dot {
   from { opacity: 0.4; }
   to { opacity: 1; }
@@ -137,8 +157,17 @@ html, body {
 
 .sidebar-nav {
   flex: 1;
-  padding: 24px 16px;
+  padding: 20px 16px;
   overflow-y: auto;
+}
+
+.suggestions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  width: 100%;
+  max-width: 1000px;
+  margin-top: 20px;
 }
 
 .nav-group-label {
@@ -307,8 +336,8 @@ html, body {
   justify-content: center;
   flex: 1;
   text-align: center;
-  padding: 80px 0 60px;
-  animation: fadeIn 1s ease-out forwards;
+  padding: 48px 0 40px;
+  animation: fadeIn 0.6s ease-out forwards;
 }
 
 .hero .ornament {
@@ -320,73 +349,14 @@ html, body {
 
 .hero h2 {
   font-family: var(--font-serif);
-  font-size: clamp(34px, 5vw, 46px);
+  font-size: clamp(30px, 5vw, 42px);
   font-weight: 300;
   color: var(--dark-espresso);
-  margin-bottom: 40px;
+  margin-bottom: 28px;
   line-height: 1.1;
 }
 
 .hero h2 i { color: var(--gold); font-style: italic; }
-
-.suggestions {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-  width: 100%;
-  max-width: 640px;
-}
-
-.suggest-card {
-  background: var(--white);
-  padding: 18px 22px;
-  border: 1px solid var(--border-mocha);
-  border-radius: 16px;
-  cursor: pointer;
-  transition: var(--transition);
-  text-align: left;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(26, 20, 18, 0.02);
-}
-
-.suggest-card::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-  background: var(--gold);
-  transform: translateX(-4px);
-  transition: transform var(--transition);
-}
-
-.suggest-card:hover {
-  border-color: var(--gold);
-  box-shadow: 0 12px 30px rgba(44, 36, 33, 0.08);
-  transform: translateY(-2px);
-}
-
-.suggest-card:hover::before { transform: translateX(0); }
-.suggest-card:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
-
-.suggest-card small {
-  font-size: 9px;
-  color: var(--gold-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 600;
-}
-
-.suggest-card span {
-  font-size: 14px;
-  color: var(--text-main);
-  font-weight: 500;
-  line-height: 1.4;
-}
 
 /* --- Bubble Mechanics --- */
 #chat-content { padding: 24px 0 48px; display: flex; flex-direction: column; gap: 32px; }

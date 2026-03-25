@@ -79,6 +79,36 @@ function ChatPageInner() {
       const reader = res.body?.getReader()
       if (!reader) throw new Error('Немає відповіді від сервера')
 
+      const contentType = res.headers.get('Content-Type')
+      if (contentType && (contentType.includes('text/plain') || !contentType.includes('text/event-stream'))) {
+        // Plain text response (likely automated reply) -> Simulate typing
+        const text = await res.text()
+        const textToSimulate = text.split('[CHIPS:')[0].trim()
+        const chipsPart = text.includes('[CHIPS:') ? text.split('[CHIPS:')[1].split(']')[0] : ''
+        const chips = chipsPart ? chipsPart.split(',').map(c => c.trim()) : []
+
+        setStreaming(false)
+        setStreamContent('')
+        
+        let currentTyped = ''
+        const words = textToSimulate.split(' ')
+        for (const word of words) {
+          currentTyped += (currentTyped ? ' ' : '') + word
+          setStreamContent(currentTyped)
+          await new Promise(r => setTimeout(r, 20)) // Faster typing speed
+        }
+        
+        setMessages(prev => [...prev, { 
+          id: Date.now() + 1, 
+          role: 'assistant', 
+          content: textToSimulate,
+          createdAt: new Date().toISOString()
+        }])
+        setStreamContent('')
+        return
+      }
+
+      // Default Streaming behavior (AI)
       const decoder = new TextDecoder()
       let full = ''
       let buffer = ''
