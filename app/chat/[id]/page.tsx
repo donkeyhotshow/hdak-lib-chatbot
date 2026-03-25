@@ -76,31 +76,28 @@ function ChatPageInner() {
         throw new Error(body.error ?? `Помилка ${res.status}`)
       }
 
-      const reader = res.body?.getReader()
-      if (!reader) throw new Error('Немає відповіді від сервера')
+      // Determine response type before choosing parsing strategy
+      const contentType = res.headers.get('Content-Type') ?? ''
+      const isPlainText = contentType.includes('text/plain') && !contentType.includes('text/event-stream')
 
-      const contentType = res.headers.get('Content-Type')
-      if (contentType && (contentType.includes('text/plain') || !contentType.includes('text/event-stream'))) {
-        // Plain text response (likely automated reply) -> Simulate typing
-        const text = await res.text()
-        const textToSimulate = text.split('[CHIPS:')[0].trim()
-        const chipsPart = text.includes('[CHIPS:') ? text.split('[CHIPS:')[1].split(']')[0] : ''
-        const chips = chipsPart ? chipsPart.split(',').map(c => c.trim()) : []
+      if (isPlainText) {
+        // Pre-built fast reply → simulate typing word by word
+        const rawText = await res.text()
+        const textToSimulate = rawText.split('[CHIPS:')[0].trim()
 
-        setStreaming(false)
+        setStreaming(true)
         setStreamContent('')
-        
-        let currentTyped = ''
-        const words = textToSimulate.split(' ')
-        for (const word of words) {
-          currentTyped += (currentTyped ? ' ' : '') + word
-          setStreamContent(currentTyped)
-          await new Promise(r => setTimeout(r, 20)) // Faster typing speed
+
+        let typed = ''
+        for (const word of textToSimulate.split(' ')) {
+          typed += (typed ? ' ' : '') + word
+          setStreamContent(typed)
+          await new Promise(r => setTimeout(r, 18))
         }
-        
-        setMessages(prev => [...prev, { 
-          id: Date.now() + 1, 
-          role: 'assistant', 
+
+        setMessages(prev => [...prev, {
+          id: Date.now() + 1,
+          role: 'assistant',
           content: textToSimulate,
           createdAt: new Date().toISOString()
         }])
@@ -108,7 +105,10 @@ function ChatPageInner() {
         return
       }
 
-      // Default Streaming behavior (AI)
+      // AI streaming response
+      const reader = res.body?.getReader()
+      if (!reader) throw new Error('Немає відповіді від сервера')
+
       const decoder = new TextDecoder()
       let full = ''
       let buffer = ''

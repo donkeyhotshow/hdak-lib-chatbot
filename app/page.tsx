@@ -20,15 +20,14 @@ const CARDS = [
 
 const cardBase: React.CSSProperties = {
   display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'flex-start',
-  gap: 10,
-  padding: '14px 14px 12px',
+  alignItems: 'center',
+  gap: '12px',
+  padding: '11px 13px',
   background: '#ffffff',
-  border: '0.5px solid rgba(24,12,5,0.10)',
-  borderRadius: 12,
+  border: '0.5px solid rgba(24,12,5,0.09)',
+  borderRadius: '10px',
   cursor: 'pointer',
-  transition: 'all 0.13s',
+  transition: 'all 0.13s ease',
   textAlign: 'left',
   width: '100%',
   fontFamily: 'inherit',
@@ -69,18 +68,26 @@ function LandingPageInner() {
         <div className="chat-container">
           <div className="hero" id="hero">
             <div className="ornament" />
-            <h2>Бібліотека <i>ХДАК</i><br />Чим можу допомогти?</h2>
+            <div style={{
+              width: '32px',
+              height: '1px',
+              background: 'rgba(184,120,48,0.35)',
+              margin: '0 auto 20px',
+            }} />
+            <h2 className="hero-title">
+              <span className="hero-title-main">Бібліотека ХДАК</span><br />
+              <span className="hero-title-sub">Чим можу допомогти?</span>
+            </h2>
 
             {/* CARDS GRID */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
-              gap: 8,
+              gridTemplateColumns: 'repeat(2, 1fr)',
+              gap: '6px',
               width: '100%',
-              maxWidth: 520,
+              maxWidth: '480px',
               margin: '0 auto 20px',
             }}
-              className="cards-grid"
             >
               {CARDS.map(({ Icon, title, sub, query }) => (
                 <button
@@ -90,31 +97,33 @@ function LandingPageInner() {
                   style={cardBase}
                   onMouseEnter={e => {
                     const el = e.currentTarget
-                    el.style.borderColor = 'rgba(24,12,5,0.22)'
+                    el.style.borderColor = 'rgba(184,120,48,0.35)'
+                    el.style.background = '#fdfbf8'
                     el.style.transform = 'translateY(-1px)'
-                    el.style.boxShadow = '0 3px 10px rgba(24,12,5,0.07)'
+                    el.style.boxShadow = '0 2px 8px rgba(24,12,5,0.06)'
                   }}
                   onMouseLeave={e => {
                     const el = e.currentTarget
-                    el.style.borderColor = 'rgba(24,12,5,0.10)'
+                    el.style.borderColor = 'rgba(24,12,5,0.09)'
+                    el.style.background = '#ffffff'
                     el.style.transform = 'none'
                     el.style.boxShadow = 'none'
                   }}
                 >
                   <div style={{
-                    width: 30, height: 30,
-                    background: '#f6f3ee',
-                    borderRadius: 8,
+                    width: '32px', height: '32px',
+                    background: 'rgba(184,120,48,0.09)',
+                    borderRadius: '8px',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     flexShrink: 0,
                   }}>
-                    <Icon size={15} strokeWidth={1.5} color="#3a2010" />
+                    <Icon size={15} strokeWidth={1.5} color="#b87830" />
                   </div>
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: '#180c05', lineHeight: 1.2, marginBottom: 3 }}>
+                    <div style={{ fontSize: '13px', fontWeight: 500, color: '#180c05', lineHeight: 1.2, marginBottom: '2px' }}>
                       {title}
                     </div>
-                    <div style={{ fontSize: 11, fontWeight: 300, color: '#9a7a54', lineHeight: 1.3 }}>
+                    <div style={{ fontSize: '11px', fontWeight: 300, color: '#a07a54', lineHeight: 1.2 }}>
                       {sub}
                     </div>
                   </div>
@@ -129,7 +138,7 @@ function LandingPageInner() {
         <div className="input-container">
           <textarea
             rows={1}
-            placeholder="Ваше звернення..."
+            placeholder="Запитайте про бібліотеку…"
             value={inputTitle}
             onChange={e => {
               setInputTitle(e.target.value)
@@ -162,11 +171,12 @@ function LandingPageInner() {
       </div>
 
       <style>{`
-        @media (max-width: 599px) {
-          .cards-grid { grid-template-columns: repeat(2, 1fr) !important; }
-        }
-        @media (min-width: 600px) and (max-width: 800px) {
-          .cards-grid { grid-template-columns: repeat(4, 1fr) !important; }
+        .hero-title-main { font-size: clamp(26px, 5vw, 42px); }
+        .hero-title-sub { font-size: clamp(22px, 4vw, 36px); color: var(--gold); font-style: italic; }
+        
+        @media (max-width: 767px) {
+          .hero-title-main { font-size: 22px; }
+          .hero-title-sub { font-size: 20px; }
         }
       `}</style>
     </>
