@@ -63,18 +63,23 @@ let cachedSystemPrompt: string | null = null;
 let lastCacheUpdate = 0;
 const CACHE_TTL = 300000;
 
+function cleanEnvValue(val: string | undefined): string | undefined {
+  if (!val) return undefined;
+  return val.replace(/^["']|["']$/g, '').replace(/\\n/g, '').trim();
+}
+
 function getModel(primary = true): LanguageModel {
-  const openRouterKey = process.env.BUILT_IN_FORGE_API_KEY?.trim();
-  const openRouterUrl = process.env.BUILT_IN_FORGE_API_URL?.trim();
-  const openaiKey = process.env.OPENAI_API_KEY?.trim();
-  const modelName = process.env.AI_MODEL_NAME?.trim() || "openai/gpt-4o-mini";
+  const openRouterKey = cleanEnvValue(process.env.BUILT_IN_FORGE_API_KEY);
+  const openRouterUrl = cleanEnvValue(process.env.BUILT_IN_FORGE_API_URL);
+  const openaiKey = cleanEnvValue(process.env.OPENAI_API_KEY);
+  const modelName = cleanEnvValue(process.env.AI_MODEL_NAME) || "openai/gpt-4o-mini";
 
   if (primary && openRouterKey && openRouterUrl) {
     const openrouter = createOpenRouter({
       apiKey: openRouterKey,
       baseURL: openRouterUrl.replace(/\/chat\/completions$/, ''),
       headers: {
-        "HTTP-Referer": process.env.OPENROUTER_HTTP_REFERER || "https://hdak-lib-chatbot.onrender.com",
+        "HTTP-Referer": cleanEnvValue(process.env.OPENROUTER_HTTP_REFERER) || "https://hdak-lib-chatbot.onrender.com",
         "X-Title": "Бібліотека ХДАК",
       }
     });
