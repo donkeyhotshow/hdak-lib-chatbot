@@ -1,11 +1,19 @@
 import { NextResponse } from "next/server";
 import { chatStorage } from "../../../lib/storage";
 
+const MAX_TITLE_LENGTH = 200;
+
+// Seed flag - run once
+let libraryDataSeeded = false;
+
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    await chatStorage.seedLibraryData();
+    if (!libraryDataSeeded) {
+      await chatStorage.seedLibraryData();
+      libraryDataSeeded = true;
+    }
     const conversations = await chatStorage.getAllConversations();
     return NextResponse.json(conversations);
   } catch (error) {
@@ -18,7 +26,7 @@ export async function POST(request: Request) {
   try {
     const { title } = await request.json();
     const safeTitle = typeof title === "string" && title.trim()
-      ? title.trim().slice(0, 200)
+      ? title.trim().slice(0, MAX_TITLE_LENGTH)
       : "Нова розмова";
     const conversation = await chatStorage.createConversation(safeTitle);
     return NextResponse.json(conversation, { status: 201 });

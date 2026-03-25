@@ -55,7 +55,7 @@ async function callOpenRouter(
 
   const model =
     cleanEnv(process.env.AI_MODEL_NAME) ||
-    "google/gemini-2.0-flash-lite-preview-02-05:free";
+    "google/gemini-2.0-flash-lite-preview-02-05";
 
   const referer =
     cleanEnv(process.env.OPENROUTER_HTTP_REFERER) ||

@@ -7,6 +7,8 @@ import {
   MapPin, BookOpen, Presentation, CreditCard
 } from 'lucide-react'
 
+const MAX_TITLE_LENGTH = 200;
+
 const CARDS = [
   { Icon: Clock,         title: 'Графік',       sub: 'Розклад роботи',      query: 'Графік роботи бібліотеки' },
   { Icon: Search,        title: 'Каталог',      sub: 'Пошук видань',        query: 'Електронний каталог' },
@@ -18,20 +20,6 @@ const CARDS = [
   { Icon: CreditCard,    title: 'Єдина картка', sub: '20+ бібліотек',       query: 'Єдина картка читача' },
 ]
 
-const cardBase: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '12px',
-  padding: '11px 13px',
-  background: '#ffffff',
-  border: '0.5px solid rgba(24,12,5,0.09)',
-  borderRadius: '10px',
-  cursor: 'pointer',
-  transition: 'all 0.13s ease',
-  textAlign: 'left',
-  width: '100%',
-  fontFamily: 'inherit',
-}
 
 function LandingPageInner() {
   const router = useRouter()
@@ -52,7 +40,7 @@ function LandingPageInner() {
       const res = await fetch('/api/conversations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: t.slice(0, 60) }),
+        body: JSON.stringify({ title: t.slice(0, MAX_TITLE_LENGTH) }),
       })
       if (!res.ok) throw new Error()
       const conv = await res.json()
@@ -94,21 +82,7 @@ function LandingPageInner() {
                   key={query}
                   disabled={loading}
                   onClick={() => start(query)}
-                  style={cardBase}
-                  onMouseEnter={e => {
-                    const el = e.currentTarget
-                    el.style.borderColor = 'rgba(184,120,48,0.35)'
-                    el.style.background = '#fdfbf8'
-                    el.style.transform = 'translateY(-1px)'
-                    el.style.boxShadow = '0 2px 8px rgba(24,12,5,0.06)'
-                  }}
-                  onMouseLeave={e => {
-                    const el = e.currentTarget
-                    el.style.borderColor = 'rgba(24,12,5,0.09)'
-                    el.style.background = '#ffffff'
-                    el.style.transform = 'none'
-                    el.style.boxShadow = 'none'
-                  }}
+                  className="home-card"
                 >
                   <div style={{
                     width: '32px', height: '32px',
@@ -171,6 +145,26 @@ function LandingPageInner() {
       </div>
 
       <style>{`
+        .home-card {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 11px 13px;
+          background: #ffffff;
+          border: 0.5px solid rgba(24,12,5,0.09);
+          border-radius: 10px;
+          cursor: pointer;
+          transition: all 0.13s ease;
+          text-align: left;
+          width: 100%;
+          font-family: inherit;
+        }
+        .home-card:hover {
+          border-color: rgba(184,120,48,0.35);
+          background: #fdfbf8;
+          transform: translateY(-1px);
+          box-shadow: 0 2px 8px rgba(24,12,5,0.06);
+        }
         .hero-title-main { font-size: clamp(26px, 5vw, 42px); }
         .hero-title-sub { font-size: clamp(22px, 4vw, 36px); color: var(--gold); font-style: italic; }
         

@@ -24,6 +24,7 @@ function ChatPageInner() {
   const [input, setInput] = useState('')
 
   const scrollRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const hasInited = useRef(false)
 
   const scrollToBottom = (behavior: 'smooth' | 'auto' = 'smooth') => {
@@ -34,9 +35,19 @@ function ChatPageInner() {
 
   useEffect(() => {
     fetch(`/api/conversations/${id}/messages`)
-      .then(res => res.json())
-      .then(data => { if (Array.isArray(data)) setMessages(data); setLoaded(true) })
-      .catch(() => setLoaded(true))
+      .then(res => {
+        if (!res.ok) throw new Error('Network error')
+        return res.json()
+      })
+      .then(data => { 
+        if (Array.isArray(data)) setMessages(data); 
+        setLoaded(true) 
+      })
+      .catch((err) => {
+        console.error('Failed to load messages:', err)
+        setError('Не вдалося завантажити повідомлення')
+        setLoaded(true)
+      })
   }, [id])
 
   useEffect(() => {
@@ -58,8 +69,7 @@ function ChatPageInner() {
     setInput('')
     
     // reset textarea height
-    const ta = document.querySelector('textarea')
-    if (ta) ta.style.height = 'auto'
+    if (textareaRef.current) textareaRef.current.style.height = 'auto'
 
     setStreaming(true)
     setStreamContent('')
@@ -157,6 +167,12 @@ function ChatPageInner() {
               </div>
             )}
             
+            {error && (
+              <div style={{ textAlign: 'center', opacity: 0.5, marginTop: '20vh', fontSize: 14, color: '#b87c32' }}>
+                {error}
+              </div>
+            )}
+            
             {messages.map(m => (
               <ChatMessage
                 key={m.id}
@@ -194,14 +210,17 @@ function ChatPageInner() {
 
       <div className="input-area-wrapper">
         <div className="input-container">
-          <textarea 
+          <textarea
+            ref={textareaRef}
             rows={1}
             placeholder="Ваше звернення..."
             value={input}
             onChange={(e) => {
               setInput(e.target.value)
-              e.target.style.height = 'auto'
-              e.target.style.height = Math.min(e.target.scrollHeight, 160) + 'px'
+              if (textareaRef.current) {
+                textareaRef.current.style.height = 'auto'
+                textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 160) + 'px'
+              }
             }}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {

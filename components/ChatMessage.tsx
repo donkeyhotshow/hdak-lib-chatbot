@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useMemo } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
@@ -16,9 +16,12 @@ export function ChatMessage({ role, content, isStreaming = false, onChipClick }:
   const isUser = role === 'user'
   const wrapperClass = `msg-wrapper ${isUser ? 'user' : 'bot'}`
 
-  const chipsMatch = content.match(/\[CHIPS:\s*(.*?)\]/)
-  const chips = chipsMatch ? chipsMatch[1].split(',').map(s => s.trim()) : []
-  const cleanContent = content.replace(/\[CHIPS:\s*.*?\]/, '').trim()
+  const { chips, cleanContent } = useMemo(() => {
+    const chipsMatch = content.match(/\[CHIPS:\s*(.*?)\]/)
+    const chipsArray = chipsMatch ? chipsMatch[1].split(',').map(s => s.trim()) : []
+    const clean = content.replace(/\[CHIPS:\s*.*?\]/, '').trim()
+    return { chips: chipsArray, cleanContent: clean }
+  }, [content])
 
   return (
     <div className={wrapperClass}>
@@ -31,7 +34,7 @@ export function ChatMessage({ role, content, isStreaming = false, onChipClick }:
               remarkPlugins={[remarkGfm]}
               skipHtml={true}
               components={{
-                a: ({ node, ...props }) => (
+                a: ({ ...props }) => (
                   <a
                     {...props}
                     target="_blank"

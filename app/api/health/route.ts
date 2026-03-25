@@ -31,7 +31,7 @@ export async function GET() {
   let openRouterTest: Record<string, unknown> = { status: "not tested" };
   if (apiKey) {
     try {
-      const model = modelName || "google/gemini-2.0-flash-lite-preview-02-05:free";
+      const model = modelName || "google/gemini-2.0-flash-lite-preview-02-05";
       const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
         headers: {
