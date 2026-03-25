@@ -119,6 +119,7 @@ export function Sidebar({
   const { id: currentId } = useParams()
   const router = useRouter()
   const [conversations, setConversations] = useState<Conversation[]>([])
+  const [loaded, setLoaded] = useState(false)
   const [showAllChats, setShowAllChats] = useState(false)
   const [deleteId, setDeleteId] = useState<number | null>(null)
   const [expanded, setExpanded] = useState(false)
@@ -132,8 +133,8 @@ export function Sidebar({
   useEffect(() => {
     fetch('/api/conversations')
       .then(res => res.json())
-      .then(data => { if (Array.isArray(data)) setConversations(data) })
-      .catch(() => {})
+      .then(data => { if (Array.isArray(data)) setConversations(data); setLoaded(true) })
+      .catch(() => { setLoaded(true) })
   }, [])
 
   const handleDelete = (e: React.MouseEvent, id: number) => {
@@ -443,7 +444,14 @@ export function Sidebar({
           {expanded && <div style={dividerStyle} />}
 
           {/* HISTORY */}
-          {conversations.length > 0 && (
+          {!loaded && (
+            <div className="conversation-skeletons">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="skeleton-item" />
+              ))}
+            </div>
+          )}
+          {loaded && conversations.length > 0 && (
             <>
               <div className="nav-group-label" style={{ marginTop: 24 }}>Діалоги</div>
               {displayedConversations.map(conv => {
@@ -477,7 +485,7 @@ export function Sidebar({
                   </div>
                 )
               })}
-              {conversations.length > 2 && !showAllChats && (
+              {loaded && conversations.length > 2 && !showAllChats && (
                 <button
                   onClick={() => setShowAllChats(true)}
                   style={{

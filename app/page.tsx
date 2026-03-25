@@ -4,7 +4,7 @@ import React, { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
   Clock, Search, ClipboardList, FlaskConical,
-  MapPin, BookOpen, Presentation, CreditCard
+  MapPin, BookOpen, Presentation, CreditCard, Loader2
 } from 'lucide-react'
 
 const MAX_TITLE_LENGTH = 200;
@@ -161,7 +161,7 @@ function LandingPageInner() {
             disabled={loading || !inputTitle.trim()}
           >
             {loading ? (
-              <div className="dot" style={{ animation: 'pulse 1s infinite alternate' }} />
+              <Loader2 className="animate-spin" size={22} />
             ) : (
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <line x1="22" y1="2" x2="11" y2="13" />

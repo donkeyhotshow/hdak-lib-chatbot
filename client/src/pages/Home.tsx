@@ -1,5 +1,6 @@
 import { useCreateConversation } from "@/hooks/use-chat";
 import { useLocation } from "wouter";
+import { Loader2 } from "lucide-react";
 
 const STEPS = [
   {
@@ -172,8 +173,7 @@ export default function Home() {
                   transition: "all 0.12s",
                 }}
               >
-                <span style={{ fontSize: 13 }}>{chip.emoji}</span>
-                {chip.label}
+                {createMutation.isPending ? <Loader2 className="animate-spin" size={14} /> : <><span style={{ fontSize: 13 }}>{chip.emoji}</span> {chip.label}</>}
               </button>
             ))}
           </div>

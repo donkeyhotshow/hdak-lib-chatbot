@@ -165,7 +165,15 @@ function ChatPageInner() {
               </div>
             )}
             
-            {messages.map(m => (
+            {!loaded && (
+              <div className="message-skeletons">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className={`skeleton-message ${i % 2 === 0 ? 'user' : 'bot'}`} />
+                ))}
+              </div>
+            )}
+            
+            {loaded && messages.map(m => (
               <ChatMessage
                 key={m.id}
                 role={m.role as 'user' | 'assistant'}
