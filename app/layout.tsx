@@ -1,22 +1,22 @@
 import React from 'react'
 import type { Metadata } from 'next'
-import { Cormorant_Garamond, DM_Sans } from 'next/font/google'
+import { EB_Garamond, Inter } from 'next/font/google'
 import { SplashScreen } from '@/components/SplashScreen'
 import './globals.css'
 import { ClientLayout } from '@/components/ClientLayout'
 
-const cormorant = Cormorant_Garamond({
+const serif = EB_Garamond({
   subsets: ['latin', 'cyrillic'],
-  weight: ['400', '500', '600'],
+  weight: ['400', '500', '600', '700'],
   style: ['normal', 'italic'],
-  variable: '--fs',
+  variable: '--font-serif',
   display: 'swap',
 })
 
-const dmSans = DM_Sans({
-  subsets: ['latin'],
-  weight: ['300', '400', '500'],
-  variable: '--fb',
+const sans = Inter({
+  subsets: ['latin', 'cyrillic'],
+  weight: ['300', '400', '500', '600'],
+  variable: '--font-sans',
   display: 'swap',
 })
 
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="uk" className={`${cormorant.variable} ${dmSans.variable}`}>
+    <html lang="uk" className={`${serif.variable} ${sans.variable}`}>
       <body>
         <SplashScreen />
         <ClientLayout>{children}</ClientLayout>

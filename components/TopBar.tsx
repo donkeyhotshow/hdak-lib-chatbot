@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { useRouter } from 'next/navigation'
-import { Menu } from 'lucide-react'
+import { Menu, BookOpenText } from 'lucide-react'
 
 export function TopBar({ onToggle, sidebarOpen }: { onToggle: () => void; sidebarOpen?: boolean }) {
   const router = useRouter()
@@ -19,15 +19,18 @@ export function TopBar({ onToggle, sidebarOpen }: { onToggle: () => void; sideba
 
       <div
         className="header-brand"
-        style={{ cursor: 'pointer' }}
         onClick={() => router.push('/')}
         aria-label="На головну"
         role="button"
         tabIndex={0}
-        onKeyDown={e => e.key === 'Enter' && router.push('/')}
       >
-        <h2>Бібліотека ХДАК</h2>
-        <span>Чат-помічник</span>
+        <div className="brand-svg-container">
+          <BookOpenText size={18} strokeWidth={1.5} color="#C08840" />
+        </div>
+        <div className="brand-text">
+          <h2>HDAK Intelligence</h2>
+          <span>KNOWLEDGE CONCIERGE</span>
+        </div>
       </div>
 
       <div className="top-bar-spacer" />

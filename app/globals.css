@@ -6,22 +6,22 @@
 }
 
 :root {
-  --dark-espresso: #1a1412;
-  --deep-brown:   #2c2421;
-  --gold:         #c5a47e;
-  --gold-muted:   #b3936d;
-  --gold-light:   #e2d1bc;
-  --cream-bg:     #fdfcfb;
+  --dark-espresso: #3E2723;
+  --deep-brown:   #4e342e;
+  --gold:         #C08840;
+  --gold-muted:   #ad7b3a;
+  --gold-light:   #f5eadb;
+  --cream-bg:     #FAF9F6;
   --white:        #ffffff;
-  --text-main:    #2a2420;
-  --text-muted:   #766d66;
-  --border-mocha: #e8e2de;
+  --text-main:    #3E2723;
+  --text-muted:   #8d6e63;
+  --border-mocha: rgba(62, 39, 35, 0.08); /* Ink based border */
   --sb-width:     260px;
   --transition:   all 0.35s cubic-bezier(0.25, 1, 0.5, 1);
-  --shadow-premium: 0 10px 40px rgba(26, 20, 18, 0.05);
+  --shadow-premium: 0 4px 20px rgba(62, 39, 35, 0.04);
   
-  --font-serif: 'Cormorant Garamond', Georgia, serif;
-  --font-sans: 'DM Sans', system-ui, sans-serif;
+  --font-serif: var(--font-serif);
+  --font-sans: var(--font-sans);
 }
 
 *, *::before, *::after {
@@ -297,25 +297,37 @@ html, body {
 
 .header-brand {
   display: flex;
-  flex-direction: column;
   align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.brand-svg-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
 
 .header-brand h2 {
   font-family: var(--font-serif);
-  font-size: 19px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 500;
   color: var(--dark-espresso);
-  letter-spacing: 0.02em;
+  letter-spacing: 0.05em;
+  line-height: 1.1;
 }
 
 .header-brand span {
-  font-size: 8px;
+  font-size: 7px;
   text-transform: uppercase;
-  letter-spacing: 0.3em;
-  color: var(--gold-muted);
-  font-weight: 600;
-  margin-top: -2px;
+  letter-spacing: 0.35em;
+  color: var(--gold);
 }
 
 /* --- Chat Layout & Flow --- */
@@ -397,11 +409,11 @@ html, body {
 .bot .bubble { 
   background: var(--white); 
   color: var(--text-main);
-  border: 1px solid var(--border-mocha); 
+  border: 0.5px solid var(--border-mocha); 
   border-bottom-left-radius: 4px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+  box-shadow: 0 2px 8px rgba(62,39,35,0.02);
 }
-.bot .bubble strong { color: var(--dark-espresso); }
+.bot .bubble strong { color: var(--dark-espresso); font-weight: 600; }
 
 /* --- Input Docking --- */
 .input-area-wrapper {
