@@ -102,33 +102,18 @@ function LandingPageInner() {
 
             {/* CARDS GRID */}
             <div className="cards-grid">
-              {QUICK_REPLIES.map(({ id, title, subtitle, highlights, query, Icon }, idx) => (
+              {QUICK_REPLIES.map(({ id, title, query, Icon }, idx) => (
                 <button
                   key={id}
                   disabled={loading}
                   onClick={() => start(query)}
-                  className="quick-reply-card"
+                  className="quick-reply-pill"
                   style={{ animationDelay: `${idx * 0.08}s` }}
                 >
-                  <div className="quick-reply-header">
-                    <div className="quick-reply-icon">
-                      <Icon size={20} strokeWidth={1.5} />
-                    </div>
-                    <div className="quick-reply-title-block">
-                      <span className="quick-reply-title">{title}</span>
-                      <span className="quick-reply-subtitle">{subtitle}</span>
-                    </div>
+                  <div className="quick-reply-icon-small">
+                    <Icon size={16} strokeWidth={2} />
                   </div>
-                  <div className="quick-reply-highlights">
-                    {highlights.map((hl, i) => (
-                      <span key={i} className="highlight-tag">{hl}</span>
-                    ))}
-                  </div>
-                  <div className="quick-reply-arrow">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M5 12h14M12 5l7 7-7 7"/>
-                    </svg>
-                  </div>
+                  <span className="quick-reply-title-small">{title}</span>
                 </button>
               ))}
             </div>
@@ -176,182 +161,84 @@ function LandingPageInner() {
         .hero-title-main { font-size: clamp(26px, 5vw, 42px); }
         .hero-title-sub { font-size: clamp(22px, 4vw, 36px); color: var(--gold); font-style: italic; }
 
-/* Quick Reply Cards - 4 columns grid */
+/* Quick Reply Pills Grid */
 .cards-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-  width: 100%;
-  max-width: 720px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  max-width: 600px;
   margin: 0 auto 32px;
 }
 
-.quick-reply-card {
+.quick-reply-pill {
   display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 20px;
-  background: #ffffff;
-  border: 0.5px solid rgba(24, 12, 5, 0.08);
-  border-radius: 20px;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px 10px 14px;
+  background: white;
+  border: 1px solid rgba(184, 120, 48, 0.15);
+  border-radius: 100px;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  text-align: left;
-  width: 100%;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: inherit;
-  position: relative;
-  overflow: hidden;
-}
-
-.quick-reply-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(135deg, rgba(184, 120, 48, 0.05) 0%, transparent 60%);
+  animation: cardFadeIn 0.5s ease-out forwards;
   opacity: 0;
-  transition: opacity 0.3s ease;
+  box-shadow: 0 4px 12px rgba(24, 12, 5, 0.03);
 }
 
-.quick-reply-card:hover::before {
-  opacity: 1;
+.quick-reply-pill:hover {
+  border-color: rgba(184, 120, 48, 0.4);
+  background: #fdfcfb;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(184, 120, 48, 0.08);
 }
 
-.quick-reply-card:hover {
-  border-color: rgba(184, 120, 48, 0.3);
-  background: #fefdfb;
-  transform: translateY(-3px);
-  box-shadow: 0 12px 32px rgba(24, 12, 5, 0.1);
-}
-
-.quick-reply-card:active {
+.quick-reply-pill:active {
   transform: translateY(0);
 }
 
-.quick-reply-card:disabled {
+.quick-reply-pill:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-.quick-reply-header {
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-}
-
-.quick-reply-icon {
-  width: 48px;
-  height: 48px;
-  background: linear-gradient(135deg, rgba(184, 120, 48, 0.15) 0%, rgba(184, 120, 48, 0.06) 100%);
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  color: #b87830;
-  transition: all 0.3s ease;
-}
-
-.quick-reply-card:hover .quick-reply-icon {
-  background: linear-gradient(135deg, rgba(184, 120, 48, 0.22) 0%, rgba(184, 120, 48, 0.1) 100%);
-  transform: scale(1.08);
-}
-
-.quick-reply-title-block {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.quick-reply-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #180c05;
-  line-height: 1.3;
-}
-
-.quick-reply-subtitle {
-  font-size: 12px;
-  font-weight: 400;
+.quick-reply-icon-small {
   color: #a07a54;
-  line-height: 1.3;
-}
-
-.quick-reply-highlights {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.highlight-tag {
-  display: inline-block;
-  padding: 6px 12px;
-  background: linear-gradient(135deg, rgba(184, 120, 48, 0.1) 0%, rgba(184, 120, 48, 0.04) 100%);
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 500;
-  color: #8a5a2a;
-  transition: all 0.2s ease;
-}
-
-.quick-reply-card:hover .highlight-tag {
-  background: linear-gradient(135deg, rgba(184, 120, 48, 0.15) 0%, rgba(184, 120, 48, 0.08) 100%);
-}
-
-.quick-reply-arrow {
-  position: absolute;
-  right: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 28px;
-  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(184, 120, 48, 0.3);
-  transition: all 0.3s ease;
+  transition: color 0.25s;
 }
 
-.quick-reply-card:hover .quick-reply-arrow {
+.quick-reply-pill:hover .quick-reply-icon-small {
   color: #b87830;
-  transform: translateY(-50%) translateX(4px);
+  transform: scale(1.05);
 }
 
-/* Card entrance animation */
-.quick-reply-card {
-  animation: cardFadeIn 0.5s ease-out forwards;
-  opacity: 0;
+.quick-reply-title-small {
+  font-size: 14px;
+  font-weight: 500;
+  color: #2D1B13;
 }
 
 @keyframes cardFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(15px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-        
+
         @media (max-width: 767px) {
           .hero-title-main { font-size: 22px; }
           .hero-title-sub { font-size: 20px; }
           .cards-grid {
-            grid-template-columns: 1fr;
-            gap: 12px;
+            gap: 10px;
+            max-width: 100%;
           }
-          .quick-reply-card {
-            padding: 16px;
+          .quick-reply-pill {
+            padding: 8px 16px 8px 12px;
           }
-          .quick-reply-highlights {
-            gap: 6px;
-          }
-          .highlight-tag {
-            font-size: 11px;
-            padding: 5px 10px;
+          .quick-reply-title-small {
+            font-size: 13px;
           }
         }
       `}</style>

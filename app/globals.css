@@ -1,4 +1,3 @@
-@import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap');
 
 @theme {
@@ -7,9 +6,12 @@
 }
 
 :root {
+  --font-serif-face: 'Playfair Display', Georgia, serif;
+  --font-sans-face:  'Montserrat', system-ui, sans-serif;
+
   --dark-espresso: #2D1B13; /* Глубокий кофейный */
-  --deep-brown:   #3E2723;
-  --leather:      #1a0d06; /* Теплий темно-коричневий */
+  --deep-brown:   #231c19;
+  --leather:      #1c1714; /* Розкішний чорно-коричневий */
   --gold:         #D4A373; /* Благородное золото */
   --gold-muted:   #B08968;
   --gold-light:   #F5EBE0;
@@ -21,9 +23,6 @@
   --sb-width:     270px; /* Немного шире для воздуха */
   --transition:   all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); /* Более плавная анимация */
   --shadow-premium: 0 8px 30px rgba(26, 15, 10, 0.06); /* Мягкие тени */
-  
-  --font-serif: var(--font-serif);
-  --font-sans: var(--font-sans);
 }
 
 *, *::before, *::after {
@@ -34,7 +33,7 @@
 }
 
 html, body {
-  font-family: var(--font-sans);
+  font-family: var(--font-sans-face);
   background: var(--cream-bg);
   color: var(--text-main);
   height: 100dvh;
@@ -102,7 +101,7 @@ html, body {
   letter-spacing: -0.02em;
 }
 .sidebar-main-title {
-  font-family: var(--font-serif);
+  font-family: var(--font-serif-face);
   font-size: 24px;
   font-weight: 500;
   color: #fff;
@@ -123,7 +122,7 @@ html, body {
 .sidebar-sub-title {
   display: block;
   font-size: 8px;
-  font-family: var(--font-sans);
+  font-family: var(--font-sans-face);
   font-weight: 600;
   color: var(--gold-muted);
   letter-spacing: 0.35em;
@@ -136,7 +135,7 @@ html, body {
   align-items: center;
   gap: 6px;
   font-size: 10px;
-  font-family: var(--font-sans);
+  font-family: var(--font-sans-face);
   font-weight: 500;
   letter-spacing: 0.05em;
   color: rgba(212, 163, 115, 0.6);
@@ -311,6 +310,7 @@ html, body {
 .toggle-sb:hover {
   border-color: var(--gold);
   background: var(--white);
+  box-shadow: 0 4px 12px rgba(212, 163, 115, 0.15);
 }
 
 .toggle-sb:focus-visible {
@@ -323,6 +323,12 @@ html, body {
   align-items: center;
   gap: 12px;
   cursor: pointer;
+  user-select: none;
+}
+
+/* Fix for centering the TopBar brand when toggle button is present */
+.top-bar-spacer {
+  width: 38px; 
 }
 
 .brand-svg-container {
@@ -338,7 +344,7 @@ html, body {
 }
 
 .header-brand h2 {
-  font-family: var(--font-serif);
+  font-family: var(--font-serif-face);
   font-size: 21px;
   font-weight: 500;
   color: var(--dark-espresso);
@@ -348,7 +354,7 @@ html, body {
 }
 
 .header-brand span {
-  font-family: var(--font-sans);
+  font-family: var(--font-sans-face);
   font-size: 7.5px;
   letter-spacing: 0.2em;
   font-weight: 500;
@@ -358,6 +364,12 @@ html, body {
   padding: 4px 10px;
   border-radius: 100px;
   border: 0.5px solid rgba(184, 120, 48, 0.15);
+  transition: all 0.2s;
+}
+
+.header-brand:hover span {
+  background: rgba(184, 120, 48, 0.12);
+  border-color: rgba(184, 120, 48, 0.3);
 }
 
 /* --- Chat Layout & Flow --- */
@@ -417,16 +429,16 @@ html, body {
 }
 
 .hero-title-main {
-  font-family: var(--font-serif);
-  font-size: clamp(28px, 5vw, 48px);
+  font-family: var(--font-serif-face);
+  font-size: clamp(28px, 5vw, 42px);
   font-weight: 500;
   color: var(--dark-espresso);
   letter-spacing: -0.01em;
 }
 
 .hero-title-sub {
-  font-family: var(--font-serif);
-  font-size: clamp(20px, 4vw, 32px);
+  font-family: var(--font-serif-face);
+  font-size: clamp(20px, 4vw, 28px);
   color: var(--gold);
   font-style: italic;
   font-weight: 400;
@@ -437,12 +449,75 @@ html, body {
 
 .msg-wrapper {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   max-width: 85%;
+  gap: 16px;
 }
 
-.msg-wrapper.user { align-self: flex-end; align-items: flex-end; }
-.msg-wrapper.bot { align-self: flex-start; align-items: flex-start; }
+.msg-wrapper.user { align-self: flex-end; justify-content: flex-end; }
+.msg-wrapper.bot { align-self: flex-start; justify-content: flex-start; }
+
+.message-content-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 100%;
+}
+
+.msg-wrapper.user .message-content-col {
+  align-items: flex-end;
+}
+.msg-wrapper.bot .message-content-col {
+  align-items: flex-start;
+}
+
+.avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.bot-avatar {
+  background: var(--leather);
+  border: 1px solid rgba(212, 163, 115, 0.15);
+  box-shadow: 0 4px 12px rgba(26, 15, 10, 0.08);
+}
+
+.user-avatar {
+  background: var(--gold-muted);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.msg-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: -2px;
+  margin-left: 2px;
+}
+
+.action-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.action-btn:hover {
+  background: rgba(45, 27, 19, 0.05);
+  color: var(--dark-espresso);
+}
 
 .bubble {
   padding: 16px 24px;
@@ -450,12 +525,14 @@ html, body {
   line-height: 1.65;
   border-radius: 20px;
   position: relative;
+  min-width: 40px;
 }
 
 .user .bubble { 
   background: var(--dark-espresso); 
   color: var(--gold-light); 
   border-bottom-right-radius: 4px;
+  border-top-right-radius: 4px;
   box-shadow: 0 4px 12px rgba(62, 39, 35, 0.12);
 }
 
@@ -463,7 +540,7 @@ html, body {
   background: var(--white); 
   color: var(--text-main);
   border: 0.5px solid var(--border-mocha); 
-  border-bottom-left-radius: 4px;
+  border-top-left-radius: 4px;
   box-shadow: 0 2px 8px rgba(62,39,35,0.02);
 }
 .bot .bubble strong { color: var(--dark-espresso); font-weight: 600; }
@@ -478,7 +555,7 @@ html, body {
 .prose-hdak h1,
 .prose-hdak h2,
 .prose-hdak h3 {
-  font-family: var(--font-serif);
+  font-family: var(--font-serif-face);
   color: var(--dark-espresso);
   font-weight: 600;
   margin: 16px 0 8px 0;
@@ -580,7 +657,6 @@ html, body {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin-top: 14px;
 }
 
 .suggest-chip {
@@ -628,16 +704,15 @@ html, body {
   align-items: flex-end;
   background: var(--white);
   border: 1px solid rgba(45, 27, 19, 0.08);
-  border-radius: 24px;
-  padding: 12px 12px 12px 24px;
+  border-radius: 28px;
+  padding: 8px 8px 8px 20px;
   max-width: 760px;
   margin: 0 auto;
   box-shadow: 0 8px 32px rgba(26, 15, 10, 0.06);
   transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-
-  .input-container:focus-within {
+.input-container:focus-within {
   border-color: var(--gold);
   box-shadow: 0 25px 70px rgba(44, 36, 33, 0.12);
 }
@@ -646,7 +721,7 @@ textarea {
   flex: 1;
   border: none;
   outline: none;
-  padding: 12px 0;
+  padding: 14px 0;
   font-family: inherit;
   font-size: 15px;
   max-height: 160px;
@@ -694,12 +769,20 @@ textarea::placeholder { color: var(--text-muted); }
 
 @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
 
-.dot { width: 6px; height: 6px; background: var(--gold); border-radius: 50%; animation: pulse-typing 1s infinite alternate; }
+.dot { width: 6px; height: 6px; background: var(--gold); border-radius: 50%; opacity: 0.4; animation: pulse-typing 1.2s infinite ease-in-out; }
 .dot:nth-child(1) { animation-delay: 0s; }
 .dot:nth-child(2) { animation-delay: 0.2s; }
 .dot:nth-child(3) { animation-delay: 0.4s; }
 
-@keyframes pulse-typing { from { opacity: 0.3; } to { opacity: 1; } }
+@keyframes pulse-typing { 
+  0%, 100% { opacity: 0.4; transform: translateY(0); } 
+  50% { opacity: 1; transform: translateY(-4px); } 
+}
+
+@keyframes pulse-cursor {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 1; box-shadow: 0 0 8px rgba(212, 163, 115, 0.6); }
+}
 
 @media (max-width: 800px) {
   .sidebar { position: fixed; height: 100%; box-shadow: 25px 0 60px rgba(0,0,0,0.35); }
