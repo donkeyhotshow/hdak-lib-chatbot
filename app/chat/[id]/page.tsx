@@ -98,7 +98,7 @@ function ChatPageInner() {
         setMessages(prev => [...prev, {
           id: Date.now() + 1,
           role: 'assistant',
-          content: textToSimulate,
+          content: rawText,
           createdAt: new Date().toISOString()
         }])
         setStreamContent('')

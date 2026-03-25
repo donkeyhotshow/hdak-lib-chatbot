@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import {
   Search, BookOpen, Sparkles, FileText, GalleryVertical,
-  FlaskConical, UserCircle, Link2, Globe, ChevronLeft, Plus, Trash2
+  FlaskConical, UserCircle, Link2, Globe, ChevronLeft, Plus, Trash2, MoreHorizontal
 } from 'lucide-react'
 
 interface Conversation {
@@ -58,6 +58,8 @@ export function Sidebar({
   const { id: currentId } = useParams()
   const router = useRouter()
   const [conversations, setConversations] = useState<Conversation[]>([])
+  const [showAllChats, setShowAllChats] = useState(false)
+  const [deleteId, setDeleteId] = useState<number | null>(null)
 
   useEffect(() => {
     fetch('/api/conversations')
@@ -66,10 +68,13 @@ export function Sidebar({
       .catch(() => {})
   }, [])
 
-  const handleDelete = async (e: React.MouseEvent, id: number) => {
+  const handleDelete = (e: React.MouseEvent, id: number) => {
     e.preventDefault()
     e.stopPropagation()
-    if (!confirm('Видалити цей діалог?')) return
+    setDeleteId(id)
+  }
+
+  const confirmDelete = async (id: number) => {
     try {
       const res = await fetch(`/api/conversations/${id}`, { method: 'DELETE' })
       if (res.ok) {
@@ -77,7 +82,10 @@ export function Sidebar({
         if (Number(currentId) === id) router.push('/')
       }
     } catch {}
+    setDeleteId(null)
   }
+
+  const displayedConversations = showAllChats ? conversations : conversations.slice(0, 2)
 
   return (
     <>
@@ -145,7 +153,7 @@ export function Sidebar({
           {conversations.length > 0 && (
             <>
               <div className="nav-group-label" style={{ marginTop: 24 }}>Діалоги</div>
-              {conversations.map(conv => {
+              {displayedConversations.map(conv => {
                 const isActive = Number(currentId) === conv.id
                 return (
                   <div key={conv.id} style={{ display: 'flex', alignItems: 'center' }}>
@@ -176,6 +184,23 @@ export function Sidebar({
                   </div>
                 )
               })}
+              {conversations.length > 2 && !showAllChats && (
+                <button
+                  onClick={() => setShowAllChats(true)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    width: '100%', padding: '8px 16px',
+                    background: 'transparent', border: 'none',
+                    color: 'rgba(235, 215, 185, 0.4)', fontSize: 11,
+                    textTransform: 'uppercase', letterSpacing: '0.05em', cursor: 'pointer',
+                    marginTop: 4, transition: 'color 0.15s'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.color = 'rgba(235, 215, 185, 0.7)'}
+                  onMouseLeave={e => e.currentTarget.style.color = 'rgba(235, 215, 185, 0.4)'}
+                >
+                  <MoreHorizontal size={14} /> Розгорнути (ще {conversations.length - 2})
+                </button>
+              )}
             </>
           )}
         </nav>
@@ -229,6 +254,36 @@ export function Sidebar({
           }
         }
       `}</style>
+      
+      {deleteId && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 99999,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }}>
+          <div style={{
+            background: '#ffffff', padding: '24px', borderRadius: '16px',
+            width: '320px', textAlign: 'center', boxShadow: '0 8px 32px rgba(0,0,0,0.2)'
+          }}>
+            <h3 style={{ margin: '0 0 12px', fontSize: '18px', fontWeight: 500, color: '#180c05' }}>Видалити діалог?</h3>
+            <p style={{ margin: '0 0 24px', fontSize: '13px', color: '#666' }}>Цю дію неможливо буде скасувати.</p>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button 
+                onClick={() => setDeleteId(null)}
+                style={{ flex: 1, padding: '12px', background: '#f5f5f5', border: '1px solid #e0e0e0', borderRadius: '10px', cursor: 'pointer', color: '#333', fontWeight: 500 }}
+              >
+                Скасувати
+              </button>
+              <button 
+                onClick={() => confirmDelete(deleteId)}
+                style={{ flex: 1, padding: '12px', background: '#da4444', border: 'none', borderRadius: '10px', cursor: 'pointer', color: '#fff', fontWeight: 500 }}
+              >
+                Видалити
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }

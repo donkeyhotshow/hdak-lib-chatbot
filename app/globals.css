@@ -363,7 +363,7 @@ html, body {
 .hero h2 i { color: var(--gold); font-style: italic; }
 
 /* --- Bubble Mechanics --- */
-#chat-content { padding: 24px 0 48px; display: flex; flex-direction: column; gap: 32px; }
+#chat-content { padding: 24px 0 140px; display: flex; flex-direction: column; gap: 32px; }
 
 .msg-wrapper {
   display: flex;

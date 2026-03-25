@@ -142,27 +142,27 @@ ${infoString}
 const AUTOMATED_REPLIES: Record<string, { keywords: string[]; content: string; chips: string[] }> = {
   "hours": { 
     keywords: ["графік", "годин", "розклад", "субот", "вихідн", "перерв", "коли"],
-    content: "<strong>Абонементи + бібліографічний відділ:</strong><br>Пн–Пт: 9:00–16:45 (перерва 13:00–13:45)<br>Вихідні: субота, неділя<br>Санітарний день: <em>остання п'ятниця місяця</em><br><br><strong>Читальна зала:</strong><br>Пн–Пт: 9:00–16:45<br>Субота: 9:00–13:30<br>Санітарний день: <em>останній четвер місяця</em><br><br><strong>Е-читальна зала (кімн. 18а):</strong><br>Пн–Пт: 9:00–16:45<br>Вихідні: субота, неділя<br>Санітарний день: <em>останній четвер місяця</em><br><br>ℹ️ На час воєнного стану — обслуговування також дистанційно.", 
+    content: "**Абонементи + бібліографічний відділ:**\nПн–Пт: 9:00–16:45 (перерва 13:00–13:45)\nВихідні: субота, неділя\nСанітарний день: *остання п'ятниця місяця*\n\n**Читальна зала:**\nПн–Пт: 9:00–16:45\nСубота: 9:00–13:30\nСанітарний день: *останній четвер місяця*\n\n**Е-читальна зала (кімн. 18а):**\nПн–Пт: 9:00–16:45\nВихідні: субота, неділя\nСанітарний день: *останній четвер місяця*\n\nℹ️ На час воєнного стану — обслуговування також дистанційно.", 
     chips: ["📍 Контакти", "📋 Записатися", "💻 Е-читальна зала"] 
   },
   "catalog": { 
     keywords: ["каталог", "пошук книг", "знайти", "є у вас", "автор", "назва", "літератур"],
-    content: "<strong>Електронний каталог ХДАК</strong> — пошук за автором, назвою, темою.<br><br><a href=\"https://library-service.com.ua:8443/khkhdak/DocumentSearchForm\" target=\"_blank\">🔍 Відкрити пошук ↗</a><br><a href=\"https://lib-hdak.in.ua/e-catalog.html\" target=\"_blank\">📄 Інструкція з пошуку ↗</a><br><br><strong>Поради для пошуку:</strong><br>• За назвою — шукайте по окремих словах<br>• Анотація — вводьте частину слова зі знаком * (наприклад: <em>культур*</em>)<br><br><strong>📱 Мобільний додаток Android:</strong><br><a href=\"https://play.google.com/store/apps/details?id=ush.libclient\" target=\"_blank\">Google Play ↗</a>", 
+    content: "**Електронний каталог ХДАК** — пошук за автором, назвою, темою.\n\n[🔍 Відкрити пошук ↗](https://library-service.com.ua:8443/khkhdak/DocumentSearchForm)\n[📄 Інструкція з пошуку ↗](https://lib-hdak.in.ua/e-catalog.html)\n\n**Поради для пошуку:**\n- За назвою — шукайте по окремих словах\n- Анотація — вводьте частину слова зі знаком \\* (наприклад: *культур\\**)\n\n**📱 Мобільний додаток Android:**\n[Google Play ↗](https://play.google.com/store/apps/details?id=ush.libclient)", 
     chips: ["📖 Репозитарій ХДАК", "📱 Мобільний додаток", "🔬 Пошук наукової інформації"] 
   },
   "register": { 
     keywords: ["записати", "стати читачем", "читацький квиток", "реєстрація", "отримати квиток", "квіток"],
-    content: "<strong>Запис до бібліотеки ХДАК:</strong><br><br><strong>Особисто:</strong><br>Пред'явіть паспорт або студентський квиток у кімн. 19 або 2.<br><br><strong>Дистанційно:</strong><br>📧 Email: <a href=\"mailto:abon@xdak.ukr.education\">abon@xdak.ukr.education</a><br>📱 Viber/Telegram: <a href=\"tel:+380661458484\">+380 66 145 84 84</a><br>💬 <a href=\"http://m.me/641740969354328\" target=\"_blank\">Facebook ↗</a><br><br>📍 вул. Бурсацький узвіз, 4 (метро «Історичний музей»)", 
+    content: "**Запис до бібліотеки ХДАК:**\n\n**Особисто:**\nПред'явіть паспорт або студентський квиток у кімн. 19 або 2.\n\n**Дистанційно:**\n📧 Email: abon@xdak.ukr.education\n📱 Viber/Telegram: +380 66 145 84 84\n💬 [Facebook ↗](http://m.me/641740969354328)\n\n📍 вул. Бурсацький узвіз, 4 (метро «Історичний музей»)", 
     chips: ["🕐 Графік роботи", "📋 Правила бібліотеки", "💳 Єдина картка читача"] 
   },
   "contacts": { 
     keywords: ["контакт", "телефон", "адреса", "де знаходиться", "дістатися", "email", "пошта", "локац", "узвіз"],
-    content: "📍 <strong>Адреса:</strong><br>вул. Бурсацький узвіз, 4, Харків 61057 (метро «Історичний музей»)<br><br>📞 <strong>Телефони:</strong><br>(057) 731-27-83 &nbsp;·&nbsp; (057) 731-13-85<br><br>📧 <strong>Email:</strong><br><a href=\"mailto:abon@xdak.ukr.education\">abon@xdak.ukr.education</a><br><br>📱 <strong>Месенджери:</strong><br>Viber/Telegram: <a href=\"tel:+380661458484\">+380 66 145 84 84</a><br><a href=\"http://m.me/641740969354328\" target=\"_blank\">Facebook ↗</a> &nbsp;·&nbsp; <a href=\"https://www.instagram.com/hdak_lib/\" target=\"_blank\">Instagram ↗</a>", 
+    content: "📍 **Адреса:**\nвул. Бурсацький узвіз, 4, Харків 61057 (метро «Історичний музей»)\n\n📞 **Телефони:**\n(057) 731-27-83 · (057) 731-13-85\n\n📧 **Email:**\nabon@xdak.ukr.education\n\n📱 **Месенджери:**\nViber/Telegram: +380 66 145 84 84\n[Facebook ↗](http://m.me/641740969354328) · [Instagram ↗](https://www.instagram.com/hdak_lib/)", 
     chips: ["🕐 Графік роботи", "📋 Записатися", "🏛 Сайт бібліотеки"] 
   },
   "science": { 
     keywords: ["scopus", "web of science", "науков", "статті", "дисертація", "автореферат", "wos", "springer", "elsevier"],
-    content: "<strong>Наукові ресурси:</strong><br><br>• <a href=\"https://repository.ac.kharkov.ua/home\" target=\"_blank\">Репозитарій ХДАК ↗</a> — відкритий доступ<br>• <a href=\"https://link.springer.com/\" target=\"_blank\">Springer Link ↗</a><br>• <a href=\"https://www.scopus.com/\" target=\"_blank\">Scopus ↗</a> (мережа ХДАК/VPN)<br>• <a href=\"https://www.webofscience.com/\" target=\"_blank\">Web of Science ↗</a> (мережа ХДАК/VPN)<br><br>💡 Потрібна допомога з добором джерел?<br><a href=\"https://lib-hdak.in.ua/search-scientific-info.html\" target=\"_blank\">Заповнити форму запиту ↗</a>", 
+    content: "**Наукові ресурси:**\n\n- [Репозитарій ХДАК ↗](https://repository.ac.kharkov.ua/home) — відкритий доступ\n- [Springer Link ↗](https://link.springer.com/)\n- [Scopus ↗](https://www.scopus.com/) (мережа ХДАК/VPN)\n- [Web of Science ↗](https://www.webofscience.com/) (мережа ХДАК/VPN)\n\n💡 Потрібна допомога з добором джерел?\n[Заповнити форму запиту ↗](https://lib-hdak.in.ua/search-scientific-info.html)", 
     chips: ["📖 Репозитарій ХДАК", "👤 Авторські профілі", "🔬 Пошук наукової інформації"] 
   }
 };
