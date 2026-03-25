@@ -103,12 +103,14 @@ export function Sidebar({
         {/* HEADER */}
         <div className="sidebar-header">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <h1
+            <div
+              className="sidebar-brand-group"
               style={{ cursor: 'pointer' }}
               onClick={() => { router.push('/'); if (onClose) onClose() }}
             >
-              Бібліотека<span className="sub">ХДАК</span>
-            </h1>
+              <h1 className="sidebar-main-title">HDAK<span className="gold-accent"> Intelligence</span></h1>
+              <span className="sidebar-sub-title">KNOWLEDGE CONCIERGE</span>
+            </div>
 
             {/* Collapse button — inside header (visible on desktop) */}
             <button

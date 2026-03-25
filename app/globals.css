@@ -97,16 +97,29 @@ html, body {
   line-height: 0.85;
   letter-spacing: -0.02em;
 }
+.sidebar-main-title {
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 500;
+  color: #fff;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
 
-.sidebar-header h1 .sub {
+.sidebar-main-title .gold-accent {
+  color: var(--gold);
+  font-style: italic;
+  font-weight: 400;
+}
+
+.sidebar-sub-title {
   display: block;
-  font-size: 13px;
+  font-size: 8px;
   font-family: var(--font-sans);
-  font-weight: 300;
-  color: var(--gold-light);
-  letter-spacing: 0.15em;
-  margin-top: 6px;
-  opacity: 0.8;
+  font-weight: 500;
+  color: var(--gold-muted);
+  letter-spacing: 0.25em;
+  margin-top: 4px;
   text-transform: uppercase;
 }
 
@@ -370,10 +383,10 @@ html, body {
 
 .hero h2 {
   font-family: var(--font-serif);
-  font-size: clamp(30px, 5vw, 42px);
+  font-size: clamp(24px, 4vw, 36px);
   font-weight: 300;
   color: var(--dark-espresso);
-  margin-bottom: 28px;
+  margin-bottom: 24px;
   line-height: 1.1;
 }
 
@@ -403,7 +416,7 @@ html, body {
   background: var(--dark-espresso); 
   color: var(--gold-light); 
   border-bottom-right-radius: 4px;
-  box-shadow: 0 10px 25px rgba(26, 20, 18, 0.15);
+  box-shadow: 0 4px 12px rgba(62, 39, 35, 0.12);
 }
 
 .bot .bubble { 
