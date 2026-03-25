@@ -63,15 +63,15 @@ let lastCacheUpdate = 0;
 const CACHE_TTL = 300000;
 
 function getModel(primary = true): LanguageModel {
-  const openRouterKey = process.env.BUILT_IN_FORGE_API_KEY;
-  const openRouterUrl = process.env.BUILT_IN_FORGE_API_URL;
-  const openaiKey = process.env.OPENAI_API_KEY;
-  const modelName = process.env.AI_MODEL_NAME || "openai/gpt-4o-mini";
+  const openRouterKey = process.env.BUILT_IN_FORGE_API_KEY?.trim();
+  const openRouterUrl = process.env.BUILT_IN_FORGE_API_URL?.trim();
+  const openaiKey = process.env.OPENAI_API_KEY?.trim();
+  const modelName = process.env.AI_MODEL_NAME?.trim() || "openai/gpt-4o-mini";
 
   if (primary && openRouterKey && openRouterUrl) {
     const openrouter = createOpenRouter({
       apiKey: openRouterKey,
-      baseURL: openRouterUrl.replace('/chat/completions', ''),
+      baseURL: openRouterUrl.replace(/\/chat\/completions$/, ''),
       headers: {
         "HTTP-Referer": process.env.OPENROUTER_HTTP_REFERER || "https://hdak-lib-chatbot.onrender.com",
         "X-Title": process.env.OPENROUTER_X_TITLE || "HDAK Library Chatbot",
