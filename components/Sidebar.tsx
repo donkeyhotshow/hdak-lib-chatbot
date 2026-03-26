@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -15,7 +15,11 @@ import {
   Book,
   ExternalLink,
   MoreHorizontal,
-  X
+  X,
+  ChevronRight,
+  ChevronLeft,
+  Clock,
+  Sparkles
 } from 'lucide-react'
 
 // --- Константы данных ---
@@ -54,13 +58,13 @@ export function Sidebar({
       .catch(() => { setLoaded(true) })
   }, [])
 
-  const handleDelete = (e: React.MouseEvent, id: number) => {
+  const handleDelete = useCallback((e: React.MouseEvent, id: number) => {
     e.preventDefault()
     e.stopPropagation()
     setDeleteId(id)
-  }
+  }, [])
 
-  const confirmDelete = async (id: number) => {
+  const confirmDelete = useCallback(async (id: number) => {
     try {
       const res = await fetch(`/api/conversations/${id}`, { method: 'DELETE' })
       if (res.ok) {
@@ -69,7 +73,7 @@ export function Sidebar({
       }
     } catch {}
     setDeleteId(null)
-  }
+  }, [currentId, router])
 
   const displayedConversations = showAllChats ? conversations : conversations.slice(0, 3)
 
@@ -92,103 +96,112 @@ export function Sidebar({
         ${isOpen ? 'w-[290px] opacity-100 translate-x-0' : 'w-0 opacity-0 -translate-x-full md:translate-x-0'}
       `}>
         <div className="flex flex-col h-full w-[290px]">
-          <div className="p-8 border-b border-white/[0.04] flex items-center justify-between bg-black/20">
-            <div 
-              className="flex items-center gap-4 cursor-pointer group"
-              onClick={() => { router.push('/'); if (onClose && window.innerWidth < 768) onClose() }}
-            >
-              <div className="relative">
-                <div className="absolute -inset-1 bg-[#D4A373] rounded-sm blur opacity-20 group-hover:opacity-40 transition-opacity"></div>
-                <div className="relative w-10 h-10 border border-[#D4A373]/40 flex items-center justify-center rounded bg-[#141414]">
-                  <Library size={18} className="text-[#D4A373]" />
+          <div className="p-6 pb-8 border-b border-white/[0.03]">
+            <div className="flex items-center justify-between mb-8">
+              <div 
+                className="flex items-center gap-2.5 cursor-pointer group"
+                onClick={() => { router.push('/'); if (onClose && window.innerWidth < 768) onClose() }}
+              >
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#b87830] to-[#e8a85d] flex items-center justify-center shadow-lg shadow-[#b87830]/10">
+                  <Library size={16} className="text-[#1a130f]" />
+                </div>
+                <div>
+                  <h2 className="text-white font-serif text-[18px] font-bold leading-none tracking-tight">Бібліотека</h2>
+                  <p className="text-[#b87830] text-[9px] font-black uppercase tracking-[2px] mt-1">ХДАК Intelligence</p>
                 </div>
               </div>
-              <div>
-                <h1 className="text-[14px] font-serif font-black text-white uppercase tracking-[0.2em] leading-none">HDAK Core</h1>
-                <p className="text-[8px] tracking-[0.5em] uppercase text-[#D4A373]/50 font-black mt-1.5">Elite Repository</p>
-              </div>
+              <button 
+                onClick={onClose} 
+                className="md:hidden text-white/20 hover:text-white transition-colors"
+              >
+                <X size={16} />
+              </button>
             </div>
-            
-            {/* Close button for mobile */}
-            <button 
-              onClick={onClose} 
-              className="md:hidden text-white/20 hover:text-[#D4A373] transition-all p-1"
-            >
-              <X size={18} />
-            </button>
+
+            <div className="flex items-center gap-2 mb-2 px-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+              <span className="text-[9px] text-white/30 uppercase font-black tracking-widest">Система активна</span>
+            </div>
           </div>
 
-          <nav className="flex-1 px-4 py-8 space-y-10 overflow-y-auto scrollbar-hide">
+          <nav className="flex-1 px-4 py-8 space-y-8 overflow-y-auto scrollbar-hide">
             <section>
-              <div className="flex items-center gap-2 px-4 mb-5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#D4A373]"></span>
-                <p className="text-[10px] uppercase tracking-[0.4em] text-white/20 font-black">Архів Сесій</p>
-              </div>
-              <div className="space-y-1">
+              <label className="text-[9px] font-black text-white/20 uppercase tracking-[3px] block mb-3 px-3">Архів сесій</label>
+              <div className="space-y-2 pr-2">
                 {!loaded && (
-                  <div className="px-4 py-2 space-y-3">
+                  <div className="px-3 py-2 space-y-3">
                     <div className="h-4 w-full bg-white/5 rounded-md animate-pulse"></div>
                     <div className="h-4 w-3/4 bg-white/5 rounded-md animate-pulse"></div>
                   </div>
                 )}
-                
-                {loaded && displayedConversations.map(conv => {
-                  const active = Number(currentId) === conv.id;
-                  return (
-                    <div key={conv.id} className="relative group">
-                      <Link
-                        href={`/chat/${conv.id}`}
-                        onClick={() => { if (onClose && window.innerWidth < 768) onClose() }}
-                        className={`w-full flex items-center justify-between gap-4 px-4 py-2.5 rounded-md transition-all border-l-2 ${active ? 'bg-white/[0.06] border-[#D4A373]' : 'border-transparent hover:bg-white/[0.03] hover:border-[#D4A373]/50'}`}
-                      >
-                        <span className={`text-[13px] sm:text-xs font-medium tracking-tight truncate flex-1 ${active ? 'text-white' : 'text-white/40'} group-hover:text-white/90 transition-colors`}>
-                          {conv.title}
-                        </span>
-                      </Link>
-                      <button
-                        onClick={(e) => handleDelete(e, conv.id)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 opacity-0 group-hover:opacity-100 text-[#D4A373]/50 hover:text-[#f87171] transition-all rounded-md"
-                        title="Видалити"
-                      >
-                        <Trash2 size={13} strokeWidth={2} />
-                      </button>
+                {loaded && (conversations.length > 0 ? (
+                    (showAllChats ? conversations : conversations.slice(0, 5)).map((conv) => {
+                      const active = Number(currentId) === conv.id
+                      return (
+                        <div key={conv.id} className="group relative">
+                          <Link
+                            href={`/chat/${conv.id}`}
+                            onClick={() => { if (onClose && window.innerWidth < 768) onClose() }}
+                            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${
+                              active 
+                                ? 'bg-white/10 text-white shadow-lg shadow-black/20' 
+                                : 'text-white/40 hover:text-white hover:bg-white/[0.05]'
+                            }`}
+                          >
+                            <span className="text-[13px] font-medium tracking-tight truncate flex-1 leading-tight">{conv.title}</span>
+                            <ChevronRight size={12} className={`transition-all shrink-0 ${active ? 'text-[#b87830]' : 'opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5'}`} />
+                          </Link>
+                          <button
+                            onClick={(e) => handleDelete(e, conv.id)}
+                            className="absolute right-10 top-1/2 -translate-y-1/2 p-2 text-white/0 group-hover:text-white/20 hover:text-red-400/60 transition-all rounded-lg"
+                            title="Видалити"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      )
+                    })
+                  ) : (
+                    <div className="px-4 py-8 text-center bg-white/[0.02] rounded-2xl border border-white/[0.03]">
+                      <p className="text-[11px] text-white/20 font-medium uppercase tracking-widest">Немає сесій</p>
                     </div>
-                  )
-                })}
-                {loaded && conversations.length > 3 && !showAllChats && (
+                  ))}
+                {loaded && conversations.length > 5 && !showAllChats && (
                   <button
                     onClick={() => setShowAllChats(true)}
-                    className="flex items-center gap-2 px-4 py-2 mt-2 text-[10px] uppercase tracking-widest text-white/20 hover:text-white/60 transition-colors w-full"
+                    className="flex items-center gap-2 px-3 py-2 text-[9px] font-black uppercase tracking-[2px] text-white/20 hover:text-white/40 transition-colors w-full"
                   >
-                    <MoreHorizontal size={12} /> Показати всі
+                    Більше протоколів...
                   </button>
                 )}
               </div>
             </section>
 
             <section>
-              <div className="flex items-center gap-2 px-4 mb-5">
-                <span className="w-1.5 h-1.5 rounded-full border border-[#D4A373]"></span>
-                <p className="text-[10px] uppercase tracking-[0.4em] text-white/20 font-black">Зовнішні вузли</p>
-              </div>
-              <div className="space-y-1 mb-6">
+              <label className="text-[9px] font-black text-white/20 uppercase tracking-[3px] block mb-3 px-3">Зовнішні вузли</label>
+              <div className="space-y-1">
                 {EXTERNAL_BASES_DATA.map((res, i) => (
-                  <a key={i} href={res.link} target="_blank" rel="noreferrer" className="flex items-center gap-4 px-4 py-3 rounded-md hover:bg-white/[0.03] cursor-pointer group transition-all border-l-2 border-transparent hover:border-white/10">
-                    <div className="text-white/10 group-hover:text-[#D4A373] transition-all">{res.icon}</div>
-                    <h4 className="text-[13px] font-medium text-white/30 group-hover:text-white/70 truncate tracking-tight">{res.title}</h4>
+                  <a key={i} href={res.link} target="_blank" rel="noreferrer" className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/[0.04] transition-all group">
+                    <div className="w-8 h-8 rounded-lg bg-white/[0.03] flex items-center justify-center text-white/20 group-hover:text-[#b87830] group-hover:bg-white/[0.05] transition-all">
+                      {res.icon}
+                    </div>
+                    <div className="flex flex-col text-left">
+                      <span className="text-[13px] text-white/70 font-semibold group-hover:text-white transition-colors leading-none">{res.title}</span>
+                      <span className="text-[9px] text-white/20 font-medium leading-none mt-1">Офіційний ресурс</span>
+                    </div>
                   </a>
                 ))}
               </div>
             </section>
           </nav>
 
-          <div className="p-8 bg-black/40 border-t border-white/[0.04]">
+          <div className="p-6 border-t border-white/[0.03]">
             <button 
               onClick={() => { router.push('/'); if (onClose && window.innerWidth < 768) onClose() }}
-              className="w-full py-3.5 bg-transparent border border-[#D4A373]/20 text-[#D4A373] rounded-sm text-[10px] font-black tracking-[0.3em] flex items-center justify-center gap-3 hover:bg-[#D4A373] hover:text-[#000] transition-all uppercase active:scale-[0.98]"
+              className="w-full py-3.5 bg-white/[0.03] border border-white/5 rounded-xl text-white/50 text-[10px] font-black tracking-[2px] uppercase hover:bg-[#b87830] hover:text-[#1a130f] hover:border-[#b87830] transition-all flex items-center justify-center gap-2 group"
             >
-              <Plus size={14} />
-              Новий протокол
+              <Plus size={14} className="group-hover:rotate-90 transition-transform" />
+              Новий сеанс
             </button>
           </div>
         </div>

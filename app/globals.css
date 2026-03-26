@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap');
 
 @theme {
   --font-serif: 'Playfair Display', Georgia, serif;
@@ -8,22 +7,22 @@
 
 :root {
   --font-serif-face: 'Playfair Display', Georgia, serif;
-  --font-sans-face:  'Montserrat', system-ui, sans-serif;
+  --font-sans-face:  'Plus Jakarta Sans', system-ui, sans-serif;
 
-  --dark-espresso: #2D1B13; /* Глубокий кофейный */
-  --deep-brown:   #231c19;
-  --leather:      #1c1714; /* Розкішний чорно-коричневий */
-  --gold:         #D4A373; /* Благородное золото */
-  --gold-muted:   #B08968;
-  --gold-light:   #F5EBE0;
-  --cream-bg:     #FDFBFA; /* Ультра-светлый кремовый */
+  --dark-espresso: #1a130f; 
+  --deep-brown:   #0f0c0a;
+  --leather:      #0f0c0a; 
+  --gold:         #b87830; 
+  --gold-muted:   #665d55;
+  --gold-light:   #fcfaf7;
+  --cream-bg:     #fcfaf7; 
   --white:        #ffffff;
-  --text-main:    #2D1B13;
-  --text-muted:   #8A7365;
-  --border-mocha: rgba(45, 27, 19, 0.08); 
-  --sb-width:     270px; /* Немного шире для воздуха */
-  --transition:   all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); /* Более плавная анимация */
-  --shadow-premium: 0 8px 30px rgba(26, 15, 10, 0.06); /* Мягкие тени */
+  --text-main:    #1a130f;
+  --text-secondary: #665d55;
+  --border-mocha: rgba(0, 0, 0, 0.04); 
+  --sb-width:     280px; 
+  --transition:   all 0.7s cubic-bezier(0.16, 1, 0.3, 1); 
+  --shadow-premium: 0 2px 20px rgba(0,0,0,0.02);
 }
 
 *, *::before, *::after {
@@ -194,7 +193,7 @@ html, body {
   padding: 10px 16px;
   font-size: 13.5px;
   font-weight: 400;
-  color: rgba(235, 215, 185, 0.7);
+  color: rgba(235, 215, 185, 0.85);
   text-decoration: none;
   background: transparent;
   border-radius: 8px;
@@ -374,7 +373,7 @@ html, body {
 }
 
 /* --- Chat Layout & Flow --- */
-#chat-window {
+.chat-window {
   flex: 1;
   overflow-y: auto;
   padding: 0 24px 140px;
@@ -446,7 +445,7 @@ html, body {
 }
 
 /* --- Bubble Mechanics --- */
-#chat-content { padding: 24px 0 140px; display: flex; flex-direction: column; gap: 32px; }
+.chat-content { padding: 24px 0 140px; display: flex; flex-direction: column; gap: 32px; }
 
 .msg-wrapper {
   display: flex;
@@ -869,4 +868,62 @@ textarea::placeholder { color: var(--text-muted); }
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* ════════════════════════════════════════════════════════════
+   RESPONSIVE: Mobile Styles
+   ════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  :root {
+    --sb-width: 100%;
+    --transition: all 0.3s ease;
+  }
+  
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100dvh;
+    box-shadow: 8px 0 30px rgba(26, 15, 10, 0.4);
+  }
+  
+  .sidebar-header { padding: 32px 20px 20px; }
+  .sidebar-header h1 { font-size: 24px; }
+  
+  .nav-link {
+    padding: 12px 16px;
+    font-size: 14px;
+    margin: 2px 12px;
+  }
+  
+  .main-content {
+    padding: 0;
+  }
+  
+  .top-bar {
+    padding: 0 16px;
+    height: 56px;
+  }
+  
+  .header-brand h2 { font-size: 16px; }
+  .header-brand span { display: none; }
+  
+  .msg-wrapper {
+    max-width: 95%;
+    gap: 10px;
+  }
+  
+  .chat-container {
+    padding: 0 12px;
+  }
+  
+  .hero { padding: 32px 16px; }
+  .hero-title-main { font-size: 24px; }
+  .hero-title-sub { font-size: 18px; }
+  
+  /* Improve text contrast for accessibility */
+  .nav-link { color: rgba(235, 215, 185, 0.85); }
+  .nav-link:hover { color: #fff; }
+  .sidebar-sub-title { font-size: 9px; }
+  .new-chat-btn { font-size: 12px; padding: 12px; }
 }

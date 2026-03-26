@@ -1,6 +1,6 @@
 import { useCreateConversation } from "@/hooks/use-chat";
 import { useLocation } from "wouter";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowRight, Search, Plus, Clock, Phone, Scale } from "lucide-react";
 
 const STEPS = [
   {
@@ -21,11 +21,11 @@ const STEPS = [
 ];
 
 const QUICK_CHIPS = [
-  { emoji: "🔍", label: "Шукати в каталозі" },
-  { emoji: "⚡", label: "Як записатися?" },
-  { emoji: "📋", label: "Правила користування" },
+  { emoji: "🔍", label: "Каталог" },
+  { emoji: "➕", label: "Записатися" },
   { emoji: "🕐", label: "Графік роботи" },
-  { emoji: "🗂️", label: "Репозитарій" },
+  { emoji: "📞", label: "Контакти" },
+  { emoji: "📖", label: "ДСТУ" },
 ];
 
 export const CHIPS = QUICK_CHIPS;
@@ -66,30 +66,28 @@ export default function Home() {
           <h1
             className="text-center font-serif"
             style={{
-              fontSize: "clamp(26px, 6vw, 34px)",
-              fontWeight: 500,
-              color: "hsl(var(--b0))",
+              fontSize: "clamp(36px, 8vw, 48px)",
+              fontWeight: 600,
+              color: "hsl(28 20% 12%)",
               letterSpacing: "-0.02em",
-              lineHeight: 1.15,
-              marginBottom: 10,
+              lineHeight: 1.05,
+              marginBottom: 16,
             }}
           >
-            Чим можу допомогти?
+            Бібліотека ХДАК
           </h1>
 
           <p
-            className="text-center"
+            className="text-center font-serif italic"
             style={{
-              fontSize: 14,
-              color: "hsl(var(--b4))",
-              lineHeight: 1.6,
-              maxWidth: 320,
-              margin: "0 auto 28px",
-              fontWeight: 300,
+              fontSize: "clamp(20px, 5vw, 28px)",
+              color: "hsl(32 45% 63%)",
+              lineHeight: 1.4,
+              marginBottom: 40,
+              fontWeight: 400,
             }}
           >
-            Знайду книги в каталозі, розповім про ресурси і
-            допоможу орієнтуватися на сайті бібліотеки ХДАК.
+            Чим можу допомогти?
           </p>
 
           {/* Steps */}
@@ -136,14 +134,12 @@ export default function Home() {
             ))}
           </div>
 
-          {/* Quick chip row */}
           <div
             style={{
               display: "flex",
-              gap: 7,
-              overflowX: "auto",
-              paddingBottom: 4,
-              scrollbarWidth: "none",
+              flexWrap: "wrap",
+              justifyContent: "center",
+              gap: 12,
             }}
           >
             {QUICK_CHIPS.map((chip, i) => (
@@ -154,26 +150,39 @@ export default function Home() {
                 data-testid={`chip-home-${i}`}
                 className="chip-sm"
                 style={{
-                  flexShrink: 0,
                   display: "inline-flex",
                   alignItems: "center",
-                  gap: 5,
-                  height: 34,
-                  padding: "0 12px",
-                  background: i === 0 ? "hsl(var(--b0))" : "hsl(38 70% 97%)",
-                  border: "0.5px solid",
-                  borderColor: i === 0 ? "transparent" : "hsl(var(--border))",
+                  gap: 8,
+                  padding: "12px 20px",
+                  background: "#fff",
+                  border: "1px solid hsla(28 10% 85% / 0.3)",
                   borderRadius: 999,
-                  color: i === 0 ? "hsl(var(--primary-foreground))" : "hsl(var(--b2))",
-                  fontSize: 12.5,
+                  color: "hsl(28 15% 20%)",
+                  fontSize: 13,
                   fontFamily: "var(--font-sans)",
-                  fontWeight: i === 0 ? 500 : 400,
+                  fontWeight: 500,
                   cursor: "pointer",
                   whiteSpace: "nowrap",
-                  transition: "all 0.12s",
+                  transition: "all 0.2s ease",
+                  boxShadow: "0 2px 8px hsla(0 0% 0% / 0.04)",
+                }}
+                onMouseEnter={e => {
+                  (e.currentTarget as HTMLButtonElement).style.borderColor = "hsl(32 45% 63% / 0.4)";
+                  (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-2px)";
+                }}
+                onMouseLeave={e => {
+                  (e.currentTarget as HTMLButtonElement).style.borderColor = "hsla(28 10% 85% / 0.3)";
+                  (e.currentTarget as HTMLButtonElement).style.transform = "translateY(0)";
                 }}
               >
-                {createMutation.isPending ? <Loader2 className="animate-spin" size={14} /> : <><span style={{ fontSize: 13 }}>{chip.emoji}</span> {chip.label}</>}
+                {createMutation.isPending ? <Loader2 className="animate-spin" size={14} /> : <>
+                  {chip.label === "Каталог" && <Search size={14} style={{ color: "hsl(32 45% 63%)" }} />}
+                  {chip.label === "Записатися" && <Plus size={14} style={{ color: "hsl(32 45% 63%)" }} />}
+                  {chip.label === "Графік роботи" && <Clock size={14} style={{ color: "hsl(32 45% 63%)" }} />}
+                  {chip.label === "Контакти" && <Phone size={14} style={{ color: "hsl(32 45% 63%)" }} />}
+                  {chip.label === "ДСТУ" && <Scale size={14} style={{ color: "hsl(32 45% 63%)" }} />}
+                  {chip.label}
+                </>}
               </button>
             ))}
           </div>
@@ -202,9 +211,10 @@ export default function Home() {
             margin: "0 auto",
             height: 50,
             padding: "0 16px",
-            background: "hsl(38 70% 97%)",
-            border: "1px solid hsl(var(--border))",
-            borderRadius: 14,
+            background: "#fff",
+            border: "1px solid hsla(28 10% 85% / 0.3)",
+            borderRadius: 32,
+            boxShadow: "0 4px 20px hsla(0 0% 0% / 0.06)",
             cursor: "pointer",
             transition: "border-color 0.12s",
           }}

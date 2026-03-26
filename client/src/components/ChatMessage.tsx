@@ -1,7 +1,7 @@
 import { memo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Clock } from "lucide-react";
+import { Clock, BookOpen, Calendar, UserPlus, Archive, Phone, Sparkles, User } from "lucide-react";
 import { format } from "date-fns";
 
 interface ChatMessageProps {
@@ -59,33 +59,33 @@ export const ChatMessage = memo(function ChatMessage({
     <div
       style={{
         width: "100%",
-        padding: "14px 16px",
-        background: isUser ? "transparent" : "hsl(38 55% 95%)",
-        borderBottom: "0.5px solid hsl(var(--border))",
+        padding: "16px 20px",
+        background: isUser ? "transparent" : "transparent",
+        borderBottom: "1px solid hsl(35 10% 92% / 0.5)",
       }}
     >
-      <div style={{ maxWidth: 680, margin: "0 auto", display: "flex", gap: 12 }}>
+      <div style={{ maxWidth: 720, margin: "0 auto", display: "flex", gap: 16 }}>
 
         {/* Avatar */}
         <div
           style={{
             flexShrink: 0,
-            width: 28,
-            height: 28,
-            borderRadius: 6,
-            background: isUser ? "hsl(37 35% 88%)" : "hsl(var(--b0))",
-            border: `1px solid ${isUser ? "hsl(var(--border))" : "hsl(25 40% 18%)"}`,
+            width: 36,
+            height: 36,
+            borderRadius: "50%",
+            background: isUser ? "hsl(32 45% 63%)" : "hsl(28 20% 12%)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            marginTop: 2,
+            marginTop: 4,
             flexDirection: "column" as const,
+            boxShadow: "0 2px 8px hsla(0 0% 0% / 0.1)",
           }}
         >
           {isUser ? (
-            <span style={{ fontSize: 10, fontWeight: 600, color: "hsl(var(--b3))" }}>Ви</span>
+            <User style={{ width: 16, height: 16, color: "#fff" }} />
           ) : (
-            <span style={{ fontSize: 10, color: "hsl(37 50% 78%)", fontFamily: "var(--font-serif)", fontStyle: "italic" }}>б</span>
+            <BookOpen style={{ width: 16, height: 16, color: "hsl(32 45% 63%)" }} />
           )}
         </div>
 
@@ -154,42 +154,61 @@ export const ChatMessage = memo(function ChatMessage({
             )}
           </div>
 
-          {/* Follow-up chips */}
+          {/* Follow-up chips - Oval with icons */}
           {chips.length > 0 && (
-            <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 6, marginTop: 10 }}>
-              {chips.map((chip) => (
-                <button
-                  key={chip}
-                  onClick={() => onChipClick?.(chip)}
-                  className="chip-sm"
-                  data-testid={`chip-suggestion-${chip.slice(0, 20)}`}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    height: 28,
-                    padding: "0 10px",
-                    background: "transparent",
-                    border: "0.5px solid hsl(var(--border))",
-                    borderRadius: 999,
-                    fontSize: 12,
-                    color: "hsl(var(--b3))",
-                    cursor: "pointer",
-                    fontFamily: "var(--font-sans)",
-                    whiteSpace: "nowrap",
-                    transition: "all 0.12s",
-                  }}
-                  onMouseEnter={e => {
-                    (e.currentTarget as HTMLButtonElement).style.background = "hsl(37 35% 88%)";
-                    (e.currentTarget as HTMLButtonElement).style.color = "hsl(var(--b1))";
-                  }}
-                  onMouseLeave={e => {
-                    (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-                    (e.currentTarget as HTMLButtonElement).style.color = "hsl(var(--b3))";
-                  }}
-                >
-                  {chip}
-                </button>
-              ))}
+            <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 8, marginTop: 12 }}>
+              {chips.map((chip) => {
+                // Determine icon based on chip text
+                const getIcon = () => {
+                  const lower = chip.toLowerCase();
+                  if (lower.includes("каталог") || lower.includes("пошук")) return <BookOpen style={{ width: 12, height: 12 }} />
+                  if (lower.includes("графік") || lower.includes("робот")) return <Calendar style={{ width: 12, height: 12 }} />
+                  if (lower.includes("записат") || lower.includes("читацьк")) return <UserPlus style={{ width: 12, height: 12 }} />
+                  if (lower.includes("репозит")) return <Archive style={{ width: 12, height: 12 }} />
+                  if (lower.includes("контакт") || lower.includes("зв'язат")) return <Phone style={{ width: 12, height: 12 }} />
+                  return <Sparkles style={{ width: 12, height: 12 }} />
+                }
+                return (
+                  <button
+                    key={chip}
+                    onClick={() => onChipClick?.(chip)}
+                    className="chip-sm"
+                    data-testid={`chip-suggestion-${chip.slice(0, 20)}`}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      height: 30,
+                      padding: "0 12px",
+                      background: "#fff",
+                      border: "1px solid hsla(35 15% 70% / 0.25)",
+                      borderRadius: 999,
+                      fontSize: 12,
+                      color: "hsl(var(--b2))",
+                      cursor: "pointer",
+                      fontFamily: "var(--font-sans)",
+                      whiteSpace: "nowrap",
+                      transition: "all 0.2s ease",
+                      boxShadow: "0 1px 3px hsla(0 0% 0% / 0.04)",
+                    }}
+                    onMouseEnter={e => {
+                      (e.currentTarget as HTMLButtonElement).style.background = "hsl(35 30% 98%)";
+                      (e.currentTarget as HTMLButtonElement).style.borderColor = "hsla(32 50% 60% / 0.3)";
+                      (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-1px)";
+                      (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 3px 8px hsla(0 0% 0% / 0.08)";
+                    }}
+                    onMouseLeave={e => {
+                      (e.currentTarget as HTMLButtonElement).style.background = "#fff";
+                      (e.currentTarget as HTMLButtonElement).style.borderColor = "hsla(35 15% 70% / 0.25)";
+                      (e.currentTarget as HTMLButtonElement).style.transform = "translateY(0)";
+                      (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 1px 3px hsla(0 0% 0% / 0.04)";
+                    }}
+                  >
+                    <span style={{ color: "hsl(32 50% 54%)", display: "flex" }}>{getIcon()}</span>
+                    {chip}
+                  </button>
+                )
+              })}
             </div>
           )}
         </div>

@@ -181,8 +181,11 @@ export function useChatStream(conversationId: number | null) {
           const raw = line.slice(6).trim();
           if (!raw || raw === "[DONE]") continue;
 
+          console.log("[CLIENT] Raw line:", raw.substring(0, 100));
+
           try {
             const data = JSON.parse(raw);
+            console.log("[CLIENT] Parsed JSON:", JSON.stringify(data).substring(0, 100));
             if (typeof data.content === "string") {
               // Buffer to prevent removeChild errors
               streamBufRef.current += data.content;
@@ -190,6 +193,9 @@ export function useChatStream(conversationId: number | null) {
             }
           } catch {
             // skip malformed frames
+            console.log("[CLIENT] Not JSON, treating as plain text:", raw.substring(0, 50));
+            streamBufRef.current += raw;
+            scheduleFlush();
           }
         }
       }

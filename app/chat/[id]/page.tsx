@@ -146,9 +146,9 @@ function ChatPageInner() {
   }
 
   return (
-    <>
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 lg:px-12 pb-48 pt-10 scrollbar-hide will-change-scroll">
-        <div className="max-w-4xl mx-auto w-full flex flex-col gap-12">
+    <div className="flex flex-col h-full">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-8 lg:px-16 pb-56 pt-12 scrollbar-hide will-change-scroll">
+        <div className="max-w-4xl mx-auto w-full flex flex-col gap-14">
           {!loaded && (
             <div className="flex flex-col gap-8 w-full">
               {[...Array(3)].map((_, i) => (
@@ -203,53 +203,47 @@ function ChatPageInner() {
         </div>
       </div>
 
-      {/* Input Dock */}
-      <div className="absolute bottom-0 left-0 right-0 p-8 lg:p-12 bg-gradient-to-t from-[#FBFAF9] via-[#FBFAF9]/90 to-transparent pointer-events-none">
-        <div className="max-w-2xl mx-auto w-full pointer-events-auto">
-          <div className="relative flex flex-col bg-white border border-black/[0.05] rounded-lg shadow-2xl overflow-hidden focus-within:border-[#D4A373]/40 transition-all">
-            <div className="flex items-center justify-between px-5 py-2 border-b border-black/[0.03] bg-[#FBFAF9]/50">
-              <div className="flex items-center gap-2">
-                 <Cpu size={12} className="text-[#D4A373]" />
-                 <span className="text-[9px] font-black uppercase tracking-widest text-black/30">Secure AI Gateway</span>
-              </div>
-            </div>
-            
-            <div className="flex items-center p-2.5">
-              <textarea 
-                ref={textareaRef}
-                rows={1}
-                value={input}
-                onChange={e => {
-                  setInput(e.target.value)
-                  if (textareaRef.current) {
-                    textareaRef.current.style.height = 'auto'
-                    textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 160) + 'px'
-                  }
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    send(input);
-                  }
-                }}
-                placeholder="Введіть тему дослідження..."
-                className="flex-1 bg-transparent px-5 py-3.5 text-[15px] focus:outline-none placeholder-[#111]/20 font-medium resize-none max-h-[160px]"
-                disabled={streaming}
-                aria-label="Ввід повідомлення"
-              />
-              <button 
-                disabled={!input.trim() || streaming}
-                onClick={() => send(input)}
-                className="w-12 h-12 bg-[#111] text-[#D4A373] rounded-md flex items-center justify-center hover:bg-[#D4A373] hover:text-[#000] transition-all disabled:opacity-5 shadow-lg active:scale-95 shrink-0"
-                aria-label="Надіслати"
-              >
-                {streaming ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} strokeWidth={2.5} />}
-              </button>
-            </div>
+      <div className="p-8 pb-12 bg-[#fcfaf7]/90 backdrop-blur-md sticky bottom-0 border-t border-black/[0.03]">
+        <div className="max-w-3xl mx-auto">
+          <div className="relative flex items-center group">
+            <div className="absolute inset-0 bg-white/50 rounded-2xl blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-700 -z-10" />
+            <textarea 
+              ref={textareaRef}
+              rows={1}
+              value={input}
+              onChange={e => {
+                setInput(e.target.value)
+                if (textareaRef.current) {
+                  textareaRef.current.style.height = 'auto'
+                  textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 160) + 'px'
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  if (input.trim()) send(input);
+                }
+              }}
+              placeholder="Запитайте будь-що про ресурси бібліотеки..."
+              className="w-full bg-white py-5 pl-8 pr-20 rounded-2xl border border-black/[0.05] shadow-[0_4px_24px_rgba(0,0,0,0.04)] outline-none text-[16px] font-medium placeholder:text-gray-300 focus:border-[#b87830]/40 focus:shadow-[0_8px_30px_rgba(184,120,48,0.1)] transition-all duration-500 resize-none overflow-hidden"
+              disabled={streaming}
+            />
+            <button 
+              disabled={!input.trim() || streaming}
+              onClick={() => send(input)}
+              className="absolute right-4 w-12 h-12 rounded-xl bg-[#1a130f] text-[#b87830] flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-xl shadow-black/20 disabled:opacity-20 disabled:scale-100 group/btn"
+            >
+              {streaming ? (
+                <Loader2 size={20} className="animate-spin text-[#b87830]" />
+              ) : (
+                <Send size={20} strokeWidth={2.5} className="group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform" />
+              )}
+            </button>
           </div>
+          <p className="text-center text-[10px] text-gray-400 mt-5 uppercase tracking-[3px] font-semibold opacity-25">Харківська державна академія культури</p>
         </div>
       </div>
-    </>
+    </div>
   )
 }
 

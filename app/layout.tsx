@@ -14,7 +14,7 @@ const serif = Playfair_Display({
 })
 
 const sans = Plus_Jakarta_Sans({
-  subsets: ['latin', 'cyrillic'],
+  subsets: ['latin', 'cyrillic-ext'],
   weight: ['400', '500', '600', '700', '800'],
   variable: '--font-sans',
   display: 'swap',
