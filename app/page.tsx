@@ -1,58 +1,19 @@
 'use client'
 
-import React, { useState, useEffect, Suspense } from 'react'
+import React, { useState, useEffect, Suspense, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
-  Clock, Search, ClipboardList, FlaskConical,
-  MapPin, BookOpen, Presentation, CreditCard, Loader2
+  History, Search, FileText, Scale, ChevronRight, ShieldCheck, Send, Loader2, Cpu
 } from 'lucide-react'
 
-const MAX_TITLE_LENGTH = 200;
+const MAX_TITLE_LENGTH = 200
 
-interface QuickReply {
-  id: string
-  title: string
-  subtitle: string
-  highlights: string[]
-  query: string
-  Icon: React.ComponentType<{ size?: number; strokeWidth?: number }>
-}
-
-const QUICK_REPLIES: QuickReply[] = [
-  {
-    id: 'schedule',
-    title: 'Графік роботи',
-    subtitle: 'Режим роботи читалень',
-    highlights: ['Пн-Пт: 9:00–16:45', 'Сб: 9:00–13:30', 'Обід: 13:00–13:45'],
-    query: 'Графік роботи бібліотеки',
-    Icon: Clock,
-  },
-  {
-    id: '如何',
-    title: 'Як записатися',
-    subtitle: 'Отримання читацького квитка',
-    highlights: ['Паспорт + ІПН', 'Безкоштовно', 'Термін дії — 5 років'],
-    query: 'Як записатися до бібліотеки',
-    Icon: ClipboardList,
-  },
-  {
-    id: 'catalog',
-    title: 'Електронний каталог',
-    subtitle: 'Пошук книг та видань',
-    highlights: ['250 000+ видань', 'Онлайн пошук', 'Бронювання онлайн'],
-    query: 'Електронний каталог',
-    Icon: Search,
-  },
-  {
-    id: 'contacts',
-    title: 'Контакти',
-    subtitle: 'Адреса та телефони',
-    highlights: ['Бурсацький узвіз, 4', '(057) 731-27-83', 't.me/hdak_lib'],
-    query: 'Контакти та адреса',
-    Icon: MapPin,
-  },
+const CHIPS_DATA = [
+  { id: 'archive', icon: <History size={14} />, label: 'Архів запитів', query: 'Показати останні запити' },
+  { id: 'repository', icon: <FileText size={14} />, label: 'Репозитарій', query: 'Як знайти статтю в репозитарії?' },
+  { id: 'opac', icon: <Search size={14} />, label: 'OPAC Пошук', query: 'Електронний каталог бібліотеки' },
+  { id: 'citation', icon: <Scale size={14} />, label: 'Цитування', query: 'Правила оформлення списку літератури' },
 ]
-
 
 function LandingPageInner() {
   const router = useRouter()
@@ -85,163 +46,83 @@ function LandingPageInner() {
 
   return (
     <>
-      <section id="chat-window">
-        <div className="chat-container">
-          <div className="hero" id="hero">
-            <div className="ornament" />
-            <div style={{
-              width: '32px',
-              height: '1px',
-              background: 'rgba(184,120,48,0.35)',
-              margin: '0 auto 20px',
-            }} />
-            <h2 className="hero-title">
-              <span className="hero-title-main">Бібліотека ХДАК</span><br />
-              <span className="hero-title-sub">Чим можу допомогти?</span>
-            </h2>
-
-            {/* CARDS GRID */}
-            <div className="cards-grid">
-              {QUICK_REPLIES.map(({ id, title, query, Icon }, idx) => (
-                <button
-                  key={id}
+      {/* Main Body */}
+      <div className="flex-1 overflow-y-auto px-6 lg:px-12 pb-48 pt-10 scrollbar-hide">
+        <div className="max-w-4xl mx-auto w-full">
+          <div className="py-20 animate-in fade-in zoom-in-95 duration-1000 fill-mode-both">
+            <div className="flex items-center gap-4 mb-4">
+               <ShieldCheck size={24} className="text-[#D4A373]" />
+               <h2 className="text-4xl lg:text-5xl font-serif text-[#111] font-black tracking-tight leading-tight uppercase">Цифрова бібліотека</h2>
+            </div>
+            <p className="text-[#111]/40 text-sm max-w-md font-medium leading-relaxed mb-12">
+               Інтелектуальна система пошуку по фондах Харківської державної академії культури.
+            </p>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              {CHIPS_DATA.map((chip) => (
+                <button 
+                  key={chip.id} 
                   disabled={loading}
-                  onClick={() => start(query)}
-                  className="quick-reply-pill"
-                  style={{ animationDelay: `${idx * 0.08}s` }}
+                  onClick={() => start(chip.query)}
+                  className="flex items-center justify-between px-6 py-5 bg-white border border-black/[0.03] rounded-lg hover:border-[#D4A373] hover:shadow-xl transition-all group active:scale-[0.98] disabled:opacity-50"
                 >
-                  <div className="quick-reply-icon-small">
-                    <Icon size={16} strokeWidth={2} />
+                  <div className="flex items-center gap-4">
+                    <div className="w-8 h-8 flex items-center justify-center rounded bg-[#F8F5F2] text-[#D4A373]/80 group-hover:text-[#D4A373] transition-colors">
+                      {chip.icon}
+                    </div>
+                    <span className="text-[12px] font-black text-[#111]/50 group-hover:text-[#111] tracking-[0.1em] uppercase">
+                      {chip.label}
+                    </span>
                   </div>
-                  <span className="quick-reply-title-small">{title}</span>
+                  <ChevronRight size={16} className="text-[#D4A373] opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
                 </button>
               ))}
             </div>
           </div>
         </div>
-      </section>
-
-      <div className="input-area-wrapper">
-        <div className="input-container">
-          <textarea
-            rows={1}
-            placeholder="Запитайте про бібліотеку…"
-            value={inputTitle}
-            onChange={e => {
-              setInputTitle(e.target.value)
-              e.target.style.height = 'auto'
-              e.target.style.height = Math.min(e.target.scrollHeight, 160) + 'px'
-            }}
-            onKeyDown={e => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault()
-                start(inputTitle)
-              }
-            }}
-            disabled={loading}
-          />
-          <button
-            className="send-btn"
-            onClick={() => start(inputTitle)}
-            disabled={loading || !inputTitle.trim()}
-          >
-            {loading ? (
-              <Loader2 className="animate-spin" size={22} />
-            ) : (
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <line x1="22" y1="2" x2="11" y2="13" />
-                <polygon points="22 2 15 22 11 13 2 9 22 2" />
-              </svg>
-            )}
-          </button>
-        </div>
       </div>
 
-      <style>{`
-        .hero-title-main { font-size: clamp(26px, 5vw, 42px); }
-        .hero-title-sub { font-size: clamp(22px, 4vw, 36px); color: var(--gold); font-style: italic; }
-
-/* Quick Reply Pills Grid */
-.cards-grid {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 12px;
-  max-width: 600px;
-  margin: 0 auto 32px;
-}
-
-.quick-reply-pill {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 18px 10px 14px;
-  background: white;
-  border: 1px solid rgba(184, 120, 48, 0.15);
-  border-radius: 100px;
-  cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  font-family: inherit;
-  animation: cardFadeIn 0.5s ease-out forwards;
-  opacity: 0;
-  box-shadow: 0 4px 12px rgba(24, 12, 5, 0.03);
-}
-
-.quick-reply-pill:hover {
-  border-color: rgba(184, 120, 48, 0.4);
-  background: #fdfcfb;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(184, 120, 48, 0.08);
-}
-
-.quick-reply-pill:active {
-  transform: translateY(0);
-}
-
-.quick-reply-pill:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.quick-reply-icon-small {
-  color: #a07a54;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: color 0.25s;
-}
-
-.quick-reply-pill:hover .quick-reply-icon-small {
-  color: #b87830;
-  transform: scale(1.05);
-}
-
-.quick-reply-title-small {
-  font-size: 14px;
-  font-weight: 500;
-  color: #2D1B13;
-}
-
-@keyframes cardFadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-        @media (max-width: 767px) {
-          .hero-title-main { font-size: 22px; }
-          .hero-title-sub { font-size: 20px; }
-          .cards-grid {
-            gap: 10px;
-            max-width: 100%;
-          }
-          .quick-reply-pill {
-            padding: 8px 16px 8px 12px;
-          }
-          .quick-reply-title-small {
-            font-size: 13px;
-          }
-        }
-      `}</style>
+      {/* Input Dock */}
+      <div className="absolute bottom-0 left-0 right-0 p-8 lg:p-12 bg-gradient-to-t from-[#FBFAF9] via-[#FBFAF9]/90 to-transparent pointer-events-none">
+        <div className="max-w-2xl mx-auto w-full pointer-events-auto">
+          <div className="relative flex flex-col bg-white border border-black/[0.05] rounded-lg shadow-2xl overflow-hidden focus-within:border-[#D4A373]/40 transition-all">
+            <div className="flex items-center justify-between px-5 py-2 border-b border-black/[0.03] bg-[#FBFAF9]/50">
+              <div className="flex items-center gap-2">
+                 <Cpu size={12} className="text-[#D4A373]" />
+                 <span className="text-[9px] font-black uppercase tracking-widest text-black/30">Secure AI Gateway</span>
+              </div>
+            </div>
+            
+            <div className="flex items-center p-2.5">
+              <textarea 
+                rows={1}
+                value={inputTitle}
+                onChange={e => {
+                  setInputTitle(e.target.value)
+                  e.target.style.height = 'auto'
+                  e.target.style.height = Math.min(e.target.scrollHeight, 160) + 'px'
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    start(inputTitle);
+                  }
+                }}
+                placeholder="Введіть тему дослідження..."
+                className="flex-1 bg-transparent px-5 py-3.5 text-[15px] focus:outline-none placeholder-[#111]/20 font-medium resize-none max-h-[160px]"
+                disabled={loading}
+              />
+              <button 
+                disabled={!inputTitle.trim() || loading}
+                onClick={() => start(inputTitle)}
+                className="w-12 h-12 bg-[#111] text-[#D4A373] rounded-md flex items-center justify-center hover:bg-[#D4A373] hover:text-[#000] transition-all disabled:opacity-5 shadow-lg active:scale-95 shrink-0"
+              >
+                {loading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} strokeWidth={2.5} />}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </>
   )
 }

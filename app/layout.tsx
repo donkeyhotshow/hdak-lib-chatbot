@@ -1,6 +1,6 @@
 import React from 'react'
 import type { Metadata } from 'next'
-import { Playfair_Display, Montserrat } from 'next/font/google'
+import { Playfair_Display, Plus_Jakarta_Sans } from 'next/font/google'
 import { SplashScreen } from '@/components/SplashScreen'
 import './globals.css'
 import { ClientLayout } from '@/components/ClientLayout'
@@ -13,9 +13,9 @@ const serif = Playfair_Display({
   display: 'swap',
 })
 
-const sans = Montserrat({
+const sans = Plus_Jakarta_Sans({
   subsets: ['latin', 'cyrillic'],
-  weight: ['300', '400', '500', '600'],
+  weight: ['400', '500', '600', '700', '800'],
   variable: '--font-sans',
   display: 'swap',
 })

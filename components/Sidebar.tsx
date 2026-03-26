@@ -1,110 +1,34 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
 import {
   Search,
-  Sparkles,
-  Link2,
-  Globe,
-  BookOpen,
-  FlaskConical,
-  UserCircle,
-  GalleryVertical,
-  ChevronRight,
-  ChevronDown,
   Plus,
-  ChevronLeft,
   Trash2,
+  Library,
+  History,
+  Bookmark,
+  FileText,
+  Globe,
+  Book,
+  ExternalLink,
   MoreHorizontal,
+  X
 } from 'lucide-react'
 
-interface Conversation {
-  id: number
-  title: string
-  createdAt: string
-}
-
-const sectionLabelStyle: React.CSSProperties = {
-  fontSize: '9px',
-  fontWeight: 500,
-  letterSpacing: '0.13em',
-  textTransform: 'uppercase',
-  color: 'rgba(184,120,48,0.42)',
-  padding: '0 16px',
-  marginTop: '4px',
-  marginBottom: '4px'
-}
-
-const dividerStyle: React.CSSProperties = {
-  height: '0.5px',
-  background: 'rgba(255,255,255,0.06)',
-  margin: '10px 16px'
-}
-
-// Секція 1: Швидкі запити
-const QUICK = [
-  { label: 'Графік роботи',  query: 'Графік роботи бібліотеки' },
-  { label: 'Записатися',     query: 'Як записатися до бібліотеки' },
-  { label: 'Контакти',       query: 'Контакти та адреса' },
-  { label: 'Правила',        query: 'Правила бібліотеки' },
+// --- Константы данных ---
+const NAV_ITEMS_DATA = [
+  { id: 'history', icon: <History size={14} />, label: 'Історія пошуку' },
+  { id: 'bookmarks', icon: <Bookmark size={14} />, label: 'Збережені праці' },
+  { id: 'pubs', icon: <FileText size={14} />, label: 'Мої публікації' }
 ]
 
-// Секція 2: Ресурси бібліотеки
-const MAIN_LINKS = [
-  {
-    Icon: Search,
-    label: 'Пошук в каталозі',
-    sub: 'Знайти книги за автором або темою',
-    href: 'https://library-service.com.ua:8443/khkhdak/DocumentSearchForm',
-  },
-  {
-    Icon: Sparkles,
-    label: 'Нові надходження',
-    sub: 'Що з\'явилось у фонді бібліотеки',
-    href: 'https://lib-hdak.in.ua/new-acquisitions.html',
-  },
-  {
-    Icon: Link2,
-    label: 'Корисні посилання',
-    sub: 'Зовнішні бази даних і портали',
-    href: 'https://lib-hdak.in.ua/helpful-links.html',
-  },
-  {
-    Icon: Globe,
-    label: 'Сайт бібліотеки',
-    sub: 'lib-hdak.in.ua',
-    href: 'https://lib-hdak.in.ua/',
-  },
-]
-
-// Секція 3: Більше ресурсів
-const EXTRA_LINKS = [
-  {
-    Icon: BookOpen,
-    label: 'Репозитарій ХДАК',
-    sub: 'Підручники, статті, кваліфікаційні роботи',
-    href: 'https://repository.ac.kharkov.ua/home',
-  },
-  {
-    Icon: FlaskConical,
-    label: 'Наукова інформація',
-    sub: 'Пошук наукових джерел за запитом',
-    href: 'https://lib-hdak.in.ua/search-scientific-info.html',
-  },
-  {
-    Icon: UserCircle,
-    label: 'Авторські профілі',
-    sub: 'ORCID, Scopus, Google Scholar',
-    href: 'https://lib-hdak.in.ua/author-profiles-instructions.html',
-  },
-  {
-    Icon: GalleryVertical,
-    label: 'Виставки',
-    sub: 'Віртуальні тематичні колекції',
-    href: 'https://lib-hdak.in.ua/virtual-exhibitions.html',
-  },
+const EXTERNAL_BASES_DATA = [
+  { icon: <Globe size={14} />, title: 'Scopus / WoS', link: 'https://lib-hdak.in.ua/helpful-links.html' },
+  { icon: <Book size={14} />, title: 'Електронний каталог', link: 'https://library-service.com.ua:8443/khkhdak/' },
+  { icon: <ExternalLink size={14} />, title: 'Веб-сайт ХДАК', link: 'https://lib-hdak.in.ua/' },
 ]
 
 export function Sidebar({
@@ -118,17 +42,10 @@ export function Sidebar({
 }) {
   const { id: currentId } = useParams()
   const router = useRouter()
-  const [conversations, setConversations] = useState<Conversation[]>([])
+  const [conversations, setConversations] = useState<{id: number, title: string}[]>([])
   const [loaded, setLoaded] = useState(false)
   const [showAllChats, setShowAllChats] = useState(false)
   const [deleteId, setDeleteId] = useState<number | null>(null)
-  const [expanded, setExpanded] = useState(false)
-
-  // Функція для відправки запиту
-  const handleQuickQuery = (query: string) => {
-    router.push(`/?q=${encodeURIComponent(query)}`)
-    if (onClose) onClose()
-  }
 
   useEffect(() => {
     fetch('/api/conversations')
@@ -154,463 +71,147 @@ export function Sidebar({
     setDeleteId(null)
   }
 
-  const displayedConversations = showAllChats ? conversations : conversations.slice(0, 2)
+  const displayedConversations = showAllChats ? conversations : conversations.slice(0, 3)
 
   return (
     <>
       {/* Mobile dark overlay */}
       {isOpen && (
         <div
-          className="sb-mobile-overlay"
           onClick={onClose}
           aria-hidden="true"
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden block transition-opacity"
         />
       )}
 
-      <aside className="sidebar" id="sidebar" role="navigation" aria-label="Меню ресурсів">
-
-        {/* HEADER */}
-        <div className="sidebar-header">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div
-              className="sidebar-brand-group"
-              style={{ cursor: 'pointer' }}
-              onClick={() => { router.push('/'); if (onClose) onClose() }}
+      {/* Sidebar - PUSH EFFECT */}
+      <aside className={`
+        relative z-50 h-full bg-[#0D0D0D] border-r border-white/[0.04]
+        transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) flex flex-col overflow-hidden shadow-2xl
+        fixed md:relative
+        ${isOpen ? 'w-[290px] opacity-100 translate-x-0' : 'w-0 opacity-0 -translate-x-full md:translate-x-0'}
+      `}>
+        <div className="flex flex-col h-full w-[290px]">
+          <div className="p-8 border-b border-white/[0.04] flex items-center justify-between bg-black/20">
+            <div 
+              className="flex items-center gap-4 cursor-pointer group"
+              onClick={() => { router.push('/'); if (onClose && window.innerWidth < 768) onClose() }}
             >
-              {/* SVG book logo */}
-              <div style={{ marginBottom: '10px' }}>
-                <svg width="28" height="20" viewBox="0 0 28 20" fill="none">
-                  <path d="M14 2.5C14 2.5 10 1.5 4 3L3.5 17C9 15.5 13 16.5 14 16.5L14 2.5Z" fill="rgba(184,120,48,0.18)" stroke="rgba(184,120,48,0.55)" strokeWidth="0.75"/>
-                  <path d="M14 2.5C14 2.5 18 1.5 24 3L24.5 17C19 15.5 15 16.5 14 16.5L14 2.5Z" fill="rgba(184,120,48,0.12)" stroke="rgba(184,120,48,0.44)" strokeWidth="0.75"/>
-                  <line x1="14" y1="2" x2="14" y2="16.5" stroke="rgba(184,120,48,0.75)" strokeWidth="0.8"/>
-                </svg>
+              <div className="relative">
+                <div className="absolute -inset-1 bg-[#D4A373] rounded-sm blur opacity-20 group-hover:opacity-40 transition-opacity"></div>
+                <div className="relative w-10 h-10 border border-[#D4A373]/40 flex items-center justify-center rounded bg-[#141414]">
+                  <Library size={18} className="text-[#D4A373]" />
+                </div>
               </div>
-
-              <div style={{
-                fontFamily: 'var(--font-serif)',
-                fontSize: '20px',
-                fontWeight: '500',
-                fontStyle: 'italic',
-                color: 'rgba(240,222,195,0.88)',
-                lineHeight: '1.1',
-                letterSpacing: '-0.01em',
-              }}>
-                Бібліотека
-              </div>
-              <div style={{
-                display: 'flex',
-                whiteSpace: 'nowrap',
-                fontFamily: 'var(--font-serif)',
-                fontSize: '11px',
-                fontWeight: '500',
-                letterSpacing: '0.14em',
-                color: 'rgba(184,120,48,0.72)',
-                marginTop: '1px',
-                marginBottom: '8px',
-              }}>
-                ХДАК <span style={{ marginLeft: '6px', fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontWeight: 400 }}>Intelligence</span>
+              <div>
+                <h1 className="text-[14px] font-serif font-black text-white uppercase tracking-[0.2em] leading-none">HDAK Core</h1>
+                <p className="text-[8px] tracking-[0.5em] uppercase text-[#D4A373]/50 font-black mt-1.5">Elite Repository</p>
               </div>
             </div>
-
-            {/* Collapse button — inside header (visible on desktop) */}
-            <button
-              className="collapse-toggle-btn"
-              onClick={onToggle}
-              aria-label="Згорнути меню"
-              style={{ marginTop: 4 }}
+            
+            {/* Close button for mobile */}
+            <button 
+              onClick={onClose} 
+              className="md:hidden text-white/20 hover:text-[#D4A373] transition-all p-1"
             >
-              <ChevronLeft size={16} strokeWidth={2} />
+              <X size={18} />
             </button>
           </div>
 
-          <div className="status-indicator">
-            <div className="pulse-dot" aria-hidden="true" />
-            <span>Онлайн</span>
-          </div>
-        </div>
+          <nav className="flex-1 px-4 py-8 space-y-10 overflow-y-auto scrollbar-hide">
+            <section>
+              <div className="flex items-center gap-2 px-4 mb-5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#D4A373]"></span>
+                <p className="text-[10px] uppercase tracking-[0.4em] text-white/20 font-black">Архів Сесій</p>
+              </div>
+              <div className="space-y-1">
+                {!loaded && (
+                  <div className="px-4 py-2 space-y-3">
+                    <div className="h-4 w-full bg-white/5 rounded-md animate-pulse"></div>
+                    <div className="h-4 w-3/4 bg-white/5 rounded-md animate-pulse"></div>
+                  </div>
+                )}
+                
+                {loaded && displayedConversations.map(conv => {
+                  const active = Number(currentId) === conv.id;
+                  return (
+                    <div key={conv.id} className="relative group">
+                      <Link
+                        href={`/chat/${conv.id}`}
+                        onClick={() => { if (onClose && window.innerWidth < 768) onClose() }}
+                        className={`w-full flex items-center justify-between gap-4 px-4 py-2.5 rounded-md transition-all border-l-2 ${active ? 'bg-white/[0.06] border-[#D4A373]' : 'border-transparent hover:bg-white/[0.03] hover:border-[#D4A373]/50'}`}
+                      >
+                        <span className={`text-[13px] sm:text-xs font-medium tracking-tight truncate flex-1 ${active ? 'text-white' : 'text-white/40'} group-hover:text-white/90 transition-colors`}>
+                          {conv.title}
+                        </span>
+                      </Link>
+                      <button
+                        onClick={(e) => handleDelete(e, conv.id)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 opacity-0 group-hover:opacity-100 text-[#D4A373]/50 hover:text-[#f87171] transition-all rounded-md"
+                        title="Видалити"
+                      >
+                        <Trash2 size={13} strokeWidth={2} />
+                      </button>
+                    </div>
+                  )
+                })}
+                {loaded && conversations.length > 3 && !showAllChats && (
+                  <button
+                    onClick={() => setShowAllChats(true)}
+                    className="flex items-center gap-2 px-4 py-2 mt-2 text-[10px] uppercase tracking-widest text-white/20 hover:text-white/60 transition-colors w-full"
+                  >
+                    <MoreHorizontal size={12} /> Показати всі
+                  </button>
+                )}
+              </div>
+            </section>
 
-        {/* NAV */}
-        <nav className="sidebar-nav scrollbar-none">
-          
-          {/* СЕКЦІЯ 1: ШВИДКІ ЗАПИТИ */}
-          <div style={sectionLabelStyle}>ШВИДКІ ЗАПИТИ</div>
-          {QUICK.map((item) => (
-            <button
-              key={item.label}
-              onClick={() => handleQuickQuery(item.query)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '6px 16px',
-                fontSize: '12.5px',
-                fontWeight: 400,
-                color: 'rgba(235,215,185,0.58)',
-                cursor: 'pointer',
-                border: 'none',
-                background: 'transparent',
-                width: '100%',
-                transition: 'all 0.12s',
-                textAlign: 'left'
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
-                e.currentTarget.style.color = 'rgba(235,215,185,0.90)'
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.background = 'transparent'
-                e.currentTarget.style.color = 'rgba(235,215,185,0.58)'
-              }}
+            <section>
+              <div className="flex items-center gap-2 px-4 mb-5">
+                <span className="w-1.5 h-1.5 rounded-full border border-[#D4A373]"></span>
+                <p className="text-[10px] uppercase tracking-[0.4em] text-white/20 font-black">Зовнішні вузли</p>
+              </div>
+              <div className="space-y-1 mb-6">
+                {EXTERNAL_BASES_DATA.map((res, i) => (
+                  <a key={i} href={res.link} target="_blank" rel="noreferrer" className="flex items-center gap-4 px-4 py-3 rounded-md hover:bg-white/[0.03] cursor-pointer group transition-all border-l-2 border-transparent hover:border-white/10">
+                    <div className="text-white/10 group-hover:text-[#D4A373] transition-all">{res.icon}</div>
+                    <h4 className="text-[13px] font-medium text-white/30 group-hover:text-white/70 truncate tracking-tight">{res.title}</h4>
+                  </a>
+                ))}
+              </div>
+            </section>
+          </nav>
+
+          <div className="p-8 bg-black/40 border-t border-white/[0.04]">
+            <button 
+              onClick={() => { router.push('/'); if (onClose && window.innerWidth < 768) onClose() }}
+              className="w-full py-3.5 bg-transparent border border-[#D4A373]/20 text-[#D4A373] rounded-sm text-[10px] font-black tracking-[0.3em] flex items-center justify-center gap-3 hover:bg-[#D4A373] hover:text-[#000] transition-all uppercase active:scale-[0.98]"
             >
-              <span>{item.label}</span>
-              <ChevronRight size={11} color="rgba(184,120,48,0.35)" />
+              <Plus size={14} />
+              Новий протокол
             </button>
-          ))}
-
-          <div style={dividerStyle} />
-
-          {/* СЕКЦІЯ 2: РЕСУРСИ БІБЛІОТЕКИ */}
-          <div style={sectionLabelStyle}>РЕСУРСИ БІБЛІОТЕКИ</div>
-          {MAIN_LINKS.map((item) => (
-            <a
-              key={item.label}
-              href={item.href}
-              target="_blank"
-              rel="noreferrer"
-              style={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: '10px',
-                padding: '7px 16px',
-                textDecoration: 'none',
-                transition: 'all 0.12s',
-                background: 'transparent'
-              }}
-              onMouseEnter={e => {
-                const labelEl = e.currentTarget.querySelector('.link-label') as HTMLElement
-                const subEl = e.currentTarget.querySelector('.link-sub') as HTMLElement
-                if (labelEl) labelEl.style.color = 'rgba(235,215,185,0.92)'
-                if (subEl) subEl.style.color = 'rgba(184,120,48,0.55)'
-                const iconEl = e.currentTarget.querySelector('.link-icon') as HTMLElement
-                if (iconEl) iconEl.style.color = 'rgba(184,120,48,0.85)'
-              }}
-              onMouseLeave={e => {
-                const labelEl = e.currentTarget.querySelector('.link-label') as HTMLElement
-                const subEl = e.currentTarget.querySelector('.link-sub') as HTMLElement
-                if (labelEl) labelEl.style.color = 'rgba(235,215,185,0.60)'
-                if (subEl) subEl.style.color = 'rgba(184,120,48,0.35)'
-                const iconEl = e.currentTarget.querySelector('.link-icon') as HTMLElement
-                if (iconEl) iconEl.style.color = 'rgba(184,120,48,0.50)'
-              }}
-            >
-              <div className="link-icon" style={{
-                width: '28px',
-                height: '28px',
-                flexShrink: 0,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginTop: '1px'
-              }}>
-                <item.Icon size={14} color="rgba(184,120,48,0.50)" strokeWidth={1.5} />
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="link-label" style={{
-                  fontSize: '12.5px',
-                  fontWeight: 400,
-                  color: 'rgba(235,215,185,0.60)',
-                  lineHeight: '1.2',
-                  marginBottom: '2px'
-                }}>
-                  {item.label}
-                </div>
-                <div className="link-sub" style={{
-                  fontSize: '10px',
-                  fontWeight: 300,
-                  color: 'rgba(184,120,48,0.35)',
-                  lineHeight: '1.2'
-                }}>
-                  {item.sub}
-                </div>
-              </div>
-            </a>
-          ))}
-
-          <div style={dividerStyle} />
-
-          {/* СЕКЦІЯ 3: БІЛЬШЕ РЕСУРСІВ */}
-          <button
-            onClick={() => setExpanded(!expanded)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '6px 16px',
-              fontSize: '11px',
-              fontWeight: 400,
-              color: 'rgba(184,120,48,0.45)',
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              width: '100%',
-              letterSpacing: '0.02em',
-              transition: 'color 0.12s'
-            }}
-            onMouseEnter={e => e.currentTarget.style.color = 'rgba(184,120,48,0.75)'}
-            onMouseLeave={e => e.currentTarget.style.color = 'rgba(184,120,48,0.45)'}
-          >
-            <ChevronDown 
-              size={12} 
-              style={{
-                transform: expanded ? 'rotate(180deg)' : 'none',
-                transition: 'transform 0.2s'
-              }}
-            />
-            <span>{expanded ? '▲ Менше' : '▾ Більше ресурсів'}</span>
-          </button>
-
-          {expanded && (
-            <div style={{
-              animation: 'fadeIn 0.18s ease-out',
-              opacity: 1
-            }}>
-              {EXTRA_LINKS.map((item) => (
-                <a
-                  key={item.label}
-                  href={item.href}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: '10px',
-                    padding: '7px 16px',
-                    textDecoration: 'none',
-                    transition: 'all 0.12s',
-                    background: 'transparent'
-                  }}
-                  onMouseEnter={e => {
-                    const labelEl = e.currentTarget.querySelector('.link-label') as HTMLElement
-                    const subEl = e.currentTarget.querySelector('.link-sub') as HTMLElement
-                    if (labelEl) labelEl.style.color = 'rgba(235,215,185,0.92)'
-                    if (subEl) subEl.style.color = 'rgba(184,120,48,0.55)'
-                    const iconEl = e.currentTarget.querySelector('.link-icon') as HTMLElement
-                    if (iconEl) iconEl.style.color = 'rgba(184,120,48,0.85)'
-                  }}
-                  onMouseLeave={e => {
-                    const labelEl = e.currentTarget.querySelector('.link-label') as HTMLElement
-                    const subEl = e.currentTarget.querySelector('.link-sub') as HTMLElement
-                    if (labelEl) labelEl.style.color = 'rgba(235,215,185,0.60)'
-                    if (subEl) subEl.style.color = 'rgba(184,120,48,0.35)'
-                    const iconEl = e.currentTarget.querySelector('.link-icon') as HTMLElement
-                    if (iconEl) iconEl.style.color = 'rgba(184,120,48,0.50)'
-                  }}
-                >
-                  <div className="link-icon" style={{
-                    width: '28px',
-                    height: '28px',
-                    flexShrink: 0,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginTop: '1px'
-                  }}>
-                    <item.Icon size={14} color="rgba(184,120,48,0.50)" strokeWidth={1.5} />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="link-label" style={{
-                      fontSize: '12.5px',
-                      fontWeight: 400,
-                      color: 'rgba(235,215,185,0.60)',
-                      lineHeight: '1.2',
-                      marginBottom: '2px'
-                    }}>
-                      {item.label}
-                    </div>
-                    <div className="link-sub" style={{
-                      fontSize: '10px',
-                      fontWeight: 300,
-                      color: 'rgba(184,120,48,0.35)',
-                      lineHeight: '1.2'
-                    }}>
-                      {item.sub}
-                    </div>
-                  </div>
-                </a>
-              ))}
-            </div>
-          )}
-
-          {expanded && <div style={dividerStyle} />}
-
-          {/* HISTORY */}
-          {!loaded && (
-            <div className="conversation-skeletons">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="skeleton-item" />
-              ))}
-            </div>
-          )}
-          {loaded && conversations.length > 0 && (
-            <>
-              <div className="nav-group-label" style={{ marginTop: 24 }}>Діалоги</div>
-              {displayedConversations.map(conv => {
-                const isActive = Number(currentId) === conv.id
-                return (
-                  <div key={conv.id} style={{ display: 'flex', alignItems: 'center' }}>
-                    <Link
-                      href={`/chat/${conv.id}`}
-                      className={`nav-link ${isActive ? 'active' : ''}`}
-                      onClick={onClose}
-                      style={{ flex: 1, minWidth: 0 }}
-                    >
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
-                        {conv.title}
-                      </span>
-                    </Link>
-                    <button
-                      onClick={(e) => handleDelete(e, conv.id)}
-                      style={{
-                        background: 'transparent', border: 'none',
-                        color: 'rgba(255,255,255,0.25)', cursor: 'pointer',
-                        padding: '7px 10px', flexShrink: 0,
-                        transition: 'color 0.15s',
-                      }}
-                      onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.55)')}
-                      onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.25)')}
-                      aria-label="Видалити"
-                    >
-                      <Trash2 size={12} strokeWidth={1.5} />
-                    </button>
-                  </div>
-                )
-              })}
-              {loaded && conversations.length > 2 && !showAllChats && (
-                <button
-                  onClick={() => setShowAllChats(true)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 8,
-                    width: '100%', padding: '8px 16px',
-                    background: 'transparent', border: 'none',
-                    color: 'rgba(235, 215, 185, 0.4)', fontSize: 11,
-                    textTransform: 'uppercase', letterSpacing: '0.05em', cursor: 'pointer',
-                    marginTop: 4, transition: 'color 0.15s'
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.color = 'rgba(235, 215, 185, 0.7)'}
-                  onMouseLeave={e => e.currentTarget.style.color = 'rgba(235, 215, 185, 0.4)'}
-                >
-                  <MoreHorizontal size={14} /> Розгорнути (ще {conversations.length - 2})
-                </button>
-              )}
-            </>
-          )}
-        </nav>
-
-        {/* FOOTER */}
-        <div className="sidebar-footer">
-          <button
-            onClick={() => { router.push('/'); if (onClose) onClose() }}
-            style={{
-              width: '100%',
-              height: '34px',
-              background: 'rgba(184,120,48,0.12)',
-              border: '0.5px solid rgba(184,120,48,0.28)',
-              borderRadius: '8px',
-              color: 'rgba(220,168,78,0.82)',
-              fontSize: '11px',
-              fontWeight: 500,
-              letterSpacing: '0.08em',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-              cursor: 'pointer',
-              transition: 'all 0.13s'
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.background = 'rgba(184,120,48,0.20)'
-              e.currentTarget.style.borderColor = 'rgba(184,120,48,0.48)'
-              e.currentTarget.style.color = 'rgba(230,178,90,0.95)'
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.background = 'rgba(184,120,48,0.12)'
-              e.currentTarget.style.borderColor = 'rgba(184,120,48,0.28)'
-              e.currentTarget.style.color = 'rgba(220,168,78,0.82)'
-            }}
-          >
-            <Plus size={13} strokeWidth={1.8} />
-            + НОВИЙ ЧАТ
-          </button>
+          </div>
         </div>
       </aside>
 
-      <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-
-        /* Mobile overlay */
-        .sb-mobile-overlay {
-          display: none;
-        }
-
-        @media (max-width: 767px) {
-          .sb-mobile-overlay {
-            display: block;
-            position: fixed;
-            inset: 0;
-            z-index: 999;
-            background: rgba(0,0,0,0.45);
-          }
-          aside.sidebar {
-            position: fixed !important;
-            top: 0;
-            left: 0;
-            height: 100% !important;
-            z-index: 1000;
-            transform: ${isOpen ? 'translateX(0)' : 'translateX(-100%)'};
-            transition: transform 0.22s cubic-bezier(0.32,0,0.18,1) !important;
-            width: var(--sb-width) !important;
-            margin-left: 0 !important;
-          }
-          .collapse-toggle-btn {
-            display: none !important;
-          }
-        }
-
-        @media (min-width: 768px) {
-          aside.sidebar {
-            margin-left: ${isOpen ? '0' : 'calc(-1 * var(--sb-width))'};
-            transition: margin-left 0.35s cubic-bezier(0.25, 1, 0.5, 1);
-          }
-        }
-      `}</style>
-      
+      {/* Delete Confirmation Modal */}
       {deleteId && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 99999,
-          background: 'rgba(0,0,0,0.5)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center'
-        }}>
-          <div style={{
-            background: '#ffffff', padding: '24px', borderRadius: '16px',
-            width: '320px', textAlign: 'center', boxShadow: '0 8px 32px rgba(0,0,0,0.2)'
-          }}>
-            <h3 style={{ margin: '0 0 12px', fontSize: '18px', fontWeight: 500, color: '#180c05' }}>Видалити діалог?</h3>
-            <p style={{ margin: '0 0 24px', fontSize: '13px', color: '#666' }}>Цю дію неможливо буде скасувати.</p>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button 
-                onClick={() => setDeleteId(null)}
-                style={{ flex: 1, padding: '12px', background: '#f5f5f5', border: '1px solid #e0e0e0', borderRadius: '10px', cursor: 'pointer', color: '#333', fontWeight: 500 }}
-              >
-                Скасувати
-              </button>
+        <div className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#FBFAF9] p-8 rounded-xl w-full max-w-sm shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-[#111111]/10">
+            <h3 className="mb-2 text-lg font-bold text-[#111111]">Видалити діалог?</h3>
+            <p className="mb-8 text-sm text-[#111111]/50 font-medium tracking-wide">Цю дію неможливо буде скасувати.</p>
+            <div className="flex flex-col gap-3">
               <button 
                 onClick={() => confirmDelete(deleteId)}
-                style={{ flex: 1, padding: '12px', background: '#da4444', border: 'none', borderRadius: '10px', cursor: 'pointer', color: '#fff', fontWeight: 500 }}
+                className="w-full py-3 bg-[#e85d5d] hover:bg-[#d64c4c] rounded-md text-[13px] font-bold text-white transition-colors"
               >
-                Видалити
+                Підтвердити видалення
+              </button>
+              <button 
+                onClick={() => setDeleteId(null)}
+                className="w-full py-3 bg-transparent border border-[#111111]/10 hover:border-[#111111]/30 rounded-md text-[13px] font-bold text-[#111111] transition-colors"
+              >
+                Скасувати
               </button>
             </div>
           </div>
