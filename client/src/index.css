@@ -299,11 +299,30 @@ h1, h2, h3, h4, h5, h6 {
 .custom-scrollbar::-webkit-scrollbar-thumb { background: hsla(32 45% 63% / 0.2); border-radius: 10px; }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: hsla(32 45% 63% / 0.5); }
 
-/* ── ACCESSIBILITY ───────────────────────────────────────────────────── */
-:focus-visible {
-  outline: 2px solid hsl(var(--primary));
+/* Улучшенная доступность */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 6px;
+  background: var(--dark-espresso);
+  color: var(--gold-light);
+  padding: 8px;
+  text-decoration: none;
+  border-radius: 0 0 4px 4px;
+  z-index: 9999;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* Улучшенные focus indicators */
+*:focus-visible {
+  outline: 2px solid var(--gold);
   outline-offset: 2px;
-  border-radius: 6px;
+  border-radius: 4px;
 }
 
 .skip-link {

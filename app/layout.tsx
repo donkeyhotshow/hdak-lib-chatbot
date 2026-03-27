@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import type { Metadata } from 'next'
 import { Playfair_Display, Plus_Jakarta_Sans } from 'next/font/google'
 import { SplashScreen } from '@/components/SplashScreen'
@@ -44,6 +44,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="uk" className={`${serif.variable} ${sans.variable}`}>
       <body>
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-[#1a130f] focus:text-[#f7f4ef] focus:rounded-lg focus:text-sm focus:font-semibold focus:shadow-lg">Перейти до основного вмісту</a>
         <SplashScreen />
         <ClientLayout>{children}</ClientLayout>
       </body>

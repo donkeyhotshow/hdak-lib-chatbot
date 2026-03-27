@@ -5,6 +5,39 @@ import { ChatMessage } from "@/components/ChatMessage";
 import { ChatInput } from "@/components/ChatInput";
 import { Loader2, AlertCircle, WifiOff, BookMarked, Copy, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { getResponse } from "@/lib/responses";
+
+// ── Loading Skeleton ──────────────────────────────────────────────────────────
+function ChatSkeleton() {
+  return (
+    <div className="flex-1 overflow-y-auto">
+      <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
+        {/* Header skeleton */}
+        <div className="space-y-2 text-center mb-8">
+          <Skeleton className="h-8 w-64 mx-auto" />
+          <Skeleton className="h-4 w-80 mx-auto" />
+        </div>
+        
+        {/* Message skeletons */}
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="flex gap-4 animate-pulse">
+            <Skeleton className="w-9 h-9 rounded-full flex-shrink-0" />
+            <div className="flex-1 space-y-2">
+              <div className="flex gap-2">
+                <Skeleton className="h-3 w-24" />
+                <Skeleton className="h-3 w-16" />
+              </div>
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+              {i === 2 && <Skeleton className="h-4 w-1/2" />}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 // ── ДСТУ 8302:2015 formatter ─────────────────────────────────────────────────
 interface SavedBook {
@@ -78,7 +111,9 @@ export default function Chat() {
   } = useChatStream(id);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const messagesRef = useRef<HTMLDivElement>(null);
   const lastMessageRef = useRef<string>("");
+  const [prevMessagesLength, setPrevMessagesLength] = useState(0);
 
   const isOnline = useOnlineStatus();
   const [savedBooks, setSavedBooks] = useState<SavedBook[]>(loadSavedBooks);
@@ -86,20 +121,49 @@ export default function Chat() {
   const [copiedDstu, setCopiedDstu] = useState(false);
 
   // ── Scroll ────────────────────────────────────────────────────────────────
-  const scrollToBottom = useCallback(() => {
-    scrollRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
+    if (messagesRef.current) {
+      messagesRef.current.scrollTo({
+        top: messagesRef.current.scrollHeight,
+        behavior,
+      });
+    }
   }, []);
 
+  // Initial scroll and scroll on new messages
   useEffect(() => {
-    scrollToBottom();
-  }, [conversation?.messages.length, streamedContent, scrollToBottom]);
+    const messages = conversation?.messages ?? [];
+    if (messages.length > prevMessagesLength && prevMessagesLength > 0) {
+      // New message added, smooth scroll
+      scrollToBottom("smooth");
+    } else if (messages.length === 0) {
+      // Empty state, scroll to top
+      scrollToBottom("instant");
+    }
+    setPrevMessagesLength(messages.length);
+  }, [conversation?.messages.length, scrollToBottom, prevMessagesLength]);
+
+  // Scroll when streaming updates
+  useEffect(() => {
+    if (isStreaming) {
+      scrollToBottom("smooth");
+    }
+  }, [streamedContent, isStreaming, scrollToBottom]);
 
   // ── Send + retry ──────────────────────────────────────────────────────────
   const handleSend = useCallback((text: string) => {
+    // Перевіряємо, чи є швидка відповідь (для логування/аналітики)
+    const quickResponse = getResponse(text);
+    if (quickResponse) {
+      console.log("[QuickResponse] Знайдено швидку відповідь:", quickResponse.title);
+    }
+    
     lastMessageRef.current = text;
     clearError();
     sendMessage(text);
-  }, [sendMessage, clearError]);
+    // Scroll to bottom after sending
+    setTimeout(() => scrollToBottom("smooth"), 100);
+  }, [sendMessage, clearError, scrollToBottom]);
 
   const retryLastMessage = useCallback(() => {
     if (lastMessageRef.current) {
@@ -125,19 +189,32 @@ export default function Chat() {
     setTimeout(() => setCopiedDstu(false), 2000);
   }, [savedBooks]);
 
+  // ── Loading state with skeleton ──────────────────────────────────────────
   if (isLoading) {
     return (
-      <div className="h-full flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+      <div className="flex flex-col h-full bg-background">
+        <ChatSkeleton />
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-background via-background/95 to-transparent pt-10 pb-2">
+          <div style={{ width: "100%", padding: "12px 24px" }}>
+            <Skeleton className="h-12 w-full max-w-xl mx-auto rounded-full" />
+          </div>
+        </div>
       </div>
     );
   }
 
   if (error || !conversation) {
     return (
-      <div className="h-full flex flex-col items-center justify-center gap-4 text-center p-8">
-        <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center">
-          <AlertCircle className="w-8 h-8 text-destructive" />
+      <div 
+        className="h-full flex flex-col items-center justify-center gap-4 text-center p-8"
+        role="alert"
+        aria-live="polite"
+      >
+        <div 
+          className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center"
+          style={{ animation: "fadeIn 0.3s ease-out" }}
+        >
+          <AlertCircle className="w-8 h-8 text-destructive" aria-hidden="true" />
         </div>
         <div>
           <h2 className="text-xl font-serif font-bold text-foreground">
@@ -147,7 +224,14 @@ export default function Chat() {
             Розмову могло бути видалено або вона не існує.
           </p>
         </div>
-        <Button onClick={() => refetch()} variant="outline">Спробувати ще раз</Button>
+        <Button 
+          onClick={() => refetch()} 
+          variant="outline"
+          aria-label="Спробувати ще раз"
+          style={{ transition: "all 0.2s ease" }}
+        >
+          Спробувати ще раз
+        </Button>
       </div>
     );
   }
@@ -162,6 +246,8 @@ export default function Chat() {
       {!isOnline && (
         <div
           data-testid="banner-offline"
+          role="alert"
+          aria-live="polite"
           style={{
             flexShrink: 0,
             display: "flex",
@@ -173,7 +259,7 @@ export default function Chat() {
             borderBottom: "0.5px solid hsl(37 40% 78%)",
           }}
         >
-          <WifiOff style={{ width: 14, height: 14, color: "hsl(var(--b3))" }} />
+          <WifiOff style={{ width: 14, height: 14, color: "hsl(var(--b3))" }} aria-hidden="true" />
           <span style={{ fontSize: 12, color: "hsl(var(--b2))", fontWeight: 500 }}>
             Немає з'єднання з інтернетом. Перевірте мережу.
           </span>
@@ -182,10 +268,14 @@ export default function Chat() {
 
       {/* ── Saved books panel ────────────────────────────────────────────── */}
       {showSaved && (
-        <div className="flex-shrink-0 border-b border-border bg-muted/40 max-h-60 overflow-y-auto">
+        <div 
+          className="flex-shrink-0 border-b border-border bg-muted/40 max-h-60 overflow-y-auto"
+          role="region"
+          aria-label="Збережені книги"
+        >
           <div className="flex items-center justify-between px-4 py-2">
             <span className="text-xs font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
-              <BookMarked className="w-3.5 h-3.5" />
+              <BookMarked className="w-3.5 h-3.5" aria-hidden="true" />
               Збережені книги ({savedBooks.length})
             </span>
             <div className="flex items-center gap-2">
@@ -195,10 +285,11 @@ export default function Chat() {
                   data-testid="button-copy-dstu"
                   className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full
                     border border-primary/30 text-primary hover:bg-primary/10 transition-colors"
+                  aria-label="Копіювати список літератури у форматі ДСТУ"
                 >
                   {copiedDstu
-                    ? <><Check className="w-3 h-3" /> Скопійовано</>
-                    : <><Copy className="w-3 h-3" /> Список літератури ДСТУ</>
+                    ? <><Check className="w-3 h-3" aria-hidden="true" /> Скопійовано</>
+                    : <><Copy className="w-3 h-3" aria-hidden="true" /> Список літератури ДСТУ</>
                   }
                 </button>
               )}
@@ -206,9 +297,9 @@ export default function Chat() {
                 onClick={() => setShowSaved(false)}
                 data-testid="button-close-saved"
                 className="text-muted-foreground hover:text-foreground transition-colors"
-                aria-label="Закрити"
+                aria-label="Закрити панель збережених книг"
               >
-                <X className="w-4 h-4" />
+                <X className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
           </div>
@@ -226,9 +317,9 @@ export default function Chat() {
                     onClick={() => removeBook(book.id)}
                     data-testid={`button-remove-book-${book.id}`}
                     className="text-muted-foreground hover:text-destructive transition-colors mt-0.5 flex-shrink-0"
-                    aria-label="Видалити"
+                    aria-label={`Видалити книгу: ${book.title}`}
                   >
-                    <X className="w-3.5 h-3.5" />
+                    <X className="w-3.5 h-3.5" aria-hidden="true" />
                   </button>
                 </li>
               ))}
@@ -238,7 +329,15 @@ export default function Chat() {
       )}
 
       {/* ── Messages ─────────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto scrollbar-thin scroll-smooth">
+      <div 
+        ref={messagesRef}
+        className="flex-1 overflow-y-auto scroll-smooth"
+        tabIndex={0}
+        role="log"
+        aria-label="Повідомлення чату"
+        aria-live="polite"
+        style={{ scrollBehavior: "smooth" }}
+      >
         <div className="min-h-full pb-36">
 
           {/* Saved books toggle button */}
@@ -249,8 +348,9 @@ export default function Chat() {
                 data-testid="button-show-saved"
                 className="flex items-center gap-1.5 text-xs text-muted-foreground
                   hover:text-foreground transition-colors"
+                aria-label="Показати збережені книги"
               >
-                <BookMarked className="w-3.5 h-3.5" />
+                <BookMarked className="w-3.5 h-3.5" aria-hidden="true" />
                 Збережені книги{savedBooks.length > 0 && ` (${savedBooks.length})`}
               </button>
             </div>
@@ -258,7 +358,12 @@ export default function Chat() {
 
           {/* Empty state */}
           {messages.length === 0 && !isStreaming && (
-            <div className="max-w-3xl mx-auto px-4 py-10 text-center space-y-3">
+            <div 
+              className="max-w-3xl mx-auto px-4 py-10 text-center space-y-3"
+              role="status"
+              aria-live="polite"
+              style={{ animation: "fadeIn 0.4s ease-out" }}
+            >
               <h2 className="text-2xl font-serif font-bold text-primary">
                 {conversation.title || "Нова розмова"}
               </h2>
@@ -270,7 +375,7 @@ export default function Chat() {
                   "Як знайти книгу в каталозі?",
                   "Коли працює бібліотека?",
                   "Що таке репозитарій ХДАК?",
-                ].map((prompt) => (
+                ].map((prompt, idx) => (
                   <button
                     key={prompt}
                     onClick={() => handleSend(prompt)}
@@ -280,7 +385,13 @@ export default function Chat() {
                       px-3 py-1.5 text-xs rounded-full
                       border border-border bg-white hover:bg-muted/50
                       text-foreground transition-colors duration-150 font-medium
+                      focus:outline-none focus:ring-2 focus:ring-primary/20
                     "
+                    aria-label={`Запитати: ${prompt}`}
+                    tabIndex={0}
+                    style={{
+                      animation: `fadeSlideIn 0.3s ease-out ${idx * 0.1}s both`,
+                    }}
                   >
                     {prompt}
                   </button>
@@ -298,6 +409,7 @@ export default function Chat() {
               createdAt={msg.createdAt}
               responseMs={idx === lastAssistantIdx && !isStreaming ? lastResponseMs : null}
               onChipClick={!isStreaming ? handleSend : undefined}
+              animationIndex={idx}
             />
           ))}
 
@@ -307,6 +419,7 @@ export default function Chat() {
               role="assistant"
               content={streamedContent}
               isStreaming={true}
+              animationIndex={messages.length}
             />
           )}
 
@@ -318,11 +431,14 @@ export default function Chat() {
       {streamError && (
         <div
           data-testid="bar-stream-error"
+          role="alert"
+          aria-live="assertive"
           className="flex-shrink-0 flex items-center justify-between gap-3
             px-4 py-2.5 bg-destructive/8 border-t border-destructive/20"
+          style={{ animation: "slideUp 0.3s ease-out" }}
         >
           <span className="text-sm text-destructive font-medium flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-destructive inline-block flex-shrink-0" />
+            <span className="w-1.5 h-1.5 rounded-full bg-destructive inline-block flex-shrink-0" aria-hidden="true" />
             {streamError}
           </span>
           <div className="flex items-center gap-2">
@@ -330,18 +446,21 @@ export default function Chat() {
               onClick={retryLastMessage}
               data-testid="button-retry-stream"
               className="flex items-center gap-1 h-7 px-3 text-xs font-medium rounded-full
-                bg-destructive text-white hover:bg-destructive/90 transition-colors"
+                bg-destructive text-white hover:bg-destructive/90 transition-colors
+                focus:outline-none focus:ring-2 focus:ring-destructive/30"
+              aria-label="Повторити відправку повідомлення"
             >
               ↺ Повторити
             </button>
             <button
               onClick={clearError}
               data-testid="button-dismiss-error"
-              aria-label="Закрити"
+              aria-label="Закрити повідомлення про помилку"
               className="h-7 px-2 text-xs rounded-full border border-destructive/30
-                text-destructive hover:bg-destructive/10 transition-colors"
+                text-destructive hover:bg-destructive/10 transition-colors
+                focus:outline-none focus:ring-2 focus:ring-destructive/30"
             >
-              <X className="w-3.5 h-3.5" />
+              <X className="w-3.5 h-3.5" aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -356,6 +475,34 @@ export default function Chat() {
           disabled={!isOnline}
         />
       </div>
+
+      {/* ── Global animations ───────────────────────────────────────────── */}
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes slideUp {
+          from { 
+            opacity: 0; 
+            transform: translateY(8px);
+          }
+          to { 
+            opacity: 1; 
+            transform: translateY(0);
+          }
+        }
+        @keyframes fadeSlideIn {
+          from { 
+            opacity: 0; 
+            transform: translateY(8px);
+          }
+          to { 
+            opacity: 1; 
+            transform: translateY(0);
+          }
+        }
+      `}</style>
     </div>
   );
 }

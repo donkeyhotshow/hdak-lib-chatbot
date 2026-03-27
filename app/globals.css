@@ -13,8 +13,8 @@
   --cream-bg:     #fcfaf7; 
   --white:        #ffffff;
   --text-main:    #1a130f;
-  --text-secondary: #665d55;
-  --text-muted:   #9ca3af;
+  --text-secondary: #4a3427; /* Улучшенный контраст */
+  --text-muted:   #7a6b5a;   /* Более читаемый серый */
   --border-mocha: rgba(0, 0, 0, 0.04); 
   --sb-width:     280px; 
   --transition:   all 0.7s cubic-bezier(0.16, 1, 0.3, 1); 
@@ -887,10 +887,22 @@ textarea::placeholder { color: var(--text-muted); }
 /* ════════════════════════════════════════════════════════════
    RESPONSIVE: Mobile Styles
    ════════════════════════════════════════════════════════════ */
+/* Улучшенная мобильная оптимизация */
 @media (max-width: 768px) {
   :root {
     --sb-width: 100%;
     --transition: all 0.3s ease;
+  }
+  
+  /* Увеличенные touch targets */
+  button, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Предотвращение zoom на iOS */
+  input, textarea, select {
+    font-size: 16px !important;
   }
   
   .sidebar {
@@ -908,6 +920,8 @@ textarea::placeholder { color: var(--text-muted); }
     padding: 12px 16px;
     font-size: 14px;
     margin: 2px 12px;
+    /* Увеличенная область нажатия */
+    min-height: 48px;
   }
   
   .main-content {
@@ -935,9 +949,91 @@ textarea::placeholder { color: var(--text-muted); }
   .hero-title-main { font-size: 24px; }
   .hero-title-sub { font-size: 18px; }
   
-  /* Improve text contrast for accessibility */
-  .nav-link { color: rgba(235, 215, 185, 0.85); }
+  /* Улучшенная читаемость на мобильных */
+  .nav-link { 
+    color: rgba(235, 215, 185, 0.95); 
+    font-weight: 500;
+  }
   .nav-link:hover { color: #fff; }
-  .sidebar-sub-title { font-size: 9px; }
-  .new-chat-btn { font-size: 12px; padding: 12px; }
+  .sidebar-sub-title { font-size: 10px; }
+  .new-chat-btn { font-size: 12px; padding: 14px; }
+  
+  /* Оптимизация чата для мобильных */
+  .bubble {
+    font-size: 14px;
+    padding: 12px 16px;
+  }
+  
+  .suggest-chip {
+    height: 36px;
+    padding: 0 12px;
+    font-size: 12px;
+  }
+}
+
+/* 
+   UI/UX IMPROVEMENTS v2  Accessibility & Polish
+    */
+
+/* Улучшенный focus ring для всех интерактивных элементов */
+:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Плавное появление сообщений */
+@keyframes msgIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Улучшенный скроллбар */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(184,120,48,0.2) transparent;
+}
+*::-webkit-scrollbar { width: 4px; height: 4px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: rgba(184,120,48,0.2);
+  border-radius: 99px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(184,120,48,0.4);
+}
+
+/* Улучшенные touch targets на мобильных */
+@media (pointer: coarse) {
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Предотвращение zoom на iOS при фокусе на input */
+@media (max-width: 768px) {
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Улучшенный placeholder */
+::placeholder {
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+/* Выделение текста в фирменном цвете */
+::selection {
+  background: rgba(184,120,48,0.15);
+  color: var(--text-main);
 }

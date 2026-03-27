@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import React, { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
@@ -90,7 +90,7 @@ export function Sidebar({
       )}
 
       {/* Sidebar - PUSH EFFECT */}
-      <aside className={`
+      <aside id="sidebar-nav" aria-label="Навігація бібліотеки" className={`
         relative z-50 h-full bg-[#0D0D0D] border-r border-white/[0.04]
         transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) flex flex-col overflow-hidden shadow-2xl
         fixed md:relative
@@ -113,9 +113,10 @@ export function Sidebar({
               </div>
               <button 
                 onClick={onClose} 
-                className="md:hidden text-white/20 hover:text-white transition-colors"
+                aria-label="Закрити меню"
+                className="md:hidden text-white/20 hover:text-white transition-colors p-1 rounded-md focus:outline-none focus:ring-2 focus:ring-white/20"
               >
-                <X size={16} />
+                <X size={16} aria-hidden="true" />
               </button>
             </div>
 
@@ -155,7 +156,7 @@ export function Sidebar({
                           <button
                             onClick={(e) => handleDelete(e, conv.id)}
                             className="absolute right-10 top-1/2 -translate-y-1/2 p-2 text-white/0 group-hover:text-white/20 hover:text-red-400/60 transition-all rounded-lg"
-                            title="Видалити"
+                            aria-label={`Видалити розмову: ${conv.title}`}
                           >
                             <Trash2 size={12} />
                           </button>
@@ -210,9 +211,9 @@ export function Sidebar({
 
       {/* Delete Confirmation Modal */}
       {deleteId && (
-        <div className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div role="dialog" aria-modal="true" aria-labelledby="delete-dialog-title" className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-[#FBFAF9] p-8 rounded-xl w-full max-w-sm shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-[#111111]/10">
-            <h3 className="mb-2 text-lg font-bold text-[#111111]">Видалити діалог?</h3>
+            <h3 id="delete-dialog-title" className="mb-2 text-lg font-bold text-[#111111]">Видалити діалог?</h3>
             <p className="mb-8 text-sm text-[#111111]/50 font-medium tracking-wide">Цю дію неможливо буде скасувати.</p>
             <div className="flex flex-col gap-3">
               <button 

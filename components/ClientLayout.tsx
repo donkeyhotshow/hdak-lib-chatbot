@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import React, { useState, useEffect } from 'react'
 import { Sidebar } from './Sidebar'
@@ -27,7 +27,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       />
       
       {/* Main Content - Flex-1 makes it pushable by the Sidebar */}
-      <main className="flex-1 flex flex-col relative h-full min-w-0 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) overflow-hidden bg-[#FBFAF9]">
+      <main id="main-content" role="main" aria-label="Основний вміст" className="flex-1 flex flex-col relative h-full min-w-0 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) overflow-hidden bg-[#FBFAF9]">
         <TopBar onToggle={() => setIsOpen(v => !v)} sidebarOpen={isOpen} />
         {children}
       </main>

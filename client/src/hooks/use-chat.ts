@@ -24,87 +24,167 @@ interface ConversationWithMessages extends Conversation {
 const CONVERSATIONS_KEY = ["/api/conversations"] as const;
 const conversationKey = (id: number | null) => ["/api/conversations", id] as const;
 
-// ─── Conversations list ───────────────────────────────────────────────────────
+// ─── Error messages ────────────────────────────────────────────────────────────
+const ERROR_MESSAGES = {
+  FETCH_CONVERSATIONS: "Не вдалося завантажити список розмов.",
+  FETCH_CONVERSATION: "Не вдалося завантажити розмову.",
+  CREATE_CONVERSATION: "Не вдалося створити розмову.",
+  DELETE_CONVERSATION: "Не вдалося видалити розмову.",
+  SEND_MESSAGE: "Не вдалося надіслати повідомлення.",
+  NETWORK_ERROR: "Помилка з'єднання. Перевірте інтернет.",
+  SERVER_ERROR: "Сервер недоступний. Спробуйте пізніше.",
+};
+
+// ─── Conversations list ────────────────────────────────────────────────────────
 export function useConversations() {
+  const { toast } = useToast();
+  
   return useQuery<Conversation[]>({
     queryKey: CONVERSATIONS_KEY,
     queryFn: async () => {
-      const res = await fetch("/api/conversations");
-      if (!res.ok) throw new Error("Failed to fetch conversations");
-      return res.json();
+      try {
+        const res = await fetch("/api/conversations");
+        if (!res.ok) {
+          if (res.status >= 500) {
+            throw new Error(ERROR_MESSAGES.SERVER_ERROR);
+          }
+          throw new Error(ERROR_MESSAGES.FETCH_CONVERSATIONS);
+        }
+        return res.json();
+      } catch (error) {
+        if (error instanceof Error) {
+          toast({
+            title: "Помилка",
+            description: error.message,
+            variant: "destructive",
+          });
+        }
+        throw error;
+      }
     },
     staleTime: 30_000,
     gcTime: 5 * 60_000,
     retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
     refetchOnWindowFocus: false,
   });
 }
 
-// ─── Single conversation ──────────────────────────────────────────────────────
+// ─── Single conversation ───────────────────────────────────────────────────────
 export function useConversation(id: number | null) {
+  const { toast } = useToast();
+  
   return useQuery<ConversationWithMessages>({
     queryKey: conversationKey(id),
     enabled: !!id,
     queryFn: async () => {
-      const res = await fetch(`/api/conversations/${id}`);
-      if (!res.ok) throw new Error("Failed to fetch conversation");
-      return res.json();
+      try {
+        const res = await fetch(`/api/conversations/${id}`);
+        if (!res.ok) {
+          if (res.status === 404) {
+            throw new Error("Розмову не знайдено.");
+          }
+          if (res.status >= 500) {
+            throw new Error(ERROR_MESSAGES.SERVER_ERROR);
+          }
+          throw new Error(ERROR_MESSAGES.FETCH_CONVERSATION);
+        }
+        return res.json();
+      } catch (error) {
+        if (error instanceof Error) {
+          toast({
+            title: "Помилка",
+            description: error.message,
+            variant: "destructive",
+          });
+        }
+        throw error;
+      }
     },
     staleTime: 60_000,
     gcTime: 10 * 60_000,
     retry: 1,
+    retryDelay: 1000,
     refetchOnWindowFocus: false,
   });
 }
 
-// ─── Create conversation ──────────────────────────────────────────────────────
+// ─── Create conversation ───────────────────────────────────────────────────────
 export function useCreateConversation() {
   const qc = useQueryClient();
   const { toast } = useToast();
 
   return useMutation({
     mutationFn: async (title?: string) => {
-      const res = await fetch("/api/conversations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: title || "Нова розмова" }),
-      });
-      if (!res.ok) throw new Error("Failed to create conversation");
-      return res.json() as Promise<Conversation>;
+      try {
+        const res = await fetch("/api/conversations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: title || "Нова розмова" }),
+        });
+        if (!res.ok) {
+          if (res.status >= 500) {
+            throw new Error(ERROR_MESSAGES.SERVER_ERROR);
+          }
+          throw new Error(ERROR_MESSAGES.CREATE_CONVERSATION);
+        }
+        return res.json() as Promise<Conversation>;
+      } catch (error) {
+        if (error instanceof Error) {
+          toast({
+            title: "Помилка",
+            description: error.message,
+            variant: "destructive",
+          });
+        }
+        throw error;
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: CONVERSATIONS_KEY });
-    },
-    onError: () => {
       toast({
-        title: "Помилка",
-        description: "Не вдалося створити розмову.",
-        variant: "destructive",
+        title: "Успішно",
+        description: "Розмову створено.",
       });
+    },
+    onError: (error) => {
+      // Toast is handled in mutationFn
+      console.error("Create conversation error:", error);
     },
   });
 }
 
-// ─── Delete conversation ──────────────────────────────────────────────────────
+// ─── Delete conversation ───────────────────────────────────────────────────────
 export function useDeleteConversation() {
   const qc = useQueryClient();
   const { toast } = useToast();
 
   return useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(`/api/conversations/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to delete conversation");
+      try {
+        const res = await fetch(`/api/conversations/${id}`, { method: "DELETE" });
+        if (!res.ok) {
+          if (res.status >= 500) {
+            throw new Error(ERROR_MESSAGES.SERVER_ERROR);
+          }
+          throw new Error(ERROR_MESSAGES.DELETE_CONVERSATION);
+        }
+      } catch (error) {
+        if (error instanceof Error) {
+          toast({
+            title: "Помилка",
+            description: error.message,
+            variant: "destructive",
+          });
+        }
+        throw error;
+      }
     },
-    onSuccess: (_data, id) => {
-      qc.removeQueries({ queryKey: conversationKey(id) });
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: CONVERSATIONS_KEY });
     },
-    onError: () => {
-      toast({
-        title: "Помилка",
-        description: "Не вдалося видалити розмову.",
-        variant: "destructive",
-      });
+    onError: (error) => {
+      console.error("Delete conversation error:", error);
     },
   });
 }
@@ -112,6 +192,7 @@ export function useDeleteConversation() {
 // ─── Streaming messages ───────────────────────────────────────────────────────
 export function useChatStream(conversationId: number | null) {
   const qc = useQueryClient();
+  const { toast } = useToast();
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamedContent, setStreamedContent] = useState("");
   const [streamError, setStreamError] = useState<string | null>(null);
@@ -174,7 +255,12 @@ export function useChatStream(conversationId: number | null) {
         signal: abortRef.current.signal,
       });
 
-      if (!res.ok) throw new Error(`Server error: ${res.status}`);
+      if (!res.ok) {
+        if (res.status >= 500) {
+          throw new Error(ERROR_MESSAGES.SERVER_ERROR);
+        }
+        throw new Error(`Server error: ${res.status}`);
+      }
 
       const reader = res.body?.getReader();
       if (!reader) throw new Error("No response stream");
@@ -210,9 +296,36 @@ export function useChatStream(conversationId: number | null) {
         }
       }
     } catch (err: unknown) {
-      if (err instanceof Error && err.name !== "AbortError") {
-        console.error("Stream error:", err);
-        setStreamError("Помилка з'єднання. Спробуйте ще раз.");
+      if (err instanceof Error) {
+        if (err.name !== "AbortError") {
+          console.error("Stream error:", err);
+          
+          // Check for network errors
+          if (err.message.includes("Failed to fetch") || err.message.includes("NetworkError")) {
+            setStreamError(ERROR_MESSAGES.NETWORK_ERROR);
+            toast({
+              title: "Помилка з'єднання",
+              description: ERROR_MESSAGES.NETWORK_ERROR,
+              variant: "destructive",
+            });
+          } else if (err.message.includes("Server error")) {
+            setStreamError(err.message);
+            toast({
+              title: "Помилка сервера",
+              description: err.message,
+              variant: "destructive",
+            });
+          } else {
+            setStreamError(ERROR_MESSAGES.SEND_MESSAGE);
+            toast({
+              title: "Помилка",
+              description: ERROR_MESSAGES.SEND_MESSAGE,
+              variant: "destructive",
+            });
+          }
+        }
+      } else {
+        setStreamError(ERROR_MESSAGES.SEND_MESSAGE);
       }
     } finally {
       flushBuffer();
@@ -224,7 +337,7 @@ export function useChatStream(conversationId: number | null) {
       abortRef.current = null;
       qc.invalidateQueries({ queryKey: conversationKey(conversationId) });
     }
-  }, [conversationId, qc, scheduleFlush, flushBuffer]);
+  }, [conversationId, qc, scheduleFlush, flushBuffer, toast]);
 
   const stopStream = useCallback(() => {
     if (abortRef.current) {

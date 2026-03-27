@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import React, { useState, useEffect } from 'react'
 import { Menu, MoreHorizontal, Library } from 'lucide-react'
@@ -22,12 +22,14 @@ export function TopBar({ onToggle, sidebarOpen }: { onToggle: () => void; sideba
   }, [])
 
   return (
-    <header className="h-14 px-6 flex items-center justify-between border-b border-black/[0.03] bg-white/60 backdrop-blur-xl sticky top-0 z-40">
+    <header role="banner" className="h-14 px-6 flex items-center justify-between border-b border-black/[0.03] bg-white/60 backdrop-blur-xl sticky top-0 z-40">
       <div className="flex items-center gap-4">
         <button 
           onClick={onToggle} 
           className={`p-2 hover:bg-black/5 rounded-lg transition-all ${sidebarOpen ? 'md:opacity-0 md:-translate-x-4' : 'opacity-100 translate-x-0'}`}
-          aria-label="Toggle Sidebar"
+          aria-label={sidebarOpen ? "Закрити бічну панель" : "Відкрити бічну панель"}
+          aria-expanded={sidebarOpen}
+          aria-controls="sidebar-nav"
         >
           <Menu size={18} />
         </button>
@@ -43,8 +45,10 @@ export function TopBar({ onToggle, sidebarOpen }: { onToggle: () => void; sideba
       </div>
       
       <div className="flex items-center gap-1">
-        <button className="p-2.5 hover:bg-black/5 rounded-lg text-black/20 transition-colors">
-           <MoreHorizontal size={18} />
+        <button 
+          aria-label="Додаткові параметри"
+          className="p-2.5 hover:bg-black/5 rounded-lg text-black/20 hover:text-black/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#b87830]/30">
+           <MoreHorizontal size={18} aria-hidden="true" />
         </button>
       </div>
     </header>

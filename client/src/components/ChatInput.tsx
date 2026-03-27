@@ -1,6 +1,26 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { StopCircle, Send, Sparkles } from "lucide-react";
+import { StopCircle, Send } from "lucide-react";
 import { CHIPS } from "@/pages/Home";
+
+// SVG іконка книги для бейджа
+const BookIcon = () => (
+  <svg 
+    width="12" 
+    height="12" 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+    <path d="M12 6v7" />
+    <path d="M9 9h6" />
+  </svg>
+);
 
 interface ChatInputProps {
   onSend: (message: string) => void;
@@ -12,7 +32,9 @@ interface ChatInputProps {
 export function ChatInput({ onSend, onStop, disabled, isStreaming }: ChatInputProps) {
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
+  // Auto-resize textarea
   useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
@@ -20,9 +42,12 @@ export function ChatInput({ onSend, onStop, disabled, isStreaming }: ChatInputPr
     el.style.height = `${Math.min(el.scrollHeight, 180)}px`;
   }, [input]);
 
+  // Auto-focus after sending or when not streaming
   useEffect(() => {
-    if (!isStreaming) textareaRef.current?.focus();
-  }, [isStreaming]);
+    if (!isStreaming && textareaRef.current && !disabled) {
+      textareaRef.current.focus({ preventScroll: true });
+    }
+  }, [isStreaming, disabled]);
 
   const handleSubmit = useCallback((e?: React.FormEvent) => {
     e?.preventDefault();
@@ -30,7 +55,11 @@ export function ChatInput({ onSend, onStop, disabled, isStreaming }: ChatInputPr
     if (!trimmed || disabled || isStreaming) return;
     onSend(trimmed);
     setInput("");
-    if (textareaRef.current) textareaRef.current.style.height = "auto";
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      // Focus back after sending
+      setTimeout(() => textareaRef.current?.focus(), 0);
+    }
   }, [input, disabled, isStreaming, onSend]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -38,32 +67,43 @@ export function ChatInput({ onSend, onStop, disabled, isStreaming }: ChatInputPr
       e.preventDefault();
       handleSubmit();
     }
+    // Escape to blur input
+    if (e.key === "Escape") {
+      textareaRef.current?.blur();
+    }
   }, [handleSubmit]);
 
-  const handleChip = useCallback((label: string) => {
+  const handleChip = useCallback((label: string, index: number) => {
     if (disabled || isStreaming) return;
     onSend(label);
+    // Focus input after chip click
+    setTimeout(() => textareaRef.current?.focus(), 0);
   }, [disabled, isStreaming, onSend]);
 
   return (
     <div style={{ width: "100%" }}>
       {/* Chips row - Quick buttons */}
       <div
+        role="toolbar"
+        aria-label="Швидкі запити"
         style={{
           display: "flex",
           gap: 10,
           overflowX: "auto",
           padding: "12px 20px 8px",
           scrollbarWidth: "none",
+          scrollBehavior: "smooth",
         }}
       >
         {CHIPS.map((chip, i) => (
           <button
             key={chip.label}
-            onClick={() => handleChip(chip.label)}
+            onClick={() => handleChip(chip.label, i)}
             disabled={disabled || isStreaming}
             className="chip-sm"
             data-testid={`chip-input-${i}`}
+            aria-label={`Швидкий запит: ${chip.label}. ${chip.subtitle || ""}`}
+            tabIndex={0}
             style={{
               flexShrink: 0,
               display: "inline-flex",
@@ -83,6 +123,17 @@ export function ChatInput({ onSend, onStop, disabled, isStreaming }: ChatInputPr
               whiteSpace: "nowrap",
               transition: "all 0.2s ease",
               boxShadow: "0 2px 8px hsla(0 0% 0% / 0.04)",
+              outline: "none",
+            }}
+            onFocus={e => {
+              if (!disabled && !isStreaming) {
+                (e.currentTarget as HTMLButtonElement).style.borderColor = "hsl(32 45% 63% / 0.5)";
+                (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 0 0 3px hsla(32 45% 63% / 0.15)";
+              }
+            }}
+            onBlur={e => {
+              (e.currentTarget as HTMLButtonElement).style.borderColor = "hsla(28 10% 85% / 0.4)";
+              (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 2px 8px hsla(0 0% 0% / 0.04)";
             }}
             onMouseEnter={e => {
               if (!disabled && !isStreaming) {
@@ -110,20 +161,26 @@ export function ChatInput({ onSend, onStop, disabled, isStreaming }: ChatInputPr
         position: "relative",
       }}>
         {/* AI indicator badge */}
-        <div style={{
-          position: "absolute",
-          top: 4,
-          left: "50%",
-          transform: "translateX(-50%)",
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-          padding: "4px 10px",
-          background: "hsla(32 45% 63% / 0.08)",
-          borderRadius: 20,
-          border: "1px solid hsla(32 45% 63% / 0.15)",
-        }}>
-          <Sparkles style={{ width: 12, height: 12, color: "hsl(32 45% 63%)" }} />
+        <div 
+          role="status"
+          aria-label="Асистент бібліотеки готовий"
+          style={{
+            position: "absolute",
+            top: 4,
+            left: "50%",
+            transform: "translateX(-50%)",
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "4px 10px",
+            background: "hsla(32 45% 63% / 0.08)",
+            borderRadius: 20,
+            border: "1px solid hsla(32 45% 63% / 0.15)",
+          }}
+        >
+          <span style={{ color: "hsl(32 45% 63%)", display: "flex" }}>
+            <BookIcon />
+          </span>
           <span style={{
             fontSize: 9,
             fontWeight: 600,
@@ -136,6 +193,7 @@ export function ChatInput({ onSend, onStop, disabled, isStreaming }: ChatInputPr
           </span>
         </div>
         <form
+          ref={formRef}
           onSubmit={handleSubmit}
           style={{
             maxWidth: 720,
@@ -152,6 +210,9 @@ export function ChatInput({ onSend, onStop, disabled, isStreaming }: ChatInputPr
             data-testid="input-chat-message"
             disabled={disabled || isStreaming}
             rows={1}
+            aria-label="Повідомлення"
+            aria-describedby="input-hint"
+            aria-required="true"
             style={{
               width: "100%",
               background: "#fff",
@@ -165,6 +226,7 @@ export function ChatInput({ onSend, onStop, disabled, isStreaming }: ChatInputPr
               outline: "none",
               boxShadow: "0 4px 20px hsla(0 0% 0% / 0.06)",
               transition: "all 0.2s ease",
+              resize: "none" as const,
             }}
             onFocus={e => {
               e.currentTarget.style.borderColor = "hsl(32 45% 63% / 0.4)";
@@ -175,12 +237,16 @@ export function ChatInput({ onSend, onStop, disabled, isStreaming }: ChatInputPr
               e.currentTarget.style.boxShadow = "0 4px 20px hsla(0 0% 0% / 0.06)";
             }}
           />
+          <span id="input-hint" className="sr-only">
+            Натисніть Enter для відправки, Shift+Enter для нового рядка
+          </span>
 
           {isStreaming ? (
             <button
               type="button"
               onClick={onStop}
               data-testid="button-stop-stream"
+              aria-label="Зупинити генерацію"
               style={{
                 position: "absolute",
                 right: 8,
@@ -195,16 +261,30 @@ export function ChatInput({ onSend, onStop, disabled, isStreaming }: ChatInputPr
                 alignItems: "center",
                 justifyContent: "center",
                 cursor: "pointer",
-                transition: "opacity 0.12s",
+                transition: "opacity 0.12s, transform 0.2s ease",
+                outline: "none",
+              }}
+              onFocus={e => {
+                (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 0 0 3px hsla(0 65% 48% / 0.3)";
+              }}
+              onBlur={e => {
+                (e.currentTarget as HTMLButtonElement).style.boxShadow = "none";
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-50%) scale(1.05)";
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-50%) scale(1)";
               }}
             >
-              <StopCircle style={{ width: 18, height: 18, color: "#fff" }} />
+              <StopCircle style={{ width: 18, height: 18, color: "#fff" }} aria-hidden="true" />
             </button>
           ) : (
             <button
               type="submit"
               disabled={!input.trim() || disabled}
               data-testid="button-send-message"
+              aria-label={input.trim() ? "Відправити повідомлення" : "Введіть повідомлення для відправки"}
               style={{
                 position: "absolute",
                 right: 8,
@@ -221,13 +301,30 @@ export function ChatInput({ onSend, onStop, disabled, isStreaming }: ChatInputPr
                 cursor: !input.trim() || disabled ? "not-allowed" : "pointer",
                 transition: "all 0.2s ease",
                 boxShadow: !input.trim() || disabled ? "none" : "0 2px 8px hsla(32 45% 45% / 0.25)",
+                outline: "none",
+              }}
+              onFocus={e => {
+                if (input.trim() && !disabled) {
+                  (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 0 0 3px hsla(32 45% 63% / 0.3)";
+                }
+              }}
+              onBlur={e => {
+                (e.currentTarget as HTMLButtonElement).style.boxShadow = !input.trim() || disabled ? "none" : "0 2px 8px hsla(32 45% 45% / 0.25)";
+              }}
+              onMouseEnter={e => {
+                if (input.trim() && !disabled) {
+                  (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-50%) scale(1.05)";
+                }
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-50%) scale(1)";
               }}
             >
               <Send style={{ 
                 width: 18, 
                 height: 18, 
                 color: !input.trim() || disabled ? "hsl(32 45% 63% / 0.4)" : "#fff" 
-              }} />
+              }} aria-hidden="true" />
             </button>
           )}
         </form>

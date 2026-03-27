@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import React, { useState, useEffect, useRef, useCallback, memo, useTransition } from 'react'
 import { Send, Clock, BookOpen, User, Search, Plus, Sparkles, Phone, Scale, Database, Check, Copy, ExternalLink, ChevronRight, Library } from 'lucide-react'
@@ -298,15 +298,18 @@ export default function Home() {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               placeholder="Запитайте про каталог, контакти чи послуги..."
+              aria-label="Введіть запитання до бібліотечного асистента"
+              autoComplete="off"
               className="w-full bg-white/90 backdrop-blur-sm border border-amber-200/50 rounded-2xl px-5 py-4 pr-14 focus:outline-none focus:border-amber-400 focus:ring-4 focus:ring-amber-100/50 shadow-lg shadow-amber-100/30 text-[15px] font-medium transition-all placeholder:text-gray-400"
               style={{ fontSize: '16px' }}
             />
             <button 
               type="submit"
               disabled={!inputValue.trim() || isTyping}
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 bg-gradient-to-br from-amber-500 to-orange-500 text-white rounded-xl flex items-center justify-center hover:from-amber-400 hover:to-orange-400 transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 shadow-md"
+              aria-label="Надіслати повідомлення"
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 bg-gradient-to-br from-amber-500 to-orange-500 text-white rounded-xl flex items-center justify-center hover:from-amber-400 hover:to-orange-400 transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 shadow-md focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2"
             >
-              <Send size={18} />
+              <Send size={18} aria-hidden="true" />
             </button>
           </form>
           

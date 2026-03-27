@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import React, { useEffect, useState } from 'react'
 
@@ -25,7 +25,7 @@ export function SplashScreen() {
 
   return (
     <div
-      aria-hidden="true"
+      role="status" aria-label="Завантаження бібліотечного асистента"
       style={{
         position: 'fixed',
         inset: 0,
@@ -97,6 +97,10 @@ export function SplashScreen() {
         @keyframes splash-up {
           from { opacity: 0; transform: translateY(10px); }
           to   { opacity: 1; transform: none; }
+        }
+        @keyframes typing-dot {
+          0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+          40% { opacity: 1; transform: scale(1); }
         }
       `}</style>
     </div>
