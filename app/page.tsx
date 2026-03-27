@@ -1,15 +1,16 @@
-﻿'use client'
+'use client'
 
-import React, { useState, useEffect, useRef, useCallback, memo, useTransition } from 'react'
+import React, { useState, useEffect, useRef, useCallback, useTransition } from 'react'
 import { Send, Clock, BookOpen, User, Search, Plus, Sparkles, Phone, Scale, Database, Check, Copy, ExternalLink, ChevronRight, Library } from 'lucide-react'
 import { LIBRARY } from '@/lib/constants'
+import { useConversation } from '@/hooks/useConversation'
 
 const STORAGE_KEY = 'hdak_lib_v12_messages'
 
 const DATA = {
   SCHEDULE: {
     sections: [
-      { label: "Абонемент / Бібліографи", time: "Пн–Пт: 9:00–16:45", note: "13:00–13:45", off: "Сб, Нд" },
+      { label: "Абонемент / Бібліограф", time: "Пн–Пт: 9:00–16:45", note: "13:00–13:45", off: "Сб, Нд" },
       { label: "Читальна зала", time: "Пн–Пт: 9:00–16:45", note: "Сб: до 13:30", off: "Нд" },
       { label: "Е-зал (кімн. 18а)", time: "Пн–Пт: 9:00–16:45", note: "", off: "Сб, Нд" }
     ]
@@ -35,7 +36,7 @@ const DATA = {
   ]
 }
 
-const CompactResource = memo(({ items }: { items: { label: string; url: string }[] }) => (
+const CompactResource = ({ items }: { items: { label: string; url: string }[] }) => (
   <div className="flex flex-wrap gap-1.5 mt-1">
     {items.map((item, i) => (
       <a 
@@ -49,10 +50,9 @@ const CompactResource = memo(({ items }: { items: { label: string; url: string }
       </a>
     ))}
   </div>
-))
-CompactResource.displayName = 'CompactResource'
+)
 
-const ChatMessage = memo(({ msg, onAction, onChipClick }: { msg: { id: number; text: string; sender: 'user' | 'bot'; chips?: { label: string; keyword: string }[]; timestamp?: number }; onAction: () => void; onChipClick: (kw: string) => void }) => {
+const ChatMessage = ({ msg, onAction, onChipClick }: { msg: { id: number; text: string; sender: 'user' | 'bot'; chips?: { label: string; keyword: string }[]; timestamp?: number }; onAction: () => void; onChipClick: (kw: string) => void }) => {
   const isBot = msg.sender === 'bot'
   const isUser = msg.sender === 'user'
   const [copied, setCopied] = useState(false)
@@ -128,103 +128,76 @@ const ChatMessage = memo(({ msg, onAction, onChipClick }: { msg: { id: number; t
           )}
 
           <div className="flex items-center gap-2 px-1 text-[10px] font-medium text-gray-400">
-               <span className="tracking-wide">{msg.timestamp ? formatTime(msg.timestamp) : formatTime(Date.now())}</span>
-               {isBot && (
-                 <>
-                   <button onClick={handleCopy} className="hover:text-amber-600 transition-colors">
-                     {copied ? <Check size={12} className="text-green-500" /> : <Copy size={12} />}
-                   </button>
-                 </>
-               )}
+            <span className="tracking-wide">{msg.timestamp ? formatTime(msg.timestamp) : formatTime(Date.now())}</span>
+            {isBot && (
+              <>
+                <button onClick={handleCopy} className="hover:text-amber-600 transition-colors">
+                  {copied ? <Check size={12} className="text-green-500" /> : <Copy size={12} />}
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
     </div>
   )
-})
+}
+
 ChatMessage.displayName = 'ChatMessage'
 
 export default function Home() {
-  const [messages, setMessages] = useState<{id: number; text: string; sender: 'user' | 'bot'; chips?: {label: string; keyword: string}[]; timestamp?: number}[]>([])
+  const { messages, sendMessage, isTyping, currentConversationId, createNewConversation, setCurrentConversationId } = useConversation()
   const [inputValue, setInputValue] = useState('')
-  const [isTyping, setIsTyping] = useState(false)
   const [isPending, startTransition] = useTransition()
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved) {
-      try {
-        setMessages(JSON.parse(saved))
-      } catch (e) {
-        console.error('Failed to load messages:', e)
-      }
-    }
-  }, [])
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages))
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isTyping])
 
-  const handleSend = useCallback((query?: string) => {
+  const handleSend = useCallback(async (query?: string) => {
     const text = (typeof query === 'string' ? query : inputValue).trim()
-    if (!text || isTyping) return
-    
+    if (!text || isTyping || !currentConversationId) return
+
+    // Add user message optimistically
     const newUserMsg = { id: Date.now(), text, sender: 'user' as const, timestamp: Date.now() }
-    setMessages(prev => [...prev, newUserMsg])
+    
+    // Clear input
     setInputValue('')
+    
+    // Set typing state
     setIsTyping(true)
-
-    setTimeout(() => {
-      let resp = "Дякую за запит! Я шукаю необхідну інформацію..."
-      let chips = [
-        { label: "📅 Графік", keyword: "графік" }, 
-        { label: "📞 Контакти", keyword: "контакти" }
-      ]
+    
+    // Send to API
+    try {
+      const response = await sendMessage(text)
       
-      const lowerText = text.toLowerCase()
-      if (lowerText.includes('графік') || lowerText.includes('розклад') || lowerText.includes('працює')) { 
-        resp = 'SCHEDULE_DATA'; 
-        chips = [{ label: "📚 Ресурси", keyword: "ресурси" }]; 
+      // Update state with AI response
+      if (response) {
+        // The response will be handled by the hook's state update
+        setIsTyping(false)
       }
-      else if (lowerText.includes('ресурс') || lowerText.includes('база') || lowerText.includes('scopus')) { 
-        resp = 'RESOURCES_DATA'; 
-        chips = [{ label: "🔍 Каталог", keyword: "каталог" }]; 
-      }
-      else if (lowerText.includes('контакт') || lowerText.includes('адрес') || lowerText.includes('телефон')) {
-        resp = `📞 *Контакти бібліотеки ХДАК:*\n\n` +
-          `📍 *Адреса:* ${LIBRARY.addressUk}\n` +
-          `📞 *Телефон:* ${LIBRARY.phoneFull}\n` +
-          `📧 *Email:* ${LIBRARY.email}\n\n` +
-          `Графік роботи: ${LIBRARY.hours.weekdayUk}`
-        chips = [{ label: "📅 Графік", keyword: "графік" }]
-      }
-      else if (lowerText.includes('каталог') || lowerText.includes('книг') || lowerText.includes('знайти')) {
-        resp = `🔍 *Електронний каталог:*\n\n` +
-          `Ви можете шукати книги в нашому каталозі:\n${LIBRARY.links.catalogSearch}`
-        chips = [{ label: "📚 Новинки", keyword: "новинки" }]
-      }
-
-      setMessages(prev => [...prev, { 
-        id: Date.now() + 1, 
-        text: resp, 
-        sender: 'bot' as const, 
-        chips,
-        timestamp: Date.now()
-      }])
+    } catch (error) {
+      console.error('Error sending message:', error)
       setIsTyping(false)
-    }, 800)
-  }, [inputValue, isTyping])
+    }
+  }, [inputValue, isTyping, currentConversationId, sendMessage])
 
-  const handleQuickMenu = (item: typeof DATA.QUICK_MENU[0]) => {
+  const handleQuickMenu = useCallback((item: typeof DATA.QUICK_MENU[0]) => {
     if (item.url) {
       window.open(item.url, '_blank', 'noopener,noreferrer')
     }
     startTransition(() => {
       handleSend(item.kw)
     })
-  }
+  }, [handleSend])
+
+  // Create new conversation on mount if none exists
+  useEffect(() => {
+    if (!currentConversationId) {
+      createNewConversation()
+    }
+  }, [currentConversationId, createNewConversation])
 
   return (
     <div className="flex-1 flex flex-col min-w-0 h-full bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50 overflow-hidden">
@@ -270,7 +243,10 @@ export default function Home() {
                 key={msg.id} 
                 msg={msg} 
                 onChipClick={handleSend} 
-                onAction={() => setMessages(prev => prev.filter(m => m.id !== msg.id))} 
+                onAction={() => {
+                  // Note: In a real app, we might want to implement message deletion
+                  // For now, we'll keep all messages in the conversation
+                }} 
               />
             ))}
             {isTyping && (
@@ -281,7 +257,7 @@ export default function Home() {
                     <div className="w-2 h-2 bg-amber-500 rounded-full animate-bounce" />
                  </div>
                  <span className="text-[11px] font-medium text-gray-400">Обробляю...</span>
-              </div>
+               </div>
             )}
             <div ref={messagesEndRef} />
           </div>
@@ -305,7 +281,7 @@ export default function Home() {
             />
             <button 
               type="submit"
-              disabled={!inputValue.trim() || isTyping}
+              disabled={!inputValue.trim() || isTyping || !currentConversationId}
               aria-label="Надіслати повідомлення"
               className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 bg-gradient-to-br from-amber-500 to-orange-500 text-white rounded-xl flex items-center justify-center hover:from-amber-400 hover:to-orange-400 transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 shadow-md focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2"
             >
@@ -319,9 +295,9 @@ export default function Home() {
                Наукова бібліотека ХДАК
              </span>
              <div className="h-px w-12 bg-amber-200/50" />
-          </div>
+           </div>
         </div>
       </div>
     </div>
   )
-} 
+}
