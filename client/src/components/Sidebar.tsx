@@ -129,13 +129,18 @@ export function Sidebar({ className }: { className?: string }) {
           </span>
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             {[
-              { label: "Графік роботи", icon: Clock },
-              { label: "Як записатися?", icon: UserPlus },
-              { label: "Електронний каталог", icon: Search },
-              { label: "Контакти", icon: Phone },
+              { label: "Графік роботи", icon: Clock, query: "Графік роботи бібліотеки" },
+              { label: "Як записатися?", icon: UserPlus, query: "Як записатися до бібліотеки" },
+              { label: "Електронний каталог", icon: Search, query: "Електронний каталог" },
+              { label: "Контакти", icon: Phone, query: "Контакти бібліотеки" },
             ].map((item) => (
               <button
                 key={item.label}
+                onClick={() => {
+                  createMutation.mutate(item.query, {
+                    onSuccess: (newConv) => setLocation(`/chat/${newConv.id}?q=${encodeURIComponent(item.query)}`),
+                  });
+                }}
                 style={{
                   display: "flex",
                   alignItems: "center",
