@@ -44,7 +44,8 @@ export function Sidebar({
   onToggle: () => void
   onClose?: () => void
 }) {
-  const { id: currentId } = useParams()
+  const params = useParams()
+  const currentId = params?.id
   const router = useRouter()
   const [conversations, setConversations] = useState<{id: number, title: string}[]>([])
   const [loaded, setLoaded] = useState(false)

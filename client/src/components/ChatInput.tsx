@@ -143,7 +143,7 @@ export function ChatInput({ onSend, onStop, disabled, isStreaming }: ChatInputPr
             position: "relative",
           }}
         >
-          <input
+          <textarea
             ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -151,6 +151,7 @@ export function ChatInput({ onSend, onStop, disabled, isStreaming }: ChatInputPr
             placeholder="Запитайте про бібліотеку..."
             data-testid="input-chat-message"
             disabled={disabled || isStreaming}
+            rows={1}
             style={{
               width: "100%",
               background: "#fff",

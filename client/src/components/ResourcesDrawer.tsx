@@ -1,3 +1,5 @@
+import { X } from "lucide-react";
+
 interface ResourcesDrawerProps {
   open: boolean;
   onClose: () => void;

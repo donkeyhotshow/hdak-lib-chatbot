@@ -1,7 +1,21 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { type Conversation, type Message } from "@shared/schema";
 import { useState, useCallback, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
+
+export interface Conversation {
+  id: number;
+  title: string;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+export interface Message {
+  id: number;
+  conversationId: number;
+  role: "user" | "assistant";
+  content: string;
+  createdAt: Date | string;
+}
 
 interface ConversationWithMessages extends Conversation {
   messages: Message[];
