@@ -1,4 +1,4 @@
-import { chatStorage } from "../../../../../lib/storage";
+import { chatStorage } from "@/lib/storage";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";

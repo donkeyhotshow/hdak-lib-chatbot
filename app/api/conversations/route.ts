@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { chatStorage } from "../../../lib/storage";
+import { chatStorage } from "@/lib/storage";
 
 const MAX_TITLE_LENGTH = 200;
 

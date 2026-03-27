@@ -11,7 +11,7 @@ const ChatMessage = ({ role, content, index, isStreaming }: { role: string; cont
         }
         ${isStreaming ? 'animate-pulse' : ''}
       `}>
-        <p className="text-[15px] leading-relaxed whitespace-pre-wrap font-medium" style={{ fontFamily: 'var(--font-sans-face)' }}>{content}</p>
+        <p className="text-[15px] leading-relaxed whitespace-pre-wrap font-medium" style={{ fontFamily: 'var(--font-sans), sans-serif' }}>{content}</p>
         {isStreaming && (
           <div className="flex gap-1 mt-3">
             <span className="w-2 h-2 bg-[#b87830] rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>

@@ -19,9 +19,6 @@
   --sb-width:     280px; 
   --transition:   all 0.7s cubic-bezier(0.16, 1, 0.3, 1); 
   --shadow-premium: 0 2px 20px rgba(0,0,0,0.02);
-
-  /* Responsive: Mobile */
-  --sb-width: 280px;
 }
 
 @media (max-width: 768px) {

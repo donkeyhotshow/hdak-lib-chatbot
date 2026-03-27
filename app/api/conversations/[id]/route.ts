@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { chatStorage } from "../../../../lib/storage";
+import { chatStorage } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
