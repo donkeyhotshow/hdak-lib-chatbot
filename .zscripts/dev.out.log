@@ -1,0 +1,1204 @@
+==========================================
+[2026-03-27 09:24:03] Starting: bun install
+==========================================
+[BUN] Installing dependencies...
+[0.50ms] ".env"
+bun install v1.3.10 (30e609e0)
+
++ @tailwindcss/postcss@4.1.18
++ @types/react@19.2.8
++ @types/react-dom@19.2.3
++ bun-types@1.3.6
++ eslint@9.39.2
++ eslint-config-next@16.1.3
++ tailwindcss@4.1.18
++ tw-animate-css@1.4.0
++ typescript@5.9.3
++ @dnd-kit/core@6.3.1
++ @dnd-kit/sortable@10.0.0
++ @dnd-kit/utilities@3.2.2
++ @hookform/resolvers@5.2.2
++ @mdxeditor/editor@3.52.3
++ @prisma/client@6.19.2
++ @radix-ui/react-accordion@1.2.12
++ @radix-ui/react-alert-dialog@1.1.15
++ @radix-ui/react-aspect-ratio@1.1.8
++ @radix-ui/react-avatar@1.1.11
++ @radix-ui/react-checkbox@1.3.3
++ @radix-ui/react-collapsible@1.1.12
++ @radix-ui/react-context-menu@2.2.16
++ @radix-ui/react-dialog@1.1.15
++ @radix-ui/react-dropdown-menu@2.1.16
++ @radix-ui/react-hover-card@1.1.15
++ @radix-ui/react-label@2.1.8
++ @radix-ui/react-menubar@1.1.16
++ @radix-ui/react-navigation-menu@1.2.14
++ @radix-ui/react-popover@1.1.15
++ @radix-ui/react-progress@1.1.8
++ @radix-ui/react-radio-group@1.3.8
++ @radix-ui/react-scroll-area@1.2.10
++ @radix-ui/react-select@2.2.6
++ @radix-ui/react-separator@1.1.8
++ @radix-ui/react-slider@1.3.6
++ @radix-ui/react-slot@1.2.4
++ @radix-ui/react-switch@1.2.6
++ @radix-ui/react-tabs@1.1.13
++ @radix-ui/react-toast@1.2.15
++ @radix-ui/react-toggle@1.1.10
++ @radix-ui/react-toggle-group@1.1.11
++ @radix-ui/react-tooltip@1.2.8
++ @reactuses/core@6.1.9
++ @tanstack/react-query@5.90.19
++ @tanstack/react-table@8.21.3
++ class-variance-authority@0.7.1
++ clsx@2.1.1
++ cmdk@1.1.1
++ date-fns@4.1.0
++ embla-carousel-react@8.6.0
++ framer-motion@12.26.2
++ input-otp@1.4.2
++ lucide-react@0.525.0
++ next@16.1.3
++ next-auth@4.24.13
++ next-intl@4.7.0
++ next-themes@0.4.6
++ prisma@6.19.2
++ react@19.2.3
++ react-day-picker@9.13.0
++ react-dom@19.2.3
++ react-hook-form@7.71.1
++ react-markdown@10.1.0
++ react-resizable-panels@3.0.6
++ react-syntax-highlighter@15.6.6
++ recharts@2.15.4
++ sharp@0.34.5
++ sonner@2.0.7
++ tailwind-merge@3.4.0
++ tailwindcss-animate@1.0.7
++ uuid@11.1.0
++ vaul@1.1.2
++ z-ai-web-dev-sdk@0.0.17
++ zod@4.3.5
++ zustand@5.0.10
+
+827 packages installed [5.43s]
+==========================================
+[2026-03-27 09:24:09] Completed: bun install
+[LOG] Step: bun install | Duration: 6s
+==========================================
+
+==========================================
+[2026-03-27 09:24:09] Starting: bun run db:push
+==========================================
+[BUN] Setting up database...
+$ prisma db push
+Environment variables loaded from .env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": SQLite database "custom.db" at "file:/home/z/my-project/db/custom.db"
+
+SQLite database custom.db created at file:/home/z/my-project/db/custom.db
+
+🚀  Your database is now in sync with your Prisma schema. Done in 11ms
+
+Running generate... (Use --skip-generate to skip the generators)
+[2K[1A[2K[GRunning generate... - Prisma Client
+[2K[1A[2K[G✔ Generated Prisma Client (v6.19.2) to ./node_modules/@prisma/client in 45ms
+┌─────────────────────────────────────────────────────────┐
+│  Update available 6.19.2 -> 7.5.0                       │
+│                                                         │
+│  This is a major update - please follow the guide at    │
+│  https://pris.ly/d/major-version-upgrade                │
+│                                                         │
+│  Run the following to update                            │
+│    npm i --save-dev prisma@latest                       │
+│    npm i @prisma/client@latest                          │
+└─────────────────────────────────────────────────────────┘
+
+==========================================
+[2026-03-27 09:24:10] Completed: bun run db:push
+[LOG] Step: bun run db:push | Duration: 1s
+==========================================
+
+==========================================
+[2026-03-27 09:24:10] Starting: Starting Next.js dev server
+==========================================
+[BUN] Starting development server...
+==========================================
+[2026-03-27 09:24:10] Completed: Starting Next.js dev server
+[LOG] Step: Starting Next.js dev server | Duration: 0s
+==========================================
+
+==========================================
+$ next dev -p 3000 2>&1 | tee dev.log
+[2026-03-27 09:24:10] Starting: Waiting for Next.js dev server
+==========================================
+Waiting for Next.js dev server to be ready on localhost:3000...
+Attempt 1/60: Next.js dev server not ready yet, waiting...
+▲ Next.js 16.1.3 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://21.0.18.56:3000
+- Environments: .env
+
+✓ Starting...
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+
+  We detected TypeScript in your project and reconfigured your tsconfig.json file for you.
+  The following suggested values were added to your tsconfig.json. These values can be changed to fit your project's needs:
+
+  	- include was updated to add '.next/dev/types/**/*.ts'
+
+  The following mandatory changes were made to your tsconfig.json:
+
+  	- jsx was set to react-jsx (next.js uses the React automatic runtime)
+
+✓ Ready in 581ms
+Next.js dev server is ready!
+ GET / 200 in 2.4s (compile: 2.3s, render: 163ms)
+==========================================
+[2026-03-27 09:24:13] Completed: Waiting for Next.js dev server
+[LOG] Step: Waiting for Next.js dev server | Duration: 3s
+==========================================
+
+==========================================
+[2026-03-27 09:24:13] Starting: Health check
+==========================================
+[BUN] Performing health check...
+ GET / 200 in 1780ms (compile: 1734ms, render: 45ms)
+ GET / 200 in 24ms (compile: 2ms, render: 22ms)
+[BUN] Health check passed
+==========================================
+[2026-03-27 09:24:13] Completed: Health check
+[LOG] Step: Health check | Duration: 0s
+==========================================
+
+==========================================
+[2026-03-27 09:24:13] Starting: Starting mini-services
+==========================================
+Found mini-services directory, scanning for sub-services...
+Mini-services startup completed. Started 0 service(s).
+==========================================
+[2026-03-27 09:24:13] Completed: Starting mini-services
+[LOG] Step: Starting mini-services | Duration: 0s
+==========================================
+
+Next.js dev server is running in background (PID: 659).
+Use 'kill 659' to stop it.
+⚠ Cross origin request detected from preview-chat-c0a7bc5c-c2dc-4d05-91d8-6f29fc902f8d.space.z.ai to /_next/* resource. In a future major version of Next.js, you will need to explicitly configure "allowedDevOrigins" in next.config to allow this.
+Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
+ GET / 200 in 50ms (compile: 26ms, render: 24ms)
+ GET / 200 in 15ms (compile: 3ms, render: 13ms)
+ GET / 200 in 17ms (compile: 3ms, render: 14ms)
+ GET / 200 in 14ms (compile: 2ms, render: 12ms)
+ GET / 200 in 16ms (compile: 2ms, render: 14ms)
+ GET / 200 in 15ms (compile: 3ms, render: 12ms)
+ GET / 200 in 14ms (compile: 2ms, render: 12ms)
+ GET / 200 in 18ms (compile: 2ms, render: 15ms)
+ GET / 200 in 39ms (compile: 23ms, render: 16ms)
+ GET / 200 in 14ms (compile: 2ms, render: 11ms)
+ GET / 200 in 15ms (compile: 1973µs, render: 13ms)
+ GET / 200 in 14ms (compile: 2ms, render: 12ms)
+ GET / 200 in 14ms (compile: 2ms, render: 12ms)
+ GET / 200 in 14ms (compile: 2ms, render: 12ms)
+ GET / 200 in 16ms (compile: 2ms, render: 14ms)
+ GET / 200 in 13ms (compile: 1944µs, render: 11ms)
+ GET / 200 in 14ms (compile: 2ms, render: 12ms)
+ GET / 200 in 14ms (compile: 2ms, render: 12ms)
+ GET / 200 in 42ms (compile: 26ms, render: 16ms)
+ GET / 200 in 15ms (compile: 2ms, render: 13ms)
+ GET / 200 in 12ms (compile: 1929µs, render: 10ms)
+ GET / 200 in 13ms (compile: 1924µs, render: 11ms)
+ GET / 200 in 12ms (compile: 1819µs, render: 11ms)
+ GET / 200 in 13ms (compile: 1827µs, render: 11ms)
+ GET / 200 in 14ms (compile: 1827µs, render: 13ms)
+ GET / 200 in 12ms (compile: 2ms, render: 10ms)
+ GET / 200 in 12ms (compile: 1734µs, render: 10ms)
+ GET / 200 in 14ms (compile: 1938µs, render: 12ms)
+ GET / 200 in 14ms (compile: 2ms, render: 12ms)
+ GET / 200 in 20ms (compile: 2ms, render: 17ms)
+✓ Compiled in 162ms
+ GET / 200 in 127ms (compile: 30ms, render: 97ms)
+ GET / 200 in 15ms (compile: 1681µs, render: 13ms)
+✓ Compiled in 211ms
+✓ Compiled in 206ms
+⚠ Fast Refresh had to perform a full reload when ./src/app/page.tsx changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET / 200 in 128ms (compile: 27ms, render: 101ms)
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 331ms (compile: 301ms, render: 30ms)
+ GET / 200 in 41ms (compile: 3ms, render: 38ms)
+prisma:query SELECT 1
+ GET /api/conversations 200 in 9ms (compile: 1987µs, render: 7ms)
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+ GET / 200 in 36ms (compile: 2ms, render: 34ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 2ms, render: 5ms)
+✓ Compiled in 149ms
+✓ Compiled in 224ms
+✓ Compiled in 204ms
+ GET /api/conversations 200 in 7ms (compile: 1830µs, render: 5ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+ GET / 200 in 116ms (compile: 28ms, render: 88ms)
+prisma:query SELECT 1
+ GET /api/conversations 200 in 9ms (compile: 2ms, render: 6ms)
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+✓ Compiled in 179ms
+ GET /api/conversations 200 in 9ms (compile: 3ms, render: 7ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+ GET / 200 in 112ms (compile: 30ms, render: 82ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 8ms (compile: 2ms, render: 6ms)
+✓ Compiled in 212ms
+ GET / 200 in 109ms (compile: 27ms, render: 82ms)
+prisma:query SELECT 1
+ GET /api/conversations 200 in 7ms (compile: 1954µs, render: 5ms)
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+✓ Compiled in 180ms
+ GET /api/conversations 200 in 9ms (compile: 3ms, render: 6ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+ GET / 200 in 114ms (compile: 29ms, render: 86ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 9ms (compile: 2ms, render: 7ms)
+✓ Compiled in 243ms
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 1958µs, render: 5ms)
+ GET / 200 in 130ms (compile: 29ms, render: 101ms)
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 2ms, render: 5ms)
+✓ Compiled in 144ms
+prisma:query SELECT 1
+ GET /api/conversations 200 in 8ms (compile: 3ms, render: 6ms)
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+✓ Compiled in 149ms
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 8ms (compile: 3ms, render: 4ms)
+ GET / 200 in 112ms (compile: 28ms, render: 84ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 8ms (compile: 2ms, render: 6ms)
+✓ Compiled in 139ms
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 2ms, render: 5ms)
+✓ Compiled in 125ms
+prisma:query SELECT 1
+ GET /api/conversations 200 in 7ms (compile: 2ms, render: 5ms)
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+✓ Compiled in 151ms
+prisma:query SELECT 1
+ GET /api/conversations 200 in 8ms (compile: 1948µs, render: 6ms)
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+ GET / 200 in 104ms (compile: 26ms, render: 78ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 8ms (compile: 2ms, render: 5ms)
+✓ Compiled in 176ms
+ GET / 200 in 52ms (compile: 35ms, render: 17ms)
+ GET / 200 in 89ms (compile: 2ms, render: 87ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 2ms, render: 5ms)
+ GET / 200 in 40ms (compile: 3ms, render: 37ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 6ms (compile: 1933µs, render: 4ms)
+✓ Compiled in 222ms
+⨯ ReferenceError: FileText is not defined
+    at module evaluation (src/app/page.tsx:77:11)
+  75 |   { icon: MapPin, title: 'Авторські профілі', desc: 'ORCID, Scopus, Google Scholar', url: ALL_LINKS.author_profiles },
+  76 |   { icon: BookOpen, title: 'Виставки', desc: 'Віртуальні тематичні колекції', url: ALL_LINKS.exhibitions },
+> 77 |   { icon: FileText, title: 'Правила', desc: 'Правила користування бібліотекою', url: ALL_LINKS.rules },
+     |           ^
+  78 | ];
+  79 |
+  80 | // Book SVG Icon for chat bubbles {
+  digest: '1444848607'
+}
+ GET / 500 in 412ms (compile: 28ms, render: 384ms)
+⨯ ReferenceError: FileText is not defined
+    at module evaluation (src/app/page.tsx:77:11)
+  75 |   { icon: MapPin, title: 'Авторські профілі', desc: 'ORCID, Scopus, Google Scholar', url: ALL_LINKS.author_profiles },
+  76 |   { icon: BookOpen, title: 'Виставки', desc: 'Віртуальні тематичні колекції', url: ALL_LINKS.exhibitions },
+> 77 |   { icon: FileText, title: 'Правила', desc: 'Правила користування бібліотекою', url: ALL_LINKS.rules },
+     |           ^
+  78 | ];
+  79 |
+  80 | // Book SVG Icon for chat bubbles {
+  digest: '1444848607'
+}
+ GET / 500 in 270ms (compile: 3ms, render: 266ms)
+✓ Compiled in 163ms
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload when ./src/app/page.tsx changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ GET / 200 in 111ms (compile: 27ms, render: 83ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 10ms (compile: 3ms, render: 7ms)
+ GET / 200 in 41ms (compile: 2ms, render: 39ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 6ms (compile: 1747µs, render: 5ms)
+prisma:query BEGIN IMMEDIATE
+prisma:query INSERT INTO `main`.`Conversation` (`id`, `title`, `createdAt`, `updatedAt`) VALUES (?,?,?,?) RETURNING `id` AS `id`
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE `main`.`Conversation`.`id` = ? LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?) LIMIT ? OFFSET ?
+prisma:query COMMIT
+prisma:query INSERT INTO `main`.`Message` (`id`, `conversationId`, `role`, `content`, `createdAt`) VALUES (?,?,?,?,?) RETURNING `id` AS `id`, `conversationId` AS `conversationId`, `role` AS `role`, `content` AS `content`, `createdAt` AS `createdAt`
+prisma:query INSERT INTO `main`.`Message` (`id`, `conversationId`, `role`, `content`, `createdAt`) VALUES (?,?,?,?,?) RETURNING `id` AS `id`, `conversationId` AS `conversationId`, `role` AS `role`, `content` AS `content`, `createdAt` AS `createdAt`
+prisma:query UPDATE `main`.`Conversation` SET `updatedAt` = ? WHERE (`main`.`Conversation`.`id` = ? AND 1=1) RETURNING `id` AS `id`, `title` AS `title`, `createdAt` AS `createdAt`, `updatedAt` AS `updatedAt`
+ POST /api/chat 200 in 6.0s (compile: 125ms, render: 5.9s)
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 6ms (compile: 1903µs, render: 5ms)
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE (`main`.`Conversation`.`id` = ? AND 1=1) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations/cmn8sprcg0000odiwora3f8y9 200 in 612ms (compile: 604ms, render: 8ms)
+✓ Compiled in 191ms
+⨯ ReferenceError: playfair is not defined
+    at RootLayout (src/app/layout.tsx:46:23)
+  44 |       </head>
+  45 |       <body
+> 46 |         className={`${playfair.variable} ${nunito.variable} antialiased font-sans`}
+     |                       ^
+  47 |       >
+  48 |         {children}
+  49 |         <Toaster /> {
+  digest: '2417498387'
+}
+⨯ ReferenceError: playfair is not defined
+    at RootLayout (src/app/layout.tsx:46:23)
+  44 |       </head>
+  45 |       <body
+> 46 |         className={`${playfair.variable} ${nunito.variable} antialiased font-sans`}
+     |                       ^
+  47 |       >
+  48 |         {children}
+  49 |         <Toaster /> {
+  digest: '2417498387'
+}
+ GET / 500 in 118ms (compile: 28ms, render: 90ms)
+ GET / 200 in 15ms (compile: 1922µs, render: 13ms)
+✓ Compiled in 145ms
+✓ Compiled in 267ms
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ GET / 200 in 123ms (compile: 32ms, render: 91ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 9ms (compile: 3ms, render: 6ms)
+ GET / 200 in 41ms (compile: 2ms, render: 39ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 1975µs, render: 5ms)
+✓ Compiled in 143ms
+ GET /api/conversations 200 in 8ms (compile: 2ms, render: 6ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET / 200 in 104ms (compile: 27ms, render: 77ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 9ms (compile: 4ms, render: 6ms)
+ GET / 200 in 38ms (compile: 23ms, render: 14ms)
+ GET / 200 in 13ms (compile: 1810µs, render: 11ms)
+ GET / 200 in 13ms (compile: 2ms, render: 11ms)
+ GET / 200 in 16ms (compile: 2ms, render: 14ms)
+ GET / 200 in 13ms (compile: 2ms, render: 11ms)
+ GET / 200 in 14ms (compile: 2ms, render: 11ms)
+ GET / 200 in 14ms (compile: 2ms, render: 12ms)
+ GET / 200 in 15ms (compile: 4ms, render: 11ms)
+ GET / 200 in 21ms (compile: 3ms, render: 18ms)
+ GET / 200 in 15ms (compile: 2ms, render: 12ms)
+ GET / 200 in 14ms (compile: 2ms, render: 11ms)
+ GET / 200 in 17ms (compile: 4ms, render: 13ms)
+ GET / 200 in 15ms (compile: 2ms, render: 13ms)
+ GET / 200 in 13ms (compile: 2ms, render: 11ms)
+✓ Compiled in 224ms
+ GET /api/conversations 200 in 38ms (compile: 28ms, render: 10ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET / 200 in 114ms (compile: 27ms, render: 87ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 8ms (compile: 2ms, render: 6ms)
+ GET /api/catalog-search?q=%D0%A8%D0%B5%D0%B2%D1%87%D0%B5%D0%BD%D0%BA%D0%BE 200 in 5.1s (compile: 100ms, render: 5.0s)
+ GET /api/catalog-search?author=%D0%A8%D0%B5%D0%B2%D1%87%D0%B5%D0%BD%D0%BA%D0%BE 200 in 4.6s (compile: 2ms, render: 4.6s)
+ GET /api/catalog-search?author=Shevchenko 200 in 4.9s (compile: 23ms, render: 4.8s)
+ GET / 200 in 39ms (compile: 4ms, render: 35ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 2ms, render: 5ms)
+✓ Compiled in 195ms
+ GET / 200 in 127ms (compile: 29ms, render: 98ms)
+ GET / 200 in 17ms (compile: 2ms, render: 15ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 2ms, render: 5ms)
+✓ Compiled in 253ms
+✓ Compiled in 146ms
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 10ms (compile: 3ms, render: 7ms)
+✓ Compiled in 146ms
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 2ms, render: 5ms)
+✓ Compiled in 139ms
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 8ms (compile: 3ms, render: 5ms)
+✓ Compiled in 109ms
+ GET /api/conversations 200 in 7ms (compile: 1897µs, render: 5ms)
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET / 200 in 109ms (compile: 28ms, render: 81ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 8ms (compile: 2ms, render: 6ms)
+prisma:query BEGIN IMMEDIATE
+prisma:query INSERT INTO `main`.`Conversation` (`id`, `title`, `createdAt`, `updatedAt`) VALUES (?,?,?,?) RETURNING `id` AS `id`
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE `main`.`Conversation`.`id` = ? LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?) LIMIT ? OFFSET ?
+prisma:query COMMIT
+prisma:query INSERT INTO `main`.`Message` (`id`, `conversationId`, `role`, `content`, `createdAt`) VALUES (?,?,?,?,?) RETURNING `id` AS `id`, `conversationId` AS `conversationId`, `role` AS `role`, `content` AS `content`, `createdAt` AS `createdAt`
+prisma:query INSERT INTO `main`.`Message` (`id`, `conversationId`, `role`, `content`, `createdAt`) VALUES (?,?,?,?,?) RETURNING `id` AS `id`, `conversationId` AS `conversationId`, `role` AS `role`, `content` AS `content`, `createdAt` AS `createdAt`
+prisma:query UPDATE `main`.`Conversation` SET `updatedAt` = ? WHERE (`main`.`Conversation`.`id` = ? AND 1=1) RETURNING `id` AS `id`, `title` AS `title`, `createdAt` AS `createdAt`, `updatedAt` AS `updatedAt`
+ POST /api/chat 200 in 2.7s (compile: 35ms, render: 2.6s)
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 2ms, render: 5ms)
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE (`main`.`Conversation`.`id` = ? AND 1=1) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations/cmn8x5dc70005odiwj5jgt4i0 200 in 55ms (compile: 47ms, render: 8ms)
+ GET / 200 in 39ms (compile: 2ms, render: 37ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 2ms, render: 5ms)
+ GET / 200 in 36ms (compile: 2ms, render: 34ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 2ms, render: 5ms)
+✓ Compiled in 226ms
+ GET / 200 in 16ms (compile: 2ms, render: 13ms)
+ GET / 200 in 132ms (compile: 26ms, render: 106ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 8ms (compile: 2ms, render: 5ms)
+ GET / 200 in 45ms (compile: 3ms, render: 41ms)
+ GET /api/conversations 200 in 8ms (compile: 2ms, render: 6ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+✓ Compiled in 224ms
+ GET /api/conversations 200 in 9ms (compile: 3ms, render: 7ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+✓ Compiled in 183ms
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 6ms (compile: 1794µs, render: 5ms)
+ GET / 200 in 110ms (compile: 28ms, render: 82ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 8ms (compile: 3ms, render: 5ms)
+✓ Compiled in 197ms
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 2ms, render: 5ms)
+✓ Compiled in 158ms
+ GET /api/conversations 200 in 8ms (compile: 2ms, render: 6ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+✓ Compiled in 161ms
+ GET /api/conversations 200 in 8ms (compile: 2ms, render: 6ms)
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+✓ Compiled in 117ms
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 2ms, render: 5ms)
+ GET / 200 in 108ms (compile: 28ms, render: 80ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 8ms (compile: 2ms, render: 5ms)
+✓ Compiled in 228ms
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 2ms, render: 5ms)
+✓ Compiled in 146ms
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 1991µs, render: 5ms)
+✓ Compiled in 155ms
+ GET /api/conversations 200 in 8ms (compile: 2ms, render: 6ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+✓ Compiled in 176ms
+ GET /api/conversations 200 in 10ms (compile: 4ms, render: 6ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET / 200 in 108ms (compile: 30ms, render: 78ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 1991µs, render: 5ms)
+✓ Compiled in 213ms
+ GET /api/conversations 200 in 8ms (compile: 2ms, render: 6ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+✓ Compiled in 193ms
+ GET /api/conversations 200 in 7ms (compile: 2ms, render: 5ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET / 200 in 111ms (compile: 29ms, render: 82ms)
+ GET /api/conversations 200 in 8ms (compile: 2ms, render: 6ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+✓ Compiled in 184ms
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 1988µs, render: 5ms)
+ GET / 200 in 119ms (compile: 27ms, render: 92ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 2ms, render: 5ms)
+✓ Compiled in 168ms
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 1895µs, render: 5ms)
+✓ Compiled in 198ms
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 1952µs, render: 5ms)
+ GET / 200 in 107ms (compile: 25ms, render: 82ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 8ms (compile: 2ms, render: 6ms)
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+✓ Compiled in 225ms
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 2ms, render: 5ms)
+ GET / 200 in 106ms (compile: 26ms, render: 80ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 2ms, render: 5ms)
+✓ Compiled in 230ms
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 2ms, render: 5ms)
+ GET / 200 in 105ms (compile: 26ms, render: 79ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 6ms (compile: 2ms, render: 4ms)
+✓ Compiled in 187ms
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 8ms (compile: 2ms, render: 6ms)
+✓ Compiled in 153ms
+ GET /api/conversations 200 in 8ms (compile: 3ms, render: 6ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET / 200 in 111ms (compile: 31ms, render: 80ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 8ms (compile: 2ms, render: 6ms)
+✓ Compiled in 148ms
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 2ms, render: 5ms)
+ GET / 200 in 117ms (compile: 27ms, render: 90ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 3ms, render: 5ms)
+✓ Compiled in 164ms
+✓ Compiled in 140ms
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 6ms (compile: 1525µs, render: 5ms)
+ GET / 200 in 131ms (compile: 26ms, render: 105ms)
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 2ms, render: 4ms)
+ GET / 200 in 36ms (compile: 2ms, render: 34ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 6ms (compile: 1965µs, render: 4ms)
+✓ Compiled in 210ms
+✓ Compiled in 151ms
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 1925µs, render: 5ms)
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 2ms, render: 5ms)
+ GET / 200 in 130ms (compile: 36ms, render: 94ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 2ms, render: 5ms)
+✓ Compiled in 203ms
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 1883µs, render: 5ms)
+✓ Compiled in 217ms
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 6ms (compile: 1982µs, render: 4ms)
+✓ Compiled in 199ms
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 1972µs, render: 5ms)
+✓ Compiled in 192ms
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 6ms (compile: 1981µs, render: 4ms)
+ GET / 200 in 128ms (compile: 34ms, render: 93ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 8ms (compile: 2ms, render: 6ms)
+✓ Compiled in 153ms
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 8ms (compile: 3ms, render: 6ms)
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET / 200 in 134ms (compile: 40ms, render: 94ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 2ms, render: 5ms)
+✓ Compiled in 174ms
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 2ms, render: 5ms)
+ GET / 200 in 129ms (compile: 37ms, render: 92ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 9ms (compile: 3ms, render: 6ms)
+✓ Compiled in 156ms
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 1896µs, render: 5ms)
+ GET / 200 in 135ms (compile: 39ms, render: 95ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 8ms (compile: 2ms, render: 6ms)
+✓ Compiled in 183ms
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 1980µs, render: 5ms)
+✓ Compiled in 232ms
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 2ms, render: 5ms)
+✓ Compiled in 237ms
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 6ms (compile: 2ms, render: 4ms)
+✓ Compiled in 160ms
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 6ms (compile: 1850µs, render: 5ms)
+ GET / 200 in 133ms (compile: 36ms, render: 97ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 2ms, render: 5ms)
+✓ Compiled in 163ms
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 2ms, render: 5ms)
+ GET / 200 in 130ms (compile: 36ms, render: 94ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 6ms (compile: 1826µs, render: 4ms)
+✓ Compiled in 243ms
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 8ms (compile: 3ms, render: 5ms)
+ GET / 200 in 131ms (compile: 39ms, render: 92ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 3ms, render: 5ms)
+ GET / 200 in 36ms (compile: 3ms, render: 33ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 6ms (compile: 1841µs, render: 5ms)
+ GET / 200 in 33ms (compile: 3ms, render: 31ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 2ms, render: 5ms)
+✓ Compiled in 151ms
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 2ms, render: 5ms)
+ GET / 200 in 121ms (compile: 34ms, render: 86ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 8ms (compile: 3ms, render: 5ms)
+✓ Compiled in 224ms
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 3ms, render: 4ms)
+ GET / 200 in 122ms (compile: 33ms, render: 89ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 2ms, render: 5ms)
+✓ Compiled in 219ms
+ GET / 200 in 13ms (compile: 1604µs, render: 12ms)
+ GET / 200 in 160ms (compile: 37ms, render: 123ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 1901µs, render: 5ms)
+✓ Compiled in 147ms
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 9ms (compile: 3ms, render: 6ms)
+ GET / 200 in 129ms (compile: 38ms, render: 91ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 1944µs, render: 5ms)
+prisma:query BEGIN IMMEDIATE
+prisma:query INSERT INTO `main`.`Conversation` (`id`, `title`, `createdAt`, `updatedAt`) VALUES (?,?,?,?) RETURNING `id` AS `id`
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE `main`.`Conversation`.`id` = ? LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?) LIMIT ? OFFSET ?
+prisma:query COMMIT
+prisma:query INSERT INTO `main`.`Message` (`id`, `conversationId`, `role`, `content`, `createdAt`) VALUES (?,?,?,?,?) RETURNING `id` AS `id`, `conversationId` AS `conversationId`, `role` AS `role`, `content` AS `content`, `createdAt` AS `createdAt`
+prisma:query INSERT INTO `main`.`Message` (`id`, `conversationId`, `role`, `content`, `createdAt`) VALUES (?,?,?,?,?) RETURNING `id` AS `id`, `conversationId` AS `conversationId`, `role` AS `role`, `content` AS `content`, `createdAt` AS `createdAt`
+prisma:query UPDATE `main`.`Conversation` SET `updatedAt` = ? WHERE (`main`.`Conversation`.`id` = ? AND 1=1) RETURNING `id` AS `id`, `title` AS `title`, `createdAt` AS `createdAt`, `updatedAt` AS `updatedAt`
+ POST /api/chat 200 in 2.6s (compile: 2ms, render: 2.6s)
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 3ms, render: 5ms)
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE (`main`.`Conversation`.`id` = ? AND 1=1) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations/cmn9m53ad000aodiwv23jfi81 200 in 39ms (compile: 32ms, render: 7ms)
+prisma:query SELECT 1
+prisma:query BEGIN IMMEDIATE
+prisma:query INSERT INTO `main`.`Conversation` (`id`, `title`, `createdAt`, `updatedAt`) VALUES (?,?,?,?) RETURNING `id` AS `id`
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE `main`.`Conversation`.`id` = ? LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?) LIMIT ? OFFSET ?
+prisma:query COMMIT
+prisma:query INSERT INTO `main`.`Message` (`id`, `conversationId`, `role`, `content`, `createdAt`) VALUES (?,?,?,?,?) RETURNING `id` AS `id`, `conversationId` AS `conversationId`, `role` AS `role`, `content` AS `content`, `createdAt` AS `createdAt`
+prisma:query INSERT INTO `main`.`Message` (`id`, `conversationId`, `role`, `content`, `createdAt`) VALUES (?,?,?,?,?) RETURNING `id` AS `id`, `conversationId` AS `conversationId`, `role` AS `role`, `content` AS `content`, `createdAt` AS `createdAt`
+prisma:query UPDATE `main`.`Conversation` SET `updatedAt` = ? WHERE (`main`.`Conversation`.`id` = ? AND 1=1) RETURNING `id` AS `id`, `title` AS `title`, `createdAt` AS `createdAt`, `updatedAt` AS `updatedAt`
+ POST /api/chat 200 in 1780ms (compile: 1845µs, render: 1778ms)
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 2ms, render: 5ms)
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE (`main`.`Conversation`.`id` = ? AND 1=1) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations/cmn9m5l9a000fodiw6qwh1mpk 200 in 32ms (compile: 26ms, render: 6ms)
+✓ Compiled in 699ms
+ GET / 200 in 177ms (compile: 43ms, render: 135ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 9ms (compile: 2ms, render: 6ms)
+prisma:query BEGIN IMMEDIATE
+prisma:query INSERT INTO `main`.`Conversation` (`id`, `title`, `createdAt`, `updatedAt`) VALUES (?,?,?,?) RETURNING `id` AS `id`
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE `main`.`Conversation`.`id` = ? LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?) LIMIT ? OFFSET ?
+prisma:query COMMIT
+prisma:query INSERT INTO `main`.`Message` (`id`, `conversationId`, `role`, `content`, `createdAt`) VALUES (?,?,?,?,?) RETURNING `id` AS `id`, `conversationId` AS `conversationId`, `role` AS `role`, `content` AS `content`, `createdAt` AS `createdAt`
+prisma:query INSERT INTO `main`.`Message` (`id`, `conversationId`, `role`, `content`, `createdAt`) VALUES (?,?,?,?,?) RETURNING `id` AS `id`, `conversationId` AS `conversationId`, `role` AS `role`, `content` AS `content`, `createdAt` AS `createdAt`
+prisma:query UPDATE `main`.`Conversation` SET `updatedAt` = ? WHERE (`main`.`Conversation`.`id` = ? AND 1=1) RETURNING `id` AS `id`, `title` AS `title`, `createdAt` AS `createdAt`, `updatedAt` AS `updatedAt`
+ POST /api/chat 200 in 4.6s (compile: 2ms, render: 4.6s)
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 2ms, render: 5ms)
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE (`main`.`Conversation`.`id` = ? AND 1=1) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations/cmn9mbe8k000kodiwbpphw2gv 200 in 42ms (compile: 35ms, render: 6ms)
+✓ Compiled in 197ms
+✓ Compiled in 161ms
+ GET / 200 in 158ms (compile: 41ms, render: 117ms)
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 8ms (compile: 2ms, render: 6ms)
+ GET / 200 in 43ms (compile: 3ms, render: 40ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 2ms, render: 5ms)
+✓ Compiled in 248ms
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 1915µs, render: 5ms)
+ GET / 200 in 175ms (compile: 39ms, render: 136ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 9ms (compile: 3ms, render: 5ms)
+ GET / 200 in 35ms (compile: 2ms, render: 33ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 1964µs, render: 5ms)
+prisma:query SELECT 1
+prisma:query BEGIN IMMEDIATE
+prisma:query INSERT INTO `main`.`Conversation` (`id`, `title`, `createdAt`, `updatedAt`) VALUES (?,?,?,?) RETURNING `id` AS `id`
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE `main`.`Conversation`.`id` = ? LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?) LIMIT ? OFFSET ?
+prisma:query COMMIT
+prisma:query INSERT INTO `main`.`Message` (`id`, `conversationId`, `role`, `content`, `createdAt`) VALUES (?,?,?,?,?) RETURNING `id` AS `id`, `conversationId` AS `conversationId`, `role` AS `role`, `content` AS `content`, `createdAt` AS `createdAt`
+prisma:query INSERT INTO `main`.`Message` (`id`, `conversationId`, `role`, `content`, `createdAt`) VALUES (?,?,?,?,?) RETURNING `id` AS `id`, `conversationId` AS `conversationId`, `role` AS `role`, `content` AS `content`, `createdAt` AS `createdAt`
+prisma:query UPDATE `main`.`Conversation` SET `updatedAt` = ? WHERE (`main`.`Conversation`.`id` = ? AND 1=1) RETURNING `id` AS `id`, `title` AS `title`, `createdAt` AS `createdAt`, `updatedAt` AS `updatedAt`
+ POST /api/chat 200 in 1655ms (compile: 41ms, render: 1614ms)
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 1982µs, render: 5ms)
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE (`main`.`Conversation`.`id` = ? AND 1=1) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations/cmn9mt7mf000podiwautageqj 200 in 36ms (compile: 31ms, render: 5ms)
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE (`main`.`Conversation`.`id` = ? AND 1=1) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+prisma:query INSERT INTO `main`.`Message` (`id`, `conversationId`, `role`, `content`, `createdAt`) VALUES (?,?,?,?,?) RETURNING `id` AS `id`, `conversationId` AS `conversationId`, `role` AS `role`, `content` AS `content`, `createdAt` AS `createdAt`
+prisma:query INSERT INTO `main`.`Message` (`id`, `conversationId`, `role`, `content`, `createdAt`) VALUES (?,?,?,?,?) RETURNING `id` AS `id`, `conversationId` AS `conversationId`, `role` AS `role`, `content` AS `content`, `createdAt` AS `createdAt`
+prisma:query UPDATE `main`.`Conversation` SET `updatedAt` = ? WHERE (`main`.`Conversation`.`id` = ? AND 1=1) RETURNING `id` AS `id`, `title` AS `title`, `createdAt` AS `createdAt`, `updatedAt` AS `updatedAt`
+ POST /api/chat 200 in 1846ms (compile: 3ms, render: 1844ms)
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 1847µs, render: 5ms)
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE (`main`.`Conversation`.`id` = ? AND 1=1) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations/cmn9mt7mf000podiwautageqj 200 in 35ms (compile: 30ms, render: 5ms)
+ GET / 200 in 42ms (compile: 3ms, render: 39ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 2ms, render: 5ms)
+prisma:query SELECT 1
+prisma:query BEGIN IMMEDIATE
+prisma:query INSERT INTO `main`.`Conversation` (`id`, `title`, `createdAt`, `updatedAt`) VALUES (?,?,?,?) RETURNING `id` AS `id`
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE `main`.`Conversation`.`id` = ? LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?) LIMIT ? OFFSET ?
+prisma:query COMMIT
+prisma:query INSERT INTO `main`.`Message` (`id`, `conversationId`, `role`, `content`, `createdAt`) VALUES (?,?,?,?,?) RETURNING `id` AS `id`, `conversationId` AS `conversationId`, `role` AS `role`, `content` AS `content`, `createdAt` AS `createdAt`
+prisma:query INSERT INTO `main`.`Message` (`id`, `conversationId`, `role`, `content`, `createdAt`) VALUES (?,?,?,?,?) RETURNING `id` AS `id`, `conversationId` AS `conversationId`, `role` AS `role`, `content` AS `content`, `createdAt` AS `createdAt`
+prisma:query UPDATE `main`.`Conversation` SET `updatedAt` = ? WHERE (`main`.`Conversation`.`id` = ? AND 1=1) RETURNING `id` AS `id`, `title` AS `title`, `createdAt` AS `createdAt`, `updatedAt` AS `updatedAt`
+ POST /api/chat 200 in 2.7s (compile: 2ms, render: 2.7s)
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 1965µs, render: 5ms)
+ GET /api/conversations/cmn9n128d000yodiw6v4lf21x 200 in 46ms (compile: 39ms, render: 8ms)
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE (`main`.`Conversation`.`id` = ? AND 1=1) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+✓ Compiled in 275ms
+✓ Compiled in 167ms
+ GET / 200 in 56ms (compile: 37ms, render: 19ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 8ms (compile: 2ms, render: 6ms)
+ GET / 200 in 135ms (compile: 4ms, render: 131ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 8ms (compile: 2ms, render: 6ms)
+✓ Compiled in 217ms
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 1930µs, render: 5ms)
+ GET / 200 in 162ms (compile: 38ms, render: 125ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 9ms (compile: 3ms, render: 6ms)
+ GET / 200 in 37ms (compile: 2ms, render: 35ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 1870µs, render: 5ms)
+✓ Compiled in 277ms
+⨯ ReferenceError: poppins is not defined
+    at RootLayout (src/app/layout.tsx:55:23)
+  53 |       </head>
+  54 |       <body
+> 55 |         className={`${poppins.variable} ${literata.variable} ${playfair.variable} antialiased font-sans`}
+     |                       ^
+  56 |         style={{ fontFamily: 'var(--font-heading), system-ui, sans-serif' }}
+  57 |       >
+  58 |         {children} {
+  digest: '903694648'
+}
+⨯ ReferenceError: poppins is not defined
+    at RootLayout (src/app/layout.tsx:55:23)
+  53 |       </head>
+  54 |       <body
+> 55 |         className={`${poppins.variable} ${literata.variable} ${playfair.variable} antialiased font-sans`}
+     |                       ^
+  56 |         style={{ fontFamily: 'var(--font-heading), system-ui, sans-serif' }}
+  57 |       >
+  58 |         {children} {
+  digest: '903694648'
+}
+ GET / 500 in 161ms (compile: 38ms, render: 123ms)
+ GET / 200 in 20ms (compile: 6ms, render: 14ms)
+✓ Compiled in 155ms
+ GET / 200 in 153ms (compile: 36ms, render: 117ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 1925µs, render: 5ms)
+ GET / 200 in 36ms (compile: 1990µs, render: 34ms)
+ GET /api/conversations 200 in 9ms (compile: 1897µs, render: 7ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+✓ Compiled in 225ms
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 1993µs, render: 5ms)
+✓ Compiled in 145ms
+ GET / 200 in 59ms (compile: 37ms, render: 22ms)
+✓ Compiled in 166ms
+ GET / 200 in 48ms (compile: 33ms, render: 14ms)
+ GET / 200 in 144ms (compile: 5ms, render: 140ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 8ms (compile: 2ms, render: 6ms)
+ GET / 200 in 42ms (compile: 3ms, render: 39ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 2ms, render: 5ms)
+ GET / 200 in 37ms (compile: 2ms, render: 34ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 3ms, render: 5ms)
+ GET / 200 in 36ms (compile: 2ms, render: 34ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 8ms (compile: 2ms, render: 6ms)
+ GET / 200 in 39ms (compile: 3ms, render: 36ms)
+ GET /api/conversations 200 in 8ms (compile: 1961µs, render: 6ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET / 200 in 35ms (compile: 1999µs, render: 33ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 1850µs, render: 5ms)
+ GET / 200 in 36ms (compile: 2ms, render: 33ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 2ms, render: 5ms)
+ GET / 200 in 36ms (compile: 2ms, render: 34ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 1956µs, render: 5ms)
+ GET / 200 in 35ms (compile: 2ms, render: 33ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 1832µs, render: 5ms)
+ GET / 200 in 39ms (compile: 2ms, render: 37ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 2ms, render: 5ms)
+ GET / 200 in 37ms (compile: 3ms, render: 34ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 8ms (compile: 3ms, render: 5ms)
+ GET / 200 in 37ms (compile: 2ms, render: 35ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 9ms (compile: 2ms, render: 7ms)
+ GET / 200 in 38ms (compile: 1926µs, render: 36ms)
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 1876µs, render: 5ms)
+ GET / 200 in 43ms (compile: 3ms, render: 40ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 8ms (compile: 2ms, render: 6ms)
+✓ Compiled in 232ms
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 2ms, render: 5ms)
+✓ Compiled in 405ms
+ GET / 200 in 80ms (compile: 56ms, render: 24ms)
+ GET / 200 in 138ms (compile: 3ms, render: 135ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 8ms (compile: 2ms, render: 6ms)
+ GET / 200 in 39ms (compile: 2ms, render: 37ms)
+ GET / 200 in 42ms (compile: 3ms, render: 40ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 1811µs, render: 5ms)
+✓ Compiled in 242ms
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 1994µs, render: 5ms)
+ GET / 200 in 179ms (compile: 53ms, render: 126ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 8ms (compile: 2ms, render: 6ms)
+✓ Compiled in 268ms
+✓ Compiled in 336ms
+ GET / 200 in 77ms (compile: 54ms, render: 24ms)
+ GET / 200 in 122ms (compile: 2ms, render: 120ms)
+ GET /api/conversations 200 in 11ms (compile: 2ms, render: 9ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+✓ Compiled in 1091ms
+ GET / 200 in 78ms (compile: 56ms, render: 22ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 8ms (compile: 3ms, render: 5ms)
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET / 200 in 178ms (compile: 4ms, render: 173ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 8ms (compile: 1944µs, render: 6ms)
+✓ Compiled in 313ms
+✓ Compiled in 211ms
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 1835µs, render: 5ms)
+ GET / 200 in 211ms (compile: 58ms, render: 154ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 8ms (compile: 2ms, render: 5ms)
+✓ Compiled in 330ms
+✓ Compiled in 233ms
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 2ms, render: 5ms)
+ GET / 200 in 214ms (compile: 57ms, render: 156ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 7ms (compile: 2ms, render: 5ms)
+ GET / 200 in 45ms (compile: 3ms, render: 42ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 8ms (compile: 2ms, render: 6ms)
+✓ Compiled in 272ms
+✓ Compiled in 211ms
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 10ms (compile: 4ms, render: 6ms)
+✓ Compiled in 256ms
+ GET / 200 in 215ms (compile: 60ms, render: 155ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 9ms (compile: 3ms, render: 6ms)
+✓ Compiled in 288ms
+✓ Compiled in 243ms
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 8ms (compile: 3ms, render: 5ms)
+✓ Compiled in 285ms
+ GET / 200 in 224ms (compile: 57ms, render: 167ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Conversation`.`id`, `main`.`Conversation`.`title`, `main`.`Conversation`.`createdAt`, `main`.`Conversation`.`updatedAt` FROM `main`.`Conversation` WHERE 1=1 ORDER BY `main`.`Conversation`.`updatedAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`Message`.`id`, `main`.`Message`.`conversationId`, `main`.`Message`.`role`, `main`.`Message`.`content`, `main`.`Message`.`createdAt` FROM `main`.`Message` WHERE `main`.`Message`.`conversationId` IN (?,?,?,?,?,?,?) ORDER BY `main`.`Message`.`createdAt` ASC LIMIT ? OFFSET ?
+ GET /api/conversations 200 in 8ms (compile: 2ms, render: 6ms)
