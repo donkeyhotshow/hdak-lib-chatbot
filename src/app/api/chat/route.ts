@@ -3,14 +3,60 @@ import { db, conversations, messages as messagesTable } from '@/lib/db';
 import { eq, desc } from 'drizzle-orm';
 import sanitizeHtml from 'sanitize-html';
 import { checkRateLimit, generateFingerprint } from '@/lib/rate-limit';
+import { LIBRARY, ALL_LINKS, isLibraryOpen } from '@/lib/constants';
 
 // Constants
 const MAX_MESSAGE_LENGTH = 2000;
 
-const SYSTEM_PROMPT = `Ви - інтелектуальний асистент бібліотеки ХДАК. Відповідайте українською мовою, ввічливо та професійно. 
-Допомагайте з пошуком книг, графіком роботи, ресурсами бібліотеки.
-Каталог: https://library-service.com.ua:8443/khkhdak/DocumentSearchForm
-Email: bibliohdak@gmail.com`;
+function buildSystemPrompt(): string {
+  const openStatus = isLibraryOpen()
+    ? 'Зараз бібліотека ВІДКРИТА.'
+    : 'Зараз бібліотека ЗАЧИНЕНА.';
+
+  return `Ви — інтелектуальний асистент бібліотеки Харківської державної академії культури (ХДАК).
+Відповідайте ВИКЛЮЧНО українською мовою, ввічливо, професійно та коротко.
+
+=== СТАТУС ===
+${openStatus}
+
+=== КОНТАКТИ БІБЛІОТЕКИ ===
+Назва: ${LIBRARY.name}
+Адреса: ${LIBRARY.addressUk}
+Телефон: ${LIBRARY.phoneFull}
+Viber/Telegram: ${LIBRARY.messenger}
+Email: ${LIBRARY.email}
+Instagram: ${LIBRARY.instagram}
+Facebook: ${LIBRARY.facebook}
+
+=== ГРАФІК РОБОТИ ===
+${LIBRARY.hours.weekdayUk}
+${LIBRARY.hours.saturdayUk}
+${LIBRARY.hours.sundayUk}
+${LIBRARY.hours.sanitaryUk}
+
+=== ПОСИЛАННЯ ===
+Електронний каталог: ${ALL_LINKS.catalog_search}
+Сайт бібліотеки: ${ALL_LINKS.main}
+Репозитарій: ${ALL_LINKS.repository}
+Нові надходження: ${ALL_LINKS.new_books}
+Віртуальні виставки: ${ALL_LINKS.exhibitions}
+Правила: ${ALL_LINKS.rules}
+Контакти: ${ALL_LINKS.contacts}
+
+=== НАУКОВІ БАЗИ (корпоративний доступ через бібліотеку) ===
+Scopus: ${ALL_LINKS.scopus}
+Web of Science: ${ALL_LINKS.wos}
+ScienceDirect: ${ALL_LINKS.sciencedirect}
+Springer: ${ALL_LINKS.springer}
+Research4Life: ${ALL_LINKS.research4life}
+
+=== ПРАВИЛА ВІДПОВІДЕЙ ===
+1. Завжди відповідайте українською мовою.
+2. Якщо користувач шукає книгу — порадьте скористатися каталогом: ${ALL_LINKS.catalog_search}
+3. Якщо питання не стосується бібліотеки — ввічливо перенаправте на бібліотечні теми.
+4. Надавайте конкретні посилання, коли це можливо.
+5. Якщо не знаєте відповіді — запропонуйте звернутися напряму: ${LIBRARY.phoneFull} або ${LIBRARY.email}.`;
+}
 
 // OpenRouter Config
 const OPENROUTER_API_KEY = process.env.BUILT_IN_FORGE_API_KEY;
@@ -141,7 +187,7 @@ export async function POST(request: NextRequest) {
     }
 
     const fingerprint = generateFingerprint(request);
-    if (!checkRateLimit(fingerprint, 15, 60000)) {
+    if (!(await checkRateLimit(fingerprint))) {
       return NextResponse.json({ error: 'Too many requests. Please wait a moment.' }, { status: 429 });
     }
 
@@ -181,7 +227,7 @@ export async function POST(request: NextRequest) {
       .limit(10);
 
     const apiMessages = [
-      { role: 'system', content: SYSTEM_PROMPT + catalogContext },
+      { role: 'system', content: buildSystemPrompt() + catalogContext },
       ...history.reverse().map(m => ({
         role: m.role.toLowerCase(),
         content: m.content

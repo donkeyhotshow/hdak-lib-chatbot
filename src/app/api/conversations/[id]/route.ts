@@ -37,7 +37,6 @@ export async function DELETE(
     }
 
     const { id } = await params;
-    await db.delete(messages).where(eq(messages.conversationId, id));
     await db.delete(conversations).where(eq(conversations.id, id));
     return NextResponse.json({ success: true });
   } catch (error) {
