@@ -27,8 +27,13 @@ export async function DELETE(
 ) {
   try {
     const origin = request.headers.get('origin');
-    if (origin && new URL(origin).hostname !== new URL(request.url).hostname && process.env.NODE_ENV === 'production') {
-      return NextResponse.json({ error: 'Forbidden origin' }, { status: 403 });
+    if (origin && process.env.NODE_ENV === 'production') {
+      const originHost = new URL(origin).hostname;
+      const reqHost = new URL(request.url).hostname;
+      const isLocal = ['localhost', '127.0.0.1', '0.0.0.0'].includes(originHost) && ['localhost', '127.0.0.1', '0.0.0.0'].includes(reqHost);
+      if (originHost !== reqHost && !isLocal) {
+        return NextResponse.json({ error: 'Forbidden origin' }, { status: 403 });
+      }
     }
 
     const { id } = await params;
