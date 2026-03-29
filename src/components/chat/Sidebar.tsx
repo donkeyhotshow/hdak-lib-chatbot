@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+﻿import React, { memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Sparkles, Link2, FlaskConical, X, Trash2, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -45,6 +45,8 @@ export interface SidebarProps {
   loadConversation: (id: string) => void;
   deleteConversation: (id: string, e: React.MouseEvent) => void;
   createNewConversation: () => void;
+  hasMore?: boolean;
+  loadMore?: () => void;
 }
 
 export function Sidebar({
@@ -55,7 +57,9 @@ export function Sidebar({
   currentConversation,
   loadConversation,
   deleteConversation,
-  createNewConversation
+  createNewConversation,
+  hasMore = false,
+  loadMore,
 }: SidebarProps) {
   return (
     <>
@@ -135,13 +139,21 @@ export function Sidebar({
                       </span>
                       <button
                         onClick={(e) => deleteConversation(conv.id, e)}
-                        className="p-1 text-white/0 group-hover:text-white/35 hover:!text-red-400/70 transition-all shrink-0"
+                        className="p-2 text-white/0 group-hover:text-white/35 hover:!text-red-400/70 transition-all shrink-0 -mr-1"
                         aria-label="Видалити"
                       >
                         <Trash2 size={11} strokeWidth={1.5} />
                       </button>
                     </div>
                   ))}
+                  {hasMore && loadMore && (
+                    <button
+                      onClick={loadMore}
+                      className="w-full mt-1 py-2 text-[11px] text-white/35 hover:text-white/65 transition-colors text-center"
+                    >
+                      Показати ще...
+                    </button>
+                  )}
                 </div>
               </div>
             )}

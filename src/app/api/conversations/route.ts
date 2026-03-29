@@ -1,13 +1,25 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { db, conversations } from '@/lib/db';
 import { desc } from 'drizzle-orm';
 
-export async function GET() {
+const PAGE_SIZE = 15;
+
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const offset = parseInt(searchParams.get('offset') || '0', 10);
+    const limit = Math.min(parseInt(searchParams.get('limit') || String(PAGE_SIZE), 10), 50);
+
     const list = await db.select()
       .from(conversations)
-      .orderBy(desc(conversations.createdAt));
-    return NextResponse.json(list);
+      .orderBy(desc(conversations.createdAt))
+      .limit(limit + 1)   // fetch one extra to know if there are more
+      .offset(offset);
+
+    const hasMore = list.length > limit;
+    const items = hasMore ? list.slice(0, limit) : list;
+
+    return NextResponse.json({ items, hasMore, offset, limit });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: 'Failed to fetch conversations' }, { status: 500 });

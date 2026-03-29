@@ -1,6 +1,5 @@
-import React, { useRef } from 'react';
-import { Send } from 'lucide-react';
-import { motion } from 'framer-motion';
+﻿import React, { useRef } from 'react';
+import { Send, Square } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ChatInputProps {
@@ -8,9 +7,10 @@ interface ChatInputProps {
   setInputValue: (val: string) => void;
   isTyping: boolean;
   handleSend: (query?: string) => void;
+  onStop?: () => void;
 }
 
-export function ChatInput({ inputValue, setInputValue, isTyping, handleSend }: ChatInputProps) {
+export function ChatInput({ inputValue, setInputValue, isTyping, handleSend, onStop }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const hasInput = inputValue.trim().length > 0;
 
@@ -23,7 +23,6 @@ export function ChatInput({ inputValue, setInputValue, isTyping, handleSend }: C
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputValue(e.target.value);
-    // Auto-resize
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
       textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
@@ -44,25 +43,25 @@ export function ChatInput({ inputValue, setInputValue, isTyping, handleSend }: C
           className="flex-1 bg-transparent outline-none text-[14px] text-[#2A2520] placeholder:text-[#7A756F]/45 resize-none py-1.5 custom-scrollbar max-h-[120px]"
           maxLength={2000}
         />
-        <button
-          onClick={() => handleSend()}
-          disabled={!hasInput || isTyping}
-          className={cn("send-btn mb-1", hasInput && !isTyping && "active")}
-          aria-label="Надіслати"
-        >
-          {isTyping ? (
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-              </svg>
-            </motion.div>
-          ) : (
+        {isTyping && onStop ? (
+          <button
+            onClick={onStop}
+            className="send-btn mb-1 active"
+            aria-label="Зупинити"
+            title="Зупинити генерацію"
+          >
+            <Square size={14} strokeWidth={2} fill="currentColor" />
+          </button>
+        ) : (
+          <button
+            onClick={() => handleSend()}
+            disabled={!hasInput || isTyping}
+            className={cn("send-btn mb-1", hasInput && !isTyping && "active")}
+            aria-label="Надіслати"
+          >
             <Send size={16} strokeWidth={2} />
-          )}
-        </button>
+          </button>
+        )}
       </div>
     </div>
   );

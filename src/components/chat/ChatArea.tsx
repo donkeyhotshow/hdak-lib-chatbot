@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+﻿import React, { memo } from 'react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import { Search, Clock, BookOpen, MapPin, ClipboardList, Globe, Copy } from 'lucide-react';
@@ -67,7 +67,7 @@ const markdownComponents = {
   },
 };
 
-const MessageBubble = memo(function MessageBubble({ msg, formatTime, copyToClipboard }: { msg: Message; formatTime: (d: string) => string; copyToClipboard: (t: string) => void; }) {
+const MessageBubble = memo(function MessageBubble({ msg, isStreaming, formatTime, copyToClipboard }: { msg: Message; isStreaming: boolean; formatTime: (d: string) => string; copyToClipboard: (t: string) => void; }) {
   const isUser = msg.role === 'USER';
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }} className={cn("flex gap-3", isUser && "flex-row-reverse")}>
@@ -76,11 +76,24 @@ const MessageBubble = memo(function MessageBubble({ msg, formatTime, copyToClipb
       </div>
       <div className={cn("flex flex-col max-w-[70%]", isUser && "items-end")}>
         <div className={cn("px-4 py-3 text-[14px] leading-[1.65]", isUser ? "message-user" : "message-assistant")}>
-          {isUser ? <p className="whitespace-pre-wrap">{msg.content}</p> : <div className="prose prose-sm max-w-none"><ReactMarkdown components={markdownComponents}>{msg.content}</ReactMarkdown></div>}
+          {isUser ? (
+            <p className="whitespace-pre-wrap">{msg.content}</p>
+          ) : (
+            <div className="prose prose-sm max-w-none">
+              <ReactMarkdown components={markdownComponents}>{msg.content}</ReactMarkdown>
+              {isStreaming && (
+                <motion.span
+                  className="inline-block w-[2px] h-[14px] bg-[#B87830] ml-[1px] align-text-bottom"
+                  animate={{ opacity: [1, 0] }}
+                  transition={{ duration: 0.5, repeat: Infinity, ease: 'easeInOut' }}
+                />
+              )}
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2 mt-1.5 px-1">
           <span className="text-[10px] text-[#7A756F]/60 font-medium">{formatTime(msg.createdAt)}</span>
-          {!isUser && (
+          {!isUser && !isStreaming && (
             <button onClick={() => copyToClipboard(msg.content)} className="p-1 text-[#7A756F]/40 hover:text-[#B87830] transition-colors" aria-label="Копіювати">
               <Copy size={10} strokeWidth={1.5} />
             </button>
@@ -111,13 +124,15 @@ interface ChatAreaProps {
   isTyping: boolean;
   error: string | null;
   handleSend: (query?: string) => void;
+  handleFaqSend: (query: string) => void;
+  streamingMessageId: string | null;
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
   formatTime: (d: string) => string;
   copyToClipboard: (t: string) => void;
 }
 
-export function ChatArea({ messages, isTyping, error, handleSend, messagesEndRef, formatTime, copyToClipboard }: ChatAreaProps) {
-  const showChips = !isTyping && messages.length === 1 && messages[0].role === 'USER';
+export function ChatArea({ messages, isTyping, error, handleSend, handleFaqSend, streamingMessageId, messagesEndRef, formatTime, copyToClipboard }: ChatAreaProps) {
+  const showChips = !isTyping && messages.length > 0 && messages.length <= 2 && messages[0].role === 'USER';
 
   if (messages.length === 0) {
     return (
@@ -131,7 +146,7 @@ export function ChatArea({ messages, isTyping, error, handleSend, messagesEndRef
         {error && <motion.div variants={itemVariants} className="mb-5 p-3 bg-red-50/90 backdrop-blur rounded-xl text-red-600 text-sm border border-red-100">{error}</motion.div>}
 
         <motion.div variants={containerVariants} className="w-full max-w-[420px] grid grid-cols-2 gap-2.5">
-          {QUICK_MENU.map((item) => <ActionCard key={item.id} {...item} isTyping={isTyping} onClick={handleSend} />)}
+          {QUICK_MENU.map((item) => <ActionCard key={item.id} {...item} isTyping={isTyping} onClick={handleFaqSend} />)}
         </motion.div>
       </motion.div>
     );
@@ -141,7 +156,7 @@ export function ChatArea({ messages, isTyping, error, handleSend, messagesEndRef
     <div className="flex-1 overflow-y-auto px-4 py-4 custom-scrollbar">
       <div className="max-w-[520px] mx-auto space-y-4">
         {messages.map((msg) => (
-          <MessageBubble key={msg.id} msg={msg} formatTime={formatTime} copyToClipboard={copyToClipboard} />
+          <MessageBubble key={msg.id} msg={msg} isStreaming={msg.id === streamingMessageId} formatTime={formatTime} copyToClipboard={copyToClipboard} />
         ))}
         <AnimatePresence>
           {isTyping && <TypingIndicator />}
@@ -152,7 +167,7 @@ export function ChatArea({ messages, isTyping, error, handleSend, messagesEndRef
             <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 6 }} className="flex flex-wrap gap-2 pt-2">
               <span className="text-[10px] text-[#7A756F]/60 w-full mb-0.5">Також можете запитати:</span>
               {QUICK_CHIPS.map((chip) => (
-                <button key={chip.id} onClick={() => handleSend(chip.kw)} className="quick-chip">
+                <button key={chip.id} onClick={() => handleFaqSend(chip.kw)} className="quick-chip">
                   {chip.title}
                 </button>
               ))}
