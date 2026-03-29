@@ -2,7 +2,7 @@
 
 Офіційний чат-бот бібліотеки ХДАК на базі Next.js та штучного інтелекту.
 Остання стабілізація: Березень 2026.
-Впроваджено: Modernized UI, Strict Typing, Security Hardening, Vercel/Render Optimization.
+Впроваджено: Modernized UI, Strict Typing, Security Hardening, Vercel Optimization.
 
 ## 🚀 Функціонал
 

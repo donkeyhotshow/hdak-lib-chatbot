@@ -1,0 +1,17 @@
+node_modules
+.git
+.next
+*.log
+.env.local
+.env
+dist
+build
+coverage
+.DS_Store
+*.tsbuildinfo
+firebase-debug.log
+lint_output.txt
+lint_unix.txt
+vercel_health.json
+render_health.json
+.zscripts
