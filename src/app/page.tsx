@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Menu } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { Message, Conversation } from '@/components/chat/types';
 import { Sidebar } from '@/components/chat/Sidebar';
 import { ChatInput } from '@/components/chat/ChatInput';

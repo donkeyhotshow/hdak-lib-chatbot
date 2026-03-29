@@ -50,19 +50,19 @@ const ActionCard = memo(function ActionCard({ icon: Icon, title, subtitle, kw, i
   );
 });
 
-const markdownComponents: Record<string, React.FC<Record<string, unknown>>> = {
-  p: ({ node: _n, ...props }) => <p className="mb-2 last:mb-0 leading-relaxed" {...props as Record<string, unknown>} />,
-  ul: ({ node: _n, ...props }) => <ul className="list-disc pl-4 my-2 space-y-1" {...props as Record<string, unknown>} />,
-  ol: ({ node: _n, ...props }) => <ol className="list-decimal pl-4 my-2 space-y-1" {...props as Record<string, unknown>} />,
-  li: ({ node: _n, ...props }) => <li {...props as Record<string, unknown>} />,
-  strong: ({ node: _n, ...props }) => <strong className="font-semibold text-[#1A1612]" {...props as Record<string, unknown>} />,
-  a: ({ node: _n, ...props }) => <a target="_blank" rel="noopener noreferrer" className="text-[#B87830] underline underline-offset-2 hover:text-[#D4A853] transition-colors" {...props as Record<string, unknown>} />,
-  code: ({ node: _n, className, ...rest }) => {
+const markdownComponents = {
+  p: (props: React.HTMLAttributes<HTMLParagraphElement>) => <p className="mb-2 last:mb-0 leading-relaxed" {...props} />,
+  ul: (props: React.HTMLAttributes<HTMLUListElement>) => <ul className="list-disc pl-4 my-2 space-y-1" {...props} />,
+  ol: (props: React.HTMLAttributes<HTMLOListElement>) => <ol className="list-decimal pl-4 my-2 space-y-1" {...props} />,
+  li: (props: React.HTMLAttributes<HTMLLIElement>) => <li {...props} />,
+  strong: (props: React.HTMLAttributes<HTMLElement>) => <strong className="font-semibold text-[#1A1612]" {...props} />,
+  a: (props: React.AnchorHTMLAttributes<HTMLAnchorElement>) => <a target="_blank" rel="noopener noreferrer" className="text-[#B87830] underline underline-offset-2 hover:text-[#D4A853] transition-colors" {...props} />,
+  code: ({ className, ...rest }: React.HTMLAttributes<HTMLElement>) => {
     const isInline = !className;
     return isInline ? (
-      <code className="bg-[#1A1612]/5 text-[#B87830] px-1.5 py-0.5 rounded text-sm" {...rest as Record<string, unknown>} />
+      <code className="bg-[#1A1612]/5 text-[#B87830] px-1.5 py-0.5 rounded text-sm" {...rest} />
     ) : (
-      <code className={cn("block bg-[#1A1612]/5 p-3 rounded-lg text-sm overflow-x-auto", className as string)} {...rest as Record<string, unknown>} />
+      <code className={cn("block bg-[#1A1612]/5 p-3 rounded-lg text-sm overflow-x-auto", className)} {...rest} />
     );
   },
 };
@@ -76,7 +76,7 @@ const MessageBubble = memo(function MessageBubble({ msg, formatTime, copyToClipb
       </div>
       <div className={cn("flex flex-col max-w-[70%]", isUser && "items-end")}>
         <div className={cn("px-4 py-3 text-[14px] leading-[1.65]", isUser ? "message-user" : "message-assistant")}>
-          {isUser ? <p className="whitespace-pre-wrap">{msg.content}</p> : <div className="prose prose-sm max-w-none"><ReactMarkdown components={markdownComponents as any}>{msg.content}</ReactMarkdown></div>}
+          {isUser ? <p className="whitespace-pre-wrap">{msg.content}</p> : <div className="prose prose-sm max-w-none"><ReactMarkdown components={markdownComponents}>{msg.content}</ReactMarkdown></div>}
         </div>
         <div className="flex items-center gap-2 mt-1.5 px-1">
           <span className="text-[10px] text-[#7A756F]/60 font-medium">{formatTime(msg.createdAt)}</span>
