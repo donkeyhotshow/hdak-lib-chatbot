@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, conversations, messages as messagesTable } from '@/lib/db';
 import { eq, desc } from 'drizzle-orm';
+import sanitizeHtml from 'sanitize-html';
+import { checkRateLimit, generateFingerprint } from '@/lib/rate-limit';
 
 // Constants
 const MAX_MESSAGE_LENGTH = 2000;
@@ -21,7 +23,20 @@ const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const GROQ_MODEL = process.env.GROQ_MODEL_NAME || 'llama-3.1-8b-instant';
 
-async function callOpenRouter(msgs: any[]) {
+interface ChatMessage {
+  role: string;
+  content: string;
+}
+
+interface CompletionResponse {
+  choices: Array<{
+    message?: {
+      content?: string;
+    };
+  }>;
+}
+
+async function callOpenRouter(msgs: ChatMessage[]): Promise<CompletionResponse> {
   if (!OPENROUTER_API_KEY) throw new Error('OpenRouter API key missing');
   const response = await fetch(OPENROUTER_URL, {
     method: 'POST',
@@ -40,7 +55,7 @@ async function callOpenRouter(msgs: any[]) {
   return response.json();
 }
 
-async function callGroq(msgs: any[]) {
+async function callGroq(msgs: ChatMessage[]): Promise<CompletionResponse> {
   if (!GROQ_API_KEY) throw new Error('Groq API key missing');
   const response = await fetch(GROQ_URL, {
     method: 'POST',
@@ -58,12 +73,18 @@ async function callGroq(msgs: any[]) {
 }
 
 // Input validation
-function validateMessage(message: unknown): { valid: boolean; error?: string } {
+function validateMessage(message: unknown): { valid: boolean; error?: string; sanitized?: string } {
   if (typeof message !== 'string') return { valid: false, error: 'Message must be a string' };
   if (!message.trim()) return { valid: false, error: 'Message cannot be empty' };
   if (message.length > MAX_MESSAGE_LENGTH) return { valid: false, error: `Message exceeds ${MAX_MESSAGE_LENGTH} characters` };
-  if (/<script|<iframe|<object|<embed|javascript:/i.test(message)) return { valid: false, error: 'Invalid message content' };
-  return { valid: true };
+  
+  const sanitized = sanitizeHtml(message, {
+    allowedTags: [],
+    allowedAttributes: {}
+  }).trim();
+
+  if (!sanitized) return { valid: false, error: 'Invalid message content' };
+  return { valid: true, sanitized };
 }
 
 // Search logic (Simplified regex for this task)
@@ -110,12 +131,23 @@ async function searchCatalog(searchTerm: string, searchType: string) {
 
 export async function POST(request: NextRequest) {
   try {
+    const origin = request.headers.get('origin');
+    if (origin && new URL(origin).hostname !== new URL(request.url).hostname && process.env.NODE_ENV === 'production') {
+      return NextResponse.json({ error: 'Forbidden origin' }, { status: 403 });
+    }
+
+    const fingerprint = generateFingerprint(request);
+    if (!checkRateLimit(fingerprint, 15, 60000)) {
+      return NextResponse.json({ error: 'Too many requests. Please wait a moment.' }, { status: 429 });
+    }
+
     const { conversationId, message } = await request.json();
 
     const validation = validateMessage(message);
-    if (!validation.valid) return NextResponse.json({ error: validation.error }, { status: 400 });
+    if (!validation.valid || !validation.sanitized) return NextResponse.json({ error: validation.error }, { status: 400 });
 
-    const searchRequest = isBookSearchRequest(message);
+    const safeMessage = validation.sanitized;
+    const searchRequest = isBookSearchRequest(safeMessage);
     let catalogContext = '';
     if (searchRequest) {
       const results = await searchCatalog(searchRequest.searchTerm, searchRequest.searchType);
@@ -127,7 +159,7 @@ export async function POST(request: NextRequest) {
     let convId = conversationId;
     if (!convId) {
       const [newConv] = await db.insert(conversations).values({ 
-        title: message.substring(0, 50) 
+        title: safeMessage.substring(0, 50) 
       }).returning();
       convId = newConv.id;
     }
@@ -135,7 +167,7 @@ export async function POST(request: NextRequest) {
     await db.insert(messagesTable).values({
       conversationId: convId,
       role: 'USER',
-      content: message,
+      content: safeMessage,
     });
 
     const history = await db.select()

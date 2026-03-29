@@ -16,6 +16,11 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const origin = request.headers.get('origin');
+    if (origin && new URL(origin).hostname !== new URL(request.url).hostname && process.env.NODE_ENV === 'production') {
+      return NextResponse.json({ error: 'Forbidden origin' }, { status: 403 });
+    }
+
     const { title } = await request.json();
     const [newConv] = await db.insert(conversations).values({
       title: title || 'Новий діалог',

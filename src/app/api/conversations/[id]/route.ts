@@ -26,6 +26,11 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const origin = request.headers.get('origin');
+    if (origin && new URL(origin).hostname !== new URL(request.url).hostname && process.env.NODE_ENV === 'production') {
+      return NextResponse.json({ error: 'Forbidden origin' }, { status: 403 });
+    }
+
     const { id } = await params;
     await db.delete(messages).where(eq(messages.conversationId, id));
     await db.delete(conversations).where(eq(conversations.id, id));
@@ -41,6 +46,11 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const origin = request.headers.get('origin');
+    if (origin && new URL(origin).hostname !== new URL(request.url).hostname && process.env.NODE_ENV === 'production') {
+      return NextResponse.json({ error: 'Forbidden origin' }, { status: 403 });
+    }
+
     const { id } = await params;
     const { title } = await request.json();
     const [updated] = await db.update(conversations).set({ title }).where(eq(conversations.id, id)).returning();
