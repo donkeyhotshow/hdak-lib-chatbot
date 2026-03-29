@@ -1,10 +1,8 @@
 import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
-import { pgTable, serial, integer, text, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
-// Using a non-empty fallback URL for build-time safety to satisfy neon() validation.
-// This will not connect until a query is actually performed.
 const connectionString = process.env.DATABASE_URL;
 
 if (!connectionString) {

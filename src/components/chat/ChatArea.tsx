@@ -29,41 +29,45 @@ const itemVariants: Variants = {
   animate: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.25, 0.1, 0.25, 1] } },
 };
 
-const BookIcon = memo(({ size = 24, className = "" }: { size?: number; className?: string }) => (
-  <svg width={size} height={size * 0.8} viewBox="0 0 28 22" fill="none" className={className}>
-    <path d="M14 3C14 3 9 1.5 3 3.5V19C9 17 14 18.5 14 18.5" stroke="currentColor" strokeWidth="1.2" fill="none"/>
-    <path d="M14 3C14 3 19 1.5 25 3.5V19C19 17 14 18.5 14 18.5" stroke="currentColor" strokeWidth="1.2" fill="none" opacity="0.55"/>
-    <line x1="14" y1="2.5" x2="14" y2="18" stroke="currentColor" strokeWidth="1"/>
-  </svg>
-));
+const BookIcon = memo(function BookIcon({ size = 24, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size * 0.8} viewBox="0 0 28 22" fill="none" className={className}>
+      <path d="M14 3C14 3 9 1.5 3 3.5V19C9 17 14 18.5 14 18.5" stroke="currentColor" strokeWidth="1.2" fill="none"/>
+      <path d="M14 3C14 3 19 1.5 25 3.5V19C19 17 14 18.5 14 18.5" stroke="currentColor" strokeWidth="1.2" fill="none" opacity="0.55"/>
+      <line x1="14" y1="2.5" x2="14" y2="18" stroke="currentColor" strokeWidth="1"/>
+    </svg>
+  );
+});
 
-const ActionCard = memo(({ icon: Icon, title, subtitle, kw, isTyping, onClick }: {
+const ActionCard = memo(function ActionCard({ icon: Icon, title, subtitle, kw, isTyping, onClick }: {
   icon: React.ElementType; title: string; subtitle: string; kw: string; isTyping: boolean; onClick: (kw: string) => void;
-}) => (
-  <motion.button variants={itemVariants} onClick={() => onClick(kw)} disabled={isTyping} className="action-card w-full text-left disabled:opacity-50 disabled:cursor-not-allowed">
-    <div className="action-card-icon-wrap"><Icon size={20} strokeWidth={1.5} className="action-card-icon" /></div>
-    <div className="flex-1 min-w-0"><p className="action-card-title">{title}</p><p className="action-card-subtitle">{subtitle}</p></div>
-  </motion.button>
-));
+}) {
+  return (
+    <motion.button variants={itemVariants} onClick={() => onClick(kw)} disabled={isTyping} className="action-card w-full text-left disabled:opacity-50 disabled:cursor-not-allowed">
+      <div className="action-card-icon-wrap"><Icon size={20} strokeWidth={1.5} className="action-card-icon" /></div>
+      <div className="flex-1 min-w-0"><p className="action-card-title">{title}</p><p className="action-card-subtitle">{subtitle}</p></div>
+    </motion.button>
+  );
+});
 
-const markdownComponents = {
-  p: ({ node, ...props }: any) => <p className="mb-2 last:mb-0 leading-relaxed" {...props} />,
-  ul: ({ node, ...props }: any) => <ul className="list-disc pl-4 my-2 space-y-1" {...props} />,
-  ol: ({ node, ...props }: any) => <ol className="list-decimal pl-4 my-2 space-y-1" {...props} />,
-  li: ({ node, ...props }: any) => <li {...props} />,
-  strong: ({ node, ...props }: any) => <strong className="font-semibold text-[#1A1612]" {...props} />,
-  a: ({ node, ...props }: any) => <a target="_blank" rel="noopener noreferrer" className="text-[#B87830] underline underline-offset-2 hover:text-[#D4A853] transition-colors" {...props} />,
-  code: ({ node, className, ...rest }: any) => {
+const markdownComponents: Record<string, React.FC<Record<string, unknown>>> = {
+  p: ({ node: _n, ...props }) => <p className="mb-2 last:mb-0 leading-relaxed" {...props as Record<string, unknown>} />,
+  ul: ({ node: _n, ...props }) => <ul className="list-disc pl-4 my-2 space-y-1" {...props as Record<string, unknown>} />,
+  ol: ({ node: _n, ...props }) => <ol className="list-decimal pl-4 my-2 space-y-1" {...props as Record<string, unknown>} />,
+  li: ({ node: _n, ...props }) => <li {...props as Record<string, unknown>} />,
+  strong: ({ node: _n, ...props }) => <strong className="font-semibold text-[#1A1612]" {...props as Record<string, unknown>} />,
+  a: ({ node: _n, ...props }) => <a target="_blank" rel="noopener noreferrer" className="text-[#B87830] underline underline-offset-2 hover:text-[#D4A853] transition-colors" {...props as Record<string, unknown>} />,
+  code: ({ node: _n, className, ...rest }) => {
     const isInline = !className;
     return isInline ? (
-      <code className="bg-[#1A1612]/5 text-[#B87830] px-1.5 py-0.5 rounded text-sm" {...rest} />
+      <code className="bg-[#1A1612]/5 text-[#B87830] px-1.5 py-0.5 rounded text-sm" {...rest as Record<string, unknown>} />
     ) : (
-      <code className={cn("block bg-[#1A1612]/5 p-3 rounded-lg text-sm overflow-x-auto", className)} {...rest} />
+      <code className={cn("block bg-[#1A1612]/5 p-3 rounded-lg text-sm overflow-x-auto", className as string)} {...rest as Record<string, unknown>} />
     );
   },
-} as any;
+};
 
-const MessageBubble = memo(({ msg, formatTime, copyToClipboard }: { msg: Message; formatTime: (d: string) => string; copyToClipboard: (t: string) => void; }) => {
+const MessageBubble = memo(function MessageBubble({ msg, formatTime, copyToClipboard }: { msg: Message; formatTime: (d: string) => string; copyToClipboard: (t: string) => void; }) {
   const isUser = msg.role === 'USER';
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }} className={cn("flex gap-3", isUser && "flex-row-reverse")}>
@@ -87,18 +91,20 @@ const MessageBubble = memo(({ msg, formatTime, copyToClipboard }: { msg: Message
   );
 });
 
-const TypingIndicator = memo(() => (
-  <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }} className="flex gap-3">
-    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#B87830]/15 to-[#D4A853]/10 border border-[#B87830]/15 flex items-center justify-center">
-      <BookIcon size={14} className="text-[#B87830]" />
-    </div>
-    <div className="px-4 py-3 message-assistant">
-      <div className="flex gap-1.5 items-center">
-        {[0, 1, 2].map((i) => <motion.div key={i} className="w-1.5 h-1.5 rounded-full bg-[#B87830]/60" animate={{ y: [0, -4, 0], opacity: [0.6, 1, 0.6] }} transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.1 }} />)}
+const TypingIndicator = memo(function TypingIndicator() {
+  return (
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }} className="flex gap-3">
+      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#B87830]/15 to-[#D4A853]/10 border border-[#B87830]/15 flex items-center justify-center">
+        <BookIcon size={14} className="text-[#B87830]" />
       </div>
-    </div>
-  </motion.div>
-));
+      <div className="px-4 py-3 message-assistant">
+        <div className="flex gap-1.5 items-center">
+          {[0, 1, 2].map((i) => <motion.div key={i} className="w-1.5 h-1.5 rounded-full bg-[#B87830]/60" animate={{ y: [0, -4, 0], opacity: [0.6, 1, 0.6] }} transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.1 }} />)}
+        </div>
+      </div>
+    </motion.div>
+  );
+});
 
 interface ChatAreaProps {
   messages: Message[];

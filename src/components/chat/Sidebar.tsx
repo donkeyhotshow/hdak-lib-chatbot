@@ -13,24 +13,28 @@ const SIDEBAR_RESOURCES = [
 ] as const;
 
 // Book Icon
-const BookIcon = memo(({ size = 24, className = "" }: { size?: number; className?: string }) => (
-  <svg width={size} height={size * 0.8} viewBox="0 0 28 22" fill="none" className={className}>
-    <path d="M14 3C14 3 9 1.5 3 3.5V19C9 17 14 18.5 14 18.5" stroke="currentColor" strokeWidth="1.2" fill="none"/>
-    <path d="M14 3C14 3 19 1.5 25 3.5V19C19 17 14 18.5 14 18.5" stroke="currentColor" strokeWidth="1.2" fill="none" opacity="0.55"/>
-    <line x1="14" y1="2.5" x2="14" y2="18" stroke="currentColor" strokeWidth="1"/>
-  </svg>
-));
+const BookIcon = memo(function BookIcon({ size = 24, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size * 0.8} viewBox="0 0 28 22" fill="none" className={className}>
+      <path d="M14 3C14 3 9 1.5 3 3.5V19C9 17 14 18.5 14 18.5" stroke="currentColor" strokeWidth="1.2" fill="none"/>
+      <path d="M14 3C14 3 19 1.5 25 3.5V19C19 17 14 18.5 14 18.5" stroke="currentColor" strokeWidth="1.2" fill="none" opacity="0.55"/>
+      <line x1="14" y1="2.5" x2="14" y2="18" stroke="currentColor" strokeWidth="1"/>
+    </svg>
+  );
+});
 
-const SidebarLink = memo(({ icon: Icon, title, url }: {
+const SidebarLink = memo(function SidebarLink({ icon: Icon, title, url }: {
   icon: React.ElementType;
   title: string;
   url: string;
-}) => (
-  <a href={url} target="_blank" rel="noreferrer" className="sidebar-link group">
-    <Icon size={18} strokeWidth={1.5} className="sidebar-icon" />
-    <span className="sidebar-text">{title}</span>
-  </a>
-));
+}) {
+  return (
+    <a href={url} target="_blank" rel="noreferrer" className="sidebar-link group">
+      <Icon size={18} strokeWidth={1.5} className="sidebar-icon" />
+      <span className="sidebar-text">{title}</span>
+    </a>
+  );
+});
 
 export interface SidebarProps {
   isOpen: boolean;
@@ -114,8 +118,8 @@ export function Sidebar({
               <div className="px-3 pb-3 shrink-0">
                 <div className="h-px mx-2 mb-3 bg-white/[0.04]" />
                 <p className="sidebar-label">Історія</p>
-                <div className="space-y-0.5 max-h-[180px] overflow-y-auto custom-scrollbar">
-                  {conversations.slice(0, 5).map((conv) => (
+                <div className="space-y-0.5 max-h-[350px] overflow-y-auto custom-scrollbar">
+                  {conversations.map((conv) => (
                     <div
                       key={conv.id}
                       onClick={() => loadConversation(conv.id)}

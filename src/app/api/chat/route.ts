@@ -6,7 +6,6 @@ import { checkRateLimit, generateFingerprint } from '@/lib/rate-limit';
 
 // Constants
 const MAX_MESSAGE_LENGTH = 2000;
-const REQUEST_TIMEOUT_MS = 30000;
 
 const SYSTEM_PROMPT = `Ви - інтелектуальний асистент бібліотеки ХДАК. Відповідайте українською мовою, ввічливо та професійно. 
 Допомагайте з пошуком книг, графіком роботи, ресурсами бібліотеки.

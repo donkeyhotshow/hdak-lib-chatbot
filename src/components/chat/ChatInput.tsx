@@ -11,32 +11,43 @@ interface ChatInputProps {
 }
 
 export function ChatInput({ inputValue, setInputValue, isTyping, handleSend }: ChatInputProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const hasInput = inputValue.trim().length > 0;
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey && !isTyping) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInputValue(e.target.value);
+    // Auto-resize
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
+    }
+  };
 
   return (
     <div className="input-area px-4 pb-4 pt-3 shrink-0">
-      <div className="input-container max-w-[520px] mx-auto flex items-center gap-3 px-5 py-1.5">
-        <input
-          ref={inputRef}
-          type="text"
+      <div className="input-container max-w-[520px] mx-auto flex items-end gap-3 px-5 py-2.5 min-h-[56px]">
+        <textarea
+          ref={textareaRef}
+          rows={1}
           value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !isTyping) {
-              e.preventDefault();
-              handleSend();
-            }
-          }}
+          onChange={handleChange}
+          onKeyDown={handleKeyDown}
           placeholder="Ваше запитання..."
           disabled={isTyping}
-          className="flex-1 h-11 bg-transparent outline-none text-[14px] text-[#2A2520] placeholder:text-[#7A756F]/45"
+          className="flex-1 bg-transparent outline-none text-[14px] text-[#2A2520] placeholder:text-[#7A756F]/45 resize-none py-1.5 custom-scrollbar max-h-[120px]"
           maxLength={2000}
         />
         <button
           onClick={() => handleSend()}
           disabled={!hasInput || isTyping}
-          className={cn("send-btn", hasInput && !isTyping && "active")}
+          className={cn("send-btn mb-1", hasInput && !isTyping && "active")}
           aria-label="Надіслати"
         >
           {isTyping ? (
