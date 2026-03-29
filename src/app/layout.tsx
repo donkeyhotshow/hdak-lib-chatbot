@@ -1,19 +1,20 @@
 import type { Metadata } from "next";
-import { Inter, Cormorant_Garamond, Outfit } from "next/font/google";
+import { Poppins, Literata, Outfit } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 
-// Geometric sans-serif for interface - ultra-readable
-const inter = Inter({
+// Sans-serif font for headings - bold, clean, modern
+const poppins = Poppins({
   variable: "--font-sans",
   subsets: ["latin", "latin-ext"],
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700", "800"],
+  style: ["normal", "italic"],
   display: "swap",
   adjustFontFallback: true,
 });
 
-// Elegant antiqua serif for headings - Dark Academia aesthetic
-const cormorant = Cormorant_Garamond({
+// Serif font for elegant text - classic, readable
+const literata = Literata({
   variable: "--font-serif",
   subsets: ["latin", "latin-ext"],
   weight: ["400", "500", "600", "700"],
@@ -59,7 +60,7 @@ export default function RootLayout({
         <meta name="format-detection" content="telephone=no" />
       </head>
       <body
-        className={`${inter.variable} ${cormorant.variable} ${outfit.variable} antialiased`}
+        className={`${poppins.variable} ${literata.variable} ${outfit.variable} antialiased`}
         style={{ fontFamily: 'var(--font-sans), system-ui, sans-serif' }}
       >
         {children}
