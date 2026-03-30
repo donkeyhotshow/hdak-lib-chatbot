@@ -74,7 +74,7 @@ const MessageBubble = memo(function MessageBubble({ msg, isStreaming, formatTime
       <div className={cn("w-8 h-8 rounded-full flex items-center justify-center shrink-0", isUser ? "bg-gradient-to-br from-[#1A1612] to-[#2A2520]" : "bg-gradient-to-br from-[#B87830]/15 to-[#D4A853]/10 border border-[#B87830]/15")}>
         {isUser ? <span className="text-[9px] font-semibold text-[#D4A853] tracking-wider">ВИ</span> : <BookIcon size={14} className="text-[#B87830]" />}
       </div>
-      <div className={cn("flex flex-col max-w-[70%]", isUser && "items-end")}>
+      <div className={cn("flex flex-col", isUser ? "max-w-[78%] items-end" : "flex-1 min-w-0")}>
         <div className={cn("px-4 py-3 text-[14px] leading-[1.65]", isUser ? "message-user" : "message-assistant")}>
           {isUser ? (
             <p className="whitespace-pre-wrap">{msg.content}</p>
@@ -156,7 +156,7 @@ export function ChatArea({ messages, isTyping, error, handleSend, handleFaqSend,
 
   return (
     <div className="flex-1 overflow-y-auto px-4 py-4 custom-scrollbar">
-      <div className="max-w-[520px] mx-auto space-y-4">
+      <div className="max-w-[680px] mx-auto space-y-4">
         {messages.map((msg) => (
           <MessageBubble key={msg.id} msg={msg} isStreaming={msg.id === streamingMessageId} formatTime={formatTime} copyToClipboard={copyToClipboard} />
         ))}
