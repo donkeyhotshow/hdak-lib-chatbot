@@ -1,18 +1,39 @@
-﻿import React, { memo } from 'react';
+﻿import React, { memo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Sparkles, Link2, FlaskConical, X, Trash2, Plus, ExternalLink } from 'lucide-react';
+import {
+  Search, BookMarked, BookOpen, Clock, Phone, FlaskConical,
+  Sparkles, Star, X, Trash2, Plus, ExternalLink, ChevronDown,
+  MessageCircle, Globe
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Conversation } from './types';
-import { ALL_LINKS } from '@/lib/constants';
+import { ALL_LINKS, LIBRARY, isLibraryOpen } from '@/lib/constants';
 
-const SIDEBAR_RESOURCES = [
-  { icon: Search, title: 'Пошук у каталозі', url: ALL_LINKS.catalog_search },
-  { icon: Sparkles, title: 'Репозитарій', url: ALL_LINKS.repository },
-  { icon: Link2, title: 'Нові надходження', url: ALL_LINKS.new_books },
-  { icon: FlaskConical, title: 'Наукова інформація', url: ALL_LINKS.sci_search },
+//  Data 
+
+const MAIN_LINKS = [
+  { icon: Search,     title: 'Електронний каталог', subtitle: 'Пошук книг і видань',    url: ALL_LINKS.catalog_search },
+  { icon: BookMarked, title: 'Репозитарій ХДАК',    subtitle: 'Наукові праці та статті', url: ALL_LINKS.repository },
+  { icon: Star,       title: 'Нові надходження',    subtitle: 'Останні надходження',     url: ALL_LINKS.new_books },
+  { icon: BookOpen,   title: 'Правила бібліотеки',  subtitle: 'Умови користування',      url: ALL_LINKS.rules },
 ] as const;
 
-const BookIcon = memo(function BookIcon({ size = 24, className = "" }: { size?: number; className?: string }) {
+const SCIENCE_LINKS = [
+  { icon: FlaskConical, title: 'Scopus',         url: ALL_LINKS.scopus },
+  { icon: FlaskConical, title: 'Web of Science', url: ALL_LINKS.wos },
+  { icon: Globe,        title: 'Springer Link',  url: ALL_LINKS.springer },
+  { icon: Search,       title: 'Пошук наук. інфо', url: ALL_LINKS.sci_search },
+] as const;
+
+const CONTACT_ITEMS = [
+  { label: 'Телефон',  value: LIBRARY.phone,     href: `tel:${LIBRARY.phoneFull}` },
+  { label: 'Email',    value: LIBRARY.email,      href: `mailto:${LIBRARY.email}` },
+  { label: 'Viber/TG', value: '+380 66 145 84 84', href: ALL_LINKS.telegram },
+] as const;
+
+//  Sub-components 
+
+const BookIcon = memo(function BookIcon({ size = 24, className = '' }: { size?: number; className?: string }) {
   return (
     <svg width={size} height={size * 0.82} viewBox="0 0 28 23" fill="none" className={className}>
       <path d="M14 4C14 4 8.5 2 2.5 4.5V20C8.5 17.5 14 19.5 14 19.5" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round"/>
@@ -22,19 +43,54 @@ const BookIcon = memo(function BookIcon({ size = 24, className = "" }: { size?: 
   );
 });
 
-const SidebarLink = memo(function SidebarLink({ icon: Icon, title, url }: {
-  icon: React.ElementType; title: string; url: string;
+const SidebarLink = memo(function SidebarLink({ icon: Icon, title, subtitle, url }: {
+  icon: React.ElementType; title: string; subtitle?: string; url: string;
 }) {
   return (
     <a href={url} target="_blank" rel="noreferrer" className="sidebar-link group">
       <div className="sidebar-link-icon-wrap">
-        <Icon size={15} strokeWidth={1.6} className="sidebar-icon" />
+        <Icon size={14} strokeWidth={1.7} className="sidebar-icon" />
       </div>
-      <span className="sidebar-text">{title}</span>
-      <ExternalLink size={11} strokeWidth={1.5} className="sidebar-external opacity-0 group-hover:opacity-40 transition-opacity shrink-0" />
+      <div className="flex-1 min-w-0">
+        <div className="sidebar-text">{title}</div>
+        {subtitle && <div className="sidebar-subtext">{subtitle}</div>}
+      </div>
+      <ExternalLink size={10} strokeWidth={1.5} className="sidebar-external opacity-0 group-hover:opacity-35 transition-opacity shrink-0" />
     </a>
   );
 });
+
+const SidebarSection = memo(function SidebarSection({ label, children, defaultOpen = true }: {
+  label: string; children: React.ReactNode; defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="mb-3">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="sidebar-section-btn w-full flex items-center justify-between px-2 mb-1.5"
+      >
+        <span className="sidebar-label">{label}</span>
+        <ChevronDown size={11} strokeWidth={2} className={cn("text-[#D4A853]/30 transition-transform duration-200", open && "rotate-180")} />
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.18, ease: [0.25, 0.1, 0.25, 1] }}
+            className="overflow-hidden"
+          >
+            {children}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+});
+
+//  Props 
 
 export interface SidebarProps {
   isOpen: boolean;
@@ -49,10 +105,14 @@ export interface SidebarProps {
   loadMore?: () => void;
 }
 
+//  Sidebar 
+
 export function Sidebar({
   isOpen, setIsOpen, sidebarRef, conversations, currentConversation,
   loadConversation, deleteConversation, createNewConversation, hasMore = false, loadMore,
 }: SidebarProps) {
+  const open = isLibraryOpen();
+
   return (
     <>
       <AnimatePresence>
@@ -80,7 +140,7 @@ export function Sidebar({
             {/*  HEADER  */}
             <div className="sidebar-header shrink-0">
               <div className="sidebar-header-glow" />
-              <div className="relative flex items-start justify-between px-5 pt-5 pb-4">
+              <div className="relative flex items-start justify-between px-5 pt-5 pb-3">
                 <div className="flex items-center gap-3.5">
                   <div className="sidebar-logo-icon">
                     <BookIcon size={22} className="text-[#D4A853]" />
@@ -90,33 +150,72 @@ export function Sidebar({
                     <div className="sidebar-subtitle">БІБЛІОТЕКА</div>
                   </div>
                 </div>
-                <button
-                  onClick={() => setIsOpen(false)}
-                  className="sidebar-close-btn mt-0.5"
-                  aria-label="Закрити меню"
-                >
+                <button onClick={() => setIsOpen(false)} className="sidebar-close-btn mt-0.5" aria-label="Закрити меню">
                   <X size={15} strokeWidth={1.8} />
                 </button>
               </div>
+
+              {/* Status badge */}
+              <div className="px-5 pb-3">
+                <div className={cn("sidebar-status", open ? "sidebar-status-open" : "sidebar-status-closed")}>
+                  <span className={cn("sidebar-status-dot", open ? "bg-emerald-400" : "bg-red-400/80")} />
+                  <span>{open ? 'Зараз відкрито' : 'Зараз зачинено'}</span>
+                  <span className="sidebar-status-hours">
+                    {open ? 'до 16:45' : 'ПнПт 9:0016:45'}
+                  </span>
+                </div>
+              </div>
+
               <div className="sidebar-header-divider" />
             </div>
 
             {/*  SCROLLABLE BODY  */}
             <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0 py-3 px-3">
 
-              {/* Resources */}
-              <p className="sidebar-label px-2 mb-2">Ресурси</p>
-              <div className="space-y-0.5 mb-4">
-                {SIDEBAR_RESOURCES.map((item) => (
-                  <SidebarLink key={item.title} {...item} />
-                ))}
-              </div>
+              {/* Main resources */}
+              <SidebarSection label="Ресурси">
+                <div className="space-y-0.5">
+                  {MAIN_LINKS.map((item) => (
+                    <SidebarLink key={item.title} {...item} />
+                  ))}
+                </div>
+              </SidebarSection>
+
+              {/* Science databases */}
+              <SidebarSection label="Наукові бази" defaultOpen={false}>
+                <div className="space-y-0.5">
+                  {SCIENCE_LINKS.map((item) => (
+                    <SidebarLink key={item.title} {...item} />
+                  ))}
+                </div>
+              </SidebarSection>
+
+              {/* Contacts */}
+              <SidebarSection label="Контакти" defaultOpen={false}>
+                <div className="space-y-1 px-1 pb-1">
+                  {CONTACT_ITEMS.map((item) => (
+                    <a key={item.label} href={item.href} className="sidebar-contact-row group">
+                      <span className="sidebar-contact-label">{item.label}</span>
+                      <span className="sidebar-contact-value group-hover:text-[#D4A853] transition-colors">{item.value}</span>
+                    </a>
+                  ))}
+                  <div className="flex gap-2 mt-2">
+                    <a href={ALL_LINKS.facebook} target="_blank" rel="noreferrer" className="sidebar-social-btn" title="Facebook">
+                      <MessageCircle size={13} strokeWidth={1.6} />
+                    </a>
+                    <a href={ALL_LINKS.instagram} target="_blank" rel="noreferrer" className="sidebar-social-btn" title="Instagram">
+                      <Sparkles size={13} strokeWidth={1.6} />
+                    </a>
+                    <a href={ALL_LINKS.telegram} target="_blank" rel="noreferrer" className="sidebar-social-btn" title="Telegram">
+                      <Phone size={13} strokeWidth={1.6} />
+                    </a>
+                  </div>
+                </div>
+              </SidebarSection>
 
               {/* History */}
               {conversations.length > 0 && (
-                <>
-                  <div className="sidebar-section-divider" />
-                  <p className="sidebar-label px-2 mb-2 mt-3">Історія</p>
+                <SidebarSection label="Історія" defaultOpen={true}>
                   <div className="space-y-0.5">
                     {conversations.map((conv) => (
                       <div
@@ -129,28 +228,25 @@ export function Sidebar({
                             : "hover:bg-white/[0.04] border border-transparent"
                         )}
                       >
-                        <span className="text-[12.5px] leading-[1.4] text-white/60 group-hover:text-white/90 truncate flex-1 min-w-0 transition-colors font-normal">
+                        <span className="text-[12px] leading-[1.4] text-white/55 group-hover:text-white/85 truncate flex-1 min-w-0 transition-colors">
                           {conv.title}
                         </span>
                         <button
                           onClick={(e) => deleteConversation(conv.id, e)}
-                          className="p-1.5 text-white/0 group-hover:text-white/30 hover:!text-red-400/60 transition-all shrink-0 rounded"
+                          className="p-1.5 text-white/0 group-hover:text-white/25 hover:!text-red-400/60 transition-all shrink-0 rounded"
                           aria-label="Видалити"
                         >
-                          <Trash2 size={12} strokeWidth={1.5} />
+                          <Trash2 size={11} strokeWidth={1.5} />
                         </button>
                       </div>
                     ))}
                     {hasMore && loadMore && (
-                      <button
-                        onClick={loadMore}
-                        className="w-full py-2 text-[11px] text-[#D4A853]/35 hover:text-[#D4A853]/65 transition-colors text-center tracking-wide"
-                      >
+                      <button onClick={loadMore} className="w-full py-1.5 text-[11px] text-[#D4A853]/30 hover:text-[#D4A853]/60 transition-colors text-center tracking-wide">
                         Показати ще...
                       </button>
                     )}
                   </div>
-                </>
+                </SidebarSection>
               )}
             </div>
 
