@@ -32,7 +32,7 @@ export function ChatInput({ inputValue, setInputValue, isTyping, handleSend, onS
 
   return (
     <div className="input-area px-4 pb-5 pt-2 shrink-0">
-      <div className="input-wrap max-w-[680px] mx-auto">
+      <div className="input-wrap max-w-[900px] mx-auto">
         <div className="input-container">
           <textarea
             ref={textareaRef}
