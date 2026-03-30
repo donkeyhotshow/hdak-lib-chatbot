@@ -12,10 +12,10 @@ import { ALL_LINKS, LIBRARY, isLibraryOpen } from '@/lib/constants';
 //  Data 
 
 const MAIN_LINKS = [
-  { icon: Search,     title: 'Електронний каталог', subtitle: 'Пошук книг і видань',    url: ALL_LINKS.catalog_search },
-  { icon: BookMarked, title: 'Репозитарій ХДАК',    subtitle: 'Наукові праці та статті', url: ALL_LINKS.repository },
-  { icon: Star,       title: 'Нові надходження',    subtitle: 'Останні надходження',     url: ALL_LINKS.new_books },
-  { icon: BookOpen,   title: 'Правила бібліотеки',  subtitle: 'Умови користування',      url: ALL_LINKS.rules },
+  { icon: Search,     title: 'Електронний каталог', url: ALL_LINKS.catalog_search },
+  { icon: BookMarked, title: 'Репозитарій ХДАК',    url: ALL_LINKS.repository },
+  { icon: Star,       title: 'Нові надходження',    url: ALL_LINKS.new_books },
+  { icon: BookOpen,   title: 'Правила бібліотеки',  url: ALL_LINKS.rules },
 ] as const;
 
 const SCIENCE_LINKS = [
@@ -191,7 +191,7 @@ export function Sidebar({
               </SidebarSection>
 
               {/* Contacts */}
-              <SidebarSection label="Контакти" defaultOpen={false}>
+              <SidebarSection label="Контакти" defaultOpen={true}>
                 <div className="space-y-1 px-1 pb-1">
                   {CONTACT_ITEMS.map((item) => (
                     <a key={item.label} href={item.href} className="sidebar-contact-row group">
@@ -233,7 +233,7 @@ export function Sidebar({
                             : "hover:bg-white/[0.04] border border-transparent"
                         )}
                       >
-                        <span className="text-[12px] leading-[1.4] text-white/55 group-hover:text-white/85 truncate flex-1 min-w-0 transition-colors">
+                        <span className="text-[12.5px] leading-[1.45] text-white/65 group-hover:text-white/90 truncate flex-1 min-w-0 transition-colors">
                           {conv.title}
                         </span>
                         <button
