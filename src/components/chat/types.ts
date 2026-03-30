@@ -7,10 +7,12 @@ export interface Message {
   simulated?: boolean;
 }
 
+// Matches DB schema: conversations table has id, title, createdAt only
+// messages are loaded separately and attached client-side
 export interface Conversation {
   id: string;
   title: string;
-  messages: Message[];
   createdAt: string;
-  updatedAt: string;
+  // Populated when loading a specific conversation
+  messages?: Message[];
 }

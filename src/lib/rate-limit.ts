@@ -75,7 +75,10 @@ export async function checkRateLimit(key: string): Promise<boolean> {
  * Generate a fingerprint from the request for rate limiting.
  */
 export function generateFingerprint(req: Request): string {
-  const ip = req.headers.get("x-forwarded-for") || "unknown";
-  const ua = req.headers.get("user-agent") || "unknown";
-  return `${ip}-${ua}`;
+  const ip = (req.headers.get("x-forwarded-for") || "unknown").split(",")[0].trim();
+  const ua = req.headers.get("user-agent") || "";
+  const lang = req.headers.get("accept-language") || "";
+  const enc = req.headers.get("accept-encoding") || "";
+  // Combine multiple signals for stronger fingerprint
+  return `${ip}|${ua.substring(0, 80)}|${lang.substring(0, 20)}|${enc.substring(0, 20)}`;
 }

@@ -22,6 +22,8 @@ interface UseChatReturn {
   loadConversation: (id: string) => Promise<void>;
   createNewConversation: () => void;
   deleteConversation: (id: string, e: React.MouseEvent) => Promise<void>;
+  renameConversation: (id: string, title: string) => Promise<void>;
+  newConversationId: string | null;
   loadMoreConversations: () => Promise<void>;
   formatTime: (d: string) => string;
   copyToClipboard: (t: string) => Promise<void>;
@@ -29,7 +31,8 @@ interface UseChatReturn {
 
 export function useChat(toast: (opts: { description: string; duration?: number }) => void): UseChatReturn {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [inputValue, setInputValue] = useState('');
+  const [inputValue, setInputValueRaw] = useState('');
+  const setInputValue = useCallback((v: string) => { setInputValueRaw(v); if (v.trim()) setError(null); }, []);
   const [isTyping, setIsTyping] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -37,6 +40,7 @@ export function useChat(toast: (opts: { description: string; duration?: number }
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
   const [hasMoreConversations, setHasMoreConversations] = useState(false);
   const [isLoadingConversation, setIsLoadingConversation] = useState(false);
+  const [newConversationId, setNewConversationId] = useState<string | null>(null);
   const [convOffset, setConvOffset] = useState(0);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -118,6 +122,21 @@ export function useChat(toast: (opts: { description: string; duration?: number }
     setIsTyping(false);
     setStreamingMessageId(null);
   }, []);
+
+
+  const renameConversation = useCallback(async (id: string, title: string) => {
+    try {
+      await fetch(`/api/conversations/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title }),
+      });
+      setConversations(prev => prev.map(c => c.id === id ? { ...c, title } : c));
+      if (currentConversation?.id === id) {
+        setCurrentConversation(prev => prev ? { ...prev, title } : prev);
+      }
+    } catch {}
+  }, [currentConversation]);
 
   const deleteConversation = useCallback(async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -280,38 +299,15 @@ export function useChat(toast: (opts: { description: string; duration?: number }
           ));
 
           // Fix #1: save FAQ conversation to DB after animation completes
-          fetch('/api/chat', {
+          fetch('/api/faq-save', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              conversationId: null,
-              message: query,
-              _faqAnswer: fullContent, // hint for server
-            }),
+            body: JSON.stringify({ question: query, answer: fullContent }),
           }).then(async res => {
-            if (res.ok && res.body) {
-              // Drain the stream silently to get conversationId
-              const reader = res.body.getReader();
-              const decoder = new TextDecoder();
-              let buf = '';
-              let convId: string | null = null;
-              while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                buf += decoder.decode(value, { stream: true });
-                const lines = buf.split('\n');
-                buf = lines.pop() ?? '';
-                for (const line of lines) {
-                  if (!line.startsWith('data:')) continue;
-                  try {
-                    const chunk = JSON.parse(line.slice(5).trim());
-                    if (chunk.conversationId) convId = chunk.conversationId;
-                    if (chunk.done) break;
-                  } catch { /* skip */ }
-                }
-              }
-              if (convId) {
-                // conversation will be loaded via refreshConversations
+            if (res.ok) {
+              const data = await res.json().catch(() => ({}));
+              if (data.conversationId) {
+                setNewConversationId(data.conversationId);
                 await refreshConversations();
               }
             }
@@ -355,9 +351,9 @@ export function useChat(toast: (opts: { description: string; duration?: number }
   return {
     messages, inputValue, setInputValue, isTyping, isLoadingConversation, error,
     conversations, currentConversation, streamingMessageId,
-    hasMoreConversations, messagesEndRef,
+    hasMoreConversations, messagesEndRef, newConversationId,
     handleSend, handleFaqSend, handleStop,
-    loadConversation, createNewConversation, deleteConversation,
+    loadConversation, createNewConversation, deleteConversation, renameConversation,
     loadMoreConversations, formatTime, copyToClipboard,
   };
 }

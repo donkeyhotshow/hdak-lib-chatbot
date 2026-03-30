@@ -1,15 +1,13 @@
-﻿import React, { memo, useState } from 'react';
+import React, { memo, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Search, BookMarked, BookOpen, Clock, Phone, FlaskConical,
+  Search, BookMarked, BookOpen, Phone, FlaskConical,
   Sparkles, Star, X, Trash2, Plus, ExternalLink, ChevronDown,
-  MessageCircle, Globe
+  MessageCircle, Globe, Pencil, Check
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Conversation } from './types';
 import { ALL_LINKS, LIBRARY, isLibraryOpen } from '@/lib/constants';
-
-//  Data 
 
 const MAIN_LINKS = [
   { icon: Search,     title: 'Електронний каталог', url: ALL_LINKS.catalog_search },
@@ -19,19 +17,17 @@ const MAIN_LINKS = [
 ] as const;
 
 const SCIENCE_LINKS = [
-  { icon: FlaskConical, title: 'Scopus',         url: ALL_LINKS.scopus },
-  { icon: FlaskConical, title: 'Web of Science', url: ALL_LINKS.wos },
-  { icon: Globe,        title: 'Springer Link',  url: ALL_LINKS.springer },
+  { icon: FlaskConical, title: 'Scopus',            url: ALL_LINKS.scopus },
+  { icon: FlaskConical, title: 'Web of Science',    url: ALL_LINKS.wos },
+  { icon: Globe,        title: 'Springer Link',     url: ALL_LINKS.springer },
   { icon: Search,       title: 'Пошук наук. інфо', url: ALL_LINKS.sci_search },
 ] as const;
 
 const CONTACT_ITEMS = [
-  { label: 'Телефон',  value: LIBRARY.phone,     href: `tel:${LIBRARY.phoneFull}` },
-  { label: 'Email',    value: LIBRARY.email,      href: `mailto:${LIBRARY.email}` },
-  { label: 'Viber/TG', value: '+380 66 145 84 84', href: ALL_LINKS.telegram },
+  { label: 'Телефон',  value: LIBRARY.phone,         href: `tel:${LIBRARY.phoneFull}` },
+  { label: 'Email',    value: LIBRARY.email,          href: `mailto:${LIBRARY.email}` },
+  { label: 'Viber/TG', value: '+380 66 145 84 84',   href: ALL_LINKS.telegram },
 ] as const;
-
-//  Sub-components 
 
 const BookIcon = memo(function BookIcon({ size = 24, className = '' }: { size?: number; className?: string }) {
   return (
@@ -66,20 +62,15 @@ const SidebarSection = memo(function SidebarSection({ label, children, defaultOp
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="mb-3">
-      <button
-        onClick={() => setOpen(v => !v)}
-        className="sidebar-section-btn w-full flex items-center justify-between px-2 mb-1.5"
-      >
+      <button onClick={() => setOpen(v => !v)} className="sidebar-section-btn w-full flex items-center justify-between px-2 mb-1.5">
         <span className="sidebar-label">{label}</span>
         <ChevronDown size={11} strokeWidth={2} className={cn("text-[#D4A853]/30 transition-transform duration-200", open && "rotate-180")} />
       </button>
       <AnimatePresence initial={false}>
         {open && (
           <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.18, ease: [0.25, 0.1, 0.25, 1] }}
+            initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.18, ease: [0.25, 0.1, 0.25, 1] }}
             className="overflow-hidden"
           >
             {children}
@@ -90,7 +81,93 @@ const SidebarSection = memo(function SidebarSection({ label, children, defaultOp
   );
 });
 
-//  Props 
+// ── ConvItem: rename + confirm-delete ────────────────────────────────────────
+const ConvItem = memo(function ConvItem({ conv, isActive, isNew, onLoad, onDelete, onRename }: {
+  conv: Conversation;
+  isActive: boolean;
+  isNew: boolean;
+  onLoad: (id: string) => void;
+  onDelete: (id: string, e: React.MouseEvent) => void;
+  onRename: (id: string, title: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [editVal, setEditVal] = useState(conv.title);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const startEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditVal(conv.title);
+    setEditing(true);
+  };
+
+  const submitEdit = (e: React.MouseEvent | React.KeyboardEvent) => {
+    e.stopPropagation();
+    const trimmed = editVal.trim();
+    if (trimmed && trimmed !== conv.title) onRename(conv.id, trimmed);
+    setEditing(false);
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (confirmDelete) {
+      onDelete(conv.id, e);
+    } else {
+      setConfirmDelete(true);
+      // Auto-cancel after 3s
+      setTimeout(() => setConfirmDelete(false), 3000);
+    }
+  };
+
+  return (
+    <div
+      onClick={() => !editing && onLoad(conv.id)}
+      className={cn(
+        "group flex items-center gap-1.5 px-2 py-2 rounded-lg cursor-pointer transition-all",
+        isActive ? "bg-[#D4A853]/10 border border-[#D4A853]/15" : "hover:bg-white/[0.04] border border-transparent"
+      )}
+    >
+      {isNew && !isActive && <span className="w-1.5 h-1.5 rounded-full bg-[#D4A853]/70 shrink-0" />}
+      {editing ? (
+        <input
+          autoFocus
+          value={editVal}
+          onChange={e => setEditVal(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') submitEdit(e); if (e.key === 'Escape') setEditing(false); }}
+          onClick={e => e.stopPropagation()}
+          className="flex-1 min-w-0 bg-white/[0.06] text-white/90 text-[12px] px-1.5 py-0.5 rounded outline-none border border-[#D4A853]/30"
+        />
+      ) : (
+        <span className="text-[12.5px] leading-[1.45] text-white/65 group-hover:text-white/90 truncate flex-1 min-w-0 transition-colors">
+          {conv.title}
+        </span>
+      )}
+      <div className="flex items-center gap-0.5 shrink-0">
+        {editing ? (
+          <button onClick={submitEdit} className="p-1 text-[#D4A853]/60 hover:text-[#D4A853] transition-colors rounded" aria-label="Зберегти">
+            <Check size={11} strokeWidth={2} />
+          </button>
+        ) : (
+          <button onClick={startEdit} className="p-1 text-white/0 group-hover:text-white/20 hover:!text-[#D4A853]/60 transition-all rounded" aria-label="Перейменувати">
+            <Pencil size={10} strokeWidth={1.5} />
+          </button>
+        )}
+        <button
+          onClick={handleDeleteClick}
+          className={cn(
+            "p-1 transition-all rounded text-[10px]",
+            confirmDelete
+              ? "text-red-400/80 bg-red-400/10 font-medium px-1.5"
+              : "text-white/0 group-hover:text-white/25 hover:!text-red-400/60"
+          )}
+          aria-label={confirmDelete ? "Підтвердити видалення" : "Видалити"}
+          title={confirmDelete ? "Натисніть ще раз для підтвердження" : "Видалити"}
+        >
+          {confirmDelete ? "×?" : <Trash2 size={11} strokeWidth={1.5} />}
+        </button>
+      </div>
+    </div>
+  );
+});
 
 export interface SidebarProps {
   isOpen: boolean;
@@ -98,20 +175,28 @@ export interface SidebarProps {
   sidebarRef: React.RefObject<HTMLDivElement | null>;
   conversations: Conversation[];
   currentConversation: Conversation | null;
+  newConversationId?: string | null;
   loadConversation: (id: string) => void;
   deleteConversation: (id: string, e: React.MouseEvent) => void;
+  renameConversation: (id: string, title: string) => void;
   createNewConversation: () => void;
   hasMore?: boolean;
   loadMore?: () => void;
 }
 
-//  Sidebar 
-
-export function Sidebar({
+// Fix #15: memo on entire Sidebar
+export const Sidebar = memo(function Sidebar({
   isOpen, setIsOpen, sidebarRef, conversations, currentConversation,
-  loadConversation, deleteConversation, createNewConversation, hasMore = false, loadMore,
+  newConversationId, loadConversation, deleteConversation, renameConversation,
+  createNewConversation, hasMore = false, loadMore,
 }: SidebarProps) {
   const open = isLibraryOpen();
+  // Fix #6: search state
+  const [search, setSearch] = useState('');
+
+  const filtered = search.trim()
+    ? conversations.filter(c => c.title.toLowerCase().includes(search.toLowerCase()))
+    : conversations;
 
   return (
     <>
@@ -130,14 +215,11 @@ export function Sidebar({
         {isOpen && (
           <motion.aside
             ref={sidebarRef}
-            initial={{ x: -280, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: -280, opacity: 0 }}
+            initial={{ x: -280, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -280, opacity: 0 }}
             transition={{ duration: 0.28, ease: [0.25, 0.1, 0.25, 1] }}
             className="sidebar-premium h-full fixed md:relative z-50 flex flex-col"
           >
-
-            {/*  HEADER  */}
+            {/* HEADER */}
             <div className="sidebar-header shrink-0">
               <div className="sidebar-header-glow" />
               <div className="relative flex items-start justify-between px-5 pt-5 pb-3">
@@ -154,61 +236,42 @@ export function Sidebar({
                   <X size={15} strokeWidth={1.8} />
                 </button>
               </div>
-
-              {/* Status badge */}
               <div className="px-5 pb-3">
                 <div className={cn("sidebar-status", open ? "sidebar-status-open" : "sidebar-status-closed")}>
                   <span className={cn("sidebar-status-dot", open ? "bg-emerald-400" : "bg-red-400/80")} />
                   <span>{open ? 'Зараз відкрито' : 'Зараз зачинено'}</span>
-                  <span className="sidebar-status-hours">
-                    {open ? 'до 16:45' : 'Пн–Пт 9:00–16:45'}
-                  </span>
+                  <span className="sidebar-status-hours">{open ? 'до 16:45' : 'Пн–Пт 9:00–16:45'}</span>
                 </div>
               </div>
-
               <div className="sidebar-header-divider" />
             </div>
 
-            {/*  SCROLLABLE BODY  */}
+            {/* BODY */}
             <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0 py-3 px-3">
-
-              {/* Main resources */}
               <SidebarSection label="Ресурси">
                 <div className="space-y-0.5">
-                  {MAIN_LINKS.map((item) => (
-                    <SidebarLink key={item.title} {...item} />
-                  ))}
+                  {MAIN_LINKS.map(item => <SidebarLink key={item.title} {...item} />)}
                 </div>
               </SidebarSection>
 
-              {/* Science databases */}
               <SidebarSection label="Наукові бази" defaultOpen={false}>
                 <div className="space-y-0.5">
-                  {SCIENCE_LINKS.map((item) => (
-                    <SidebarLink key={item.title} {...item} />
-                  ))}
+                  {SCIENCE_LINKS.map(item => <SidebarLink key={item.title} {...item} />)}
                 </div>
               </SidebarSection>
 
-              {/* Contacts */}
               <SidebarSection label="Контакти" defaultOpen={true}>
                 <div className="space-y-1 px-1 pb-1">
-                  {CONTACT_ITEMS.map((item) => (
+                  {CONTACT_ITEMS.map(item => (
                     <a key={item.label} href={item.href} className="sidebar-contact-row group">
                       <span className="sidebar-contact-label">{item.label}</span>
                       <span className="sidebar-contact-value group-hover:text-[#D4A853] transition-colors">{item.value}</span>
                     </a>
                   ))}
                   <div className="flex gap-2 mt-2">
-                    <a href={ALL_LINKS.facebook} target="_blank" rel="noreferrer" className="sidebar-social-btn" title="Facebook">
-                      <MessageCircle size={13} strokeWidth={1.6} />
-                    </a>
-                    <a href={ALL_LINKS.instagram} target="_blank" rel="noreferrer" className="sidebar-social-btn" title="Instagram">
-                      <Sparkles size={13} strokeWidth={1.6} />
-                    </a>
-                    <a href={ALL_LINKS.telegram} target="_blank" rel="noreferrer" className="sidebar-social-btn" title="Telegram">
-                      <Phone size={13} strokeWidth={1.6} />
-                    </a>
+                    <a href={ALL_LINKS.facebook} target="_blank" rel="noreferrer" className="sidebar-social-btn" title="Facebook"><MessageCircle size={13} strokeWidth={1.6} /></a>
+                    <a href={ALL_LINKS.instagram} target="_blank" rel="noreferrer" className="sidebar-social-btn" title="Instagram"><Sparkles size={13} strokeWidth={1.6} /></a>
+                    <a href={ALL_LINKS.telegram} target="_blank" rel="noreferrer" className="sidebar-social-btn" title="Telegram"><Phone size={13} strokeWidth={1.6} /></a>
                   </div>
                   <a href={ALL_LINKS.main} target="_blank" rel="noreferrer" className="sidebar-website-btn">
                     <Globe size={12} strokeWidth={1.6} />
@@ -218,34 +281,36 @@ export function Sidebar({
                 </div>
               </SidebarSection>
 
-              {/* History */}
+              {/* Fix #6: History with search */}
               {conversations.length > 0 && (
                 <SidebarSection label="Історія" defaultOpen={true}>
+                  {conversations.length >= 5 && (
+                    <div className="relative mb-1.5 px-1">
+                      <Search size={11} strokeWidth={1.8} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/25 pointer-events-none" />
+                      <input
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                        placeholder="Пошук..."
+                        className="w-full bg-white/[0.04] border border-white/[0.06] rounded-lg pl-7 pr-3 py-1.5 text-[11.5px] text-white/60 placeholder:text-white/25 outline-none focus:border-[#D4A853]/20 transition-colors"
+                      />
+                    </div>
+                  )}
                   <div className="space-y-0.5">
-                    {conversations.map((conv) => (
-                      <div
+                    {filtered.map(conv => (
+                      <ConvItem
                         key={conv.id}
-                        onClick={() => loadConversation(conv.id)}
-                        className={cn(
-                          "group flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all",
-                          currentConversation?.id === conv.id
-                            ? "bg-[#D4A853]/10 border border-[#D4A853]/15"
-                            : "hover:bg-white/[0.04] border border-transparent"
-                        )}
-                      >
-                        <span className="text-[12.5px] leading-[1.45] text-white/65 group-hover:text-white/90 truncate flex-1 min-w-0 transition-colors">
-                          {conv.title}
-                        </span>
-                        <button
-                          onClick={(e) => deleteConversation(conv.id, e)}
-                          className="p-1.5 text-white/0 group-hover:text-white/25 hover:!text-red-400/60 transition-all shrink-0 rounded"
-                          aria-label="Видалити"
-                        >
-                          <Trash2 size={11} strokeWidth={1.5} />
-                        </button>
-                      </div>
+                        conv={conv}
+                        isActive={currentConversation?.id === conv.id}
+                        isNew={conv.id === newConversationId}
+                        onLoad={loadConversation}
+                        onDelete={deleteConversation}
+                        onRename={renameConversation}
+                      />
                     ))}
-                    {hasMore && loadMore && (
+                    {filtered.length === 0 && search && (
+                      <p className="text-[11px] text-white/25 text-center py-2">Нічого не знайдено</p>
+                    )}
+                    {hasMore && loadMore && !search && (
                       <button onClick={loadMore} className="w-full py-1.5 text-[11px] text-[#D4A853]/30 hover:text-[#D4A853]/60 transition-colors text-center tracking-wide">
                         Показати ще...
                       </button>
@@ -255,20 +320,16 @@ export function Sidebar({
               )}
             </div>
 
-            {/*  FOOTER  */}
+            {/* FOOTER */}
             <div className="px-3 pb-3 pt-2 shrink-0 border-t border-white/[0.04]">
-              <button
-                onClick={createNewConversation}
-                className="btn-new-chat w-full py-3 rounded-xl text-[11px] flex items-center justify-center gap-2 tracking-[0.12em]"
-              >
+              <button onClick={createNewConversation} className="btn-new-chat w-full py-3 rounded-xl text-[11px] flex items-center justify-center gap-2 tracking-[0.12em]">
                 <Plus size={14} strokeWidth={2.5} />
                 <span>НОВИЙ ЧАТ</span>
               </button>
             </div>
-
           </motion.aside>
         )}
       </AnimatePresence>
     </>
   );
-}
+});

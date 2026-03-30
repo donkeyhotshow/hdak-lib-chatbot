@@ -22,7 +22,8 @@ export default function ChatPage() {
     conversations, currentConversation, streamingMessageId,
     hasMoreConversations, messagesEndRef,
     handleSend, handleFaqSend, handleStop,
-    loadConversation, createNewConversation, deleteConversation,
+    loadConversation, createNewConversation, deleteConversation, renameConversation,
+    newConversationId,
     loadMoreConversations, formatTime, copyToClipboard,
   } = useChat(toast);
 
@@ -48,6 +49,8 @@ export default function ChatPage() {
         currentConversation={currentConversation}
         loadConversation={loadConversation}
         deleteConversation={deleteConversation}
+        renameConversation={renameConversation}
+        newConversationId={newConversationId}
         createNewConversation={createNewConversation}
         hasMore={hasMoreConversations}
         loadMore={loadMoreConversations}

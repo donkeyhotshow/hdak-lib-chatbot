@@ -43,7 +43,7 @@ export const FAQ_RESPONSES: Record<string, FaqResponse> = {
       ``,
       `_Якщо маєте додаткові запитання — просто напишіть, я допоможу._`,
     ].join('\n'),
-    thinkDelay: randomThink(),
+    thinkDelay: 0, // computed at call time
     charsPerStep: 5,
     stepDelay: 12,
   },
@@ -74,7 +74,7 @@ export const FAQ_RESPONSES: Record<string, FaqResponse> = {
       ``,
       `_Якщо виникнуть питання — звертайтеся, я завжди поруч._`,
     ].join('\n'),
-    thinkDelay: randomThink(),
+    thinkDelay: 0, // computed at call time
     charsPerStep: 5,
     stepDelay: 12,
   },
@@ -105,7 +105,7 @@ export const FAQ_RESPONSES: Record<string, FaqResponse> = {
       ``,
       `_Якщо не можете знайти потрібну книгу — напишіть мені назву або тему, і я спробую допомогти._`,
     ].join('\n'),
-    thinkDelay: randomThink(),
+    thinkDelay: 0, // computed at call time
     charsPerStep: 5,
     stepDelay: 12,
   },
@@ -140,7 +140,7 @@ export const FAQ_RESPONSES: Record<string, FaqResponse> = {
       ``,
       `_Оберіть зручний для вас спосіб — ми завжди раді допомогти!_`,
     ].join('\n'),
-    thinkDelay: randomThink(),
+    thinkDelay: 0, // computed at call time
     charsPerStep: 5,
     stepDelay: 12,
   },
@@ -175,7 +175,7 @@ export const FAQ_RESPONSES: Record<string, FaqResponse> = {
       ``,
       `_Дотримання правил — запорука комфорту для всіх читачів. Дякуємо за розуміння!_`,
     ].join('\n'),
-    thinkDelay: randomThink(),
+    thinkDelay: 0, // computed at call time
     charsPerStep: 5,
     stepDelay: 12,
   },
@@ -211,7 +211,7 @@ export const FAQ_RESPONSES: Record<string, FaqResponse> = {
       ``,
       `_Потрібна допомога з пошуком наукової інформації? Напишіть — підкажу._`,
     ].join('\n'),
-    thinkDelay: randomThink(),
+    thinkDelay: 0, // computed at call time
     charsPerStep: 5,
     stepDelay: 12,
   },
@@ -227,5 +227,6 @@ export function getFaqResponse(query: string): (Omit<FaqResponse, 'content'> & {
   return {
     ...entry,
     content: typeof entry.content === 'function' ? entry.content() : entry.content,
+    thinkDelay: randomThink(), // Fix #14: fresh random on each call
   };
 }

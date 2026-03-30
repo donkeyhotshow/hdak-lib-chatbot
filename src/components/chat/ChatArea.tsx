@@ -144,7 +144,7 @@ export function ChatArea({ messages, isTyping, isLoadingConversation, error, han
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-3 py-4 custom-scrollbar">
+    <div className="flex-1 overflow-y-auto px-3 py-4 custom-scrollbar" aria-live="polite" aria-label="Повідомлення чату">
       <div className="w-full max-w-[900px] mx-auto space-y-3">
         {isLoadingConversation && (
           <div className="flex items-center gap-2 px-1 py-2 text-[#7A756F]/50 text-[13px]">
