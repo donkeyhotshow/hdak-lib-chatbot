@@ -1,4 +1,4 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
@@ -114,96 +114,146 @@
 }
 
 /* ============================================
-   SIDEBAR - ACADEMIC DARK GLASS v13.0
+   SIDEBAR - PREMIUM DARK v14.0
    ============================================ */
 
 .sidebar-premium {
-  width: 280px;
-  min-width: 280px;
-  max-width: 280px;
+  width: 272px;
+  min-width: 272px;
+  max-width: 272px;
   flex-shrink: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(18, 14, 10, 0.98) 0%,
-    rgba(13, 11, 9, 0.97) 60%,
-    rgba(10, 8, 6, 0.98) 100%
-  );
-  backdrop-filter: blur(40px);
-  -webkit-backdrop-filter: blur(40px);
-  border-right: 1px solid rgba(212, 168, 83, 0.08);
-  box-shadow:
-    4px 0 40px rgba(0, 0, 0, 0.18),
-    inset -1px 0 0 rgba(212, 168, 83, 0.04);
+  background: #0E0B08;
+  border-right: 1px solid rgba(212, 168, 83, 0.07);
+  box-shadow: 6px 0 48px rgba(0, 0, 0, 0.22);
+}
+
+.sidebar-header {
+  position: relative;
+  overflow: hidden;
+}
+
+.sidebar-header-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 200% 120% at 30% -10%, rgba(212, 168, 83, 0.09) 0%, transparent 65%);
+  pointer-events: none;
+}
+
+.sidebar-logo-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+  background: linear-gradient(145deg, rgba(212, 168, 83, 0.14) 0%, rgba(184, 120, 48, 0.06) 100%);
+  border: 1px solid rgba(212, 168, 83, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 12px rgba(212, 168, 83, 0.08), inset 0 1px 0 rgba(255,255,255,0.04);
+}
+
+.sidebar-subtitle {
+  font-size: 8.5px;
+  letter-spacing: 0.28em;
+  color: rgba(212, 168, 83, 0.38);
+  font-weight: 600;
+  margin-top: 3px;
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+.sidebar-header-divider {
+  height: 1px;
+  margin: 0 16px;
+  background: linear-gradient(90deg, transparent, rgba(212, 168, 83, 0.12) 40%, rgba(212, 168, 83, 0.12) 60%, transparent);
+}
+
+.sidebar-section-divider {
+  height: 1px;
+  margin: 0 4px;
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .sidebar-link {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
-  border-radius: 10px;
-  transition: all 0.2s ease;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  transition: background 0.15s ease, border-color 0.15s ease;
   text-decoration: none;
   border: 1px solid transparent;
 }
 
 .sidebar-link:hover {
-  background: rgba(212, 168, 83, 0.06);
-  border-color: rgba(212, 168, 83, 0.1);
+  background: rgba(212, 168, 83, 0.07);
+  border-color: rgba(212, 168, 83, 0.09);
 }
 
-.sidebar-link:hover .sidebar-icon {
-  color: #D4A853;
+.sidebar-link:hover .sidebar-icon { color: #D4A853; }
+.sidebar-link:hover .sidebar-text { color: rgba(255, 255, 255, 0.92); }
+
+.sidebar-link-icon-wrap {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: rgba(212, 168, 83, 0.07);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s ease;
 }
 
-.sidebar-link:hover .sidebar-text {
-  color: rgba(255, 255, 255, 0.95);
-}
+.sidebar-link:hover .sidebar-link-icon-wrap { background: rgba(212, 168, 83, 0.12); }
 
 .sidebar-icon {
-  width: 18px;
-  height: 18px;
-  color: rgba(212, 168, 83, 0.65);
-  transition: color 0.2s ease;
+  color: rgba(212, 168, 83, 0.6);
+  transition: color 0.15s ease;
   flex-shrink: 0;
 }
 
 .sidebar-text {
   font-size: 13px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.75);
-  transition: color 0.2s ease;
+  color: rgba(255, 255, 255, 0.65);
+  transition: color 0.15s ease;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   flex: 1;
   min-width: 0;
+  letter-spacing: 0.005em;
 }
 
 .sidebar-label {
+  display: block;
   font-size: 9px;
   text-transform: uppercase;
-  letter-spacing: 0.22em;
-  color: rgba(212, 168, 83, 0.4);
-  padding: 0 14px;
-  margin-bottom: 8px;
+  letter-spacing: 0.24em;
+  color: rgba(212, 168, 83, 0.35);
   font-weight: 700;
+  font-family: var(--font-sans), system-ui, sans-serif;
 }
 
 .sidebar-close-btn {
-  padding: 8px;
+  width: 30px;
+  height: 30px;
   border-radius: 8px;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.28);
   background: transparent;
-  border: none;
+  border: 1px solid transparent;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
 }
 
 .sidebar-close-btn:hover {
-  color: rgba(255, 255, 255, 0.95);
-  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.06);
 }
 
 /* ============================================
@@ -231,101 +281,43 @@
 }
 
 /* ============================================
-   ACTION CARDS - SOFT LIFT GLASS v13.0
+   ACTION CHIPS - COMPACT PILL BUTTONS
    ============================================ */
 
-.action-card {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 12px 14px;
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(184, 120, 48, 0.08);
-  border-radius: 14px;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 8px rgba(42, 37, 32, 0.03);
-  text-align: left;
-}
-
-@media (min-width: 480px) {
-  .action-card {
-    gap: 14px;
-    padding: 16px 18px;
-    border-radius: 16px;
-  }
-}
-
-.action-card:hover {
-  background: rgba(255, 255, 255, 0.85);
-  border-color: rgba(184, 120, 48, 0.15);
-  box-shadow: 
-    0 8px 24px rgba(184, 120, 48, 0.08),
-    0 2px 8px rgba(42, 37, 32, 0.04);
-  transform: translateY(-4px);
-}
-
-.action-card:hover .action-card-icon {
-  color: #B87830;
-  transform: scale(1.05);
-}
-
-.action-card-icon-wrap {
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, rgba(184, 120, 48, 0.1) 0%, rgba(212, 168, 83, 0.05) 100%);
-  display: flex;
+.action-chip {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: all 0.25s ease;
+  gap: 7px;
+  padding: 8px 14px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(184, 120, 48, 0.1);
+  border-radius: 100px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+  box-shadow: 0 1px 4px rgba(42, 37, 32, 0.04);
+  white-space: nowrap;
 }
 
-@media (min-width: 480px) {
-  .action-card-icon-wrap {
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
-  }
+.action-chip:hover {
+  background: rgba(255, 255, 255, 0.96);
+  border-color: rgba(184, 120, 48, 0.22);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(184, 120, 48, 0.1);
 }
 
-.action-card:hover .action-card-icon-wrap {
-  background: linear-gradient(135deg, rgba(184, 120, 48, 0.15) 0%, rgba(212, 168, 83, 0.08) 100%);
+.action-chip:active {
+  transform: translateY(0);
 }
 
-.action-card-icon {
-  width: 20px;
-  height: 20px;
+.action-chip-icon {
   color: rgba(184, 120, 48, 0.7);
-  transition: all 0.25s ease;
 }
 
-.action-card-title {
+.action-chip-text {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   color: #2A2520;
-  margin-bottom: 1px;
-  letter-spacing: 0.01em;
-}
-
-.action-card-subtitle {
-  font-size: 11px;
-  color: #7A756F;
-  line-height: 1.3;
-}
-
-@media (min-width: 480px) {
-  .action-card-title {
-    font-size: 14px;
-    margin-bottom: 2px;
-  }
-  .action-card-subtitle {
-    font-size: 12px;
-    line-height: 1.4;
-  }
+  letter-spacing: 0.005em;
 }
 
 /* ============================================
@@ -342,19 +334,16 @@
 }
 
 .input-container {
-  background: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.88);
   border: 1px solid rgba(184, 120, 48, 0.1);
   border-radius: 100px;
-  box-shadow: none;
-  transition: all 0.3s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .input-container:focus-within {
-  background: rgba(255, 255, 255, 0.9);
-  border-color: rgba(184, 120, 48, 0.2);
-  box-shadow: 0 0 0 3px rgba(184, 120, 48, 0.05);
+  background: #fff;
+  border-color: rgba(184, 120, 48, 0.25);
+  box-shadow: 0 0 0 3px rgba(184, 120, 48, 0.06);
 }
 
 /* ============================================
@@ -408,12 +397,11 @@
 }
 
 .message-assistant {
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(12px);
+  background: #fff;
   border: 1px solid rgba(42, 37, 32, 0.06);
   color: #2A2520;
   border-radius: 18px 18px 18px 4px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.04);
   word-break: break-word;
 }
 
@@ -498,20 +486,20 @@
    ============================================ */
 
 .quick-chip {
-  padding: 10px 18px;
-  font-size: 13px;
+  padding: 6px 14px;
+  font-size: 12px;
   font-weight: 500;
   border-radius: 100px;
   background: rgba(184, 120, 48, 0.06);
   color: #B87830;
   border: 1px solid rgba(184, 120, 48, 0.12);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 
 .quick-chip:hover {
-  background: rgba(184, 120, 48, 0.12);
-  border-color: rgba(184, 120, 48, 0.25);
+  background: rgba(184, 120, 48, 0.11);
+  border-color: rgba(184, 120, 48, 0.22);
 }
 
 /* ============================================
@@ -582,20 +570,37 @@
    RESPONSIVE
    ============================================ */
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .sidebar-premium {
     position: fixed;
     left: 0;
     top: 0;
     bottom: 0;
     z-index: 50;
+    width: 260px;
+    min-width: 260px;
+    max-width: 260px;
   }
-  
+
   .hero-title {
-    font-size: 22px;
+    font-size: 20px;
   }
-  
+
   .logo-text {
-    font-size: 22px;
+    font-size: 20px;
+  }
+
+  .action-chip {
+    padding: 7px 12px;
+  }
+
+  .action-chip-text {
+    font-size: 12px;
+  }
+}
+
+@media (min-width: 768px) {
+  .hero-title {
+    font-size: 24px;
   }
 }
