@@ -210,6 +210,11 @@ export function Sidebar({
                       <Phone size={13} strokeWidth={1.6} />
                     </a>
                   </div>
+                  <a href={ALL_LINKS.main} target="_blank" rel="noreferrer" className="sidebar-website-btn">
+                    <Globe size={12} strokeWidth={1.6} />
+                    <span>Сайт бібліотеки</span>
+                    <ExternalLink size={10} strokeWidth={1.5} className="opacity-40 ml-auto" />
+                  </a>
                 </div>
               </SidebarSection>
 
