@@ -8,7 +8,7 @@ import { Message } from './types';
 const QUICK_MENU = [
   { id: 'schedule', title: 'Графік роботи', icon: Clock, kw: 'Який графік роботи бібліотеки?' },
   { id: 'register', title: 'Як записатися', icon: ClipboardList, kw: 'Як записатися до бібліотеки?' },
-  { id: 'catalog', title: 'Пошук у каталозі', icon: Search, kw: 'Як знайти книгу в каталозі?' },
+  { id: 'catalog', title: 'Каталог', icon: Search, kw: 'Як знайти книгу в каталозі?' },
   { id: 'contacts', title: 'Контакти', icon: MapPin, kw: 'Які контакти бібліотеки?' },
   { id: 'rules', title: 'Правила', icon: BookOpen, kw: 'Які правила користування бібліотекою?' },
   { id: 'resources', title: 'Ресурси', icon: Globe, kw: 'Які електронні ресурси доступні?' },
@@ -21,12 +21,11 @@ const QUICK_CHIPS = [
 ] as const;
 
 const containerVariants: Variants = {
-  animate: { transition: { staggerChildren: 0.03, delayChildren: 0.04 } },
+  animate: { transition: { staggerChildren: 0.04, delayChildren: 0.05 } },
 };
-
 const itemVariants: Variants = {
-  initial: { opacity: 0, y: 8 },
-  animate: { opacity: 1, y: 0, transition: { duration: 0.25, ease: [0.25, 0.1, 0.25, 1] } },
+  initial: { opacity: 0, y: 6 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.22, ease: [0.25, 0.1, 0.25, 1] } },
 };
 
 const BookIcon = memo(function BookIcon({ size = 24, className = '' }: { size?: number; className?: string }) {
@@ -39,7 +38,7 @@ const BookIcon = memo(function BookIcon({ size = 24, className = '' }: { size?: 
   );
 });
 
-const ActionChip = memo(function ActionChip({ icon: Icon, title, kw, isTyping, onClick }: {
+const QuickBtn = memo(function QuickBtn({ icon: Icon, title, kw, isTyping, onClick }: {
   icon: React.ElementType; title: string; kw: string; isTyping: boolean; onClick: (kw: string) => void;
 }) {
   return (
@@ -47,13 +46,14 @@ const ActionChip = memo(function ActionChip({ icon: Icon, title, kw, isTyping, o
       variants={itemVariants}
       onClick={() => onClick(kw)}
       disabled={isTyping}
-      className='action-chip disabled:opacity-40 disabled:cursor-not-allowed'
+      className="quick-btn disabled:opacity-40 disabled:cursor-not-allowed"
     >
-      <Icon size={13} strokeWidth={1.8} className='action-chip-icon shrink-0' />
-      <span className='action-chip-text'>{title}</span>
+      <Icon size={12} strokeWidth={1.8} className="quick-btn-icon shrink-0" />
+      <span className="quick-btn-text">{title}</span>
     </motion.button>
   );
 });
+
 const markdownComponents = {
   p: (props: React.HTMLAttributes<HTMLParagraphElement>) => <p className="mb-2 last:mb-0 leading-relaxed" {...props} />,
   ul: (props: React.HTMLAttributes<HTMLUListElement>) => <ul className="list-disc pl-4 my-2 space-y-1" {...props} />,
@@ -68,7 +68,10 @@ const markdownComponents = {
       : <code className={cn("block bg-[#1A1612]/5 p-3 rounded-lg text-[13px] overflow-x-auto", className)} {...rest} />;
   },
 };
-const MessageBubble = memo(function MessageBubble({ msg, isStreaming, formatTime, copyToClipboard }: { msg: Message; isStreaming: boolean; formatTime: (d: string) => string; copyToClipboard: (t: string) => void; }) {
+
+const MessageBubble = memo(function MessageBubble({ msg, isStreaming, formatTime, copyToClipboard }: {
+  msg: Message; isStreaming: boolean; formatTime: (d: string) => string; copyToClipboard: (t: string) => void;
+}) {
   const isUser = msg.role === 'USER';
   return (
     <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }} className={cn("flex gap-2.5", isUser && "flex-row-reverse")}>
@@ -105,6 +108,7 @@ const TypingIndicator = memo(function TypingIndicator() {
     </motion.div>
   );
 });
+
 interface ChatAreaProps {
   messages: Message[];
   isTyping: boolean;
@@ -119,24 +123,35 @@ interface ChatAreaProps {
 
 export function ChatArea({ messages, isTyping, error, handleSend, handleFaqSend, streamingMessageId, messagesEndRef, formatTime, copyToClipboard }: ChatAreaProps) {
   const showChips = !isTyping && messages.length > 0 && messages.length <= 2 && messages[0].role === 'USER';
-  if (messages.length === 0) { return (
-    <motion.div variants={containerVariants} initial="initial" animate="animate" className="flex-1 overflow-y-auto custom-scrollbar flex flex-col items-center justify-center px-4 py-4">
-      <div className="w-full max-w-[560px] flex flex-col items-center">
-        <motion.div variants={itemVariants} className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#B87830]/10 to-[#D4A853]/5 flex items-center justify-center mb-3 border border-[#B87830]/10 animate-subtle-float shrink-0"><BookIcon size={18} className="text-[#B87830]" /></motion.div>
-        <motion.h1 variants={itemVariants} className="hero-title mb-1 text-center">Ваш особистий асистент</motion.h1>
-        <motion.p variants={itemVariants} className="hero-subtitle mb-5 text-center">Оберіть тему або напишіть запитання</motion.p>
-        {error && <motion.div variants={itemVariants} className="mb-3 w-full p-3 bg-red-50/90 rounded-xl text-red-600 text-[13px] border border-red-100">{error}</motion.div>}
-        <motion.div variants={containerVariants} className="w-full flex flex-wrap gap-2 justify-center">
-          {QUICK_MENU.map((item) => <ActionChip key={item.id} {...item} isTyping={isTyping} onClick={handleFaqSend} />)}
-        </motion.div>
-      </div>
-    </motion.div>); }
+
+  if (messages.length === 0) {
+    return (
+      <motion.div variants={containerVariants} initial="initial" animate="animate" className="flex-1 overflow-y-auto custom-scrollbar flex flex-col items-center justify-center px-4 py-6">
+        <div className="w-full max-w-[520px] flex flex-col items-center">
+          <motion.div variants={itemVariants} className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#B87830]/10 to-[#D4A853]/5 flex items-center justify-center mb-3 border border-[#B87830]/10 animate-subtle-float shrink-0">
+            <BookIcon size={18} className="text-[#B87830]" />
+          </motion.div>
+          <motion.h1 variants={itemVariants} className="hero-title mb-1 text-center">Ваш особистий асистент</motion.h1>
+          <motion.p variants={itemVariants} className="hero-subtitle mb-5 text-center">Оберіть тему або напишіть запитання</motion.p>
+          {error && <motion.div variants={itemVariants} className="mb-3 w-full p-3 bg-red-50/90 rounded-xl text-red-600 text-[13px] border border-red-100">{error}</motion.div>}
+          <motion.div variants={containerVariants} className="flex flex-wrap gap-2 justify-center">
+            {QUICK_MENU.map((item) => <QuickBtn key={item.id} {...item} isTyping={isTyping} onClick={handleFaqSend} />)}
+          </motion.div>
+        </div>
+      </motion.div>
+    );
+  }
+
   return (
     <div className="flex-1 overflow-y-auto px-3 py-4 custom-scrollbar">
       <div className="max-w-[680px] mx-auto space-y-3">
         {messages.map((msg) => <MessageBubble key={msg.id} msg={msg} isStreaming={msg.id === streamingMessageId} formatTime={formatTime} copyToClipboard={copyToClipboard} />)}
         <AnimatePresence>{isTyping && <TypingIndicator />}</AnimatePresence>
-        <AnimatePresence>{showChips && (<motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-wrap gap-1.5 pt-1 pl-9">{QUICK_CHIPS.map((chip) => <button key={chip.id} onClick={() => handleFaqSend(chip.kw)} className="quick-chip">{chip.title}</button>)}</motion.div>)}</AnimatePresence>
+        <AnimatePresence>{showChips && (
+          <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-wrap gap-1.5 pt-1 pl-9">
+            {QUICK_CHIPS.map((chip) => <button key={chip.id} onClick={() => handleFaqSend(chip.kw)} className="quick-chip">{chip.title}</button>)}
+          </motion.div>
+        )}</AnimatePresence>
         <div ref={messagesEndRef} />
       </div>
     </div>

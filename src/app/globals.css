@@ -281,108 +281,140 @@
 }
 
 /* ============================================
-   ACTION CHIPS - COMPACT PILL BUTTONS
+   QUICK BUTTONS - COMPACT PILLS
    ============================================ */
 
-.action-chip {
+.quick-btn {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 8px 14px;
-  background: rgba(255, 255, 255, 0.82);
-  border: 1px solid rgba(184, 120, 48, 0.1);
+  gap: 6px;
+  padding: 6px 13px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(184, 120, 48, 0.12);
   border-radius: 100px;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
-  box-shadow: 0 1px 4px rgba(42, 37, 32, 0.04);
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
   white-space: nowrap;
 }
 
-.action-chip:hover {
+.quick-btn:hover {
   background: rgba(255, 255, 255, 0.96);
-  border-color: rgba(184, 120, 48, 0.22);
+  border-color: rgba(184, 120, 48, 0.28);
+  box-shadow: 0 2px 10px rgba(184, 120, 48, 0.1);
   transform: translateY(-1px);
-  box-shadow: 0 3px 10px rgba(184, 120, 48, 0.1);
 }
 
-.action-chip:active {
-  transform: translateY(0);
-}
+.quick-btn:active { transform: translateY(0); }
+.quick-btn-icon { color: rgba(184, 120, 48, 0.65); }
+.quick-btn:hover .quick-btn-icon { color: #B87830; }
 
-.action-chip-icon {
-  color: rgba(184, 120, 48, 0.7);
-}
-
-.action-chip-text {
-  font-size: 13px;
+.quick-btn-text {
+  font-size: 12.5px;
   font-weight: 500;
   color: #2A2520;
   letter-spacing: 0.005em;
 }
 
 /* ============================================
-   INPUT FIELD - WEIGHTLESS GLASS v13.0
+   INPUT FIELD - PREMIUM v14
    ============================================ */
 
 .input-area {
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    rgba(253, 251, 247, 0.6) 40%,
-    rgba(250, 248, 242, 0.9) 100%
-  );
+  background: linear-gradient(180deg, transparent 0%, rgba(253,251,247,0.7) 35%, rgba(250,248,242,0.95) 100%);
+  backdrop-filter: blur(8px);
 }
 
+.input-wrap { position: relative; }
+
 .input-container {
-  background: rgba(255, 255, 255, 0.88);
-  border: 1px solid rgba(184, 120, 48, 0.1);
-  border-radius: 100px;
+  background: #fff;
+  border: 1px solid rgba(184, 120, 48, 0.13);
+  border-radius: 18px;
+  box-shadow: 0 1px 3px rgba(42,37,32,0.04), 0 4px 16px rgba(42,37,32,0.04);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  overflow: hidden;
 }
 
 .input-container:focus-within {
-  background: #fff;
-  border-color: rgba(184, 120, 48, 0.25);
-  box-shadow: 0 0 0 3px rgba(184, 120, 48, 0.06);
+  border-color: rgba(184, 120, 48, 0.28);
+  box-shadow: 0 1px 3px rgba(42,37,32,0.04), 0 4px 20px rgba(184,120,48,0.08), 0 0 0 3px rgba(184,120,48,0.05);
+}
+
+.input-textarea {
+  display: block;
+  width: 100%;
+  background: transparent;
+  outline: none;
+  font-size: 14px;
+  color: #2A2520;
+  resize: none;
+  padding: 14px 18px 6px;
+  max-height: 140px;
+  line-height: 1.6;
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+.input-textarea::placeholder { color: rgba(122, 117, 111, 0.4); }
+
+.input-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px 10px 18px;
+  gap: 8px;
+}
+
+.input-hint {
+  font-size: 10.5px;
+  color: rgba(122, 117, 111, 0.35);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.input-counter {
+  font-size: 10.5px;
+  color: rgba(122, 117, 111, 0.45);
+  white-space: nowrap;
 }
 
 /* ============================================
-   SEND BUTTON - CIRCLE GLYPH
+   SEND BUTTON
    ============================================ */
 
 .send-btn {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(42, 37, 32, 0.06);
-  color: rgba(42, 37, 32, 0.35);
+  background: rgba(42, 37, 32, 0.05);
+  color: rgba(42, 37, 32, 0.28);
   border: none;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
 .send-btn:hover:not(:disabled) {
-  background: rgba(42, 37, 32, 0.1);
+  background: rgba(42, 37, 32, 0.08);
+  color: rgba(42, 37, 32, 0.5);
 }
 
 .send-btn.active {
   background: linear-gradient(135deg, #D4A853 0%, #B87830 100%);
-  color: white;
-  box-shadow: 0 0 20px rgba(184, 120, 48, 0.25);
+  color: #fff;
+  box-shadow: 0 2px 12px rgba(184, 120, 48, 0.3);
 }
 
 .send-btn.active:hover {
-  box-shadow: 0 0 28px rgba(184, 120, 48, 0.35);
-  transform: scale(1.05);
+  box-shadow: 0 3px 16px rgba(184, 120, 48, 0.4);
+  transform: scale(1.04);
 }
 
-.send-btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-}
+.send-btn:disabled { cursor: not-allowed; opacity: 0.4; }
 
 /* ============================================
    MESSAGE BUBBLES
