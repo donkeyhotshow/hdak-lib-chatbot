@@ -110,9 +110,6 @@ Springer Link (повнотекстові ресурси): https://link.springer
 7. Надавайте конкретні посилання у відповідях.`;
   _promptCache = { value: result, ts: now };
   return result;
-  const prompt = `Ви — інтелектуальний асистент`;
-  _promptCache = { value: result, ts: now };
-  return result;
 }
 
 // ─── LLM config ──────────────────────────────────────────────────────────────

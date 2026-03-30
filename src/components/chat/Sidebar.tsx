@@ -161,7 +161,7 @@ export function Sidebar({
                   <span className={cn("sidebar-status-dot", open ? "bg-emerald-400" : "bg-red-400/80")} />
                   <span>{open ? 'Зараз відкрито' : 'Зараз зачинено'}</span>
                   <span className="sidebar-status-hours">
-                    {open ? 'до 16:45' : 'ПнПт 9:0016:45'}
+                    {open ? 'до 16:45' : 'Пн–Пт 9:00–16:45'}
                   </span>
                 </div>
               </div>

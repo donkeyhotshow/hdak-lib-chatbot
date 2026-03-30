@@ -211,11 +211,7 @@ export function useChat(toast: (opts: { description: string; duration?: number }
       }
 
       // Fix #1: refresh conversations after real API call
-      await refreshConversations();
-      if (convId) {
-        // Update currentConversation without re-fetching all messages (we already have them)
-        await loadConversation(convId);
-      }
+      await refreshConversations();
 
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') return;

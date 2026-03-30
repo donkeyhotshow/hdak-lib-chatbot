@@ -6,8 +6,8 @@
 import { LIBRARY, ALL_LINKS, isLibraryOpen } from './constants';
 
 export interface FaqResponse {
-  /** Повний текст відповіді у Markdown */
-  content: string;
+  /** Повний текст відповіді у Markdown (або функція що повертає актуальний текст) */
+  content: string | (() => string);
   /** Затримка перед початком друку (мс) — імітація «думання» */
   thinkDelay: number;
   /** Швидкість друку: символів за крок */
@@ -24,7 +24,7 @@ export const FAQ_RESPONSES: Record<string, FaqResponse> = {
 
   // ─── Графік роботи ───────────────────────────────────────────
   'Який графік роботи бібліотеки?': {
-    content: [
+    content: () => [
       `Звісно, ось актуальний графік роботи бібліотеки ХДАК:`,
       ``,
       `| День | Години роботи |`,
@@ -220,7 +220,12 @@ export const FAQ_RESPONSES: Record<string, FaqResponse> = {
 /**
  * Перевіряє, чи є текст запитом із готовою відповіддю.
  */
-export function getFaqResponse(query: string): FaqResponse | null {
+export function getFaqResponse(query: string): (Omit<FaqResponse, 'content'> & { content: string }) | null {
   const trimmed = query.trim();
-  return FAQ_RESPONSES[trimmed] ?? null;
+  const entry = FAQ_RESPONSES[trimmed];
+  if (!entry) return null;
+  return {
+    ...entry,
+    content: typeof entry.content === 'function' ? entry.content() : entry.content,
+  };
 }
