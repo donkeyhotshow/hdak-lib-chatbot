@@ -136,18 +136,20 @@ export function ChatArea({ messages, isTyping, error, handleSend, handleFaqSend,
 
   if (messages.length === 0) {
     return (
-      <motion.div variants={containerVariants} initial="initial" animate="animate" className="flex-1 flex flex-col items-center justify-center px-5 py-6">
-        <motion.div variants={itemVariants} className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#B87830]/10 to-[#D4A853]/5 flex items-center justify-center mb-4 border border-[#B87830]/10 animate-subtle-float">
-          <BookIcon size={28} className="text-[#B87830]" />
-        </motion.div>
-        <motion.h1 variants={itemVariants} className="hero-title mb-1.5">Ваш особистий асистент</motion.h1>
-        <motion.p variants={itemVariants} className="hero-subtitle mb-5">Оберіть тему або напишіть запитання</motion.p>
-        
-        {error && <motion.div variants={itemVariants} className="mb-5 p-3 bg-red-50/90 backdrop-blur rounded-xl text-red-600 text-sm border border-red-100">{error}</motion.div>}
+      <motion.div variants={containerVariants} initial="initial" animate="animate" className="flex-1 overflow-y-auto custom-scrollbar flex flex-col items-center px-4 pt-5 pb-2">
+        <div className="w-full max-w-[420px] flex flex-col items-center">
+          <motion.div variants={itemVariants} className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-[#B87830]/10 to-[#D4A853]/5 flex items-center justify-center mb-3 border border-[#B87830]/10 animate-subtle-float shrink-0">
+            <BookIcon size={24} className="text-[#B87830]" />
+          </motion.div>
+          <motion.h1 variants={itemVariants} className="hero-title mb-1 text-center">Ваш особистий асистент</motion.h1>
+          <motion.p variants={itemVariants} className="hero-subtitle mb-4 text-center">Оберіть тему або напишіть запитання</motion.p>
 
-        <motion.div variants={containerVariants} className="w-full max-w-[420px] grid grid-cols-2 gap-2.5">
-          {QUICK_MENU.map((item) => <ActionCard key={item.id} {...item} isTyping={isTyping} onClick={handleFaqSend} />)}
-        </motion.div>
+          {error && <motion.div variants={itemVariants} className="mb-4 w-full p-3 bg-red-50/90 backdrop-blur rounded-xl text-red-600 text-sm border border-red-100">{error}</motion.div>}
+
+          <motion.div variants={containerVariants} className="w-full grid grid-cols-2 gap-2">
+            {QUICK_MENU.map((item) => <ActionCard key={item.id} {...item} isTyping={isTyping} onClick={handleFaqSend} />)}
+          </motion.div>
+        </div>
       </motion.div>
     );
   }
