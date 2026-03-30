@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#1A1612"/>
+  <rect x="0" y="0" width="1200" height="630" fill="url(#grad)"/>
+  <defs>
+    <radialGradient id="grad" cx="30%" cy="20%" r="70%">
+      <stop offset="0%" stop-color="#2A2520"/>
+      <stop offset="100%" stop-color="#0E0B08"/>
+    </radialGradient>
+  </defs>
+  <text x="600" y="260" font-family="Georgia, serif" font-size="80" font-weight="700" fill="#D4A853" text-anchor="middle" letter-spacing="20">ХДАК</text>
+  <text x="600" y="330" font-family="Georgia, serif" font-size="28" fill="#D4A853" text-anchor="middle" opacity="0.6" letter-spacing="8">БІБЛІОТЕКА</text>
+  <text x="600" y="420" font-family="Georgia, serif" font-size="32" fill="#F5F3EF" text-anchor="middle" opacity="0.85">Інтелектуальний асистент</text>
+  <text x="600" y="470" font-family="Georgia, serif" font-size="22" fill="#7A756F" text-anchor="middle">lib-hdak.in.ua</text>
+</svg>

@@ -30,7 +30,19 @@ interface RateLimitInfo {
 
 const rateLimits = new Map<string, RateLimitInfo>();
 
+// Purge expired entries every 5 minutes to prevent memory leak
+let _lastPurge = Date.now();
+function maybePurge(windowMs: number) {
+  const now = Date.now();
+  if (now - _lastPurge < 5 * 60_000) return;
+  _lastPurge = now;
+  for (const [key, info] of rateLimits.entries()) {
+    if (now - info.lastReset > windowMs) rateLimits.delete(key);
+  }
+}
+
 function checkRateLimitMemory(key: string, limit: number, windowMs: number): boolean {
+  maybePurge(windowMs);
   const now = Date.now();
   const info = rateLimits.get(key);
 

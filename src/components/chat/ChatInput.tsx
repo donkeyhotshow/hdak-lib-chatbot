@@ -44,6 +44,7 @@ export function ChatInput({ inputValue, setInputValue, isTyping, handleSend, onS
             disabled={isTyping}
             className="input-textarea"
             maxLength={2000}
+            aria-label="Повідомлення для чату"
           />
           <div className="input-footer">
             <span className="input-hint">Enter  надіслати  Shift+Enter  новий рядок</span>

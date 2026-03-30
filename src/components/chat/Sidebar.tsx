@@ -8,6 +8,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Conversation } from './types';
 import { ALL_LINKS, LIBRARY, isLibraryOpen } from '@/lib/constants';
+import { useMemo } from 'react';
 
 const MAIN_LINKS = [
   { icon: Search,     title: 'Електронний каталог', url: ALL_LINKS.catalog_search },
@@ -62,7 +63,7 @@ const SidebarSection = memo(function SidebarSection({ label, children, defaultOp
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="mb-3">
-      <button onClick={() => setOpen(v => !v)} className="sidebar-section-btn w-full flex items-center justify-between px-2 mb-1.5">
+      <button onClick={() => setOpen(v => !v)} aria-expanded={open} className="sidebar-section-btn w-full flex items-center justify-between px-2 mb-1.5">
         <span className="sidebar-label">{label}</span>
         <ChevronDown size={11} strokeWidth={2} className={cn("text-[#D4A853]/30 transition-transform duration-200", open && "rotate-180")} />
       </button>
@@ -190,7 +191,7 @@ export const Sidebar = memo(function Sidebar({
   newConversationId, loadConversation, deleteConversation, renameConversation,
   createNewConversation, hasMore = false, loadMore,
 }: SidebarProps) {
-  const open = isLibraryOpen();
+  const open = useMemo(() => isLibraryOpen(), []);
   // Fix #6: search state
   const [search, setSearch] = useState('');
 
@@ -281,10 +282,12 @@ export const Sidebar = memo(function Sidebar({
                 </div>
               </SidebarSection>
 
-              {/* Fix #6: History with search */}
-              {conversations.length > 0 && (
-                <SidebarSection label="Історія" defaultOpen={true}>
-                  {conversations.length >= 5 && (
+              {/* History with search */}
+              <SidebarSection label="Історія" defaultOpen={true}>
+                {conversations.length === 0 && !search && (
+                  <p className="text-[11px] text-white/25 text-center py-3 px-2">Розмов ще немає. Почніть новий чат!</p>
+                )}
+                {conversations.length >= 5 && (
                     <div className="relative mb-1.5 px-1">
                       <Search size={11} strokeWidth={1.8} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/25 pointer-events-none" />
                       <input
@@ -317,8 +320,7 @@ export const Sidebar = memo(function Sidebar({
                     )}
                   </div>
                 </SidebarSection>
-              )}
-            </div>
+              </div>
 
             {/* FOOTER */}
             <div className="px-3 pb-3 pt-2 shrink-0 border-t border-white/[0.04]">

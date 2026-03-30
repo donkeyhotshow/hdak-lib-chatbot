@@ -7,18 +7,18 @@ import { checkRateLimit, generateFingerprint } from '@/lib/rate-limit';
 export async function POST(request: NextRequest) {
   const fingerprint = generateFingerprint(request);
   if (!(await checkRateLimit(fingerprint))) {
-    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    return NextResponse.json({ error: 'Забагато запитів' }, { status: 429 });
   }
 
   let body: { question?: unknown; answer?: unknown };
   try { body = await request.json(); }
-  catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }); }
+  catch { return NextResponse.json({ error: 'Невірний формат запиту' }, { status: 400 }); }
 
   const question = typeof body.question === 'string' ? sanitizeHtml(body.question, { allowedTags: [], allowedAttributes: {} }).trim() : '';
-  const answer = typeof body.answer === 'string' ? body.answer.trim() : '';
+  const answer = typeof body.answer === 'string' ? sanitizeHtml(body.answer, { allowedTags: [], allowedAttributes: {} }).trim() : '';
 
   if (!question || !answer) {
-    return NextResponse.json({ error: 'question and answer required' }, { status: 400 });
+    return NextResponse.json({ error: 'Запитання та відповідь обов\'язкові' }, { status: 400 });
   }
 
   const [conv] = await db.insert(conversations).values({

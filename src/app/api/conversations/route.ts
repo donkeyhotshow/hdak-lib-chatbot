@@ -1,19 +1,28 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { db, conversations } from '@/lib/db';
 import { desc } from 'drizzle-orm';
+import sanitizeHtml from 'sanitize-html';
+import { checkRateLimit, generateFingerprint } from '@/lib/rate-limit';
 
 const PAGE_SIZE = 15;
+const MAX_TITLE_LENGTH = 200;
 
 export async function GET(request: NextRequest) {
+  // Rate limiting
+  const fingerprint = generateFingerprint(request);
+  if (!(await checkRateLimit(fingerprint))) {
+    return NextResponse.json({ error: 'Забагато запитів' }, { status: 429 });
+  }
+
   try {
     const { searchParams } = new URL(request.url);
-    const offset = parseInt(searchParams.get('offset') || '0', 10);
-    const limit = Math.min(parseInt(searchParams.get('limit') || String(PAGE_SIZE), 10), 50);
+    const offset = Math.max(0, parseInt(searchParams.get('offset') || '0', 10) || 0);
+    const limit = Math.min(Math.max(1, parseInt(searchParams.get('limit') || String(PAGE_SIZE), 10) || PAGE_SIZE), 50);
 
     const list = await db.select()
       .from(conversations)
       .orderBy(desc(conversations.createdAt))
-      .limit(limit + 1)   // fetch one extra to know if there are more
+      .limit(limit + 1)
       .offset(offset);
 
     const hasMore = list.length > limit;
@@ -22,29 +31,52 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ items, hasMore, offset, limit });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: 'Failed to fetch conversations' }, { status: 500 });
+    return NextResponse.json({ error: 'Помилка завантаження розмов' }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
+  // Rate limiting
+  const fingerprint = generateFingerprint(request);
+  if (!(await checkRateLimit(fingerprint))) {
+    return NextResponse.json({ error: 'Забагато запитів' }, { status: 429 });
+  }
+
   try {
+    // CORS check with try/catch for malformed origin
     const origin = request.headers.get('origin');
     if (origin && process.env.NODE_ENV === 'production') {
-      const originHost = new URL(origin).hostname;
-      const reqHost = new URL(request.url).hostname;
-      const isLocal = ['localhost', '127.0.0.1', '0.0.0.0'].includes(originHost) && ['localhost', '127.0.0.1', '0.0.0.0'].includes(reqHost);
-      if (originHost !== reqHost && !isLocal) {
-        return NextResponse.json({ error: 'Forbidden origin' }, { status: 403 });
+      try {
+        const originHost = new URL(origin).hostname;
+        const reqHost = new URL(request.url).hostname;
+        const localHosts = ['localhost', '127.0.0.1', '0.0.0.0'];
+        const isLocal = localHosts.includes(originHost) && localHosts.includes(reqHost);
+        if (originHost !== reqHost && !isLocal) {
+          return NextResponse.json({ error: 'Заборонений запит' }, { status: 403 });
+        }
+      } catch {
+        return NextResponse.json({ error: 'Заборонений запит' }, { status: 403 });
       }
     }
 
-    const { title } = await request.json();
-    const [newConv] = await db.insert(conversations).values({
-      title: title || 'Новий діалог',
-    }).returning();
+    let body: { title?: unknown };
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Невірний формат запиту' }, { status: 400 });
+    }
+
+    // Validate and sanitize title
+    let title = 'Новий діалог';
+    if (typeof body.title === 'string' && body.title.trim()) {
+      title = sanitizeHtml(body.title.trim(), { allowedTags: [], allowedAttributes: {} }).substring(0, MAX_TITLE_LENGTH);
+      if (!title) title = 'Новий діалог';
+    }
+
+    const [newConv] = await db.insert(conversations).values({ title }).returning();
     return NextResponse.json(newConv);
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: 'Failed to create' }, { status: 500 });
+    return NextResponse.json({ error: 'Помилка створення розмови' }, { status: 500 });
   }
 }

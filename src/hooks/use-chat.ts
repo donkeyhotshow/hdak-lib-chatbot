@@ -27,6 +27,7 @@ interface UseChatReturn {
   loadMoreConversations: () => Promise<void>;
   formatTime: (d: string) => string;
   copyToClipboard: (t: string) => Promise<void>;
+  retryLastMessage: () => void;
 }
 
 export function useChat(toast: (opts: { description: string; duration?: number }) => void): UseChatReturn {
@@ -80,12 +81,16 @@ export function useChat(toast: (opts: { description: string; duration?: number }
   }, []);
 
   const refreshConversations = useCallback(async () => {
-    const res = await fetch('/api/conversations?limit=15&offset=0');
-    if (res.ok) {
-      const data = await res.json();
-      setConversations(data.items ?? data);
-      setHasMoreConversations(data.hasMore ?? false);
-      setConvOffset(data.items?.length ?? 0);
+    try {
+      const res = await fetch('/api/conversations?limit=15&offset=0');
+      if (res.ok) {
+        const data = await res.json();
+        setConversations(data.items ?? data);
+        setHasMoreConversations(data.hasMore ?? false);
+        setConvOffset(data.items?.length ?? 0);
+      }
+    } catch (err) {
+      console.error('Не вдалося оновити список розмов:', err);
     }
   }, []);
 
@@ -126,29 +131,37 @@ export function useChat(toast: (opts: { description: string; duration?: number }
 
   const renameConversation = useCallback(async (id: string, title: string) => {
     try {
-      await fetch(`/api/conversations/${id}`, {
+      const res = await fetch(`/api/conversations/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title }),
       });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setConversations(prev => prev.map(c => c.id === id ? { ...c, title } : c));
       if (currentConversation?.id === id) {
         setCurrentConversation(prev => prev ? { ...prev, title } : prev);
       }
-    } catch {}
-  }, [currentConversation]);
+    } catch (err) {
+      console.error('Не вдалося перейменувати:', err);
+      toast({ description: 'Не вдалося перейменувати розмову', duration: 2000 });
+    }
+  }, [currentConversation, toast]);
 
   const deleteConversation = useCallback(async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      await fetch(`/api/conversations/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/conversations/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setConversations(prev => prev.filter(c => c.id !== id));
       if (currentConversation?.id === id) {
         setCurrentConversation(null);
         setMessages([]);
       }
-    } catch {}
-  }, [currentConversation]);
+    } catch (err) {
+      console.error('Не вдалося видалити:', err);
+      toast({ description: 'Не вдалося видалити розмову', duration: 2000 });
+    }
+  }, [currentConversation, toast]);
 
   // Fix #5: consume SSE stream
   const handleSend = useCallback(async (query?: string) => {
@@ -162,8 +175,8 @@ export function useChat(toast: (opts: { description: string; duration?: number }
     setIsTyping(true);
     setError(null);
 
-    const tempUserId = `temp-user-${Date.now()}`;
-    const botId = `bot-${Date.now()}`;
+    const tempUserId = `temp-user-${crypto.randomUUID()}`;
+    const botId = `bot-${crypto.randomUUID()}`;
 
     setMessages(prev => [...prev, {
       id: tempUserId,
@@ -182,10 +195,10 @@ export function useChat(toast: (opts: { description: string; duration?: number }
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || 'Failed');
+        throw new Error(errData.error || 'Помилка сервера');
       }
 
-      if (!res.body) throw new Error('No stream body');
+      if (!res.body) throw new Error('Відсутній потік відповіді');
 
       // Add empty bot message to stream into
       setMessages(prev => [...prev, {
@@ -241,7 +254,7 @@ export function useChat(toast: (opts: { description: string; duration?: number }
       setIsTyping(false);
       abortControllerRef.current = null;
     }
-  }, [inputValue, isTyping, currentConversation, loadConversation, refreshConversations]);
+  }, [inputValue, isTyping, currentConversation, refreshConversations]);
 
   // Fix #1 + #2: FAQ saves to DB via API, timers tracked in refs
   const handleFaqSend = useCallback((query: string) => {
@@ -254,10 +267,11 @@ export function useChat(toast: (opts: { description: string; duration?: number }
     }
 
     setError(null);
-    const botId = `bot-faq-${Date.now()}`;
+    faqStoppedRef.current = false;
+    const botId = `bot-faq-${crypto.randomUUID()}`;
 
     setMessages(prev => [...prev, {
-      id: `user-faq-${Date.now()}`,
+      id: `user-faq-${crypto.randomUUID()}`,
       role: 'USER' as const,
       content: query,
       createdAt: new Date().toISOString(),
@@ -298,20 +312,22 @@ export function useChat(toast: (opts: { description: string; duration?: number }
             m.id === botId ? { ...m, content: fullContent } : m
           ));
 
-          // Fix #1: save FAQ conversation to DB after animation completes
-          fetch('/api/faq-save', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ question: query, answer: fullContent }),
-          }).then(async res => {
-            if (res.ok) {
-              const data = await res.json().catch(() => ({}));
-              if (data.conversationId) {
-                setNewConversationId(data.conversationId);
-                await refreshConversations();
+          // Save FAQ conversation to DB after animation completes (only if not stopped)
+          if (!faqStoppedRef.current) {
+            fetch('/api/faq-save', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ question: query, answer: fullContent }),
+            }).then(async res => {
+              if (res.ok) {
+                const data = await res.json().catch(() => ({}));
+                if (data.conversationId) {
+                  setNewConversationId(data.conversationId);
+                  await refreshConversations();
+                }
               }
-            }
-          }).catch(() => {});
+            }).catch(() => {});
+          }
         }
       }, faq.stepDelay);
     }, faq.thinkDelay);
@@ -319,12 +335,16 @@ export function useChat(toast: (opts: { description: string; duration?: number }
 
   // Fix #2: handleStop clears timers
   const handleStop = useCallback(() => {
+    faqStoppedRef.current = true;
     if (thinkTimerRef.current) { clearTimeout(thinkTimerRef.current); thinkTimerRef.current = null; }
     if (typeIntervalRef.current) { clearInterval(typeIntervalRef.current); typeIntervalRef.current = null; }
     abortControllerRef.current?.abort();
     setIsTyping(false);
     setStreamingMessageId(null);
   }, []);
+
+  // Track whether user stopped FAQ animation
+  const faqStoppedRef = useRef(false);
 
   const loadMoreConversations = useCallback(async () => {
     try {
@@ -344,9 +364,27 @@ export function useChat(toast: (opts: { description: string; duration?: number }
   }, []);
 
   const copyToClipboard = useCallback(async (t: string) => {
-    await navigator.clipboard.writeText(t);
-    toast({ description: 'Скопіювано', duration: 1500 });
+    try {
+      await navigator.clipboard.writeText(t);
+      toast({ description: 'Скопіювано', duration: 1500 });
+    } catch {
+      toast({ description: 'Не вдалося скопіювати', duration: 2000 });
+    }
   }, [toast]);
+
+
+  const retryLastMessage = useCallback(() => {
+    const lastUserMsg = [...messages].reverse().find(m => m.role === 'USER');
+    if (lastUserMsg && !isTyping) {
+      // Remove last user + assistant messages, then resend
+      setMessages(prev => {
+        const lastUserIdx = prev.map(m => m.role).lastIndexOf('USER');
+        return prev.slice(0, lastUserIdx);
+      });
+      setError(null);
+      handleSend(lastUserMsg.content);
+    }
+  }, [messages, isTyping, handleSend]);
 
   return {
     messages, inputValue, setInputValue, isTyping, isLoadingConversation, error,
@@ -354,6 +392,6 @@ export function useChat(toast: (opts: { description: string; duration?: number }
     hasMoreConversations, messagesEndRef, newConversationId,
     handleSend, handleFaqSend, handleStop,
     loadConversation, createNewConversation, deleteConversation, renameConversation,
-    loadMoreConversations, formatTime, copyToClipboard,
+    loadMoreConversations, formatTime, copyToClipboard, retryLastMessage,
   };
 }

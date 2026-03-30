@@ -120,9 +120,10 @@ interface ChatAreaProps {
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
   formatTime: (d: string) => string;
   copyToClipboard: (t: string) => void;
+  onRetry?: () => void;
 }
 
-export function ChatArea({ messages, isTyping, isLoadingConversation, error, handleSend, handleFaqSend, streamingMessageId, messagesEndRef, formatTime, copyToClipboard }: ChatAreaProps) {
+export function ChatArea({ messages, isTyping, isLoadingConversation, error, handleSend, handleFaqSend, streamingMessageId, messagesEndRef, formatTime, copyToClipboard, onRetry }: ChatAreaProps) {
   const showChips = !isTyping && messages.length > 0 && messages.length <= 2 && messages[0].role === 'USER';
 
   if (messages.length === 0) {
@@ -134,7 +135,12 @@ export function ChatArea({ messages, isTyping, isLoadingConversation, error, han
           </motion.div>
           <motion.h1 variants={itemVariants} className="hero-title mb-1 text-center">Ваш особистий асистент</motion.h1>
           <motion.p variants={itemVariants} className="hero-subtitle mb-5 text-center">Оберіть тему або напишіть запитання</motion.p>
-          {error && <motion.div variants={itemVariants} className="mb-3 w-full p-3 bg-red-50/90 rounded-xl text-red-600 text-[13px] border border-red-100">{error}</motion.div>}
+          {error && (
+            <motion.div variants={itemVariants} className="mb-3 w-full p-3 bg-red-50/90 rounded-xl text-red-600 text-[13px] border border-red-100 flex items-center justify-between gap-3">
+              <span>{error}</span>
+              {onRetry && <button onClick={onRetry} className="shrink-0 text-[12px] font-medium underline underline-offset-2 hover:no-underline transition-all">Повторити</button>}
+            </motion.div>
+          )}
           <motion.div variants={containerVariants} className="flex flex-wrap gap-2 justify-center">
             {QUICK_MENU.map((item) => <QuickBtn key={item.id} {...item} isTyping={isTyping} onClick={handleFaqSend} />)}
           </motion.div>
@@ -146,6 +152,12 @@ export function ChatArea({ messages, isTyping, isLoadingConversation, error, han
   return (
     <div className="flex-1 overflow-y-auto px-3 py-4 custom-scrollbar" aria-live="polite" aria-label="Повідомлення чату">
       <div className="w-full max-w-[900px] mx-auto space-y-3">
+        {error && (
+          <div className="flex items-center justify-between gap-3 px-1 py-2 text-red-500/80 text-[13px] bg-red-50/60 rounded-lg">
+            <span>{error}</span>
+            {onRetry && <button onClick={onRetry} className="shrink-0 text-[12px] font-medium underline underline-offset-2 hover:no-underline">Повторити</button>}
+          </div>
+        )}
         {isLoadingConversation && (
           <div className="flex items-center gap-2 px-1 py-2 text-[#7A756F]/50 text-[13px]">
             <div className="flex gap-1">

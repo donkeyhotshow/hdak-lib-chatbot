@@ -24,7 +24,7 @@ export default function ChatPage() {
     handleSend, handleFaqSend, handleStop,
     loadConversation, createNewConversation, deleteConversation, renameConversation,
     newConversationId,
-    loadMoreConversations, formatTime, copyToClipboard,
+    loadMoreConversations, formatTime, copyToClipboard, retryLastMessage,
   } = useChat(toast);
 
   // Close sidebar on mobile click-outside
@@ -82,6 +82,7 @@ export default function ChatPage() {
           messagesEndRef={messagesEndRef}
           formatTime={formatTime}
           copyToClipboard={copyToClipboard}
+          onRetry={retryLastMessage}
         />
 
         <ChatInput
