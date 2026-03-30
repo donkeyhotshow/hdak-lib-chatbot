@@ -1,4 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
+
+const CATALOG_URL = 'https://library-service.com.ua:8443/khkhdak/DocumentSearchResult';
+const CATALOG_FORM_URL = 'https://library-service.com.ua:8443/khkhdak/DocumentSearchForm';
 
 interface BookResult {
   title: string;
@@ -7,123 +10,145 @@ interface BookResult {
   hasFile: boolean;
 }
 
-// Parse book info from catalog HTML
+/**
+ * Extract text content from an HTML string, stripping all tags.
+ */
+function stripHtml(html: string): string {
+  return html
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Parse books from catalog HTML response.
+ * Strategy: look for table rows/cells that contain book-like content.
+ * Multiple selector strategies tried in order, so a layout change degrades
+ * gracefully rather than returning nothing.
+ */
 function parseBooksFromHtml(html: string): { books: BookResult[]; total: number } {
   const books: BookResult[] = [];
-  
-  // Find all td cells that contain book descriptions (width: 80%)
-  const tdRegex = /<td[^>]*width:\s*80%[^>]*>([\s\S]*?)<\/td>/gi;
-  let match;
-  
-  while ((match = tdRegex.exec(html)) !== null) {
-    const cellContent = match[1];
-    
-    // Clean up HTML tags and whitespace
-    const text = cellContent
-      .replace(/<br\s*\/?>/gi, ' ')
-      .replace(/<[^>]*>/g, '')
-      .replace(/&nbsp;/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-    
-    // Check if this looks like a book description
-    if (text.length > 30 && text.includes('/') && /\d{4}\./.test(text)) {
-      // Extract year
-      const yearMatch = text.match(/—\s*[^,]+,\s*(\d{4})\./);
-      const year = yearMatch?.[1] || '';
-      
-      // Extract title (before the first /)
-      const titleMatch = text.match(/^([^/\[]+)/);
-      const title = titleMatch?.[1]?.trim() || '';
-      
-      // Check for electronic version
-      const hasFile = text.includes('Електронний') || cellContent.includes('DocumentDownload');
-      
-      books.push({
-        title,
-        fullDescription: text,
-        year,
-        hasFile
-      });
+
+  // Strategy 1: cells with explicit width:80% (original catalog layout)
+  const cellPattern = /<td[^>]*width[^>]*80%[^>]*>([\s\S]*?)<\/td>/gi;
+  let match: RegExpExecArray | null;
+  while ((match = cellPattern.exec(html)) !== null && books.length < 10) {
+    const text = stripHtml(match[1]);
+    if (isBookEntry(text)) {
+      books.push(buildBook(text, match[1]));
     }
-    
-    if (books.length >= 10) break;
   }
-  
-  // Get total count
-  const countMatch = html.match(/(\d+)\s*-\s*(\d+)\s+з\s+(\d+)/);
-  const total = countMatch ? parseInt(countMatch[3]) : books.length;
-  
+
+  // Strategy 2: fallback  any <td> with book-like content (year + slash pattern)
+  if (books.length === 0) {
+    const tdPattern = /<td[^>]*>([\s\S]*?)<\/td>/gi;
+    while ((match = tdPattern.exec(html)) !== null && books.length < 10) {
+      const text = stripHtml(match[1]);
+      if (text.length > 40 && isBookEntry(text)) {
+        books.push(buildBook(text, match[1]));
+      }
+    }
+  }
+
+  // Total count from pagination line "X - Y з Z"
+  const countMatch = html.match(/(\d+)\s*[-]\s*\d+\s+[зз]\s+(\d+)/i);
+  const total = countMatch ? parseInt(countMatch[2]) : books.length;
+
   return { books, total };
 }
 
-// GET /api/catalog-search - Search in catalog
+function isBookEntry(text: string): boolean {
+  // Must have a year (4 digits followed by a dot) and a slash (author/title separator)
+  return text.includes('/') && /\d{4}\./.test(text) && text.length > 30;
+}
+
+function buildBook(text: string, rawHtml: string): BookResult {
+  const yearMatch = text.match(/[,]\s*[^,]+,\s*(\d{4})\./);
+  const year = yearMatch?.[1] ?? '';
+
+  const titleMatch = text.match(/^([^/[\]]{3,80})/);
+  const title = titleMatch?.[1]?.trim() ?? text.slice(0, 60);
+
+  const hasFile =
+    /електронн/i.test(text) ||
+    rawHtml.includes('DocumentDownload') ||
+    rawHtml.includes('.pdf');
+
+  return { title, fullDescription: text, year, hasFile };
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const query = searchParams.get('q');
+  const query  = searchParams.get('q');
   const author = searchParams.get('author');
-  const title = searchParams.get('title');
-  const page = searchParams.get('page') || '1';
-  
+  const title  = searchParams.get('title');
+  const page   = searchParams.get('page') || '1';
+
   if (!query && !author && !title) {
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'Вкажіть параметр пошуку: q (загальний), author (автор), або title (назва)',
-      catalogUrl: 'https://library-service.com.ua:8443/khkhdak/DocumentSearchForm'
+      catalogUrl: CATALOG_FORM_URL,
     }, { status: 400 });
   }
 
   try {
-    const searchTerm = query || author || title || '';
+    const searchTerm = (query || author || title)!;
     const searchType = author ? 'author' : title ? 'title' : 'general';
-    
-    // Build form data for POST request
     const searchField = searchType === 'author' ? 'author' : 'name_value';
-    const condField = searchType === 'author' ? 'author_cond' : 'name_cond';
-    
-    const formData = new URLSearchParams();
-    formData.append(searchField, searchTerm);
-    formData.append(condField, 'authorAnyWord');
-    formData.append('page_size', '10');
-    formData.append('page_number', page);
-    formData.append('sorting1', 'author');
-    formData.append('sorting2', 'name');
-    formData.append('sorting_direction1', 'asc');
-    formData.append('sorting_direction2', 'asc');
-    formData.append('i_lang', 'ukr');
-    
-    // Make request to catalog
-    const response = await fetch('https://library-service.com.ua:8443/khkhdak/DocumentSearchResult', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: formData.toString(),
+    const condField   = searchType === 'author' ? 'author_cond' : 'name_cond';
+
+    const formData = new URLSearchParams({
+      [searchField]: searchTerm,
+      [condField]: 'authorAnyWord',
+      page_size: '10',
+      page_number: page,
+      sorting1: 'author',
+      sorting2: 'name',
+      sorting_direction1: 'asc',
+      sorting_direction2: 'asc',
+      i_lang: 'ukr',
     });
-    
+
+    const response = await fetch(CATALOG_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: formData.toString(),
+      // 8s timeout via AbortSignal
+      signal: AbortSignal.timeout(8000),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Catalog responded with ${response.status}`);
+    }
+
     const html = await response.text();
-    
-    // Parse results
     const { books, total } = parseBooksFromHtml(html);
-    
+
     return NextResponse.json({
       success: true,
       searchTerm,
       searchField: searchType,
       totalResults: total,
       currentPage: parseInt(page),
-      books: books,
-      catalogUrl: 'https://library-service.com.ua:8443/khkhdak/DocumentSearchForm',
-      message: books.length > 0 
+      books,
+      catalogUrl: CATALOG_FORM_URL,
+      message: books.length > 0
         ? `Знайдено ${total} документів. Показано ${books.length}.`
-        : 'Результати пошуку доступні в електронному каталозі'
+        : 'Результати пошуку доступні в електронному каталозі',
     });
-    
   } catch (error) {
     console.error('Catalog search error:', error);
-    return NextResponse.json({ 
+    // Always return a usable response with the direct catalog link
+    return NextResponse.json({
       success: false,
       error: 'Помилка пошуку в каталозі',
-      catalogUrl: 'https://library-service.com.ua:8443/khkhdak/DocumentSearchForm'
+      catalogUrl: CATALOG_FORM_URL,
     }, { status: 500 });
   }
 }

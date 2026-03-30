@@ -33,6 +33,7 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://hdak-lib-chatbot.vercel.app'),
   title: "ХДАК Бібліотека — Інтелектуальний асистент",
   description: "Інтелектуальний асистент бібліотеки Харківської державної академії культури. Пошук видань, графік роботи, ресурси та допомога.",
   keywords: ["ХДАК", "бібліотека", "Харків", "академія культури", "книги", "ресурси", "ШІ асистент"],
@@ -43,9 +44,15 @@ export const metadata: Metadata = {
     type: "website",
     locale: "uk_UA",
     siteName: "HDAK Library Chatbot",
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "ХДАК Бібліотека" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    images: ["/og-image.png"],
   },
   icons: {
-    icon: "/logo.svg",
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
   },
 };
 

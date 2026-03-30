@@ -20,8 +20,6 @@ function randomThink(min = 500, max = 900): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-const openStatus = isLibraryOpen();
-
 export const FAQ_RESPONSES: Record<string, FaqResponse> = {
 
   // ─── Графік роботи ───────────────────────────────────────────
@@ -37,7 +35,7 @@ export const FAQ_RESPONSES: Record<string, FaqResponse> = {
       ``,
       `> ⚠️ **Санітарний день** — остання п'ятниця кожного місяця _(абонементи не працюють)_`,
       ``,
-      openStatus
+      isLibraryOpen()
         ? `🟢 **Зараз бібліотека відкрита** — чекаємо на вас!`
         : `🔴 **Зараз бібліотека зачинена.** Завітайте в робочі години.`,
       ``,

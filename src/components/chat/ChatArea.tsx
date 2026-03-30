@@ -113,6 +113,7 @@ interface ChatAreaProps {
   messages: Message[];
   isTyping: boolean;
   error: string | null;
+  isLoadingConversation?: boolean;
   handleSend: (query?: string) => void;
   handleFaqSend: (query: string) => void;
   streamingMessageId: string | null;
@@ -121,7 +122,7 @@ interface ChatAreaProps {
   copyToClipboard: (t: string) => void;
 }
 
-export function ChatArea({ messages, isTyping, error, handleSend, handleFaqSend, streamingMessageId, messagesEndRef, formatTime, copyToClipboard }: ChatAreaProps) {
+export function ChatArea({ messages, isTyping, isLoadingConversation, error, handleSend, handleFaqSend, streamingMessageId, messagesEndRef, formatTime, copyToClipboard }: ChatAreaProps) {
   const showChips = !isTyping && messages.length > 0 && messages.length <= 2 && messages[0].role === 'USER';
 
   if (messages.length === 0) {
@@ -145,6 +146,16 @@ export function ChatArea({ messages, isTyping, error, handleSend, handleFaqSend,
   return (
     <div className="flex-1 overflow-y-auto px-3 py-4 custom-scrollbar">
       <div className="w-full max-w-[900px] mx-auto space-y-3">
+        {isLoadingConversation && (
+          <div className="flex items-center gap-2 px-1 py-2 text-[#7A756F]/50 text-[13px]">
+            <div className="flex gap-1">
+              {[0,1,2].map(i => (
+                <div key={i} className="w-1.5 h-1.5 rounded-full bg-[#B87830]/40 animate-bounce" style={{ animationDelay: `${i * 0.1}s` }} />
+              ))}
+            </div>
+            <span>Завантаження...</span>
+          </div>
+        )}
         {messages.map((msg) => <MessageBubble key={msg.id} msg={msg} isStreaming={msg.id === streamingMessageId} formatTime={formatTime} copyToClipboard={copyToClipboard} />)}
         <AnimatePresence>{isTyping && <TypingIndicator />}</AnimatePresence>
         <AnimatePresence>{showChips && (
