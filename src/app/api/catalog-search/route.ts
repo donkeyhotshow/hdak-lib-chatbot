@@ -29,7 +29,17 @@ export async function GET(request: NextRequest) {
     const searchTerm = (query || author || title)!;
     const searchType = author ? 'author' : title ? 'title' : 'general';
 
-    const { books, total } = await searchCatalog(searchTerm, searchType, 10);
+    const result = await searchCatalog(searchTerm, searchType, 10, pageNum);
+    const { books, total, unavailable } = result;
+
+    // H14: distinguish catalog unavailable from empty results
+    if (unavailable) {
+      return NextResponse.json({
+        success: false,
+        error: 'Каталог тимчасово недоступний. Спробуйте пізніше або скористайтесь прямим посиланням.',
+        catalogUrl: CATALOG_FORM_URL,
+      }, { status: 503 });
+    }
 
     return NextResponse.json({
       success: true,
@@ -41,7 +51,7 @@ export async function GET(request: NextRequest) {
       catalogUrl: CATALOG_FORM_URL,
       message: books.length > 0
         ? `Знайдено ${total} документів. Показано ${books.length}.`
-        : 'Результати пошуку доступні в електронному каталозі',
+        : 'За вашим запитом нічого не знайдено в каталозі.',
     });
   } catch (error) {
     console.error('Помилка пошуку в каталозі:', error);

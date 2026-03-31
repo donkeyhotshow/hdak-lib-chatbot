@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Shared catalog search module — used by chat/route.ts and catalog-search/route.ts.
  * Eliminates duplicated HTML parsing logic and provides a single robust parser.
  */
@@ -13,6 +13,13 @@ export interface BookResult {
   hasFile: boolean;
 }
 
+export interface SearchResult {
+  books: BookResult[];
+  total: number;
+  /** true when catalog service is unreachable (timeout/5xx) — distinct from "no results" */
+  unavailable?: boolean;
+}
+
 export interface SearchIntent {
   searchTerm: string;
   searchType: 'title' | 'author' | 'general';
@@ -25,26 +32,26 @@ const TITLE_PATTERNS = [
   /(?:знайди|знайти|пошук|шукаю|шукати|є|маєте|чи є|чи маєте|є у вас|маєте у каталозі)\s+книг[уиі]?\s+[«"']?(.+?)[»"']?$/i,
   // "книгу «X»" або "книгу X є"
   /книг[уиі]\s+[«"'](.+?)[»"']/i,
-  /книг[уиі]\s+(.{3,60})(?:\s+є|\s+маєте|$)/i,
+  /книг[уиі]\s+(.{3,60}?)(?:\s+є|\s+маєте|$)/i,
   // «X» є/маєте
   /[«"'](.+?)[»"']\s+(?:є|маєте|знайти|пошук)/i,
   /(?:є|маєте|є у вас)\s+[«"'](.+?)[»"']/i,
   // "шукаю X"
   /(?:шукаю|шукати)\s+[«"']?(.+?)[»"']?$/i,
-  // "є книга з X" / "книга про X" / "книга на тему X"
-  /книга\s+(?:з|про|на тему|по)\s+(.{3,60})(?:\?|$)/i,
+  // "є книга/книги з X" / "книга про X" / "книга на тему X"
+  /книг[иа]\s+(?:з|про|на тему|по)\s+(.{3,60}?)(?:\?|$)/i,
   // "є щось про X" / "є матеріали з X"
-  /є\s+(?:щось|матеріали|видання|книги)?\s*(?:про|з|по|на тему)\s+(.{3,60})(?:\?|$)/i,
+  /є\s+(?:щось|матеріали|видання|книги)?\s*(?:про|з|по|на тему)\s+(.{3,60}?)(?:\?|$)/i,
   // "маєте X" (загальний)
-  /маєте\s+(.{3,60})(?:\?|$)/i,
+  /маєте\s+(.{3,60}?)(?:\?|$)/i,
 ];
 
 const AUTHOR_PATTERNS = [
   /(?:книги|твори|роботи|праці)\s+(?:автора\s+)?[«"']?([А-ЯҐЄІЇа-яґєії\w\s\-]{3,50})[»"']?$/i,
   /автор[аи]?\s+[«"']?([А-ЯҐЄІЇа-яґєії\w\s\-]{3,50})[»"']?/i,
   /(?:є|маєте)\s+(?:щось\s+)?(?:від|від автора)\s+([А-ЯҐЄІЇа-яґєії\w\s\-]{3,50})/i,
-  // "книги Шевченка" / "твори Франка"
-  /(?:книги|твори|роботи)\s+([А-ЯҐЄІЇ][а-яґєіїА-ЯҐЄІЇ\w\s\-]{2,30})(?:\?|$)/i,
+  // "книги Шевченка" / "твори Франка"  NOT "книги про/з/по/на тему X"
+  /(?:книги|твори|роботи)\s+(?!про\s|з\s|по\s|на\s|від\s|для\s)([А-ЯҐЄІЇА-ЯҐЄІЇ][а-яґєіїА-ЯҐЄІЇA-Za-z\w\s\-]{2,30})(?:\?|$)/i,
 ];
 
 function cleanTerm(raw: string): string {
@@ -90,14 +97,19 @@ export function stripHtml(html: string): string {
 }
 
 function isBookEntry(text: string): boolean {
-  return text.includes('/') && /\d{4}\./.test(text) && text.length > 30;
+  // Must have slash (bibliographic separator), year, and sufficient length
+  // Exclude URL-like strings (http/https/ftp) and short fragments
+  if (!text.includes('/') || !/\d{4}\./.test(text) || text.length <= 30) return false;
+  if (/https?:\/\/|ftp:\/\//.test(text)) return false;
+  // Must have at least one comma (author, title, publisher pattern)
+  return text.includes(',');
 }
 
 function buildBook(text: string, rawHtml: string): BookResult {
   const yearMatch = text.match(/[,]\s*[^,]+,\s*(\d{4})\./);
   const year = yearMatch?.[1] ?? '';
 
-  const titleMatch = text.match(/^([^/[\]]{3,80})/);
+  const titleMatch = text.match(/^([^/]{3,80}(?=\s*\/))/) || text.match(/^(.{3,80})/);
   const title = titleMatch?.[1]?.trim() ?? text.slice(0, 60);
 
   const hasFile =
@@ -112,7 +124,7 @@ function buildBook(text: string, rawHtml: string): BookResult {
  * Parse books from catalog HTML response.
  * Uses multiple strategies so a layout change degrades gracefully.
  */
-export function parseBooksFromHtml(html: string, maxBooks = 10): { books: BookResult[]; total: number } {
+export function parseBooksFromHtml(html: string, maxBooks = 10): SearchResult {
   const books: BookResult[] = [];
 
   // Strategy 1: cells with explicit width:80% (original catalog layout)
@@ -140,6 +152,11 @@ export function parseBooksFromHtml(html: string, maxBooks = 10): { books: BookRe
   const countMatch = html.match(/(\d+)\s*[-–]\s*\d+\s+[зз]\s+(\d+)/i);
   const total = countMatch ? parseInt(countMatch[2]) || books.length : books.length;
 
+  // M48: if HTML is suspiciously short and no books found, it may be an error page
+  // rather than a genuine empty result — mark as potentially unavailable
+  const likelyErrorPage = books.length === 0 && html.length < 500 && !html.includes('DocumentSearch');
+  if (likelyErrorPage) return { books: [], total: 0, unavailable: true };
+
   return { books, total };
 }
 
@@ -149,7 +166,8 @@ export async function searchCatalog(
   searchTerm: string,
   searchType: 'title' | 'author' | 'general',
   pageSize = 8,
-): Promise<{ books: BookResult[]; total: number }> {
+  page = 1,
+): Promise<SearchResult> {
   try {
     const formData = new URLSearchParams();
     if (searchType === 'author') {
@@ -157,10 +175,10 @@ export async function searchCatalog(
       formData.append('author_cond', 'authorAnyWord');
     } else {
       formData.append('name_value', searchTerm);
-      formData.append('name_cond', 'authorAnyWord');
+      formData.append('name_cond', 'nameAnyWord');
     }
     formData.append('page_size', String(pageSize));
-    formData.append('page_number', '1');
+    formData.append('page_number', String(Math.max(1, page)));
     formData.append('sorting1', 'author');
     formData.append('sorting_direction1', 'asc');
     formData.append('i_lang', 'ukr');
@@ -172,20 +190,27 @@ export async function searchCatalog(
       signal: AbortSignal.timeout(8000),
     });
 
-    if (!response.ok) return { books: [], total: 0 };
+    // M17: distinguish HTTP errors from empty results
+    if (!response.ok) return { books: [], total: 0, unavailable: true };
     const html = await response.text();
     return parseBooksFromHtml(html, pageSize);
   } catch {
-    return { books: [], total: 0 };
+    // M17: timeout or network error — catalog unavailable
+    return { books: [], total: 0, unavailable: true };
   }
 }
 
 // ─── Context builder for LLM prompt ─────────────────────────────────────────
 
-export function buildCatalogContext(intent: SearchIntent, result: { books: BookResult[]; total: number }, catalogSearchUrl: string): string {
+export function buildCatalogContext(intent: SearchIntent, result: SearchResult, catalogSearchUrl: string): string {
   const { searchTerm, searchType } = intent;
-  const { books, total } = result;
+  const { books, total, unavailable } = result;
   const typeLabel = searchType === 'author' ? 'автором' : 'назвою';
+
+  // M17: clearly distinguish unavailable service from empty results
+  if (unavailable) {
+    return `\n\n[РЕЗУЛЬТАТИ КАТАЛОГУ: Каталог тимчасово недоступний (помилка з'єднання). Запропонуйте користувачу скористатися прямим посиланням: ${catalogSearchUrl}]`;
+  }
 
   if (books.length === 0) {
     return `\n\n[РЕЗУЛЬТАТИ КАТАЛОГУ: Пошук за ${typeLabel} "${searchTerm}" — нічого не знайдено. Посилання для ручного пошуку: ${catalogSearchUrl}]`;

@@ -1,22 +1,30 @@
 import type { NextConfig } from "next";
 
+const securityHeaders = [
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'X-Frame-Options', value: 'DENY' },
+  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+];
+
 const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
   reactStrictMode: true,
-  // Optimize images
   images: {
     formats: ['image/avif', 'image/webp'],
     minimumCacheTTL: 60,
   },
-  // Compress responses
   compress: true,
-  // Power by header removal
   poweredByHeader: false,
-  // Strict mode for better error detection
+  // M40: apply security headers in dev too, not only on Vercel
+  async headers() {
+    return [{ source: '/(.*)', headers: securityHeaders }];
+  },
   experimental: {
-    optimizePackageImports: ['lucide-react', 'framer-motion'],
+    // L17: remove framer-motion — it uses its own ESM tree-shaking
+    optimizePackageImports: ['lucide-react'],
   },
 };
 

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Poppins, Literata, Outfit } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // Sans-serif font for headings - bold, clean, modern
 const poppins = Poppins({
@@ -63,14 +64,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="uk" suppressHydrationWarning>
-      <head>
-        <meta name="format-detection" content="telephone=no" />
-      </head>
       <body
         className={`${poppins.variable} ${literata.variable} ${outfit.variable} antialiased`}
-        style={{ fontFamily: 'var(--font-sans), system-ui, sans-serif' }}
       >
-        {children}
+        <ErrorBoundary>
+          {children}
+        </ErrorBoundary>
         <Toaster />
       </body>
     </html>

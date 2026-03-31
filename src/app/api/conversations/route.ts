@@ -4,6 +4,23 @@ import { desc } from 'drizzle-orm';
 import { stripHtml } from '@/lib/sanitize';
 import { checkRateLimit, generateFingerprint } from '@/lib/rate-limit';
 
+// M30: shared CORS helper — single source of truth for both GET and POST
+// H22: fixed — must check BOTH hosts are local, not just origin
+function isForbiddenOrigin(request: NextRequest): boolean {
+  const origin = request.headers.get('origin');
+  if (!origin || process.env.NODE_ENV !== 'production') return false;
+  try {
+    const originHost = new URL(origin).hostname;
+    const reqHost = new URL(request.url).hostname;
+    const localHosts = ['localhost', '127.0.0.1', '0.0.0.0'];
+    // Allow only if both origin and request are on the same host, or both are local
+    const isLocal = localHosts.includes(originHost) && localHosts.includes(reqHost);
+    return originHost !== reqHost && !isLocal;
+  } catch {
+    return true;
+  }
+}
+
 const PAGE_SIZE = 15;
 const MAX_TITLE_LENGTH = 200;
 
@@ -12,6 +29,10 @@ export async function GET(request: NextRequest) {
   const fingerprint = generateFingerprint(request);
   if (!(await checkRateLimit(fingerprint))) {
     return NextResponse.json({ error: 'Забагато запитів' }, { status: 429 });
+  }
+
+  if (isForbiddenOrigin(request)) {
+    return NextResponse.json({ error: 'Заборонений запит' }, { status: 403 });
   }
 
   try {
@@ -43,20 +64,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // CORS check with try/catch for malformed origin
-    const origin = request.headers.get('origin');
-    if (origin && process.env.NODE_ENV === 'production') {
-      try {
-        const originHost = new URL(origin).hostname;
-        const reqHost = new URL(request.url).hostname;
-        const localHosts = ['localhost', '127.0.0.1', '0.0.0.0'];
-        const isLocal = localHosts.includes(originHost) && localHosts.includes(reqHost);
-        if (originHost !== reqHost && !isLocal) {
-          return NextResponse.json({ error: 'Заборонений запит' }, { status: 403 });
-        }
-      } catch {
-        return NextResponse.json({ error: 'Заборонений запит' }, { status: 403 });
-      }
+    if (isForbiddenOrigin(request)) {
+      return NextResponse.json({ error: 'Заборонений запит' }, { status: 403 });
     }
 
     let body: { title?: unknown };

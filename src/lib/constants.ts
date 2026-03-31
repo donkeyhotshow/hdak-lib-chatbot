@@ -16,7 +16,7 @@ export const LIBRARY = {
   email:       'abon@xdak.ukr.education',
 
   instagram:   'https://www.instagram.com/hdak_lib',
-  facebook:    'http://m.me/641740969354328',
+  facebook:    'https://m.me/641740969354328',
 
   /** Короткий рядок для статус-бару */
   statusBar: 'вул. Бурсацький узвіз, 4, Харків · (057) 731-27-83 · +380 66 145 84 84',
@@ -63,27 +63,52 @@ export const LIBRARY = {
 /**
  * Чи бібліотека зараз відкрита.
  * Санітарний день абонементів — остання п'ятниця місяця (зачинено весь день).
+ * Враховує обідню перерву 13:00–13:45 та таймзону Europe/Kyiv.
  */
 export function isLibraryOpen(now = new Date()): boolean {
-  const day  = now.getDay();
-  const hour = now.getHours();
-  const min  = now.getMinutes();
+  // H8: correct timezone conversion — extract parts directly from Intl formatter
+  // toLocaleString → new Date() is broken on non-Kyiv servers (Vercel us-east-1)
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Europe/Kyiv',
+    hour: 'numeric', minute: 'numeric',
+    weekday: 'short', day: 'numeric', month: 'numeric', year: 'numeric',
+    hour12: false,
+  });
+  const parts = Object.fromEntries(fmt.formatToParts(now).map(p => [p.type, p.value]));
+
+  const dayName = parts.weekday; // 'Mon', 'Tue', ... 'Sun'
+  const hour = parseInt(parts.hour, 10);
+  const min = parseInt(parts.minute, 10);
+  const dayNum = parseInt(parts.day, 10);
+  const monthNum = parseInt(parts.month, 10);
+  const yearNum = parseInt(parts.year, 10);
+
+  // Map weekday name to 0-6 (Sun=0)
+  const dayMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  const day = dayMap[dayName] ?? -1;
 
   // Check if today is the last Friday of the month (санітарний день абонементів)
   if (day === 5) {
-    const tomorrow = new Date(now);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    // If tomorrow is in the next month, today is the last Friday
-    if (tomorrow.getMonth() !== now.getMonth()) {
-      return false;
-    }
+    const nextFriday = new Date(Date.UTC(yearNum, monthNum - 1, dayNum + 7));
+    const nextFridayMonth = nextFriday.getUTCMonth() + 1;
+    if (nextFridayMonth !== monthNum) return false;
   }
 
+  // Check if today is the last Thursday of the month (санітарний день читального залу та автоматизації)
+  // isLibraryOpen() reflects the general "is anything open" status — if abonement is closed
+  // but reading room is open (Thursday), we still return true for the general status.
+  // The system prompt lists both schedules separately for accurate per-department info.
+
+  // Lunch break 13:00–13:45 (weekdays only)
+  // Lunch break: 13:00 (inclusive) to 13:45 (exclusive)
+  const isLunch = hour === 13 && min < 45;
+
   if (day >= 1 && day <= 5) {
-    return (hour > 9 || (hour === 9 && min >= 0)) && (hour < 16 || (hour === 16 && min < 45));
+    if (isLunch) return false;
+    return hour >= 9 && (hour < 16 || (hour === 16 && min < 45));
   }
   if (day === 6) {
-    return (hour > 9 || (hour === 9 && min >= 0)) && (hour < 13 || (hour === 13 && min < 30));
+    return hour >= 9 && (hour < 13 || (hour === 13 && min < 30));
   }
   return false;
 }
@@ -130,7 +155,7 @@ export const ALL_LINKS = {
   ukrintei:        'http://nrat.ukrintei.ua/',
 
   // СОЦМЕРЕЖІ
-  facebook:        'http://m.me/641740969354328',
+  facebook:        'https://m.me/641740969354328',
   instagram:       'https://www.instagram.com/hdak_lib/',
   telegram:        'https://t.me/+380661458484',
   viber:           'viber://chat/?number=%2B380661458484',

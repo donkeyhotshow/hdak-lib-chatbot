@@ -32,9 +32,19 @@ interface UseChatReturn {
 
 export function useChat(toast: (opts: { description: string; duration?: number }) => void): UseChatReturn {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [inputValue, setInputValueRaw] = useState('');
-  const setInputValue = useCallback((v: string) => { setInputValueRaw(v); if (v.trim()) setError(null); }, []);
+
+  // H2: use ref for inputValue so handleSend doesn't recreate on every keystroke
+  const inputValueRef = useRef('');
+  const [inputValue, setInputValueState] = useState('');
+  const setInputValue = useCallback((v: string) => {
+    inputValueRef.current = v;
+    setInputValueState(v);
+    if (v.trim()) setError(null);
+  }, []);
+
   const [isTyping, setIsTyping] = useState(false);
+  // M27: ref mirrors isTyping for synchronous double-send guard
+  const isTypingRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
@@ -43,22 +53,35 @@ export function useChat(toast: (opts: { description: string; duration?: number }
   const [isLoadingConversation, setIsLoadingConversation] = useState(false);
   const [newConversationId, setNewConversationId] = useState<string | null>(null);
   const newConvTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // M2: guard against concurrent loadMore calls
+  const isLoadingMoreRef = useRef(false);
+  // M20: stable ref for convOffset so loadMoreConversations doesn't recreate
+  const convOffsetRef = useRef(0);
   const [convOffset, setConvOffset] = useState(0);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const faqStoppedRef = useRef(false); // before handleFaqSend
+  const faqStoppedRef = useRef(false);
   const thinkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const typeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  // Fix #12: debounce refreshConversations
   const refreshDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // C1: track mounted state to prevent post-unmount state updates
+  const isMountedRef = useRef(true);
 
-  // Load conversations on mount
+  // Keep currentConversation in a ref so handleSend doesn't need it in dep array
+  const currentConversationRef = useRef<Conversation | null>(null);
+  useEffect(() => { currentConversationRef.current = currentConversation; }, [currentConversation]);
+
+  // Load conversations on mount; H12: set isMountedRef here (not at declaration)
+  // so StrictMode double-mount correctly resets it before the second mount runs
   useEffect(() => {
+    isMountedRef.current = true;
     const controller = new AbortController();
     fetch('/api/conversations?limit=15&offset=0', { signal: controller.signal })
       .then(res => res.ok ? res.json() : null)
       .then(data => {
+        if (!isMountedRef.current) return;
         if (data) {
           setConversations(data.items ?? data);
           setHasMoreConversations(data.hasMore ?? false);
@@ -66,17 +89,10 @@ export function useChat(toast: (opts: { description: string; duration?: number }
         }
       })
       .catch(() => {});
-    return () => controller.abort();
-  }, []);
-
-  // Auto-scroll
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: messages.length > 3 ? 'auto' : 'smooth' });
-  }, [messages, isTyping]);
-
-  // Fix #2: cleanup timers on unmount
-  useEffect(() => {
     return () => {
+      isMountedRef.current = false;
+      controller.abort();
+      // H15: clean up all timers in the same effect to guarantee order
       if (thinkTimerRef.current) clearTimeout(thinkTimerRef.current);
       if (typeIntervalRef.current) clearInterval(typeIntervalRef.current);
       abortControllerRef.current?.abort();
@@ -85,6 +101,13 @@ export function useChat(toast: (opts: { description: string; duration?: number }
     };
   }, []);
 
+  // Auto-scroll
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: messages.length > 3 ? 'auto' : 'smooth' });
+  }, [messages, isTyping]);
+
+
+
   const refreshConversations = useCallback(async () => {
     if (refreshDebounceRef.current) clearTimeout(refreshDebounceRef.current);
     return new Promise<void>((resolve) => {
@@ -92,11 +115,13 @@ export function useChat(toast: (opts: { description: string; duration?: number }
         refreshDebounceRef.current = null;
         try {
           const res = await fetch('/api/conversations?limit=15&offset=0');
-          if (res.ok) {
+          if (res.ok && isMountedRef.current) {
             const data = await res.json();
             setConversations(data.items ?? data);
             setHasMoreConversations(data.hasMore ?? false);
-            setConvOffset(data.items?.length ?? 0);
+            const newOffset = data.items?.length ?? 0;
+            convOffsetRef.current = newOffset;
+            setConvOffset(newOffset);
           }
         } catch (err) {
           console.error('Не вдалося оновити список розмов:', err);
@@ -106,13 +131,25 @@ export function useChat(toast: (opts: { description: string; duration?: number }
     });
   }, []);
 
+  // M13: cancel active stream when switching conversations
   const loadConversation = useCallback(async (id: string) => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    if (thinkTimerRef.current) { clearTimeout(thinkTimerRef.current); thinkTimerRef.current = null; }
+    if (typeIntervalRef.current) { clearInterval(typeIntervalRef.current); typeIntervalRef.current = null; }
+    setIsTyping(false);
+    setStreamingMessageId(null);
+
     setIsLoadingConversation(true);
     setError(null);
     try {
       const res = await fetch(`/api/conversations/${id}`);
       if (res.ok) {
         const data = await res.json();
+        // M51: update ref immediately so handleSend uses correct convId before next render
+        currentConversationRef.current = data;
         setCurrentConversation(data);
         setMessages(data.messages || []);
       } else {
@@ -128,7 +165,6 @@ export function useChat(toast: (opts: { description: string; duration?: number }
   }, []);
 
   const createNewConversation = useCallback(() => {
-    // Fix #2: cancel any running timers
     if (thinkTimerRef.current) { clearTimeout(thinkTimerRef.current); thinkTimerRef.current = null; }
     if (typeIntervalRef.current) { clearInterval(typeIntervalRef.current); typeIntervalRef.current = null; }
     abortControllerRef.current?.abort();
@@ -138,8 +174,7 @@ export function useChat(toast: (opts: { description: string; duration?: number }
     setError(null);
     setIsTyping(false);
     setStreamingMessageId(null);
-  }, []);
-
+  }, [setInputValue]);
 
   const renameConversation = useCallback(async (id: string, title: string) => {
     try {
@@ -150,26 +185,41 @@ export function useChat(toast: (opts: { description: string; duration?: number }
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setConversations(prev => prev.map(c => c.id === id ? { ...c, title } : c));
-      if (currentConversation?.id === id) {
+      if (currentConversationRef.current?.id === id) {
         setCurrentConversation(prev => prev ? { ...prev, title } : prev);
       }
     } catch (err) {
       console.error('Не вдалося перейменувати:', err);
       toast({ description: 'Не вдалося перейменувати розмову', duration: 2000 });
     }
-  }, [currentConversation, toast]);
+  }, [toast]);
 
+  // L1: stop stream when deleting the active conversation
   const deleteConversation = useCallback(async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    if (currentConversationRef.current?.id === id) {
+      abortControllerRef.current?.abort();
+      abortControllerRef.current = null;
+      if (thinkTimerRef.current) { clearTimeout(thinkTimerRef.current); thinkTimerRef.current = null; }
+      if (typeIntervalRef.current) { clearInterval(typeIntervalRef.current); typeIntervalRef.current = null; }
+      setIsTyping(false);
+      setStreamingMessageId(null);
+    }
     try {
       const res = await fetch(`/api/conversations/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setConversations(prev => {
         const next = prev.filter(c => c.id !== id);
-        try { localStorage.setItem('hdak_conv_cache', JSON.stringify({ items: next, ts: Date.now() })); } catch {}
+        try {
+          const cache = JSON.stringify({ items: next, ts: Date.now() });
+          localStorage.setItem('hdak_conv_cache', cache);
+        } catch (e) {
+          // L34: QuotaExceededError or SecurityError — silently clear stale cache
+          try { localStorage.removeItem('hdak_conv_cache'); } catch { /* ignore */ }
+        }
         return next;
       });
-      if (currentConversation?.id === id) {
+      if (currentConversationRef.current?.id === id) {
         setCurrentConversation(null);
         setMessages([]);
       }
@@ -177,20 +227,27 @@ export function useChat(toast: (opts: { description: string; duration?: number }
       console.error('Не вдалося видалити:', err);
       toast({ description: 'Не вдалося видалити розмову', duration: 2000 });
     }
-  }, [currentConversation, toast]);
+  }, [toast]);
 
-  // Fix #5: consume SSE stream
+  // H2: no inputValue/currentConversation in deps — read from refs instead
+  // H20: removed isTyping from deps — use isTypingRef for guard, no need to recreate on every isTyping change
   const handleSend = useCallback(async (query?: string) => {
-    const text = (query || inputValue).trim();
-    if (!text || isTyping) return;
+    const text = (query || inputValueRef.current).trim();
+    // M27: use ref for synchronous guard — prevents double-send on rapid clicks
+    if (!text || isTypingRef.current) return;
 
-    abortControllerRef.current?.abort();
-    abortControllerRef.current = new AbortController();
+    // H5: abort previous controller BEFORE creating new one
+    const prevController = abortControllerRef.current;
+    prevController?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
 
     setInputValue('');
+    isTypingRef.current = true;
     setIsTyping(true);
     setError(null);
 
+    // H7: capture stable IDs for this specific send invocation
     const tempUserId = `temp-user-${crypto.randomUUID()}`;
     const botId = `bot-${crypto.randomUUID()}`;
 
@@ -201,12 +258,14 @@ export function useChat(toast: (opts: { description: string; duration?: number }
       createdAt: new Date().toISOString(),
     }]);
 
+    let streamStarted = false;
+
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ conversationId: currentConversation?.id || null, message: text }),
-        signal: abortControllerRef.current.signal,
+        body: JSON.stringify({ conversationId: currentConversationRef.current?.id || null, message: text }),
+        signal: controller.signal,
       });
 
       if (!res.ok) {
@@ -216,7 +275,6 @@ export function useChat(toast: (opts: { description: string; duration?: number }
 
       if (!res.body) throw new Error('Відсутній потік відповіді');
 
-      // Add empty bot message to stream into
       setMessages(prev => [...prev, {
         id: botId,
         role: 'ASSISTANT',
@@ -224,13 +282,14 @@ export function useChat(toast: (opts: { description: string; duration?: number }
         createdAt: new Date().toISOString(),
       }]);
       setStreamingMessageId(botId);
+      streamStarted = true;
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buf = '';
-      let convId = currentConversation?.id || null;
       let pendingText = '';
       let flushTimer: ReturnType<typeof setTimeout> | null = null;
+      let serverError: string | null = null;
 
       const flushPending = () => {
         if (!pendingText) return;
@@ -241,63 +300,100 @@ export function useChat(toast: (opts: { description: string; duration?: number }
         ));
       };
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) {
-          if (flushTimer) { clearTimeout(flushTimer); flushTimer = null; }
-          flushPending();
-          break;
-        }
-        buf += decoder.decode(value, { stream: true });
-        const lines = buf.split('\n');
-        buf = lines.pop() ?? '';
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) {
+            if (flushTimer) { clearTimeout(flushTimer); flushTimer = null; }
+            flushPending();
+            break;
+          }
+          buf += decoder.decode(value, { stream: true });
+          const lines = buf.split('\n');
+          buf = lines.pop() ?? '';
 
-        for (const line of lines) {
-          if (!line.startsWith('data:')) continue;
-          const raw = line.slice(5).trim();
-          if (!raw) continue;
-          try {
-            const chunk = JSON.parse(raw);
-            if (chunk.conversationId && !convId) convId = chunk.conversationId;
-            if (chunk.text) {
-              pendingText += chunk.text;
-              if (!flushTimer) {
-                flushTimer = setTimeout(() => { flushTimer = null; flushPending(); }, 50);
+          for (const line of lines) {
+            if (!line.startsWith('data:')) continue;
+            const raw = line.slice(5).trim();
+            if (!raw) continue;
+            try {
+              const chunk = JSON.parse(raw);
+              if (chunk.text) {
+                pendingText += chunk.text;
+                if (!flushTimer) {
+                  flushTimer = setTimeout(() => { flushTimer = null; flushPending(); }, 50);
+                }
               }
-            }
-            if (chunk.done) {
-              if (flushTimer) { clearTimeout(flushTimer); flushTimer = null; }
-              flushPending();
-              setStreamingMessageId(null);
-            }
-          } catch { /* skip */ }
+              if (chunk.error) serverError = chunk.error;
+              if (chunk.done || chunk.error) {
+                if (flushTimer) { clearTimeout(flushTimer); flushTimer = null; }
+                flushPending();
+                setStreamingMessageId(null);
+              }
+            } catch { /* skip malformed */ }
+          }
         }
+      } finally {
+        if (flushTimer) { clearTimeout(flushTimer); flushTimer = null; }
       }
 
-      // Fix #1: refresh conversations after real API call
-      await refreshConversations();
+      if (serverError) {
+        setError('Сталася помилка під час відповіді. Показано частковий результат.');
+        setStreamingMessageId(null);
+      }
 
+      if (abortControllerRef.current === controller) {
+        refreshConversations();
+      }
 
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') return;
+
+      // H1+H7: use functional update with captured IDs — safe against concurrent state
+      setMessages(prev => {
+        const botMsg = prev.find(m => m.id === botId);
+        if (!streamStarted || !botMsg || !botMsg.content) {
+          // No partial content — remove only OUR messages by their stable IDs
+          return prev.filter(m => m.id !== tempUserId && m.id !== botId);
+        }
+        // Has partial content — append error marker to our bot message only
+        return prev.map(m => m.id === botId
+          ? { ...m, content: m.content + '\n\n_⚠️ З\'єднання перервано_' }
+          : m
+        );
+      });
       setError('Виникла помилка з\'єднання. Спробуйте ще раз або зателефонуйте до бібліотеки: (057) 731-27-83');
-      setMessages(prev => prev.filter(m => m.id !== tempUserId && m.id !== botId));
       setStreamingMessageId(null);
     } finally {
+      isTypingRef.current = false;
       setIsTyping(false);
-      abortControllerRef.current = null;
+      if (abortControllerRef.current === controller) {
+        abortControllerRef.current = null;
+      }
     }
-  }, [inputValue, isTyping, currentConversation, refreshConversations]);
+  // H20: removed isTyping — guard uses isTypingRef, no stale closure issue
+  }, [setInputValue, refreshConversations]);
 
-  // Fix #1 + #2: FAQ saves to DB via API, timers tracked in refs
+  // H6+M21: clear old timers AND abort active fetch before starting FAQ animation
+  // H23: uses isTypingRef instead of isTyping — no stale closure, stable deps
   const handleFaqSend = useCallback((query: string) => {
-    if (isTyping) return;
+    if (isTypingRef.current) return;
 
     const faq = getFaqResponse(query);
     if (!faq) {
       handleSend(query);
       return;
     }
+
+    // M21: abort any active LLM fetch stream before starting FAQ
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    // H6: clear any running FAQ animation
+    if (thinkTimerRef.current) { clearTimeout(thinkTimerRef.current); thinkTimerRef.current = null; }
+    if (typeIntervalRef.current) { clearInterval(typeIntervalRef.current); typeIntervalRef.current = null; }
+    setStreamingMessageId(null);
 
     setError(null);
     faqStoppedRef.current = false;
@@ -311,10 +407,11 @@ export function useChat(toast: (opts: { description: string; duration?: number }
     }]);
 
     setIsTyping(true);
+    isTypingRef.current = true; // H23: sync ref so double-click guard works during FAQ
 
-    // Fix #2: store timer in ref
     thinkTimerRef.current = setTimeout(() => {
       thinkTimerRef.current = null;
+      // thinkDelay done — isTyping stays true via isTypingRef, animation starts
       setIsTyping(false);
 
       setMessages(prev => [...prev, {
@@ -329,7 +426,6 @@ export function useChat(toast: (opts: { description: string; duration?: number }
       const fullContent = faq.content;
       const totalSteps = Math.ceil(fullContent.length / faq.charsPerStep);
 
-      // Fix #2: store interval in ref
       typeIntervalRef.current = setInterval(() => {
         currentIndex++;
         const endIndex = Math.min(currentIndex * faq.charsPerStep, fullContent.length);
@@ -341,23 +437,30 @@ export function useChat(toast: (opts: { description: string; duration?: number }
           clearInterval(typeIntervalRef.current!);
           typeIntervalRef.current = null;
           setStreamingMessageId(null);
+          // H23: reset ref BEFORE setMessages to avoid race with handleSend guard
+          // handleStop also resets this ref, so it's safe if interval was cleared early
+          isTypingRef.current = false;
           setMessages(prev => prev.map(m =>
             m.id === botId ? { ...m, content: fullContent } : m
           ));
 
-          // Save FAQ conversation to DB after animation completes (only if not stopped)
-          if (!faqStoppedRef.current) {
+          // C1: check isMountedRef instead of returning cleanup from setInterval callback
+          // (React ignores cleanup functions returned from setInterval callbacks)
+          if (!faqStoppedRef.current && isMountedRef.current) {
             fetch('/api/faq-save', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ question: query, answer: fullContent }),
             }).then(async res => {
+              if (!isMountedRef.current) return; // C1: guard post-unmount state updates
               if (res.ok) {
                 const data = await res.json().catch(() => ({}));
                 if (data.conversationId) {
                   setNewConversationId(data.conversationId);
-        if (newConvTimerRef.current) clearTimeout(newConvTimerRef.current);
-        newConvTimerRef.current = setTimeout(() => setNewConversationId(null), 5000);
+                  if (newConvTimerRef.current) clearTimeout(newConvTimerRef.current);
+                  newConvTimerRef.current = setTimeout(() => {
+                    if (isMountedRef.current) setNewConversationId(null);
+                  }, 5000);
                   await refreshConversations();
                 }
               }
@@ -366,31 +469,40 @@ export function useChat(toast: (opts: { description: string; duration?: number }
         }
       }, faq.stepDelay);
     }, faq.thinkDelay);
-  }, [isTyping, handleSend, refreshConversations]);
+  // H23: removed isTyping from deps — guard uses isTypingRef synchronously
+  }, [handleSend, refreshConversations]);
 
-  // Track whether user stopped FAQ animation — declared above handleFaqSend
   const handleStop = useCallback(() => {
     faqStoppedRef.current = true;
     if (thinkTimerRef.current) { clearTimeout(thinkTimerRef.current); thinkTimerRef.current = null; }
     if (typeIntervalRef.current) { clearInterval(typeIntervalRef.current); typeIntervalRef.current = null; }
     abortControllerRef.current?.abort();
+    isTypingRef.current = false; // H23: reset ref on stop
     setIsTyping(false);
     setStreamingMessageId(null);
   }, []);
 
-  // Track whether user stopped FAQ animation — moved to top of refs
-
+  // M2+M20: prevent duplicate entries; read offset from ref so callback is stable
   const loadMoreConversations = useCallback(async () => {
+    if (isLoadingMoreRef.current) return;
+    isLoadingMoreRef.current = true;
     try {
-      const res = await fetch(`/api/conversations?limit=15&offset=${convOffset}`);
-      if (res.ok) {
+      const res = await fetch(`/api/conversations?limit=15&offset=${convOffsetRef.current}`);
+      if (res.ok && isMountedRef.current) {
         const data = await res.json();
         setConversations(prev => [...prev, ...(data.items ?? [])]);
         setHasMoreConversations(data.hasMore ?? false);
-        setConvOffset(prev => prev + (data.items?.length ?? 0));
+        setConvOffset(prev => {
+          const next = prev + (data.items?.length ?? 0);
+          convOffsetRef.current = next;
+          return next;
+        });
       }
     } catch {}
-  }, [convOffset]);
+    finally { isLoadingMoreRef.current = false; }
+  // M20: stable — no convOffset in deps, reads from ref
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const formatTime = useCallback((d: string) => {
     try { return new Date(d).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' }); }
@@ -406,11 +518,9 @@ export function useChat(toast: (opts: { description: string; duration?: number }
     }
   }, [toast]);
 
-
   const retryLastMessage = useCallback(() => {
     const lastUserMsg = [...messages].reverse().find(m => m.role === 'USER');
-    if (lastUserMsg && !isTyping) {
-      // Remove last user + assistant messages, then resend
+    if (lastUserMsg && !isTypingRef.current) {
       setMessages(prev => {
         const lastUserIdx = prev.map(m => m.role).lastIndexOf('USER');
         return prev.slice(0, lastUserIdx);
@@ -418,7 +528,7 @@ export function useChat(toast: (opts: { description: string; duration?: number }
       setError(null);
       handleSend(lastUserMsg.content);
     }
-  }, [messages, isTyping, handleSend]);
+  }, [messages, handleSend]);
 
   return {
     messages, inputValue, setInputValue, isTyping, isLoadingConversation, error,

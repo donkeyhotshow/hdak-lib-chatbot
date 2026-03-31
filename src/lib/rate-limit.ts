@@ -1,3 +1,4 @@
+import { createHash } from "crypto";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
@@ -22,10 +23,10 @@ if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) 
 
 // ---------------------------------------------------------------------------
 // In-memory fallback (development / when Upstash is not configured)
+// Uses sliding window to match Upstash behavior.
 // ---------------------------------------------------------------------------
 interface RateLimitInfo {
-  count: number;
-  lastReset: number;
+  timestamps: number[]; // request timestamps within the current window
 }
 
 const rateLimits = new Map<string, RateLimitInfo>();
@@ -37,30 +38,33 @@ function maybePurge(windowMs: number) {
   if (now - _lastPurge < 5 * 60_000) return;
   _lastPurge = now;
   for (const [key, info] of rateLimits.entries()) {
-    if (now - info.lastReset > windowMs) rateLimits.delete(key);
+    const cutoff = now - windowMs;
+    // Remove entries with no recent timestamps
+    if (info.timestamps.length === 0 || info.timestamps[info.timestamps.length - 1] < cutoff) {
+      rateLimits.delete(key);
+    }
   }
 }
 
 function checkRateLimitMemory(key: string, limit: number, windowMs: number): boolean {
   maybePurge(windowMs);
   const now = Date.now();
+  const cutoff = now - windowMs;
   const info = rateLimits.get(key);
 
   if (!info) {
-    rateLimits.set(key, { count: 1, lastReset: now });
+    rateLimits.set(key, { timestamps: [now] });
     return true;
   }
 
-  if (now - info.lastReset > windowMs) {
-    rateLimits.set(key, { count: 1, lastReset: now });
-    return true;
-  }
+  // Sliding window: remove timestamps outside the window
+  info.timestamps = info.timestamps.filter(ts => ts > cutoff);
 
-  if (info.count >= limit) {
+  if (info.timestamps.length >= limit) {
     return false;
   }
 
-  info.count += 1;
+  info.timestamps.push(now);
   return true;
 }
 
@@ -91,6 +95,7 @@ export function generateFingerprint(req: Request): string {
   const ua = req.headers.get("user-agent") || "";
   const lang = req.headers.get("accept-language") || "";
   const enc = req.headers.get("accept-encoding") || "";
-  // Combine multiple signals for stronger fingerprint
-  return `${ip}|${ua.substring(0, 80)}|${lang.substring(0, 20)}|${enc.substring(0, 20)}`;
+  // M28: hash the fingerprint to keep key short and avoid storing raw IP/UA in Redis
+  const raw = `${ip}|${ua.substring(0, 80)}|${lang.substring(0, 20)}|${enc.substring(0, 20)}`;
+  return createHash("sha256").update(raw).digest("hex").substring(0, 32);
 }

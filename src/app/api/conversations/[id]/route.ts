@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db, conversations, messages } from '@/lib/db';
 import { eq, asc } from 'drizzle-orm';
 import { stripHtml } from '@/lib/sanitize';
+import { checkRateLimit, generateFingerprint } from '@/lib/rate-limit';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_TITLE_LENGTH = 200;
@@ -16,6 +17,7 @@ function isForbiddenOrigin(request: NextRequest): boolean {
   try {
     const originHost = new URL(origin).hostname;
     const reqHost = new URL(request.url).hostname;
+    // H22: both must be local for the request to be allowed cross-origin
     const localHosts = ['localhost', '127.0.0.1', '0.0.0.0'];
     const isLocal = localHosts.includes(originHost) && localHosts.includes(reqHost);
     return originHost !== reqHost && !isLocal;
@@ -28,6 +30,15 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const fingerprint = generateFingerprint(request);
+  if (!(await checkRateLimit(fingerprint))) {
+    return NextResponse.json({ error: 'Забагато запитів' }, { status: 429 });
+  }
+
+  if (isForbiddenOrigin(request)) {
+    return NextResponse.json({ error: 'Заборонений запит' }, { status: 403 });
+  }
+
   try {
     const { id } = await params;
     if (!isValidUuid(id)) {
@@ -55,6 +66,11 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const fingerprint = generateFingerprint(request);
+  if (!(await checkRateLimit(fingerprint))) {
+    return NextResponse.json({ error: 'Забагато запитів' }, { status: 429 });
+  }
+
   try {
     if (isForbiddenOrigin(request)) {
       return NextResponse.json({ error: 'Заборонене джерело' }, { status: 403 });
@@ -77,6 +93,11 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const fingerprint = generateFingerprint(request);
+  if (!(await checkRateLimit(fingerprint))) {
+    return NextResponse.json({ error: 'Забагато запитів' }, { status: 429 });
+  }
+
   try {
     if (isForbiddenOrigin(request)) {
       return NextResponse.json({ error: 'Заборонене джерело' }, { status: 403 });

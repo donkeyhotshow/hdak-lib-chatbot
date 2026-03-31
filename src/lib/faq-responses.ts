@@ -43,7 +43,7 @@ export const FAQ_RESPONSES: Record<string, FaqResponse> = {
       ``,
       `_Якщо маєте додаткові запитання — просто напишіть, я допоможу._`,
     ].join('\n'),
-    thinkDelay: 0, // computed at call time
+    thinkDelay: 0, // overridden by getFaqResponse() with randomThink()
     charsPerStep: 5,
     stepDelay: 12,
   },
@@ -74,7 +74,7 @@ export const FAQ_RESPONSES: Record<string, FaqResponse> = {
       ``,
       `_Якщо виникнуть питання — звертайтеся, я завжди поруч._`,
     ].join('\n'),
-    thinkDelay: 0, // computed at call time
+    thinkDelay: 0, // overridden by getFaqResponse() with randomThink()
     charsPerStep: 5,
     stepDelay: 12,
   },
@@ -84,13 +84,13 @@ export const FAQ_RESPONSES: Record<string, FaqResponse> = {
     content: [
       `Знайти потрібну книгу в нашому каталозі — легко. Ось кілька способів:`,
       ``,
-      `**🖥 Електронний каталог (основний спосіб):**`,
+      `**🖥️ Електронний каталог (основний спосіб):**`,
       ``,
       `1. Перейдіть на сторінку: [Електронний каталог](${ALL_LINKS.catalog_search})`,
       `2. Введіть **назву книги**, **прізвище автора** або **ключове слово**`,
       `3. Натисніть «Пошук» і оберіть потрібне видання зі списку`,
       ``,
-      `> � **Порада:** якщо не знаходите за назвою — спробуйте пошук за **прізвищем автора** або **темою**.`,
+      `> 💡 **Порада:** якщо не знаходите за назвою — спробуйте пошук за **прізвищем автора** або **темою**.`,
       ``,
       `**📱 Мобільний додаток:**`,
       `Зручний пошук прямо зі смартфона — [завантажити для Android](${ALL_LINKS.mobile_app}).`,
@@ -98,14 +98,14 @@ export const FAQ_RESPONSES: Record<string, FaqResponse> = {
       `**📚 Нові надходження:**`,
       `Хочете дізнатися, що з'явилося нещодавно? Перегляньте [нові надходження](${ALL_LINKS.new_books}).`,
       ``,
-      `**� Наукові публікації:**`,
+      `**📚 Наукові публікації:**`,
       `Для пошуку наукових праць викладачів ХДАК — [репозитарій](${ALL_LINKS.repository}).`,
       ``,
       `---`,
       ``,
       `_Якщо не можете знайти потрібну книгу — напишіть мені назву або тему, і я спробую допомогти._`,
     ].join('\n'),
-    thinkDelay: 0, // computed at call time
+    thinkDelay: 0, // overridden by getFaqResponse() with randomThink()
     charsPerStep: 5,
     stepDelay: 12,
   },
@@ -121,7 +121,7 @@ export const FAQ_RESPONSES: Record<string, FaqResponse> = {
       ``,
       `---`,
       ``,
-      `**📞 Телефон:** [${LIBRARY.phoneFull}](tel:${LIBRARY.phoneFull.replace(/[\s()]/g, '')})`,
+      `**📞 Телефон:** [${LIBRARY.phoneFull}](tel:${LIBRARY.phoneFull.replace(/[\s()\-]/g, '')})`,
       ``,
       `**📧 Email:** [${LIBRARY.email}](mailto:${LIBRARY.email})`,
       ``,
@@ -140,7 +140,7 @@ export const FAQ_RESPONSES: Record<string, FaqResponse> = {
       ``,
       `_Оберіть зручний для вас спосіб — ми завжди раді допомогти!_`,
     ].join('\n'),
-    thinkDelay: 0, // computed at call time
+    thinkDelay: 0, // overridden by getFaqResponse() with randomThink()
     charsPerStep: 5,
     stepDelay: 12,
   },
@@ -155,7 +155,7 @@ export const FAQ_RESPONSES: Record<string, FaqResponse> = {
       ``,
       `---`,
       ``,
-      `**� Правила користування виданнями:**`,
+      `**📖 Правила користування виданнями:**`,
       `- Книги видаються на **встановлений термін** — вчасно повертайте`,
       `- Поводьтеся з виданнями **охайно**: не робіть позначок, не загинайте сторінки`,
       `- У разі **втрати або пошкодження** — необхідно відшкодувати вартість`,
@@ -175,7 +175,7 @@ export const FAQ_RESPONSES: Record<string, FaqResponse> = {
       ``,
       `_Дотримання правил — запорука комфорту для всіх читачів. Дякуємо за розуміння!_`,
     ].join('\n'),
-    thinkDelay: 0, // computed at call time
+    thinkDelay: 0, // overridden by getFaqResponse() with randomThink()
     charsPerStep: 5,
     stepDelay: 12,
   },
@@ -211,22 +211,39 @@ export const FAQ_RESPONSES: Record<string, FaqResponse> = {
       ``,
       `_Потрібна допомога з пошуком наукової інформації? Напишіть — підкажу._`,
     ].join('\n'),
-    thinkDelay: 0, // computed at call time
+    thinkDelay: 0, // overridden by getFaqResponse() with randomThink()
     charsPerStep: 5,
     stepDelay: 12,
   },
 };
 
 /**
+ * Нормалізує рядок для порівняння: нижній регістр, без зайвих пробілів і пунктуації.
+ */
+function normalize(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/[?!.,;:…«»"'""'']/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// Pre-build normalized lookup map once at module load
+const FAQ_NORMALIZED = new Map<string, FaqResponse>(
+  Object.entries(FAQ_RESPONSES).map(([k, v]) => [normalize(k), v])
+);
+
+/**
  * Перевіряє, чи є текст запитом із готовою відповіддю.
+ * Порівняння нечутливе до регістру та пунктуації.
  */
 export function getFaqResponse(query: string): (Omit<FaqResponse, 'content'> & { content: string }) | null {
-  const trimmed = query.trim();
-  const entry = FAQ_RESPONSES[trimmed];
+  const key = normalize(query);
+  const entry = FAQ_NORMALIZED.get(key);
   if (!entry) return null;
   return {
     ...entry,
     content: typeof entry.content === 'function' ? entry.content() : entry.content,
-    thinkDelay: randomThink(), // Fix #14: fresh random on each call
+    thinkDelay: randomThink(),
   };
 }

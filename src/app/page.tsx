@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Menu, X } from 'lucide-react';
@@ -9,29 +9,14 @@ import { ChatInput } from '@/components/chat/ChatInput';
 import { ChatArea } from '@/components/chat/ChatArea';
 
 export default function ChatPage() {
-  // Fix #18: avoid hydration mismatch - start closed, open on desktop after mount
-  const [isSidebarOpen, setSidebarOpen] = useState(false);
-  const [headerVisible, setHeaderVisible] = useState(true);
-  const lastScrollY = useRef(0);
+  // Fix #18: avoid hydration mismatch - start null, resolve after mount
+  const [isSidebarOpen, setSidebarOpen] = useState<boolean | null>(null);
+  const sidebarRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     setSidebarOpen(window.innerWidth >= 768);
   }, []);
 
-  // Hide header on scroll down (mobile only)
-  useEffect(() => {
-    const el = document.querySelector('.chat-scroll-area');
-    if (!el) return;
-    const onScroll = () => {
-      if (window.innerWidth >= 768) return;
-      const y = el.scrollTop;
-      setHeaderVisible(y < lastScrollY.current || y < 60);
-      lastScrollY.current = y;
-    };
-    el.addEventListener('scroll', onScroll, { passive: true });
-    return () => el.removeEventListener('scroll', onScroll);
-  }, []);
-  const sidebarRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   const {
@@ -44,7 +29,7 @@ export default function ChatPage() {
     loadMoreConversations, formatTime, copyToClipboard, retryLastMessage,
   } = useChat(toast);
 
-  // Close sidebar on mobile click-outside
+  // Close sidebar on mobile click-outside or Escape key (M24)
   useEffect(() => {
     if (!isSidebarOpen) return;
     const handleClick = (e: MouseEvent) => {
@@ -52,9 +37,19 @@ export default function ChatPage() {
         setSidebarOpen(false);
       }
     };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && window.innerWidth < 768) setSidebarOpen(false);
+    };
     document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, [isSidebarOpen]);
+
+  // Avoid layout flash: render nothing until sidebar state is resolved
+  if (isSidebarOpen === null) return null;
 
   return (
     <div className="h-screen flex bg-antique-paper bg-ambient-glow overflow-hidden">
@@ -74,9 +69,9 @@ export default function ChatPage() {
       />
 
       <main className="flex-1 flex flex-col min-w-0 relative h-full overflow-hidden">
-        <header className={`relative h-12 flex items-center justify-between px-4 border-b border-[#2A2520]/[0.04] bg-white/50 backdrop-blur-sm shrink-0 transition-transform duration-200 ${!headerVisible ? '-translate-y-full md:translate-y-0' : ''}`}>
+        <header className="relative h-12 flex items-center justify-between px-4 border-b border-[#2A2520]/[0.04] bg-white/50 backdrop-blur-sm shrink-0">
           <button
-            onClick={() => setSidebarOpen(v => !v)}
+            onClick={() => setSidebarOpen(v => !(v ?? false))}
             className="w-11 h-11 flex items-center justify-center rounded-xl text-[#7A756F] hover:text-[#2A2520] hover:bg-[#2A2520]/[0.04] transition-all"
             aria-label={isSidebarOpen ? 'Закрити меню' : 'Відкрити меню'}
           >
@@ -93,7 +88,6 @@ export default function ChatPage() {
           isTyping={isTyping}
           isLoadingConversation={isLoadingConversation}
           error={error}
-          handleSend={handleSend}
           handleFaqSend={handleFaqSend}
           streamingMessageId={streamingMessageId}
           messagesEndRef={messagesEndRef}

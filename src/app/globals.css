@@ -451,7 +451,8 @@
 }
 
 .bg-ambient-glow {
-  position: relative;
+  position: relative; /* L25: required for z-index on ::before to work correctly */
+  isolation: isolate;
 }
 
 .bg-ambient-glow::before {
@@ -480,6 +481,7 @@
   font-family: var(--font-logo), var(--font-serif), Georgia, serif;
   font-size: 26px;
   font-weight: 800;
+  /* M35: color fallback for browsers that don't support background-clip: text */
   color: #D4A853;
   letter-spacing: 0.22em;
   text-shadow:
@@ -489,6 +491,10 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  /* Ensure text is visible if gradient clip fails */
+  @supports not (-webkit-background-clip: text) {
+    -webkit-text-fill-color: #D4A853;
+  }
 }
 
 .hero-title {
@@ -785,7 +791,7 @@
     font-size: 13px;
   }
 
-  /* Input area: more padding on mobile for thumb reach */
+  /* Input area: safe-area padding for notched phones */
   .input-area {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
@@ -810,5 +816,100 @@
 @media (min-width: 768px) {
   .hero-title {
     font-size: 24px;
+  }
+}
+
+/* ============================================
+   TOAST Z-INDEX FIX (M22)
+   Toast must be above sidebar overlay (z-50) but below modals
+   ============================================ */
+
+[data-sonner-toaster],
+[data-radix-toast-viewport] {
+  z-index: 200 !important;
+}
+
+
+/* ============================================
+   ACCESSIBILITY — SR-ONLY UTILITY (H9)
+   ============================================ */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ============================================
+   PRINT STYLES (L12)
+   ============================================ */
+
+@media print {
+  /* Hide sidebar, input, header */
+  .sidebar-premium,
+  .input-area,
+  header {
+    display: none !important;
+  }
+
+  /* Reset backgrounds for print */
+  body,
+  .bg-antique-paper,
+  .message-user,
+  .message-assistant {
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+  }
+
+  .message-user {
+    border: 1px solid #ccc;
+    color: black !important;
+  }
+
+  /* Ensure chat area fills page */
+  main {
+    width: 100% !important;
+  }
+}
+
+/* ============================================
+   ACCESSIBILITY — REDUCED MOTION (H10)
+   WCAG 2.1 AA: respect prefers-reduced-motion
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-subtle-float,
+  .animate-fade-in-up {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .animate-bounce {
+    animation: none !important;
+  }
+
+  .sidebar-premium {
+    transition: none !important;
+  }
+
+  .btn-new-chat:hover,
+  .quick-btn:hover,
+  .send-btn.active:hover {
+    transform: none !important;
   }
 }

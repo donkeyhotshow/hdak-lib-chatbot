@@ -4,14 +4,24 @@
  */
 import { LIBRARY, ALL_LINKS, isLibraryOpen } from '@/lib/constants';
 
-// Cache base prompt (without catalog context), invalidate every 60s
-let _promptCache: { value: string; ts: number } | null = null;
+// Cache base prompt (without catalog context).
+// L15: invalidate when library open/closed status changes, not just on TTL.
+// We track the last known status to bust cache on transitions.
+let _promptCache: { value: string; ts: number; wasOpen: boolean } | null = null;
 
 export function buildSystemPrompt(catalogContext = ''): string {
   const now = Date.now();
-  if (_promptCache && now - _promptCache.ts < 60_000 && !catalogContext) return _promptCache.value;
+  const currentlyOpen = isLibraryOpen();
 
-  const openStatus = isLibraryOpen()
+  // Invalidate if: TTL expired OR open/closed status changed since last cache
+  const cacheValid = _promptCache
+    && (now - _promptCache.ts < 60_000)
+    && (_promptCache.wasOpen === currentlyOpen)
+    && !catalogContext;
+
+  if (cacheValid) return _promptCache!.value;
+
+  const openStatus = currentlyOpen
     ? 'ВІДКРИТА зараз'
     : 'ЗАЧИНЕНА зараз';
 
@@ -98,7 +108,7 @@ ${LIBRARY.schedule.automation}
 5. Тиша, телефон на беззвучному`;
 
   if (!catalogContext) {
-    _promptCache = { value: result, ts: now };
+    _promptCache = { value: result, ts: now, wasOpen: currentlyOpen };
   }
   return catalogContext ? result + '\n\n' + catalogContext : result;
 }

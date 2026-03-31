@@ -1,4 +1,4 @@
-﻿import React, { useRef } from 'react';
+﻿import React, { useRef, useEffect } from 'react';
 import { Send, Square } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -15,9 +15,19 @@ export function ChatInput({ inputValue, setInputValue, isTyping, handleSend, onS
   const hasInput = inputValue.trim().length > 0;
   const charCount = inputValue.length;
 
+  // M4: reset height when input is cleared externally (after send or conversation switch)
+  const prevValueRef = useRef(inputValue);
+  useEffect(() => {
+    if (prevValueRef.current !== '' && inputValue === '' && textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
+    prevValueRef.current = inputValue;
+  }, [inputValue]);
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey && !isTyping) {
       e.preventDefault();
+      if (textareaRef.current) textareaRef.current.style.height = 'auto';
       handleSend();
     }
   };
@@ -28,6 +38,11 @@ export function ChatInput({ inputValue, setInputValue, isTyping, handleSend, onS
       textareaRef.current.style.height = 'auto';
       textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 140)}px`;
     }
+  };
+
+  const handleSendClick = () => {
+    if (textareaRef.current) textareaRef.current.style.height = 'auto';
+    handleSend();
   };
 
   return (
@@ -63,7 +78,7 @@ export function ChatInput({ inputValue, setInputValue, isTyping, handleSend, onS
                 </button>
               ) : (
                 <button
-                  onClick={() => handleSend()}
+                  onClick={handleSendClick}
                   disabled={!hasInput || isTyping}
                   className={cn("send-btn", hasInput && !isTyping && "active")}
                   aria-label="Надіслати"

@@ -1,4 +1,4 @@
-﻿import React, { memo } from 'react';
+import React, { memo, useMemo } from 'react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import { Search, Clock, BookOpen, MapPin, ClipboardList, Globe, Copy } from 'lucide-react';
@@ -62,7 +62,7 @@ const markdownComponents = {
   strong: (props: React.HTMLAttributes<HTMLElement>) => <strong className="font-semibold text-[#1A1612]" {...props} />,
   a: (props: React.AnchorHTMLAttributes<HTMLAnchorElement>) => <a target="_blank" rel="noopener noreferrer" className="text-[#B87830] underline underline-offset-2 hover:text-[#D4A853] transition-colors" {...props} />,
   code: ({ className, ...rest }: React.HTMLAttributes<HTMLElement>) => {
-    const isInline = !className;
+    const isInline = !className?.startsWith('language-');
     return isInline
       ? <code className="bg-[#1A1612]/5 text-[#B87830] px-1.5 py-0.5 rounded text-[13px]" {...rest} />
       : <code className={cn("block bg-[#1A1612]/5 p-3 rounded-lg text-[13px] overflow-x-auto", className)} {...rest} />;
@@ -108,7 +108,7 @@ const MessageBubble = memo(function MessageBubble({ msg, isStreaming, formatTime
 
 const TypingIndicator = memo(function TypingIndicator() {
   return (
-    <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex gap-2.5">
+    <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex gap-2.5" role="status" aria-label="Асистент друкує">
       <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#B87830]/12 to-[#D4A853]/8 border border-[#B87830]/12 flex items-center justify-center shrink-0 mt-0.5"><BookIcon size={12} className="text-[#B87830]" /></div>
       <div className="px-4 py-3 message-assistant"><div className="flex gap-1 items-center h-5">
         {[0,1,2].map((i) => <motion.div key={i} className="w-1.5 h-1.5 rounded-full bg-[#B87830]/50" animate={{ y:[0,-3,0], opacity:[0.5,1,0.5] }} transition={{ duration:0.55, repeat:Infinity, delay:i*0.1, ease:'easeInOut' }} />)}
@@ -122,7 +122,6 @@ interface ChatAreaProps {
   isTyping: boolean;
   error: string | null;
   isLoadingConversation?: boolean;
-  handleSend: (query?: string) => void;
   handleFaqSend: (query: string) => void;
   streamingMessageId: string | null;
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
@@ -131,10 +130,23 @@ interface ChatAreaProps {
   onRetry?: () => void;
 }
 
-export function ChatArea({ messages, isTyping, isLoadingConversation, error, handleSend, handleFaqSend, streamingMessageId, messagesEndRef, formatTime, copyToClipboard, onRetry }: ChatAreaProps) {
-  // Show chips after last assistant message, but not if it contains catalog results
-  const lastMsg = messages[messages.length - 1];
-  const lastMsgHasCatalog = lastMsg?.content?.includes('[РЕЗУЛЬТАТИ КАТАЛОГУ') || lastMsg?.content?.includes('каталог') && lastMsg?.content?.includes('знайдено');
+export function ChatArea({ messages, isTyping, isLoadingConversation, error, handleFaqSend, streamingMessageId, messagesEndRef, formatTime, copyToClipboard, onRetry }: ChatAreaProps) {
+  // All hooks must be before any conditional return (Rules of Hooks)
+  // Memoize O(n) scans so they don't run on every render
+  const { lastMsg, lastMsgHasCatalog, lastAssistantContent } = useMemo(() => {
+    let lastAssistant = '';
+    let last: typeof messages[0] | undefined;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (!last) last = messages[i];
+      if (messages[i].role === 'ASSISTANT') {
+        if (!lastAssistant) lastAssistant = messages[i].content;
+        break;
+      }
+    }
+    const hasCatalog = last?.content?.includes('[РЕЗУЛЬТАТИ КАТАЛОГУ') || last?.content?.includes('Знайдено за');
+    return { lastMsg: last, lastMsgHasCatalog: hasCatalog ?? false, lastAssistantContent: lastAssistant };
+  }, [messages]);
+
   const showChips = !isTyping && !!lastMsg && lastMsg.role === 'ASSISTANT' && lastMsg.id !== streamingMessageId && !lastMsgHasCatalog;
 
   if (messages.length === 0) {
@@ -162,7 +174,11 @@ export function ChatArea({ messages, isTyping, isLoadingConversation, error, han
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-3 py-4 custom-scrollbar chat-scroll-area" aria-live="polite" aria-label="Повідомлення чату">
+    <>
+    <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+      {streamingMessageId ? lastAssistantContent : ''}
+    </div>
+    <div className="flex-1 overflow-y-auto px-3 py-4 custom-scrollbar chat-scroll-area" aria-label="Повідомлення чату">
       <div className="w-full max-w-[900px] mx-auto space-y-3">
         {error && (
           <div className="flex items-center justify-between gap-3 px-1 py-2 text-red-500/80 text-[13px] bg-red-50/60 rounded-lg">
@@ -185,11 +201,12 @@ export function ChatArea({ messages, isTyping, isLoadingConversation, error, han
         <AnimatePresence>{showChips && (
           <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-wrap gap-1.5 pt-1 pl-9">
             <span className="text-[10px] text-[#7A756F]/45 w-full mb-0.5">Також можете запитати:</span>
-            {QUICK_CHIPS.map((chip) => <button key={chip.id} onClick={() => handleFaqSend(chip.kw)} className="quick-chip">{chip.title}</button>)}
+            {QUICK_CHIPS.map((chip) => <button key={chip.id} onClick={() => handleFaqSend(chip.kw)} disabled={isTyping} className="quick-chip disabled:opacity-40 disabled:cursor-not-allowed">{chip.title}</button>)}
           </motion.div>
         )}</AnimatePresence>
         <div ref={messagesEndRef} />
       </div>
     </div>
+    </>
   );
 }

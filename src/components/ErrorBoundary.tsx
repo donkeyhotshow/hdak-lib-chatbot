@@ -1,0 +1,48 @@
+'use client';
+
+import React from 'react';
+
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+  fallback?: React.ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+}
+
+export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(): ErrorBoundaryState {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('ErrorBoundary caught:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback ?? (
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="text-center max-w-sm">
+            <p className="text-[15px] text-[#2A2520] mb-2">Щось пішло не так</p>
+            <p className="text-[13px] text-[#7A756F] mb-4">Спробуйте перезавантажити сторінку.</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 text-[12px] rounded-lg bg-[#B87830] text-white hover:bg-[#D4A853] transition-colors"
+            >
+              Перезавантажити
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}

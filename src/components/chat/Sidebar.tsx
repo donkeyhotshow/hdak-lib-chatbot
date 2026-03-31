@@ -1,4 +1,4 @@
-import React, { memo, useState, useRef } from 'react';
+﻿import React, { memo, useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, BookMarked, BookOpen, Phone, FlaskConical,
@@ -93,6 +93,14 @@ const ConvItem = memo(function ConvItem({ conv, isActive, isNew, onLoad, onDelet
 }) {
   const [editing, setEditing] = useState(false);
   const [editVal, setEditVal] = useState(conv.title);
+  // M43: sync editVal if conv.title changes externally (e.g. rename from another source)
+  const prevTitleRef = React.useRef(conv.title);
+  React.useEffect(() => {
+    if (!editing && conv.title !== prevTitleRef.current) {
+      setEditVal(conv.title);
+      prevTitleRef.current = conv.title;
+    }
+  }, [conv.title, editing]);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const deleteTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   React.useEffect(() => () => { if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current); }, []);
@@ -137,6 +145,7 @@ const ConvItem = memo(function ConvItem({ conv, isActive, isNew, onLoad, onDelet
           onChange={e => setEditVal(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') submitEdit(e); if (e.key === 'Escape') setEditing(false); }}
           onClick={e => e.stopPropagation()}
+          aria-label="Назва розмови"
           className="flex-1 min-w-0 bg-white/[0.06] text-white/90 text-[12px] px-1.5 py-0.5 rounded outline-none border border-[#D4A853]/30"
         />
       ) : (
@@ -175,7 +184,7 @@ const ConvItem = memo(function ConvItem({ conv, isActive, isNew, onLoad, onDelet
 export interface SidebarProps {
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
-  sidebarRef: React.RefObject<HTMLDivElement | null>;
+  sidebarRef: React.RefObject<HTMLElement | null>;
   conversations: Conversation[];
   currentConversation: Conversation | null;
   newConversationId?: string | null;
@@ -193,14 +202,28 @@ export const Sidebar = memo(function Sidebar({
   newConversationId, loadConversation, deleteConversation, renameConversation,
   createNewConversation, hasMore = false, loadMore,
 }: SidebarProps) {
-  // Computed once at mount — sidebar doesn't need live updates
-  const open = useRef(isLibraryOpen()).current;
-  // Fix #6: search state
+  // C2: re-evaluate library status every minute; M26: try-catch for Intl fallback
+  const [open, setOpen] = useState(() => {
+    try { return isLibraryOpen(); } catch { return false; }
+  });
+  useEffect(() => {
+    const id = setInterval(() => {
+      try { setOpen(isLibraryOpen()); } catch { /* Intl not supported */ }
+    }, 60_000);
+    return () => clearInterval(id);
+  }, []);
+  // Fix #6: search state — clear when sidebar closes so stale filter doesn't persist
   const [search, setSearch] = useState('');
+  useEffect(() => {
+    if (!isOpen) setSearch('');
+  }, [isOpen]);
 
-  const filtered = search.trim()
-    ? conversations.filter(c => c.title.toLowerCase().includes(search.toLowerCase()))
-    : conversations;
+  const filtered = useMemo(() =>
+    search.trim()
+      ? conversations.filter(c => c.title.toLowerCase().includes(search.toLowerCase()))
+      : conversations,
+    [search, conversations]
+  );
 
   return (
     <>
@@ -244,7 +267,7 @@ export const Sidebar = memo(function Sidebar({
                 <div className={cn("sidebar-status", open ? "sidebar-status-open" : "sidebar-status-closed")}>
                   <span className={cn("sidebar-status-dot", open ? "bg-emerald-400" : "bg-red-400/80")} />
                   <span>{open ? 'Зараз відкрито' : 'Зараз зачинено'}</span>
-                  <span className="sidebar-status-hours">{open ? 'до 16:45' : 'Пн–Пт 9:00–16:45'}</span>
+                  <span className="sidebar-status-hours">{open ? (() => { const d = new Date().getDay(); return d === 6 ? 'до 13:30' : 'до 16:45'; })() : 'Пн–Пт 9:00–16:45'}</span>
                 </div>
               </div>
               <div className="sidebar-header-divider" />
@@ -297,6 +320,7 @@ export const Sidebar = memo(function Sidebar({
                         value={search}
                         onChange={e => setSearch(e.target.value)}
                         placeholder="Пошук..."
+                        aria-label="Пошук розмов"
                         className="w-full bg-white/[0.04] border border-white/[0.06] rounded-lg pl-7 pr-3 py-1.5 text-[11.5px] text-white/60 placeholder:text-white/25 outline-none focus:border-[#D4A853]/20 transition-colors"
                       />
                     </div>
