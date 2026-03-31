@@ -47,7 +47,7 @@ export function useChat(toast: (opts: { description: string; duration?: number }
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
-  // Fix #2: store timer refs so we can clear them on stop/unmount
+  const faqStoppedRef = useRef(false); // before handleFaqSend
   const thinkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const typeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   // Fix #12: debounce refreshConversations
@@ -229,10 +229,25 @@ export function useChat(toast: (opts: { description: string; duration?: number }
       const decoder = new TextDecoder();
       let buf = '';
       let convId = currentConversation?.id || null;
+      let pendingText = '';
+      let flushTimer: ReturnType<typeof setTimeout> | null = null;
+
+      const flushPending = () => {
+        if (!pendingText) return;
+        const toFlush = pendingText;
+        pendingText = '';
+        setMessages(prev => prev.map(m =>
+          m.id === botId ? { ...m, content: m.content + toFlush } : m
+        ));
+      };
 
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+        if (done) {
+          if (flushTimer) { clearTimeout(flushTimer); flushTimer = null; }
+          flushPending();
+          break;
+        }
         buf += decoder.decode(value, { stream: true });
         const lines = buf.split('\n');
         buf = lines.pop() ?? '';
@@ -243,15 +258,16 @@ export function useChat(toast: (opts: { description: string; duration?: number }
           if (!raw) continue;
           try {
             const chunk = JSON.parse(raw);
-            if (chunk.conversationId && !convId) {
-              convId = chunk.conversationId;
-            }
+            if (chunk.conversationId && !convId) convId = chunk.conversationId;
             if (chunk.text) {
-              setMessages(prev => prev.map(m =>
-                m.id === botId ? { ...m, content: m.content + chunk.text } : m
-              ));
+              pendingText += chunk.text;
+              if (!flushTimer) {
+                flushTimer = setTimeout(() => { flushTimer = null; flushPending(); }, 50);
+              }
             }
             if (chunk.done) {
+              if (flushTimer) { clearTimeout(flushTimer); flushTimer = null; }
+              flushPending();
               setStreamingMessageId(null);
             }
           } catch { /* skip */ }
@@ -259,7 +275,8 @@ export function useChat(toast: (opts: { description: string; duration?: number }
       }
 
       // Fix #1: refresh conversations after real API call
-      await refreshConversations();
+      await refreshConversations();
+
 
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') return;
@@ -351,7 +368,7 @@ export function useChat(toast: (opts: { description: string; duration?: number }
     }, faq.thinkDelay);
   }, [isTyping, handleSend, refreshConversations]);
 
-  // Fix #2: handleStop clears timers
+  // Track whether user stopped FAQ animation — declared above handleFaqSend
   const handleStop = useCallback(() => {
     faqStoppedRef.current = true;
     if (thinkTimerRef.current) { clearTimeout(thinkTimerRef.current); thinkTimerRef.current = null; }
@@ -361,8 +378,7 @@ export function useChat(toast: (opts: { description: string; duration?: number }
     setStreamingMessageId(null);
   }, []);
 
-  // Track whether user stopped FAQ animation
-  const faqStoppedRef = useRef(false);
+  // Track whether user stopped FAQ animation — moved to top of refs
 
   const loadMoreConversations = useCallback(async () => {
     try {
