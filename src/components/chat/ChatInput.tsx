@@ -49,9 +49,12 @@ export function ChatInput({ inputValue, setInputValue, isTyping, handleSend, onS
           <div className="input-footer">
             <span className="input-hint">Enter  надіслати  Shift+Enter  новий рядок</span>
             <div className="flex items-center gap-2">
-              {charCount > 100 && (
-                <span className={cn("input-counter", charCount > 1800 && "text-red-400/70")}>
-                  {charCount}/2000
+              {charCount > 1500 && (
+                <span className={cn(
+                  "input-counter transition-colors",
+                  charCount > 1900 ? "text-red-500/80 font-medium" : charCount > 1700 ? "text-orange-400/70" : "text-[#7A756F]/45"
+                )}>
+                  {2000 - charCount} залишилось
                 </span>
               )}
               {isTyping && onStop ? (

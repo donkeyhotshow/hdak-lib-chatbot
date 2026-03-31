@@ -49,7 +49,8 @@ async function streamLLM(
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
       body: JSON.stringify({ model, messages: msgs, max_tokens: 1024, temperature: 0.7, stream: true }),
-      signal,
+      // Combine caller signal with 30s timeout
+      signal: signal.aborted ? signal : AbortSignal.any([signal, AbortSignal.timeout(30_000)]),
     });
 
     if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);

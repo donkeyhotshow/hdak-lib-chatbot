@@ -42,6 +42,7 @@ export function useChat(toast: (opts: { description: string; duration?: number }
   const [hasMoreConversations, setHasMoreConversations] = useState(false);
   const [isLoadingConversation, setIsLoadingConversation] = useState(false);
   const [newConversationId, setNewConversationId] = useState<string | null>(null);
+  const newConvTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [convOffset, setConvOffset] = useState(0);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -77,6 +78,7 @@ export function useChat(toast: (opts: { description: string; duration?: number }
       if (thinkTimerRef.current) clearTimeout(thinkTimerRef.current);
       if (typeIntervalRef.current) clearInterval(typeIntervalRef.current);
       abortControllerRef.current?.abort();
+      if (newConvTimerRef.current) clearTimeout(newConvTimerRef.current);
     };
   }, []);
 
@@ -327,6 +329,8 @@ export function useChat(toast: (opts: { description: string; duration?: number }
                 const data = await res.json().catch(() => ({}));
                 if (data.conversationId) {
                   setNewConversationId(data.conversationId);
+        if (newConvTimerRef.current) clearTimeout(newConvTimerRef.current);
+        newConvTimerRef.current = setTimeout(() => setNewConversationId(null), 5000);
                   await refreshConversations();
                 }
               }
