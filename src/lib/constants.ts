@@ -60,10 +60,24 @@ export const LIBRARY = {
   }
 } as const;
 
+/**
+ * Чи бібліотека зараз відкрита.
+ * Санітарний день абонементів — остання п'ятниця місяця (зачинено весь день).
+ */
 export function isLibraryOpen(now = new Date()): boolean {
   const day  = now.getDay();
   const hour = now.getHours();
   const min  = now.getMinutes();
+
+  // Check if today is the last Friday of the month (санітарний день абонементів)
+  if (day === 5) {
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    // If tomorrow is in the next month, today is the last Friday
+    if (tomorrow.getMonth() !== now.getMonth()) {
+      return false;
+    }
+  }
 
   if (day >= 1 && day <= 5) {
     return (hour > 9 || (hour === 9 && min >= 0)) && (hour < 16 || (hour === 16 && min < 45));

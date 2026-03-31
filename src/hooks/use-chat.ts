@@ -50,6 +50,8 @@ export function useChat(toast: (opts: { description: string; duration?: number }
   // Fix #2: store timer refs so we can clear them on stop/unmount
   const thinkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const typeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Fix #12: debounce refreshConversations
+  const refreshDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load conversations on mount
   useEffect(() => {
@@ -79,21 +81,29 @@ export function useChat(toast: (opts: { description: string; duration?: number }
       if (typeIntervalRef.current) clearInterval(typeIntervalRef.current);
       abortControllerRef.current?.abort();
       if (newConvTimerRef.current) clearTimeout(newConvTimerRef.current);
+      if (refreshDebounceRef.current) clearTimeout(refreshDebounceRef.current);
     };
   }, []);
 
   const refreshConversations = useCallback(async () => {
-    try {
-      const res = await fetch('/api/conversations?limit=15&offset=0');
-      if (res.ok) {
-        const data = await res.json();
-        setConversations(data.items ?? data);
-        setHasMoreConversations(data.hasMore ?? false);
-        setConvOffset(data.items?.length ?? 0);
-      }
-    } catch (err) {
-      console.error('Не вдалося оновити список розмов:', err);
-    }
+    if (refreshDebounceRef.current) clearTimeout(refreshDebounceRef.current);
+    return new Promise<void>((resolve) => {
+      refreshDebounceRef.current = setTimeout(async () => {
+        refreshDebounceRef.current = null;
+        try {
+          const res = await fetch('/api/conversations?limit=15&offset=0');
+          if (res.ok) {
+            const data = await res.json();
+            setConversations(data.items ?? data);
+            setHasMoreConversations(data.hasMore ?? false);
+            setConvOffset(data.items?.length ?? 0);
+          }
+        } catch (err) {
+          console.error('Не вдалося оновити список розмов:', err);
+        }
+        resolve();
+      }, 300);
+    });
   }, []);
 
   const loadConversation = useCallback(async (id: string) => {

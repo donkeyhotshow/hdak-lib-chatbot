@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, conversations } from '@/lib/db';
 import { desc } from 'drizzle-orm';
-import sanitizeHtml from 'sanitize-html';
+import { stripHtml } from '@/lib/sanitize';
 import { checkRateLimit, generateFingerprint } from '@/lib/rate-limit';
 
 const PAGE_SIZE = 15;
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
     // Validate and sanitize title
     let title = 'Новий діалог';
     if (typeof body.title === 'string' && body.title.trim()) {
-      title = sanitizeHtml(body.title.trim(), { allowedTags: [], allowedAttributes: {} }).substring(0, MAX_TITLE_LENGTH);
+      title = stripHtml(body.title.trim()).substring(0, MAX_TITLE_LENGTH);
       if (!title) title = 'Новий діалог';
     }
 

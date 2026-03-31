@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, conversations, messages as messagesTable } from '@/lib/db';
-import sanitizeHtml from 'sanitize-html';
+import { stripHtml } from '@/lib/sanitize';
 import { checkRateLimit, generateFingerprint } from '@/lib/rate-limit';
 
 // Saves a FAQ Q&A pair directly to DB without calling LLM
@@ -14,8 +14,8 @@ export async function POST(request: NextRequest) {
   try { body = await request.json(); }
   catch { return NextResponse.json({ error: 'Невірний формат запиту' }, { status: 400 }); }
 
-  const question = typeof body.question === 'string' ? sanitizeHtml(body.question, { allowedTags: [], allowedAttributes: {} }).trim() : '';
-  const answer = typeof body.answer === 'string' ? sanitizeHtml(body.answer, { allowedTags: [], allowedAttributes: {} }).trim() : '';
+  const question = typeof body.question === 'string' ? stripHtml(body.question).trim() : '';
+  const answer = typeof body.answer === 'string' ? stripHtml(body.answer).trim() : '';
 
   if (!question || !answer) {
     return NextResponse.json({ error: 'Запитання та відповідь обов\'язкові' }, { status: 400 });

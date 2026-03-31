@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, conversations, messages } from '@/lib/db';
 import { eq, asc } from 'drizzle-orm';
-import sanitizeHtml from 'sanitize-html';
+import { stripHtml } from '@/lib/sanitize';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_TITLE_LENGTH = 200;
@@ -98,7 +98,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Назва не може бути порожньою' }, { status: 400 });
     }
 
-    const title = sanitizeHtml(body.title.trim(), { allowedTags: [], allowedAttributes: {} }).substring(0, MAX_TITLE_LENGTH);
+    const title = stripHtml(body.title.trim()).substring(0, MAX_TITLE_LENGTH);
     if (!title) {
       return NextResponse.json({ error: 'Назва не може бути порожньою' }, { status: 400 });
     }

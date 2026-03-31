@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, conversations, messages as messagesTable } from '@/lib/db';
 import { eq, desc } from 'drizzle-orm';
-import sanitizeHtml from 'sanitize-html';
+import { stripHtml } from '@/lib/sanitize';
 import { checkRateLimit, generateFingerprint } from '@/lib/rate-limit';
 import { ALL_LINKS } from '@/lib/constants';
 import { buildSystemPrompt } from '@/lib/prompts';
@@ -27,7 +27,7 @@ function validateMessage(message: unknown): { valid: boolean; error?: string; sa
   if (typeof message !== 'string') return { valid: false, error: 'Повідомлення має бути рядком' };
   if (!message.trim()) return { valid: false, error: 'Повідомлення не може бути порожнім' };
   if (message.length > MAX_MESSAGE_LENGTH) return { valid: false, error: `Повідомлення перевищує ${MAX_MESSAGE_LENGTH} символів` };
-  const sanitized = sanitizeHtml(message, { allowedTags: [], allowedAttributes: {} }).trim();
+  const sanitized = stripHtml(message).trim();
   if (!sanitized) return { valid: false, error: 'Недійсний вміст повідомлення' };
   return { valid: true, sanitized };
 }

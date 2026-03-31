@@ -132,13 +132,14 @@ interface ChatAreaProps {
 }
 
 export function ChatArea({ messages, isTyping, isLoadingConversation, error, handleSend, handleFaqSend, streamingMessageId, messagesEndRef, formatTime, copyToClipboard, onRetry }: ChatAreaProps) {
-  // Show chips after last assistant message (not during typing, not after user message)
+  // Show chips after last assistant message, but not if it contains catalog results
   const lastMsg = messages[messages.length - 1];
-  const showChips = !isTyping && !!lastMsg && lastMsg.role === 'ASSISTANT' && lastMsg.id !== streamingMessageId;
+  const lastMsgHasCatalog = lastMsg?.content?.includes('[РЕЗУЛЬТАТИ КАТАЛОГУ') || lastMsg?.content?.includes('каталог') && lastMsg?.content?.includes('знайдено');
+  const showChips = !isTyping && !!lastMsg && lastMsg.role === 'ASSISTANT' && lastMsg.id !== streamingMessageId && !lastMsgHasCatalog;
 
   if (messages.length === 0) {
     return (
-      <motion.div variants={containerVariants} initial="initial" animate="animate" className="flex-1 overflow-y-auto custom-scrollbar flex flex-col items-center justify-center px-4 py-6">
+      <motion.div variants={containerVariants} initial="initial" animate="animate" className="flex-1 overflow-y-auto custom-scrollbar chat-scroll-area flex flex-col items-center justify-center px-4 py-6">
         <div className="w-full max-w-[520px] flex flex-col items-center">
           <motion.div variants={itemVariants} className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#B87830]/10 to-[#D4A853]/5 flex items-center justify-center mb-3 border border-[#B87830]/10 animate-subtle-float shrink-0">
             <BookIcon size={18} className="text-[#B87830]" />
@@ -161,7 +162,7 @@ export function ChatArea({ messages, isTyping, isLoadingConversation, error, han
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-3 py-4 custom-scrollbar" aria-live="polite" aria-label="Повідомлення чату">
+    <div className="flex-1 overflow-y-auto px-3 py-4 custom-scrollbar chat-scroll-area" aria-live="polite" aria-label="Повідомлення чату">
       <div className="w-full max-w-[900px] mx-auto space-y-3">
         {error && (
           <div className="flex items-center justify-between gap-3 px-1 py-2 text-red-500/80 text-[13px] bg-red-50/60 rounded-lg">

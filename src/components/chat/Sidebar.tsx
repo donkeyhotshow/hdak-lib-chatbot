@@ -1,4 +1,4 @@
-import React, { memo, useState, useCallback } from 'react';
+import React, { memo, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, BookMarked, BookOpen, Phone, FlaskConical,
@@ -8,7 +8,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Conversation } from './types';
 import { ALL_LINKS, LIBRARY, isLibraryOpen } from '@/lib/constants';
-import { useMemo } from 'react';
+
 
 const MAIN_LINKS = [
   { icon: Search,     title: 'Електронний каталог', url: ALL_LINKS.catalog_search },
@@ -94,6 +94,8 @@ const ConvItem = memo(function ConvItem({ conv, isActive, isNew, onLoad, onDelet
   const [editing, setEditing] = useState(false);
   const [editVal, setEditVal] = useState(conv.title);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const deleteTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  React.useEffect(() => () => { if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current); }, []);
 
   const startEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -114,8 +116,8 @@ const ConvItem = memo(function ConvItem({ conv, isActive, isNew, onLoad, onDelet
       onDelete(conv.id, e);
     } else {
       setConfirmDelete(true);
-      // Auto-cancel after 3s
-      setTimeout(() => setConfirmDelete(false), 3000);
+      if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current);
+      deleteTimerRef.current = setTimeout(() => setConfirmDelete(false), 3000);
     }
   };
 
@@ -191,7 +193,8 @@ export const Sidebar = memo(function Sidebar({
   newConversationId, loadConversation, deleteConversation, renameConversation,
   createNewConversation, hasMore = false, loadMore,
 }: SidebarProps) {
-  const open = useMemo(() => isLibraryOpen(), []);
+  // Computed once at mount — sidebar doesn't need live updates
+  const open = useRef(isLibraryOpen()).current;
   // Fix #6: search state
   const [search, setSearch] = useState('');
 
@@ -287,7 +290,7 @@ export const Sidebar = memo(function Sidebar({
                 {conversations.length === 0 && !search && (
                   <p className="text-[11px] text-white/25 text-center py-3 px-2">Розмов ще немає. Почніть новий чат!</p>
                 )}
-                {conversations.length >= 5 && (
+                {conversations.length >= 3 && (
                     <div className="relative mb-1.5 px-1">
                       <Search size={11} strokeWidth={1.8} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/25 pointer-events-none" />
                       <input
