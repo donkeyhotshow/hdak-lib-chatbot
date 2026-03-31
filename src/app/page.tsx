@@ -11,8 +11,25 @@ import { ChatArea } from '@/components/chat/ChatArea';
 export default function ChatPage() {
   // Fix #18: avoid hydration mismatch - start closed, open on desktop after mount
   const [isSidebarOpen, setSidebarOpen] = useState(false);
+  const [headerVisible, setHeaderVisible] = useState(true);
+  const lastScrollY = useRef(0);
+
   useEffect(() => {
     setSidebarOpen(window.innerWidth >= 768);
+  }, []);
+
+  // Hide header on scroll down (mobile only)
+  useEffect(() => {
+    const el = document.querySelector('.chat-scroll-area');
+    if (!el) return;
+    const onScroll = () => {
+      if (window.innerWidth >= 768) return;
+      const y = el.scrollTop;
+      setHeaderVisible(y < lastScrollY.current || y < 60);
+      lastScrollY.current = y;
+    };
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
   }, []);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -57,7 +74,7 @@ export default function ChatPage() {
       />
 
       <main className="flex-1 flex flex-col min-w-0 relative h-full overflow-hidden">
-        <header className="relative h-12 flex items-center justify-between px-4 border-b border-[#2A2520]/[0.04] bg-white/50 backdrop-blur-sm shrink-0">
+        <header className={`relative h-12 flex items-center justify-between px-4 border-b border-[#2A2520]/[0.04] bg-white/50 backdrop-blur-sm shrink-0 transition-transform duration-200 ${!headerVisible ? '-translate-y-full md:translate-y-0' : ''}`}>
           <button
             onClick={() => setSidebarOpen(v => !v)}
             className="w-8 h-8 flex items-center justify-center rounded-lg text-[#7A756F] hover:text-[#2A2520] hover:bg-[#2A2520]/[0.03] transition-all"

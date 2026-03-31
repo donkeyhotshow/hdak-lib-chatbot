@@ -765,12 +765,41 @@
     font-size: 20px;
   }
 
-  .action-chip {
-    padding: 7px 12px;
+  /* Larger touch targets on mobile */
+  .quick-btn {
+    padding: 10px 16px;
+    min-height: 44px;
   }
 
-  .action-chip-text {
-    font-size: 12px;
+  .quick-btn-text {
+    font-size: 13px;
+  }
+
+  .quick-chip {
+    padding: 10px 16px;
+    min-height: 44px;
+    font-size: 13px;
+  }
+
+  /* Input area: more padding on mobile for thumb reach */
+  .input-area {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .input-textarea {
+    font-size: 16px; /* prevent iOS zoom on focus */
+  }
+
+  /* Hide input hint on mobile - not useful */
+  .input-hint {
+    display: none;
+  }
+
+  /* Send button larger on mobile */
+  .send-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
   }
 }
 

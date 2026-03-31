@@ -152,7 +152,11 @@ export function useChat(toast: (opts: { description: string; duration?: number }
     try {
       const res = await fetch(`/api/conversations/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      setConversations(prev => prev.filter(c => c.id !== id));
+      setConversations(prev => {
+        const next = prev.filter(c => c.id !== id);
+        try { localStorage.setItem('hdak_conv_cache', JSON.stringify({ items: next, ts: Date.now() })); } catch {}
+        return next;
+      });
       if (currentConversation?.id === id) {
         setCurrentConversation(null);
         setMessages([]);
