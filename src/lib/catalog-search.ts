@@ -21,35 +21,55 @@ export interface SearchIntent {
 // ─── Intent detection patterns ──────────────────────────────────────────────
 
 const TITLE_PATTERNS = [
+  // "знайди/шукаю/є книгу X"
   /(?:знайди|знайти|пошук|шукаю|шукати|є|маєте|чи є|чи маєте|є у вас|маєте у каталозі)\s+книг[уиі]?\s+[«"']?(.+?)[»"']?$/i,
+  // "книгу «X»" або "книгу X є"
   /книг[уиі]\s+[«"'](.+?)[»"']/i,
   /книг[уиі]\s+(.{3,60})(?:\s+є|\s+маєте|$)/i,
+  // «X» є/маєте
   /[«"'](.+?)[»"']\s+(?:є|маєте|знайти|пошук)/i,
   /(?:є|маєте|є у вас)\s+[«"'](.+?)[»"']/i,
+  // "шукаю X"
   /(?:шукаю|шукати)\s+[«"']?(.+?)[»"']?$/i,
+  // "є книга з X" / "книга про X" / "книга на тему X"
+  /книга\s+(?:з|про|на тему|по)\s+(.{3,60})(?:\?|$)/i,
+  // "є щось про X" / "є матеріали з X"
+  /є\s+(?:щось|матеріали|видання|книги)?\s*(?:про|з|по|на тему)\s+(.{3,60})(?:\?|$)/i,
+  // "маєте X" (загальний)
+  /маєте\s+(.{3,60})(?:\?|$)/i,
 ];
 
 const AUTHOR_PATTERNS = [
   /(?:книги|твори|роботи|праці)\s+(?:автора\s+)?[«"']?([А-ЯҐЄІЇа-яґєії\w\s\-]{3,50})[»"']?$/i,
   /автор[аи]?\s+[«"']?([А-ЯҐЄІЇа-яґєії\w\s\-]{3,50})[»"']?/i,
   /(?:є|маєте)\s+(?:щось\s+)?(?:від|від автора)\s+([А-ЯҐЄІЇа-яґєії\w\s\-]{3,50})/i,
+  // "книги Шевченка" / "твори Франка"
+  /(?:книги|твори|роботи)\s+([А-ЯҐЄІЇ][а-яґєіїА-ЯҐЄІЇ\w\s\-]{2,30})(?:\?|$)/i,
 ];
+
+function cleanTerm(raw: string): string {
+  return raw.replace(/[?!.,;:]+$/, '').trim();
+}
 
 export function detectSearchIntent(message: string): SearchIntent | null {
   for (const pattern of AUTHOR_PATTERNS) {
-    const term = message.match(pattern)?.[1]?.trim();
+    const raw = message.match(pattern)?.[1]?.trim();
+    const term = raw ? cleanTerm(raw) : '';
     if (term && term.length >= 3) return { searchTerm: term, searchType: 'author' };
   }
   for (const pattern of TITLE_PATTERNS) {
-    const term = message.match(pattern)?.[1]?.trim();
+    const raw = message.match(pattern)?.[1]?.trim();
+    const term = raw ? cleanTerm(raw) : '';
     if (term && term.length >= 3) return { searchTerm: term, searchType: 'title' };
   }
+  // Quoted text with book-related context
   const quotedMatch = message.match(/[«"'](.{3,80})[»"']/);
   if (quotedMatch && /книг|каталог|бібліотек|є у вас|маєте|шукаю/i.test(message)) {
     return { searchTerm: quotedMatch[1].trim(), searchType: 'title' };
   }
   return null;
 }
+
 
 // ─── HTML parsing ───────────────────────────────────────────────────────────
 
