@@ -104,12 +104,12 @@ export function useChat(toast: (opts: { description: string; duration?: number }
         setCurrentConversation(data);
         setMessages(data.messages || []);
       } else {
-        setError('Не вдалося завантажити розмову');
+        setError('Не вдалося завантажити розмову. Перевірте з\'єднання.');
       }
     } catch {
       setIsTyping(false);
       setStreamingMessageId(null);
-      setError('Помилка мережі. Перевірте з\'єднання.');
+      setError('Немає з\'єднання з сервером. Перевірте інтернет і спробуйте ще раз.');
     } finally {
       setIsLoadingConversation(false);
     }
@@ -251,7 +251,7 @@ export function useChat(toast: (opts: { description: string; duration?: number }
 
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') return;
-      setError('Не вдалося надіслати повідомлення. Спробуйте ще раз.');
+      setError('Виникла помилка з\'єднання. Спробуйте ще раз або зателефонуйте до бібліотеки: (057) 731-27-83');
       setMessages(prev => prev.filter(m => m.id !== tempUserId && m.id !== botId));
       setStreamingMessageId(null);
     } finally {
@@ -370,7 +370,7 @@ export function useChat(toast: (opts: { description: string; duration?: number }
   const copyToClipboard = useCallback(async (t: string) => {
     try {
       await navigator.clipboard.writeText(t);
-      toast({ description: 'Скопіювано', duration: 1500 });
+      toast({ description: '✓ Скопійовано', duration: 2000 });
     } catch {
       toast({ description: 'Не вдалося скопіювати', duration: 2000 });
     }

@@ -77,7 +77,7 @@ export default function ChatPage() {
         <header className={`relative h-12 flex items-center justify-between px-4 border-b border-[#2A2520]/[0.04] bg-white/50 backdrop-blur-sm shrink-0 transition-transform duration-200 ${!headerVisible ? '-translate-y-full md:translate-y-0' : ''}`}>
           <button
             onClick={() => setSidebarOpen(v => !v)}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-[#7A756F] hover:text-[#2A2520] hover:bg-[#2A2520]/[0.03] transition-all"
+            className="w-11 h-11 flex items-center justify-center rounded-xl text-[#7A756F] hover:text-[#2A2520] hover:bg-[#2A2520]/[0.04] transition-all"
             aria-label={isSidebarOpen ? 'Закрити меню' : 'Відкрити меню'}
           >
             {isSidebarOpen ? <X size={17} strokeWidth={1.5} /> : <Menu size={17} strokeWidth={1.5} />}

@@ -74,7 +74,7 @@ const MessageBubble = memo(function MessageBubble({ msg, isStreaming, formatTime
 }) {
   const isUser = msg.role === 'USER';
   return (
-    <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }} className={cn("flex gap-2.5", isUser && "flex-row-reverse")}>
+    <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }} className={cn("flex gap-2.5 group", isUser && "flex-row-reverse")}>
       <div className={cn("w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5", isUser ? "bg-gradient-to-br from-[#1A1612] to-[#2A2520]" : "bg-gradient-to-br from-[#B87830]/12 to-[#D4A853]/8 border border-[#B87830]/12")}>
         {isUser ? <span className="text-[8px] font-bold text-[#D4A853] tracking-wider">ВИ</span> : <BookIcon size={12} className="text-[#B87830]" />}
       </div>
@@ -91,7 +91,15 @@ const MessageBubble = memo(function MessageBubble({ msg, isStreaming, formatTime
         </div>
         <div className="flex items-center gap-1.5 mt-1 px-1">
           <span className="text-[10px] text-[#7A756F]/50 tabular-nums">{formatTime(msg.createdAt)}</span>
-          {!isUser && !isStreaming && <button onClick={() => copyToClipboard(msg.content)} className="p-0.5 text-[#7A756F]/30 hover:text-[#B87830] transition-colors" aria-label="Копіювати"><Copy size={10} strokeWidth={1.5} /></button>}
+          {!isUser && !isStreaming && (
+            <button
+              onClick={() => copyToClipboard(msg.content)}
+              className="p-1 text-[#7A756F]/40 md:opacity-0 md:group-hover:opacity-100 hover:text-[#B87830] transition-all"
+              aria-label="Копіювати відповідь"
+            >
+              <Copy size={13} strokeWidth={1.5} />
+            </button>
+          )}
         </div>
       </div>
     </motion.div>
@@ -124,7 +132,9 @@ interface ChatAreaProps {
 }
 
 export function ChatArea({ messages, isTyping, isLoadingConversation, error, handleSend, handleFaqSend, streamingMessageId, messagesEndRef, formatTime, copyToClipboard, onRetry }: ChatAreaProps) {
-  const showChips = !isTyping && messages.length > 0 && messages.length <= 2 && messages[0].role === 'USER';
+  // Show chips after last assistant message (not during typing, not after user message)
+  const lastMsg = messages[messages.length - 1];
+  const showChips = !isTyping && !!lastMsg && lastMsg.role === 'ASSISTANT' && lastMsg.id !== streamingMessageId;
 
   if (messages.length === 0) {
     return (
@@ -133,8 +143,9 @@ export function ChatArea({ messages, isTyping, isLoadingConversation, error, han
           <motion.div variants={itemVariants} className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#B87830]/10 to-[#D4A853]/5 flex items-center justify-center mb-3 border border-[#B87830]/10 animate-subtle-float shrink-0">
             <BookIcon size={18} className="text-[#B87830]" />
           </motion.div>
-          <motion.h1 variants={itemVariants} className="hero-title mb-1 text-center">Ваш особистий асистент</motion.h1>
-          <motion.p variants={itemVariants} className="hero-subtitle mb-5 text-center">Оберіть тему або напишіть запитання</motion.p>
+          <motion.h1 variants={itemVariants} className="hero-title mb-1 text-center">Асистент бібліотеки ХДАК</motion.h1>
+          <motion.p variants={itemVariants} className="hero-subtitle mb-2 text-center">Запитайте про графік, книги, правила або ресурси</motion.p>
+          <motion.p variants={itemVariants} className="text-[12px] text-[#7A756F]/50 mb-5 text-center">Наприклад: «Коли відкрита бібліотека?» або «Є книга з культурології?»</motion.p>
           {error && (
             <motion.div variants={itemVariants} className="mb-3 w-full p-3 bg-red-50/90 rounded-xl text-red-600 text-[13px] border border-red-100 flex items-center justify-between gap-3">
               <span>{error}</span>
@@ -172,6 +183,7 @@ export function ChatArea({ messages, isTyping, isLoadingConversation, error, han
         <AnimatePresence>{isTyping && <TypingIndicator />}</AnimatePresence>
         <AnimatePresence>{showChips && (
           <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-wrap gap-1.5 pt-1 pl-9">
+            <span className="text-[10px] text-[#7A756F]/45 w-full mb-0.5">Також можете запитати:</span>
             {QUICK_CHIPS.map((chip) => <button key={chip.id} onClick={() => handleFaqSend(chip.kw)} className="quick-chip">{chip.title}</button>)}
           </motion.div>
         )}</AnimatePresence>
