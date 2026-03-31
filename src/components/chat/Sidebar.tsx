@@ -219,7 +219,7 @@ export const Sidebar = memo(function Sidebar({
         {isOpen && (
           <motion.aside
             ref={sidebarRef}
-            initial={{ x: -280, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -280, opacity: 0 }}
+            initial={{ x: '-100%', opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: '-100%', opacity: 0 }}
             transition={{ duration: 0.28, ease: [0.25, 0.1, 0.25, 1] }}
             className="sidebar-premium h-full fixed md:relative z-50 flex flex-col"
           >

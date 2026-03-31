@@ -751,10 +751,14 @@
     left: 0;
     top: 0;
     bottom: 0;
+    right: 0;
     z-index: 50;
-    width: 260px;
-    min-width: 260px;
-    max-width: 260px;
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+    overscroll-behavior: contain;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
   .hero-title {
