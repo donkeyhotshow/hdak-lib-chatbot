@@ -26,7 +26,7 @@ export interface SearchResult {
 
 export interface SearchIntent {
   searchTerm: string;
-  searchType: 'title' | 'author' | 'general';
+  searchType: 'title' | 'author' | 'general' | 'udc' | 'subject' | 'keyword';
 }
 
 // ─── Intent detection patterns ──────────────────────────────────────────────
@@ -62,7 +62,43 @@ function cleanTerm(raw: string): string {
   return raw.replace(/[?!.,;:]+$/, '').trim();
 }
 
+// ─── Extended search patterns ────────────────────────────────────────────────
+
+const UDC_PATTERNS = [
+  /УДК\s*([\d.]+(?:\.\d+)*)/i,
+  /(?:за\s+)?УДК[:\s]+([\d.]+(?:\.\d+)*)/i,
+];
+
+const SUBJECT_PATTERNS = [
+  /(?:книги|матеріали|видання|є щось)\s+на\s+тему[:\s]+(.{3,60}?)(?:\?|$)/i,
+  /(?:тема|по темі|на тему)[:\s]+(.{3,60}?)(?:\?|$)/i,
+  /(?:знайди|пошук|шукаю)\s+(?:книги\s+)?(?:про|по|на тему)\s+(.{3,60}?)(?:\?|$)/i,
+];
+
+const KEYWORD_PATTERNS = [
+  /ключов[іе]\s+слов[аи][:\s]+(.{3,120}?)(?:\?|$)/i,
+  /за\s+ключовими\s+словами[:\s]+(.{3,120}?)(?:\?|$)/i,
+];
+
 export function detectSearchIntent(message: string): SearchIntent | null {
+  // УДК — highest priority (very specific pattern)
+  for (const pattern of UDC_PATTERNS) {
+    const raw = message.match(pattern)?.[1]?.trim();
+    const term = raw ? cleanTerm(raw) : '';
+    if (term && /^[\d.]+$/.test(term)) return { searchTerm: term, searchType: 'udc' };
+  }
+  // Ключові слова
+  for (const pattern of KEYWORD_PATTERNS) {
+    const raw = message.match(pattern)?.[1]?.trim();
+    const term = raw ? cleanTerm(raw) : '';
+    if (term && term.length >= 3) return { searchTerm: term, searchType: 'keyword' };
+  }
+  // Тема
+  for (const pattern of SUBJECT_PATTERNS) {
+    const raw = message.match(pattern)?.[1]?.trim();
+    const term = raw ? cleanTerm(raw) : '';
+    if (term && term.length >= 3) return { searchTerm: term, searchType: 'subject' };
+  }
   for (const pattern of AUTHOR_PATTERNS) {
     const raw = message.match(pattern)?.[1]?.trim();
     const term = raw ? cleanTerm(raw) : '';
@@ -168,24 +204,35 @@ export function parseBooksFromHtml(html: string, maxBooks = 10): SearchResult {
 
 export async function searchCatalog(
   searchTerm: string,
-  searchType: 'title' | 'author' | 'general',
+  searchType: 'title' | 'author' | 'general' | 'udc' | 'subject' | 'keyword',
   pageSize = 8,
   page = 1,
 ): Promise<SearchResult> {
   try {
-    // Validate and limit input length
     const safeTerm = searchTerm.substring(0, 200);
     const safePageSize = Math.min(Math.max(1, pageSize), 50);
     const safePage = Math.min(Math.max(1, page), 100);
 
     const formData = new URLSearchParams();
+
     if (searchType === 'author') {
       formData.append('author', safeTerm);
       formData.append('author_cond', 'authorAnyWord');
+    } else if (searchType === 'udc') {
+      // УДК — only digits and dots allowed (validated before call)
+      formData.append('udc', safeTerm);
+    } else if (searchType === 'subject') {
+      formData.append('subject', safeTerm);
+      formData.append('subject_cond', 'subjectAnyWord');
+    } else if (searchType === 'keyword') {
+      formData.append('keywords', safeTerm);
+      formData.append('keywords_cond', 'keywordsAnyWord');
     } else {
+      // title | general
       formData.append('name_value', safeTerm);
       formData.append('name_cond', 'nameAnyWord');
     }
+
     formData.append('page_size', String(safePageSize));
     formData.append('page_number', String(safePage));
     formData.append('sorting1', 'author');
@@ -201,12 +248,10 @@ export async function searchCatalog(
       signal: AbortSignal.timeout(8000),
     });
 
-    // M17: distinguish HTTP errors from empty results
     if (!response.ok) return { books: [], total: 0, unavailable: true };
     const html = await response.text();
     return parseBooksFromHtml(html, safePageSize);
   } catch (err) {
-    // Timeout or network error — catalog unavailable
     console.error('Catalog search failed:', err instanceof Error ? err.message : err);
     return { books: [], total: 0, unavailable: true };
   }
@@ -217,15 +262,23 @@ export async function searchCatalog(
 export function buildCatalogContext(intent: SearchIntent, result: SearchResult, catalogSearchUrl: string): string {
   const { searchTerm, searchType } = intent;
   const { books, total, unavailable } = result;
-  const typeLabel = searchType === 'author' ? 'автором' : 'назвою';
 
-  // M17: clearly distinguish unavailable service from empty results
+  const typeLabel: Record<SearchIntent['searchType'], string> = {
+    author: 'автором',
+    title: 'назвою',
+    general: 'запитом',
+    udc: 'УДК',
+    subject: 'темою',
+    keyword: 'ключовими словами',
+  };
+  const label = typeLabel[searchType] ?? 'запитом';
+
   if (unavailable) {
     return `\n\n[РЕЗУЛЬТАТИ КАТАЛОГУ: Каталог тимчасово недоступний (помилка з'єднання). Запропонуйте користувачу скористатися прямим посиланням: ${catalogSearchUrl}]`;
   }
 
   if (books.length === 0) {
-    return `\n\n[РЕЗУЛЬТАТИ КАТАЛОГУ: Пошук за ${typeLabel} "${searchTerm}" — нічого не знайдено. Посилання для ручного пошуку: ${catalogSearchUrl}]`;
+    return `\n\n[РЕЗУЛЬТАТИ КАТАЛОГУ: Пошук за ${label} "${searchTerm}" — нічого не знайдено. Посилання для ручного пошуку: ${catalogSearchUrl}]`;
   }
 
   const list = books.map((b, i) => {
@@ -235,7 +288,7 @@ export function buildCatalogContext(intent: SearchIntent, result: SearchResult, 
   }).join('\n');
 
   const moreNote = total > books.length ? `\nВсього знайдено: ${total}. Показано перші ${books.length}.` : '';
-  return `\n\n[РЕЗУЛЬТАТИ КАТАЛОГУ: Знайдено за ${typeLabel} "${searchTerm}" (${total} результатів):\n${list}${moreNote}\nПосилання для повного пошуку: ${catalogSearchUrl}]`;
+  return `\n\n[РЕЗУЛЬТАТИ КАТАЛОГУ: Знайдено за ${label} "${searchTerm}" (${total} результатів):\n${list}${moreNote}\nПосилання для повного пошуку: ${catalogSearchUrl}]`;
 }
 
 export { CATALOG_URL, CATALOG_FORM_URL };

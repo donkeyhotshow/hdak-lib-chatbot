@@ -3,6 +3,8 @@ import { checkRateLimit, generateFingerprint } from '@/lib/rate-limit';
 import { searchCatalog, CATALOG_FORM_URL } from '@/lib/catalog-search';
 import { isForbiddenOrigin } from '@/lib/cors';
 
+const UDC_RE = /^[\d.]+$/;
+
 export async function GET(request: NextRequest) {
   // CORS check
   if (isForbiddenOrigin(request)) {
@@ -16,29 +18,58 @@ export async function GET(request: NextRequest) {
   }
 
   const { searchParams } = new URL(request.url);
-  const query  = searchParams.get('q');
-  const author = searchParams.get('author');
-  const title  = searchParams.get('title');
-  const page   = searchParams.get('page');
+  const query   = searchParams.get('q');
+  const author  = searchParams.get('author');
+  const title   = searchParams.get('title');
+  const udc     = searchParams.get('udc');
+  const subject = searchParams.get('subject');
+  const keyword = searchParams.get('keyword');
+  const page    = searchParams.get('page');
 
-  if (!query && !author && !title) {
+  if (!query && !author && !title && !udc && !subject && !keyword) {
     return NextResponse.json({
-      error: 'Вкажіть параметр пошуку: q (загальний), author (автор), або title (назва)',
+      error: 'Вкажіть параметр пошуку: q, author, title, udc, subject або keyword',
       catalogUrl: CATALOG_FORM_URL,
     }, { status: 400 });
   }
 
-  // Validate page number
+  // Validate UDC — only digits and dots
+  if (udc !== null && !UDC_RE.test(udc)) {
+    return NextResponse.json({
+      error: 'Невалідний УДК: допустимі лише цифри та крапки (наприклад: 78.01)',
+      catalogUrl: CATALOG_FORM_URL,
+    }, { status: 400 });
+  }
+
   const pageNum = Math.max(1, parseInt(page || '1', 10) || 1);
 
   try {
-    const searchTerm = (query || author || title)!;
-    const searchType = author ? 'author' : title ? 'title' : 'general';
+    let searchTerm: string;
+    let searchType: 'title' | 'author' | 'general' | 'udc' | 'subject' | 'keyword';
+
+    if (udc) {
+      searchTerm = udc;
+      searchType = 'udc';
+    } else if (subject) {
+      searchTerm = subject;
+      searchType = 'subject';
+    } else if (keyword) {
+      searchTerm = keyword;
+      searchType = 'keyword';
+    } else if (author) {
+      searchTerm = author;
+      searchType = 'author';
+    } else if (title) {
+      searchTerm = title;
+      searchType = 'title';
+    } else {
+      searchTerm = query!;
+      searchType = 'general';
+    }
 
     const result = await searchCatalog(searchTerm, searchType, 10, pageNum);
     const { books, total, unavailable } = result;
 
-    // H14: distinguish catalog unavailable from empty results
     if (unavailable) {
       return NextResponse.json({
         success: false,
