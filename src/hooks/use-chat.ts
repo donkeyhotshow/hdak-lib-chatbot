@@ -92,6 +92,7 @@ export function useChat(toast: (opts: { description: string; duration?: number }
       .then(data => {
         if (!isMountedRef.current) return;
         if (data) {
+          // H5: if server says sessionRequired, sessionId wasn't ready yet — will retry on next mount
           setConversations(data.items ?? data);
           setHasMoreConversations(data.hasMore ?? false);
           convOffsetRef.current = data.items?.length ?? 0;

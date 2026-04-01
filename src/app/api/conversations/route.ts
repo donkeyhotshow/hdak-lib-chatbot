@@ -20,8 +20,8 @@ export async function GET(request: NextRequest) {
 
   const sessionId = getSessionIdStrict(request);
   if (!sessionId) {
-    // No valid session — return empty list (client will init session and retry)
-    return NextResponse.json({ items: [], hasMore: false, offset: 0, limit: PAGE_SIZE });
+    // H5: return sessionRequired flag so client knows to retry after session init
+    return NextResponse.json({ items: [], hasMore: false, offset: 0, limit: PAGE_SIZE, sessionRequired: true });
   }
 
   try {

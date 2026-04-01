@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
   let body: { conversationId?: string; message?: unknown };
   try {
     const contentLength = request.headers.get('content-length');
-    if (contentLength && parseInt(contentLength) > 100_000) {
+    if (contentLength && parseInt(contentLength, 10) > 100_000) {
       return NextResponse.json({ error: 'Занадто великий запит' }, { status: 413 });
     }
     body = await request.json();

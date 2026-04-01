@@ -234,7 +234,7 @@ export const Sidebar = memo(function Sidebar({
 
   const filtered = useMemo(() =>
     search.trim()
-      ? conversations.filter(c => c.title.toLowerCase().includes(search.toLowerCase()))
+      ? conversations.filter(c => c.title.toLocaleLowerCase('uk').includes(search.toLocaleLowerCase('uk')))
       : conversations,
     [search, conversations]
   );

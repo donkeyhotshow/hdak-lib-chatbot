@@ -5,6 +5,8 @@ import React from 'react';
 interface ErrorBoundaryProps {
   children: React.ReactNode;
   fallback?: React.ReactNode;
+  /** Called when user clicks "Try again" — use to reload data */
+  onReset?: () => void;
 }
 
 interface ErrorBoundaryState {
@@ -28,6 +30,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 
   handleReset = () => {
     this.setState({ hasError: false, error: null });
+    this.props.onReset?.();
   };
 
   render() {

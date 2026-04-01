@@ -51,6 +51,9 @@ const MAX_RATE_LIMIT_ENTRIES = 10_000;
 function checkRateLimitMemory(key: string, limit: number, windowMs: number): boolean {
   const now = Date.now();
   const cutoff = now - windowMs;
+
+  // M4: always purge expired entries (respects 5-min cooldown internally)
+  maybePurge(windowMs);
   
   // Guard against unbounded map growth — purge first, then check capacity
   if (rateLimits.size >= MAX_RATE_LIMIT_ENTRIES) {
@@ -66,8 +69,6 @@ function checkRateLimitMemory(key: string, limit: number, windowMs: number): boo
     }
   }
 
-  maybePurge(windowMs);
-  
   const info = rateLimits.get(key);
 
   if (!info) {
