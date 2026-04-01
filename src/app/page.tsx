@@ -20,7 +20,7 @@ export default function ChatPage() {
   const { toast } = useToast();
 
   const {
-    messages, inputValue, setInputValue, isTyping, isLoadingConversation, error,
+    messages, inputValue, setInputValue, isTyping, isLoadingConversation, isLoadingConversations, error,
     conversations, currentConversation, streamingMessageId,
     hasMoreConversations, messagesEndRef,
     handleSend, handleFaqSend, handleStop,
@@ -75,6 +75,7 @@ export default function ChatPage() {
         createNewConversation={createNewConversation}
         hasMore={hasMoreConversations}
         loadMore={loadMoreConversations}
+        isLoadingConversations={isLoadingConversations}
       />
 
       <main className="flex-1 flex flex-col min-w-0 relative h-full overflow-hidden">
@@ -111,6 +112,7 @@ export default function ChatPage() {
           isTyping={isTyping}
           handleSend={handleSend}
           onStop={handleStop}
+          currentConversationId={currentConversation?.id}
         />
       </main>
     </div>

@@ -9,7 +9,9 @@ import type {
 } from "@/components/ui/toast"
 
 const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 2000
+// M14: TOAST_REMOVE_DELAY must be >= duration prop used in useChat (2000ms)
+// This is the delay AFTER dismiss before removing from DOM (for exit animation)
+const TOAST_REMOVE_DELAY = 3000
 
 type ToasterToast = ToastProps & {
   id: string

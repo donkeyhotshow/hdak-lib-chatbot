@@ -16,6 +16,7 @@ interface UseChatReturn {
   streamingMessageId: string | null;
   hasMoreConversations: boolean;
   isLoadingConversation: boolean;
+  isLoadingConversations: boolean;
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
   handleSend: (query?: string) => void;
   handleFaqSend: (query: string) => void;
@@ -52,6 +53,8 @@ export function useChat(toast: (opts: { description: string; duration?: number }
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
   const [hasMoreConversations, setHasMoreConversations] = useState(false);
   const [isLoadingConversation, setIsLoadingConversation] = useState(false);
+  // UX1: loading state for initial conversations list fetch
+  const [isLoadingConversations, setIsLoadingConversations] = useState(true);
   const [newConversationId, setNewConversationId] = useState<string | null>(null);
   const newConvTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -73,18 +76,17 @@ export function useChat(toast: (opts: { description: string; duration?: number }
   const currentConversationRef = useRef<Conversation | null>(null);
   useEffect(() => { currentConversationRef.current = currentConversation; }, [currentConversation]);
 
-  // Session header helper — reads sessionId lazily (client-only)
-  // Use ref so it doesn't appear in useCallback deps and cause cascading recreations
-  const sessionHeadersRef = useRef<() => Record<string, string>>(() => ({
-    [SESSION_HEADER]: getSessionId(),
-  }));
-  const sessionHeaders = sessionHeadersRef.current;
+  // Session header helper — reads sessionId once after hydration (client-only)
+  const sessionIdRef = useRef('');
+  useEffect(() => { sessionIdRef.current = getSessionId(); }, []);
+  const sessionHeaders = () => ({ [SESSION_HEADER]: sessionIdRef.current });
 
   // Load conversations on mount; H12: set isMountedRef here (not at declaration)
   // so StrictMode double-mount correctly resets it before the second mount runs
   useEffect(() => {
     isMountedRef.current = true;
     const controller = new AbortController();
+    setIsLoadingConversations(true);
     fetch('/api/conversations?limit=15&offset=0', { signal: controller.signal, headers: sessionHeaders() })
       .then(res => res.ok ? res.json() : null)
       .then(data => {
@@ -99,6 +101,9 @@ export function useChat(toast: (opts: { description: string; duration?: number }
         if (err instanceof Error && err.name !== 'AbortError') {
           console.error('Failed to load conversations:', err);
         }
+      })
+      .finally(() => {
+        if (isMountedRef.current) setIsLoadingConversations(false);
       });
     return () => {
       isMountedRef.current = false;
@@ -146,6 +151,7 @@ export function useChat(toast: (opts: { description: string; duration?: number }
     }
     if (thinkTimerRef.current) { clearTimeout(thinkTimerRef.current); thinkTimerRef.current = null; }
     if (typeIntervalRef.current) { clearInterval(typeIntervalRef.current); typeIntervalRef.current = null; }
+    isTypingRef.current = false;
     setIsTyping(false);
     setStreamingMessageId(null);
 
@@ -162,7 +168,8 @@ export function useChat(toast: (opts: { description: string; duration?: number }
       } else {
         setError('Не вдалося завантажити розмову. Перевірте з\'єднання.');
       }
-    } catch {
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return;
       setIsTyping(false);
       setStreamingMessageId(null);
       setError('Немає з\'єднання з сервером. Перевірте інтернет і спробуйте ще раз.');
@@ -441,8 +448,10 @@ export function useChat(toast: (opts: { description: string; duration?: number }
         ));
 
         if (currentIndex >= totalSteps) {
-          clearInterval(typeIntervalRef.current!);
-          typeIntervalRef.current = null;
+          if (typeIntervalRef.current) {
+            clearInterval(typeIntervalRef.current);
+            typeIntervalRef.current = null;
+          }
           setStreamingMessageId(null);
           // H23: reset ref BEFORE setMessages to avoid race with handleSend guard
           // handleStop also resets this ref, so it's safe if interval was cleared early
@@ -471,7 +480,10 @@ export function useChat(toast: (opts: { description: string; duration?: number }
                   await refreshConversations();
                 }
               }
-            }).catch(() => {});
+            }).catch((err) => {
+              // C6: log FAQ save failures — conversation won't persist after reload
+              console.error('FAQ save failed — conversation will not persist:', err);
+            });
           }
         }
       }, faq.stepDelay);
@@ -540,11 +552,12 @@ export function useChat(toast: (opts: { description: string; duration?: number }
       return prev.slice(0, lastUserIdx);
     });
     setError(null);
+    isTypingRef.current = false;
     handleSend(lastUserContent);
   }, [handleSend, messages]);
 
   return {
-    messages, inputValue, setInputValue, isTyping, isLoadingConversation, error,
+    messages, inputValue, setInputValue, isTyping, isLoadingConversation, isLoadingConversations, error,
     conversations, currentConversation, streamingMessageId,
     hasMoreConversations, messagesEndRef, newConversationId,
     handleSend, handleFaqSend, handleStop,

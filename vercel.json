@@ -8,6 +8,9 @@
     },
     "src/app/api/catalog-search/route.ts": {
       "maxDuration": 15
+    },
+    "src/app/api/faq-save/route.ts": {
+      "maxDuration": 15
     }
   }
 }

@@ -154,14 +154,14 @@ export function parseBooksFromHtml(html: string, maxBooks = 10): SearchResult {
 
   // Total count from pagination line "X - Y з Z"
   const countMatch = html.match(/(\d+)\s*[-–]\s*\d+\s+[зз]\s+(\d+)/i);
-  const total = countMatch ? parseInt(countMatch[2]) || books.length : books.length;
+  const total = countMatch ? parseInt(countMatch[2], 10) || books.length : books.length;
 
   // M48: if HTML is suspiciously short and no books found, it may be an error page
   // rather than a genuine empty result — mark as potentially unavailable
   const likelyErrorPage = books.length === 0 && html.length < 500 && !html.includes('DocumentSearch');
   if (likelyErrorPage) return { books: [], total: 0, unavailable: true };
 
-  return { books, total };
+  return { books, total, unavailable: false as const };
 }
 
 // ─── Catalog API call ───────────────────────────────────────────────────────

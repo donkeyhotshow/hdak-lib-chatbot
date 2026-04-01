@@ -135,6 +135,7 @@ const ConvItem = memo(function ConvItem({ conv, isActive, isNew, onLoad, onDelet
       onKeyDown={e => { if (!editing && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onLoad(conv.id); } }}
       role="button"
       tabIndex={0}
+      aria-current={isActive ? 'page' : undefined}
       className={cn(
         "group flex items-center gap-1.5 px-2 py-2 rounded-lg cursor-pointer transition-all",
         isActive ? "bg-[#D4A853]/10 border border-[#D4A853]/15" : "hover:bg-white/[0.04] border border-transparent"
@@ -197,19 +198,19 @@ export interface SidebarProps {
   createNewConversation: () => void;
   hasMore?: boolean;
   loadMore?: () => void;
+  isLoadingConversations?: boolean;
 }
 
 // Fix #15: memo on entire Sidebar
 export const Sidebar = memo(function Sidebar({
   isOpen, setIsOpen, sidebarRef, conversations, currentConversation,
   newConversationId, loadConversation, deleteConversation, renameConversation,
-  createNewConversation, hasMore = false, loadMore,
+  createNewConversation, hasMore = false, loadMore, isLoadingConversations = false,
 }: SidebarProps) {
-  // C2: re-evaluate library status every minute; M26: try-catch for Intl fallback
-  const [open, setOpen] = useState(() => {
-    try { return isLibraryOpen(); } catch { return false; }
-  });
+  // H1: avoid hydration mismatch — evaluate library status only on client after mount
+  const [open, setOpen] = useState(false);
   useEffect(() => {
+    try { setOpen(isLibraryOpen()); } catch { /* Intl not supported */ }
     const id = setInterval(() => {
       try { setOpen(isLibraryOpen()); } catch { /* Intl not supported */ }
     }, 60_000);
@@ -217,6 +218,16 @@ export const Sidebar = memo(function Sidebar({
   }, []);
   // Fix #6: search state — clear when sidebar closes so stale filter doesn't persist
   const [search, setSearch] = useState('');
+  // UX2: loading state for "Показати ще" button
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  // Reset loading state when conversations change (load more completed)
+  const prevConvCountRef = useRef(conversations.length);
+  useEffect(() => {
+    if (conversations.length !== prevConvCountRef.current) {
+      setIsLoadingMore(false);
+      prevConvCountRef.current = conversations.length;
+    }
+  }, [conversations.length]);
   useEffect(() => {
     if (!isOpen) setSearch('');
   }, [isOpen]);
@@ -270,7 +281,7 @@ export const Sidebar = memo(function Sidebar({
                 <div className={cn("sidebar-status", open ? "sidebar-status-open" : "sidebar-status-closed")}>
                   <span className={cn("sidebar-status-dot", open ? "bg-emerald-400" : "bg-red-400/80")} />
                   <span>{open ? 'Зараз відкрито' : 'Зараз зачинено'}</span>
-                  <span className="sidebar-status-hours">{open ? (() => { const d = new Date().getDay(); return d === 6 ? 'до 13:30' : 'до 16:45'; })() : 'Пн–Пт 9:00–16:45'}</span>
+                  <span className="sidebar-status-hours">{open ? (() => { const d = new Date().getDay(); return d === 6 ? 'до 13:30' : 'до 16:45'; })() : (() => { const d = new Date().getDay(); return d === 6 ? 'Сб 9:00–13:30' : 'Пн–Пт 9:00–16:45'; })()}</span>
                 </div>
               </div>
               <div className="sidebar-header-divider" />
@@ -313,10 +324,17 @@ export const Sidebar = memo(function Sidebar({
 
               {/* History with search */}
               <SidebarSection label="Історія" defaultOpen={true}>
-                {conversations.length === 0 && !search && (
+                {isLoadingConversations && conversations.length === 0 && (
+                  <div className="space-y-2 px-1 py-2">
+                    {[0, 1, 2].map(i => (
+                      <div key={i} className="h-8 rounded-lg bg-white/[0.04] animate-pulse" style={{ animationDelay: `${i * 0.1}s` }} />
+                    ))}
+                  </div>
+                )}
+                {!isLoadingConversations && conversations.length === 0 && !search && (
                   <p className="text-[11px] text-white/25 text-center py-3 px-2">Розмов ще немає. Почніть новий чат!</p>
                 )}
-                {conversations.length >= 3 && (
+                {conversations.length >= 2 && (
                     <div className="relative mb-1.5 px-1">
                       <Search size={11} strokeWidth={1.8} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/25 pointer-events-none" />
                       <input
@@ -344,8 +362,8 @@ export const Sidebar = memo(function Sidebar({
                       <p className="text-[11px] text-white/25 text-center py-2">Нічого не знайдено</p>
                     )}
                     {hasMore && loadMore && !search && (
-                      <button onClick={loadMore} className="w-full py-1.5 text-[11px] text-[#D4A853]/30 hover:text-[#D4A853]/60 transition-colors text-center tracking-wide">
-                        Показати ще...
+                      <button onClick={() => { setIsLoadingMore(true); loadMore(); }} disabled={isLoadingMore} className="w-full py-1.5 text-[11px] text-[#D4A853]/30 hover:text-[#D4A853]/60 transition-colors text-center tracking-wide disabled:opacity-40 disabled:cursor-wait">
+                        {isLoadingMore ? 'Завантаження...' : 'Показати ще...'}
                       </button>
                     )}
                   </div>

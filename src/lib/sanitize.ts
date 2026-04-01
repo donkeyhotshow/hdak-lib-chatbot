@@ -11,7 +11,6 @@ export function stripHtml(html: string): string {
     .replace(/<br\s*\/?>/gi, ' ')
     .replace(/<[^>]+>/g, '')
     .replace(/javascript:/gi, '')
-    .replace(/data:/gi, '')
     .replace(/vbscript:/gi, '')
     .replace(/&nbsp;/g, ' ')
     .replace(/&amp;/g, '&')

@@ -74,7 +74,7 @@ const MessageBubble = memo(function MessageBubble({ msg, isStreaming, formatTime
 }) {
   const isUser = msg.role === 'USER';
   return (
-    <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }} className={cn("flex gap-2.5 group", isUser && "flex-row-reverse")}>
+    <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }} className={cn("flex gap-2.5 group", isUser && "flex-row-reverse")} role="article" aria-label={isUser ? 'Ваше повідомлення' : 'Відповідь асистента'}>
       <div className={cn("w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5", isUser ? "bg-gradient-to-br from-[#1A1612] to-[#2A2520]" : "bg-gradient-to-br from-[#B87830]/12 to-[#D4A853]/8 border border-[#B87830]/12")}>
         {isUser ? <span className="text-[8px] font-bold text-[#D4A853] tracking-wider">ВИ</span> : <BookIcon size={12} className="text-[#B87830]" />}
       </div>
@@ -94,7 +94,7 @@ const MessageBubble = memo(function MessageBubble({ msg, isStreaming, formatTime
           {!isUser && !isStreaming && (
             <button
               onClick={() => copyToClipboard(msg.content)}
-              className="p-1 text-[#7A756F]/40 md:opacity-0 md:group-hover:opacity-100 hover:text-[#B87830] transition-all"
+              className="p-1 text-[#7A756F]/40 opacity-100 md:opacity-0 md:group-hover:opacity-100 hover:text-[#B87830] transition-all"
               aria-label="Копіювати відповідь"
             >
               <Copy size={13} strokeWidth={1.5} />
@@ -135,16 +135,21 @@ export function ChatArea({ messages, isTyping, isLoadingConversation, error, han
   // Memoize O(n) scans so they don't run on every render
   const { lastMsg, lastMsgHasCatalog, lastAssistantContent } = useMemo(() => {
     let lastAssistant = '';
+    let lastAssistantMsg: typeof messages[0] | undefined;
     let last: typeof messages[0] | undefined;
     for (let i = messages.length - 1; i >= 0; i--) {
       if (!last) last = messages[i];
       if (messages[i].role === 'ASSISTANT') {
-        if (!lastAssistant) lastAssistant = messages[i].content;
+        if (!lastAssistant) {
+          lastAssistant = messages[i].content;
+          lastAssistantMsg = messages[i];
+        }
         break;
       }
     }
-    const hasCatalog = last?.content?.includes('[РЕЗУЛЬТАТИ КАТАЛОГУ') || last?.content?.includes('Знайдено за');
-    return { lastMsg: last, lastMsgHasCatalog: hasCatalog ?? false, lastAssistantContent: lastAssistant };
+    // H3: only check catalog on the last ASSISTANT message, not on USER messages
+    const hasCatalog = lastAssistantMsg ? (lastAssistantMsg.content?.includes('[РЕЗУЛЬТАТИ КАТАЛОГУ') || lastAssistantMsg.content?.includes('Знайдено за')) : false;
+    return { lastMsg: last, lastMsgHasCatalog: hasCatalog, lastAssistantContent: lastAssistant };
   }, [messages]);
 
   const showChips = !isTyping && !!lastMsg && lastMsg.role === 'ASSISTANT' && lastMsg.id !== streamingMessageId && !lastMsgHasCatalog;

@@ -19,7 +19,7 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   images: {
     formats: ['image/avif', 'image/webp'],
-    minimumCacheTTL: 60,
+    minimumCacheTTL: 86400,
   },
   compress: true,
   poweredByHeader: false,

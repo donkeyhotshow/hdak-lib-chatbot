@@ -117,8 +117,8 @@ export function isLibraryOpen(now = new Date()): boolean {
  * Усі посилання бібліотеки ХДАК
  */
 export const ALL_LINKS = {
-  // КАТАЛОГИ
-  catalog_search:  'https://library-service.com.ua:8443/khkhdak/DocumentSearchForm',
+  // КАТАЛОГИ — M15: use LIBRARY.links.catalogSearch as single source of truth
+  catalog_search:  LIBRARY.links.catalogSearch,
   catalog_page:    'https://lib-hdak.in.ua/e-catalog.html',
   mobile_app:      'https://play.google.com/store/apps/details?id=ush.libclient',
   repository:      'https://repository.ac.kharkov.ua/home',

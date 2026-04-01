@@ -8,21 +8,28 @@ interface ChatInputProps {
   isTyping: boolean;
   handleSend: (query?: string) => void;
   onStop?: () => void;
+  currentConversationId?: string | null;
 }
 
-export function ChatInput({ inputValue, setInputValue, isTyping, handleSend, onStop }: ChatInputProps) {
+export function ChatInput({ inputValue, setInputValue, isTyping, handleSend, onStop, currentConversationId }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const hasInput = inputValue.trim().length > 0;
   const charCount = inputValue.length;
 
-  // M4: reset height when input is cleared externally (after send or conversation switch)
-  const prevValueRef = useRef(inputValue);
+  // M4+M16: reset height when input is cleared externally
+  // Use null as initial value to avoid false positive on first render with non-empty input
+  const prevValueRef = useRef<string | null>(null);
   useEffect(() => {
-    if (prevValueRef.current !== '' && inputValue === '' && textareaRef.current) {
+    if (prevValueRef.current !== null && prevValueRef.current !== '' && inputValue === '' && textareaRef.current) {
       textareaRef.current.style.height = 'auto';
     }
     prevValueRef.current = inputValue;
   }, [inputValue]);
+
+  // UX5: auto-focus textarea when conversation changes (new chat or switch)
+  useEffect(() => {
+    textareaRef.current?.focus();
+  }, [currentConversationId]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     // Guard against IME composition (CJK input methods)

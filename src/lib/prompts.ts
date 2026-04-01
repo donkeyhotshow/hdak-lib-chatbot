@@ -19,7 +19,7 @@ export function buildSystemPrompt(catalogContext = ''): string {
     && (_promptCache.wasOpen === currentlyOpen)
     && !catalogContext;
 
-  if (cacheValid) return _promptCache!.value;
+  if (cacheValid) return (_promptCache as NonNullable<typeof _promptCache>).value;
 
   const openStatus = currentlyOpen
     ? 'ВІДКРИТА зараз'

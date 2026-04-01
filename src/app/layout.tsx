@@ -8,7 +8,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 const poppins = Poppins({
   variable: "--font-sans",
   subsets: ["latin", "latin-ext"],
-  weight: ["400", "600", "700"],
+  weight: ["400", "500", "600", "700"],
   display: "swap",
   adjustFontFallback: true,
 });
