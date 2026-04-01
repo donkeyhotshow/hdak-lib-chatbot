@@ -25,7 +25,17 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   // M40: apply security headers in dev too, not only on Vercel
   async headers() {
-    return [{ source: '/(.*)', headers: securityHeaders }];
+    return [
+      { source: '/(.*)', headers: securityHeaders },
+      // Allow SW to control the entire origin scope
+      {
+        source: '/sw.js',
+        headers: [
+          { key: 'Service-Worker-Allowed', value: '/' },
+          { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
+        ],
+      },
+    ];
   },
   experimental: {
     optimizePackageImports: ['lucide-react'],

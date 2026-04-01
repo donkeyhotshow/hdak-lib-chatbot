@@ -1,6 +1,6 @@
 import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
-import { pgTable, text, timestamp, index, check } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, index, check, boolean } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
 const connectionString = process.env.DATABASE_URL;
@@ -38,3 +38,20 @@ export const messages = pgTable("messages", {
 
 export type Conversation = typeof conversations.$inferSelect;
 export type Message = typeof messages.$inferSelect;
+
+// Push subscriptions for book return reminders
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  sessionId: text("session_id").notNull(),
+  endpoint: text("endpoint").notNull().unique(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  remindAt: timestamp("remind_at"),
+  sent: boolean("sent").notNull().default(false),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+}, (table) => ({
+  sessionIdx: index("push_session_idx").on(table.sessionId),
+  remindIdx: index("push_remind_at_idx").on(table.remindAt),
+}));
+
+export type PushSubscription = typeof pushSubscriptions.$inferSelect;

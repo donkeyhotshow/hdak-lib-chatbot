@@ -1,10 +1,10 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { Poppins, Literata, Outfit } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import Script from "next/script";
 
-// Sans-serif font for headings - bold, clean, modern
 const poppins = Poppins({
   variable: "--font-sans",
   subsets: ["latin", "latin-ext"],
@@ -13,7 +13,6 @@ const poppins = Poppins({
   adjustFontFallback: true,
 });
 
-// Serif font for elegant text - classic, readable
 const literata = Literata({
   variable: "--font-serif",
   subsets: ["latin", "latin-ext"],
@@ -22,7 +21,6 @@ const literata = Literata({
   adjustFontFallback: true,
 });
 
-// Modern geometric for logo and accents
 const outfit = Outfit({
   variable: "--font-logo",
   subsets: ["latin", "latin-ext"],
@@ -33,12 +31,12 @@ const outfit = Outfit({
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://hdak-lib-chatbot.vercel.app'),
-  title: "ХДАК Бібліотека — Інтелектуальний асистент",
+  title: "ХДАК Бібліотека  Інтелектуальний асистент",
   description: "Інтелектуальний асистент бібліотеки Харківської державної академії культури. Пошук видань, графік роботи, ресурси та допомога.",
   keywords: ["ХДАК", "бібліотека", "Харків", "академія культури", "книги", "ресурси", "ШІ асистент"],
   authors: [{ name: "ХДАК Бібліотека" }],
   openGraph: {
-    title: "ХДАК Бібліотека — Інтелектуальний асистент",
+    title: "ХДАК Бібліотека  Інтелектуальний асистент",
     description: "Навігатор по ресурсах бібліотеки Харківської державної академії культури.",
     type: "website",
     locale: "uk_UA",
@@ -47,14 +45,16 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "ХДАК Бібліотека — Інтелектуальний асистент",
+    title: "ХДАК Бібліотека  Інтелектуальний асистент",
     description: "Навігатор по ресурсах бібліотеки Харківської державної академії культури.",
     images: ["/og-image.svg"],
   },
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",
+    apple: "/icons/icon-192.png",
   },
+  manifest: "/manifest.json",
   robots: {
     index: true,
     follow: true,
@@ -71,6 +71,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="uk" dir="ltr" suppressHydrationWarning>
+      <head>
+        <meta name="theme-color" content="#B87830" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="ХДАК" />
+        <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+      </head>
       <body
         className={`${poppins.variable} ${literata.variable} ${outfit.variable} antialiased`}
       >
@@ -78,6 +85,15 @@ export default function RootLayout({
           {children}
         </ErrorBoundary>
         <Toaster />
+        <Script id="sw-register" strategy="afterInteractive">{`
+          if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+              navigator.serviceWorker.register('/sw.js').catch(function(err) {
+                console.warn('SW registration failed:', err);
+              });
+            });
+          }
+        `}</Script>
       </body>
     </html>
   );

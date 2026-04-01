@@ -11,6 +11,15 @@
     },
     "src/app/api/faq-save/route.ts": {
       "maxDuration": 15
+    },
+    "src/app/api/push/remind/route.ts": {
+      "maxDuration": 30
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/push/remind",
+      "schedule": "0 8 * * *"
+    }
+  ]
 }
