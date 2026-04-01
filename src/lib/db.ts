@@ -18,17 +18,18 @@ export const db = drizzle(client);
 // Schema definitions
 export const conversations = pgTable("conversations", {
   id: text("id").primaryKey().$defaultFn(() => {
-    // L33: crypto.randomUUID() is available in Node 19+, Next.js edge, and modern browsers
-    // For older Node versions, fall back to a manual UUID v4
     if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
       const r = Math.random() * 16 | 0;
       return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
     });
   }),
+  sessionId: text("session_id").notNull().default('anonymous'),
   title: text("title").notNull(),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
-});
+}, (table) => ({
+  sessionIdx: index("conversations_session_id_idx").on(table.sessionId),
+}));
 
 export const messages = pgTable("messages", {
   id: text("id").primaryKey().$defaultFn(() => {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db, conversations, messages as messagesTable } from '@/lib/db';
 import { stripHtml } from '@/lib/sanitize';
 import { checkRateLimit, generateFingerprint } from '@/lib/rate-limit';
+import { SESSION_HEADER } from '@/lib/session';
 
 const MAX_QUESTION_LENGTH = 500;
 const MAX_ANSWER_LENGTH = 10_000;
@@ -29,10 +30,14 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // Use transaction so we never get orphaned conversation without messages
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const rawSession = request.headers.get(SESSION_HEADER)?.trim() ?? '';
+    const sessionId = UUID_REGEX.test(rawSession) ? rawSession : 'anonymous';
+
     const result = await db.transaction(async (tx) => {
       const [conv] = await tx.insert(conversations).values({
         title: question.substring(0, 50),
+        sessionId,
       }).returning();
 
       await tx.insert(messagesTable).values([

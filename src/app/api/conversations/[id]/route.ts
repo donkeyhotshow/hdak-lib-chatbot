@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, conversations, messages } from '@/lib/db';
-import { eq, asc } from 'drizzle-orm';
+import { eq, asc, and } from 'drizzle-orm';
 import { stripHtml } from '@/lib/sanitize';
 import { checkRateLimit, generateFingerprint } from '@/lib/rate-limit';
+import { SESSION_HEADER } from '@/lib/session';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_TITLE_LENGTH = 200;
@@ -17,13 +18,18 @@ function isForbiddenOrigin(request: NextRequest): boolean {
   try {
     const originHost = new URL(origin).hostname;
     const reqHost = new URL(request.url).hostname;
-    // H22: both must be local for the request to be allowed cross-origin
     const localHosts = ['localhost', '127.0.0.1', '0.0.0.0'];
     const isLocal = localHosts.includes(originHost) && localHosts.includes(reqHost);
     return originHost !== reqHost && !isLocal;
   } catch {
     return true;
   }
+}
+
+function getSessionId(request: NextRequest): string | null {
+  const id = request.headers.get(SESSION_HEADER)?.trim();
+  if (!id || !UUID_REGEX.test(id)) return null;
+  return id;
 }
 
 export async function GET(
@@ -34,9 +40,13 @@ export async function GET(
   if (!(await checkRateLimit(fingerprint))) {
     return NextResponse.json({ error: 'Забагато запитів' }, { status: 429 });
   }
-
   if (isForbiddenOrigin(request)) {
     return NextResponse.json({ error: 'Заборонений запит' }, { status: 403 });
+  }
+
+  const sessionId = getSessionId(request);
+  if (!sessionId) {
+    return NextResponse.json({ error: 'Відсутній ідентифікатор сесії' }, { status: 400 });
   }
 
   try {
@@ -45,16 +55,17 @@ export async function GET(
       return NextResponse.json({ error: 'Невірний ідентифікатор' }, { status: 400 });
     }
 
-    const [conversation] = await db.select().from(conversations).where(eq(conversations.id, id));
-    
+    // Only return conversation if it belongs to this session
+    const [conversation] = await db.select().from(conversations)
+      .where(and(eq(conversations.id, id), eq(conversations.sessionId, sessionId)));
+
     if (!conversation) return NextResponse.json({ error: 'Розмову не знайдено' }, { status: 404 });
 
-    // Load last 100 messages to prevent huge payloads
     const msgs = await db.select().from(messages)
       .where(eq(messages.conversationId, id))
       .orderBy(asc(messages.createdAt))
       .limit(100);
-    
+
     return NextResponse.json({ ...conversation, messages: msgs });
   } catch (error) {
     console.error(error);
@@ -70,18 +81,30 @@ export async function DELETE(
   if (!(await checkRateLimit(fingerprint))) {
     return NextResponse.json({ error: 'Забагато запитів' }, { status: 429 });
   }
+  if (isForbiddenOrigin(request)) {
+    return NextResponse.json({ error: 'Заборонене джерело' }, { status: 403 });
+  }
+
+  const sessionId = getSessionId(request);
+  if (!sessionId) {
+    return NextResponse.json({ error: 'Відсутній ідентифікатор сесії' }, { status: 400 });
+  }
 
   try {
-    if (isForbiddenOrigin(request)) {
-      return NextResponse.json({ error: 'Заборонене джерело' }, { status: 403 });
-    }
-
     const { id } = await params;
     if (!isValidUuid(id)) {
       return NextResponse.json({ error: 'Невірний ідентифікатор' }, { status: 400 });
     }
 
-    await db.delete(conversations).where(eq(conversations.id, id));
+    // Only delete if conversation belongs to this session
+    const result = await db.delete(conversations)
+      .where(and(eq(conversations.id, id), eq(conversations.sessionId, sessionId)))
+      .returning({ id: conversations.id });
+
+    if (result.length === 0) {
+      return NextResponse.json({ error: 'Розмову не знайдено' }, { status: 404 });
+    }
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error(error);
@@ -97,12 +120,16 @@ export async function PATCH(
   if (!(await checkRateLimit(fingerprint))) {
     return NextResponse.json({ error: 'Забагато запитів' }, { status: 429 });
   }
+  if (isForbiddenOrigin(request)) {
+    return NextResponse.json({ error: 'Заборонене джерело' }, { status: 403 });
+  }
+
+  const sessionId = getSessionId(request);
+  if (!sessionId) {
+    return NextResponse.json({ error: 'Відсутній ідентифікатор сесії' }, { status: 400 });
+  }
 
   try {
-    if (isForbiddenOrigin(request)) {
-      return NextResponse.json({ error: 'Заборонене джерело' }, { status: 403 });
-    }
-
     const { id } = await params;
     if (!isValidUuid(id)) {
       return NextResponse.json({ error: 'Невірний ідентифікатор' }, { status: 400 });
@@ -124,7 +151,12 @@ export async function PATCH(
       return NextResponse.json({ error: 'Назва не може бути порожньою' }, { status: 400 });
     }
 
-    const [updated] = await db.update(conversations).set({ title }).where(eq(conversations.id, id)).returning();
+    // Only update if conversation belongs to this session
+    const [updated] = await db.update(conversations)
+      .set({ title })
+      .where(and(eq(conversations.id, id), eq(conversations.sessionId, sessionId)))
+      .returning();
+
     if (!updated) {
       return NextResponse.json({ error: 'Розмову не знайдено' }, { status: 404 });
     }

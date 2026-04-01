@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, conversations, messages as messagesTable } from '@/lib/db';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, and } from 'drizzle-orm';
 import { stripHtml } from '@/lib/sanitize';
 import { checkRateLimit, generateFingerprint } from '@/lib/rate-limit';
 import { ALL_LINKS } from '@/lib/constants';
 import { buildSystemPrompt } from '@/lib/prompts';
 import { detectSearchIntent, searchCatalog, buildCatalogContext } from '@/lib/catalog-search';
+import { SESSION_HEADER } from '@/lib/session';
 
 const MAX_MESSAGE_LENGTH = 2000;
 
@@ -180,6 +181,11 @@ export async function POST(request: NextRequest) {
 
   const safeMessage = validation.sanitized;
 
+  // Extract and validate sessionId
+  const UUID_REGEX_SESSION = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const rawSession = request.headers.get(SESSION_HEADER)?.trim() ?? '';
+  const sessionId = UUID_REGEX_SESSION.test(rawSession) ? rawSession : 'anonymous';
+
   // Validate conversationId format to prevent FK violations
   const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (conversationId && !UUID_REGEX.test(conversationId)) {
@@ -199,16 +205,19 @@ export async function POST(request: NextRequest) {
   if (!convId) {
     const [newConv] = await db.insert(conversations).values({
       title: safeMessage.substring(0, 50),
+      sessionId,
     }).returning();
     convId = newConv.id;
   } else {
-    // M16: verify conversation exists — without auth we can't check ownership,
-    // but we prevent FK violations and cross-conversation injection.
-    // If the conversation doesn't exist, create a new one silently.
-    const [existing] = await db.select({ id: conversations.id }).from(conversations).where(eq(conversations.id, convId));
+    // Verify conversation exists AND belongs to this session
+    const [existing] = await db.select({ id: conversations.id })
+      .from(conversations)
+      .where(and(eq(conversations.id, convId), eq(conversations.sessionId, sessionId)));
     if (!existing) {
+      // Either doesn't exist or belongs to another session — create new
       const [newConv] = await db.insert(conversations).values({
         title: safeMessage.substring(0, 50),
+        sessionId,
       }).returning();
       convId = newConv.id;
     }

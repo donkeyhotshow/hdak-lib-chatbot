@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Message, Conversation } from '@/components/chat/types';
 import { getFaqResponse } from '@/lib/faq-responses';
+import { getSessionId, SESSION_HEADER } from '@/lib/session';
 
 interface UseChatReturn {
   messages: Message[];
@@ -73,12 +74,17 @@ export function useChat(toast: (opts: { description: string; duration?: number }
   const currentConversationRef = useRef<Conversation | null>(null);
   useEffect(() => { currentConversationRef.current = currentConversation; }, [currentConversation]);
 
+  // Session header helper — reads sessionId lazily (client-only)
+  const sessionHeaders = useCallback((): Record<string, string> => ({
+    [SESSION_HEADER]: getSessionId(),
+  }), []);
+
   // Load conversations on mount; H12: set isMountedRef here (not at declaration)
   // so StrictMode double-mount correctly resets it before the second mount runs
   useEffect(() => {
     isMountedRef.current = true;
     const controller = new AbortController();
-    fetch('/api/conversations?limit=15&offset=0', { signal: controller.signal })
+    fetch('/api/conversations?limit=15&offset=0', { signal: controller.signal, headers: sessionHeaders() })
       .then(res => res.ok ? res.json() : null)
       .then(data => {
         if (!isMountedRef.current) return;
@@ -114,7 +120,7 @@ export function useChat(toast: (opts: { description: string; duration?: number }
       refreshDebounceRef.current = setTimeout(async () => {
         refreshDebounceRef.current = null;
         try {
-          const res = await fetch('/api/conversations?limit=15&offset=0');
+          const res = await fetch('/api/conversations?limit=15&offset=0', { headers: sessionHeaders() });
           if (res.ok && isMountedRef.current) {
             const data = await res.json();
             setConversations(data.items ?? data);
@@ -145,7 +151,7 @@ export function useChat(toast: (opts: { description: string; duration?: number }
     setIsLoadingConversation(true);
     setError(null);
     try {
-      const res = await fetch(`/api/conversations/${id}`);
+      const res = await fetch(`/api/conversations/${id}`, { headers: sessionHeaders() });
       if (res.ok) {
         const data = await res.json();
         // M51: update ref immediately so handleSend uses correct convId before next render
@@ -180,7 +186,7 @@ export function useChat(toast: (opts: { description: string; duration?: number }
     try {
       const res = await fetch(`/api/conversations/${id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...sessionHeaders() },
         body: JSON.stringify({ title }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -206,7 +212,7 @@ export function useChat(toast: (opts: { description: string; duration?: number }
       setStreamingMessageId(null);
     }
     try {
-      const res = await fetch(`/api/conversations/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/conversations/${id}`, { method: 'DELETE', headers: sessionHeaders() });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setConversations(prev => {
         const next = prev.filter(c => c.id !== id);
@@ -263,7 +269,7 @@ export function useChat(toast: (opts: { description: string; duration?: number }
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...sessionHeaders() },
         body: JSON.stringify({ conversationId: currentConversationRef.current?.id || null, message: text }),
         signal: controller.signal,
       });
@@ -449,7 +455,7 @@ export function useChat(toast: (opts: { description: string; duration?: number }
           if (!faqStoppedRef.current && isMountedRef.current) {
             fetch('/api/faq-save', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 'Content-Type': 'application/json', ...sessionHeaders() },
               body: JSON.stringify({ question: query, answer: fullContent }),
             }).then(async res => {
               if (!isMountedRef.current) return; // C1: guard post-unmount state updates
@@ -487,7 +493,7 @@ export function useChat(toast: (opts: { description: string; duration?: number }
     if (isLoadingMoreRef.current) return;
     isLoadingMoreRef.current = true;
     try {
-      const res = await fetch(`/api/conversations?limit=15&offset=${convOffsetRef.current}`);
+      const res = await fetch(`/api/conversations?limit=15&offset=${convOffsetRef.current}`, { headers: sessionHeaders() });
       if (res.ok && isMountedRef.current) {
         const data = await res.json();
         setConversations(prev => [...prev, ...(data.items ?? [])]);
