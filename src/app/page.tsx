@@ -113,6 +113,7 @@ export default function ChatPage() {
           handleSend={handleSend}
           onStop={handleStop}
           currentConversationId={currentConversation?.id}
+          onSpeechError={(msg) => toast({ description: msg, duration: 4000 })}
         />
       </main>
     </div>

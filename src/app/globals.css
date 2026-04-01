@@ -915,3 +915,27 @@
     transform: none !important;
   }
 }
+
+/* ============================================
+   MIC BUTTON — VOICE INPUT (Feature #1)
+   ============================================ */
+
+.mic-btn-listening {
+  background: rgba(184, 120, 48, 0.12) !important;
+  color: #B87830 !important;
+  box-shadow: 0 0 0 0 rgba(184, 120, 48, 0.4);
+  animation: mic-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes mic-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(184, 120, 48, 0.4); }
+  70%  { box-shadow: 0 0 0 8px rgba(184, 120, 48, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(184, 120, 48, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mic-btn-listening {
+    animation: none !important;
+    box-shadow: 0 0 0 2px rgba(184, 120, 48, 0.4) !important;
+  }
+}
