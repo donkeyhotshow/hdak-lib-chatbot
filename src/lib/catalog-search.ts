@@ -6,6 +6,10 @@
 const CATALOG_URL = process.env.CATALOG_URL || 'https://library-service.com.ua:8443/khkhdak/DocumentSearchResult';
 const CATALOG_FORM_URL = process.env.CATALOG_FORM_URL || 'https://library-service.com.ua:8443/khkhdak/DocumentSearchForm';
 
+if (!process.env.CATALOG_URL || !process.env.CATALOG_FORM_URL) {
+  console.warn("⚠️ CATALOG_URL or CATALOG_FORM_URL not set — using hardcoded defaults.");
+}
+
 export interface BookResult {
   title: string;
   description: string;
@@ -169,19 +173,26 @@ export async function searchCatalog(
   page = 1,
 ): Promise<SearchResult> {
   try {
+    // Validate and limit input length
+    const safeTerm = searchTerm.substring(0, 200);
+    const safePageSize = Math.min(Math.max(1, pageSize), 50);
+    const safePage = Math.min(Math.max(1, page), 100);
+
     const formData = new URLSearchParams();
     if (searchType === 'author') {
-      formData.append('author', searchTerm);
+      formData.append('author', safeTerm);
       formData.append('author_cond', 'authorAnyWord');
     } else {
-      formData.append('name_value', searchTerm);
+      formData.append('name_value', safeTerm);
       formData.append('name_cond', 'nameAnyWord');
     }
-    formData.append('page_size', String(pageSize));
-    formData.append('page_number', String(Math.max(1, page)));
+    formData.append('page_size', String(safePageSize));
+    formData.append('page_number', String(safePage));
     formData.append('sorting1', 'author');
     formData.append('sorting_direction1', 'asc');
     formData.append('i_lang', 'ukr');
+
+    if (!CATALOG_URL) return { books: [], total: 0, unavailable: true };
 
     const response = await fetch(CATALOG_URL, {
       method: 'POST',
@@ -193,9 +204,10 @@ export async function searchCatalog(
     // M17: distinguish HTTP errors from empty results
     if (!response.ok) return { books: [], total: 0, unavailable: true };
     const html = await response.text();
-    return parseBooksFromHtml(html, pageSize);
-  } catch {
-    // M17: timeout or network error — catalog unavailable
+    return parseBooksFromHtml(html, safePageSize);
+  } catch (err) {
+    // Timeout or network error — catalog unavailable
+    console.error('Catalog search failed:', err instanceof Error ? err.message : err);
     return { books: [], total: 0, unavailable: true };
   }
 }

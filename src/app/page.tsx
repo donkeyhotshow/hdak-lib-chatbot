@@ -49,7 +49,16 @@ export default function ChatPage() {
   }, [isSidebarOpen]);
 
   // Avoid layout flash: render nothing until sidebar state is resolved
-  if (isSidebarOpen === null) return null;
+  if (isSidebarOpen === null) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-antique-paper" aria-busy="true">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-[#B87830]/10 animate-pulse" />
+          <span className="text-[13px] text-[#7A756F]/50">Завантаження...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen flex bg-antique-paper bg-ambient-glow overflow-hidden">
@@ -77,7 +86,7 @@ export default function ChatPage() {
           >
             {isSidebarOpen ? <X size={17} strokeWidth={1.5} /> : <Menu size={17} strokeWidth={1.5} />}
           </button>
-          <span className="logo-text text-[22px]">ХДАК</span>
+          <h1 className="logo-text text-[22px] m-0">ХДАК</h1>
           <div className="w-9" />
         </header>
 

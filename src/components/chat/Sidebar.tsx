@@ -32,7 +32,7 @@ const CONTACT_ITEMS = [
 
 const BookIcon = memo(function BookIcon({ size = 24, className = '' }: { size?: number; className?: string }) {
   return (
-    <svg width={size} height={size * 0.82} viewBox="0 0 28 23" fill="none" className={className}>
+    <svg width={size} height={size * 0.82} viewBox="0 0 28 23" fill="none" className={className} aria-hidden="true">
       <path d="M14 4C14 4 8.5 2 2.5 4.5V20C8.5 17.5 14 19.5 14 19.5" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round"/>
       <path d="M14 4C14 4 19.5 2 25.5 4.5V20C19.5 17.5 14 19.5 14 19.5" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" opacity="0.5"/>
       <line x1="14" y1="3.5" x2="14" y2="19.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
@@ -132,6 +132,9 @@ const ConvItem = memo(function ConvItem({ conv, isActive, isNew, onLoad, onDelet
   return (
     <div
       onClick={() => !editing && onLoad(conv.id)}
+      onKeyDown={e => { if (!editing && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onLoad(conv.id); } }}
+      role="button"
+      tabIndex={0}
       className={cn(
         "group flex items-center gap-1.5 px-2 py-2 rounded-lg cursor-pointer transition-all",
         isActive ? "bg-[#D4A853]/10 border border-[#D4A853]/15" : "hover:bg-white/[0.04] border border-transparent"
@@ -296,9 +299,9 @@ export const Sidebar = memo(function Sidebar({
                     </a>
                   ))}
                   <div className="flex gap-2 mt-2">
-                    <a href={ALL_LINKS.facebook} target="_blank" rel="noreferrer" className="sidebar-social-btn" title="Facebook"><MessageCircle size={13} strokeWidth={1.6} /></a>
-                    <a href={ALL_LINKS.instagram} target="_blank" rel="noreferrer" className="sidebar-social-btn" title="Instagram"><Sparkles size={13} strokeWidth={1.6} /></a>
-                    <a href={ALL_LINKS.telegram} target="_blank" rel="noreferrer" className="sidebar-social-btn" title="Telegram"><Phone size={13} strokeWidth={1.6} /></a>
+                    <a href={ALL_LINKS.facebook} target="_blank" rel="noreferrer" className="sidebar-social-btn" title="Facebook" aria-label="Facebook"><MessageCircle size={13} strokeWidth={1.6} /></a>
+                    <a href={ALL_LINKS.instagram} target="_blank" rel="noreferrer" className="sidebar-social-btn" title="Instagram" aria-label="Instagram"><Sparkles size={13} strokeWidth={1.6} /></a>
+                    <a href={ALL_LINKS.telegram} target="_blank" rel="noreferrer" className="sidebar-social-btn" title="Telegram" aria-label="Telegram"><Phone size={13} strokeWidth={1.6} /></a>
                   </div>
                   <a href={ALL_LINKS.main} target="_blank" rel="noreferrer" className="sidebar-website-btn">
                     <Globe size={12} strokeWidth={1.6} />

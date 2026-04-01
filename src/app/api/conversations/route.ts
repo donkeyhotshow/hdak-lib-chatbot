@@ -3,27 +3,8 @@ import { db, conversations } from '@/lib/db';
 import { desc, eq } from 'drizzle-orm';
 import { stripHtml } from '@/lib/sanitize';
 import { checkRateLimit, generateFingerprint } from '@/lib/rate-limit';
-import { SESSION_HEADER } from '@/lib/session';
-
-function isForbiddenOrigin(request: NextRequest): boolean {
-  const origin = request.headers.get('origin');
-  if (!origin || process.env.NODE_ENV !== 'production') return false;
-  try {
-    const originHost = new URL(origin).hostname;
-    const reqHost = new URL(request.url).hostname;
-    const localHosts = ['localhost', '127.0.0.1', '0.0.0.0'];
-    const isLocal = localHosts.includes(originHost) && localHosts.includes(reqHost);
-    return originHost !== reqHost && !isLocal;
-  } catch {
-    return true;
-  }
-}
-
-function getSessionId(request: NextRequest): string | null {
-  const id = request.headers.get(SESSION_HEADER)?.trim();
-  if (!id || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return null;
-  return id;
-}
+import { isForbiddenOrigin } from '@/lib/cors';
+import { getSessionIdStrict } from '@/lib/validation';
 
 const PAGE_SIZE = 15;
 const MAX_TITLE_LENGTH = 200;
@@ -37,7 +18,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Заборонений запит' }, { status: 403 });
   }
 
-  const sessionId = getSessionId(request);
+  const sessionId = getSessionIdStrict(request);
   if (!sessionId) {
     // No valid session — return empty list (client will init session and retry)
     return NextResponse.json({ items: [], hasMore: false, offset: 0, limit: PAGE_SIZE });
@@ -74,7 +55,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Заборонений запит' }, { status: 403 });
   }
 
-  const sessionId = getSessionId(request);
+  const sessionId = getSessionIdStrict(request);
   if (!sessionId) {
     return NextResponse.json({ error: 'Відсутній ідентифікатор сесії' }, { status: 400 });
   }

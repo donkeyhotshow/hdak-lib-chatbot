@@ -25,6 +25,8 @@ export function ChatInput({ inputValue, setInputValue, isTyping, handleSend, onS
   }, [inputValue]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Guard against IME composition (CJK input methods)
+    if ((e.nativeEvent as KeyboardEvent).isComposing) return;
     if (e.key === 'Enter' && !e.shiftKey && !isTyping) {
       e.preventDefault();
       if (textareaRef.current) textareaRef.current.style.height = 'auto';
@@ -60,9 +62,10 @@ export function ChatInput({ inputValue, setInputValue, isTyping, handleSend, onS
             className="input-textarea"
             maxLength={2000}
             aria-label="Повідомлення для чату"
+            aria-describedby="chat-input-hint"
           />
           <div className="input-footer">
-            <span className="input-hint">Enter  надіслати  Shift+Enter  новий рядок</span>
+            <span className="input-hint" id="chat-input-hint">Enter  надіслати  Shift+Enter  новий рядок</span>
             <div className="flex items-center gap-2">
               {charCount > 1500 && (
                 <span className={cn(

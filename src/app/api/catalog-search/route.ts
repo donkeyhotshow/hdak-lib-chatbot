@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit, generateFingerprint } from '@/lib/rate-limit';
 import { searchCatalog, CATALOG_FORM_URL } from '@/lib/catalog-search';
+import { isForbiddenOrigin } from '@/lib/cors';
 
 export async function GET(request: NextRequest) {
+  // CORS check
+  if (isForbiddenOrigin(request)) {
+    return NextResponse.json({ error: 'Заборонене джерело' }, { status: 403 });
+  }
+
   // Rate limiting
   const fingerprint = generateFingerprint(request);
   if (!(await checkRateLimit(fingerprint))) {

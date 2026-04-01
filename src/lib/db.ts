@@ -6,24 +6,15 @@ import { sql } from "drizzle-orm";
 const connectionString = process.env.DATABASE_URL;
 
 if (!connectionString) {
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error("DATABASE_URL is required in production");
-  }
-  console.warn("⚠️ DATABASE_URL is not set. DB operations will fail at runtime.");
+  throw new Error("DATABASE_URL environment variable is required. Set it in .env or .env.local");
 }
 
-const client = neon(connectionString || "postgresql://db_user:db_password@db_host:5432/db_name");
+const client = neon(connectionString);
 export const db = drizzle(client);
 
 // Schema definitions
 export const conversations = pgTable("conversations", {
-  id: text("id").primaryKey().$defaultFn(() => {
-    if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-      const r = Math.random() * 16 | 0;
-      return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
-    });
-  }),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   sessionId: text("session_id").notNull().default('anonymous'),
   title: text("title").notNull(),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
@@ -32,15 +23,7 @@ export const conversations = pgTable("conversations", {
 }));
 
 export const messages = pgTable("messages", {
-  id: text("id").primaryKey().$defaultFn(() => {
-    // L33: crypto.randomUUID() is available in Node 19+, Next.js edge, and modern browsers
-    // For older Node versions, fall back to a manual UUID v4
-    if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-      const r = Math.random() * 16 | 0;
-      return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
-    });
-  }),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   conversationId: text("conversation_id").notNull().references(() => conversations.id, { onDelete: "cascade" }),
   // M11: enforce valid roles at DB level
   role: text("role").notNull(),

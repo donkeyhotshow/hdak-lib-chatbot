@@ -6,7 +6,8 @@ import { checkRateLimit, generateFingerprint } from '@/lib/rate-limit';
 import { ALL_LINKS } from '@/lib/constants';
 import { buildSystemPrompt } from '@/lib/prompts';
 import { detectSearchIntent, searchCatalog, buildCatalogContext } from '@/lib/catalog-search';
-import { SESSION_HEADER } from '@/lib/session';
+import { isForbiddenOrigin } from '@/lib/cors';
+import { isValidUuid, getSessionIdFromRequest } from '@/lib/validation';
 
 const MAX_MESSAGE_LENGTH = 2000;
 
@@ -70,7 +71,7 @@ async function streamLLM(
       signal.removeEventListener('abort', onClientAbort);
     }
 
-    if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     if (!res.body) throw new Error('No response body');
 
     const reader = res.body.getReader();
@@ -107,6 +108,12 @@ async function streamLLM(
     return full;
   };
 
+  // Early bail if client already disconnected
+  if (signal.aborted) {
+    sendChunk(FALLBACK_ERROR);
+    return FALLBACK_ERROR;
+  }
+
   // Try Groq first
   if (GROQ_API_KEY) {
     try {
@@ -129,28 +136,6 @@ async function streamLLM(
   return FALLBACK_ERROR;
 }
 
-// ─── CORS helper ──────────────────────────────────────────────────────────────
-
-function isForbiddenOrigin(request: NextRequest): boolean {
-  const origin = request.headers.get('origin');
-  // In production, requests without Origin (curl, server-to-server) bypass CORS by design,
-  // but we log them for awareness. Only enforce CORS for browser requests with Origin header.
-  if (!origin) return false;
-  if (process.env.NODE_ENV !== 'production') return false;
-  try {
-    const originHost = new URL(origin).hostname;
-    const reqHost = new URL(request.url).hostname;
-    const localHosts = ['localhost', '127.0.0.1', '0.0.0.0'];
-    // Allow same-origin and localhost-to-localhost only
-    if (originHost === reqHost) return false;
-    if (localHosts.includes(originHost) && localHosts.includes(reqHost)) return false;
-    return true;
-  } catch {
-    // Malformed origin header — treat as forbidden
-    return true;
-  }
-}
-
 // ─── POST handler ─────────────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
@@ -165,9 +150,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Забагато запитів. Зачекайте трохи.' }, { status: 429 });
   }
 
-  // Parse body
+  // Parse body with size guard
   let body: { conversationId?: string; message?: unknown };
   try {
+    const contentLength = request.headers.get('content-length');
+    if (contentLength && parseInt(contentLength) > 100_000) {
+      return NextResponse.json({ error: 'Занадто великий запит' }, { status: 413 });
+    }
     body = await request.json();
   } catch {
     return NextResponse.json({ error: 'Невірний формат запиту' }, { status: 400 });
@@ -182,13 +171,10 @@ export async function POST(request: NextRequest) {
   const safeMessage = validation.sanitized;
 
   // Extract and validate sessionId
-  const UUID_REGEX_SESSION = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  const rawSession = request.headers.get(SESSION_HEADER)?.trim() ?? '';
-  const sessionId = UUID_REGEX_SESSION.test(rawSession) ? rawSession : 'anonymous';
+  const sessionId = getSessionIdFromRequest(request);
 
   // Validate conversationId format to prevent FK violations
-  const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (conversationId && !UUID_REGEX.test(conversationId)) {
+  if (conversationId && !isValidUuid(conversationId)) {
     return NextResponse.json({ error: 'Невірний ідентифікатор розмови' }, { status: 400 });
   }
 

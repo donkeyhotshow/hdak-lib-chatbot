@@ -8,8 +8,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 const poppins = Poppins({
   variable: "--font-sans",
   subsets: ["latin", "latin-ext"],
-  weight: ["400", "500", "600", "700", "800"],
-  style: ["normal", "italic"],
+  weight: ["400", "600", "700"],
   display: "swap",
   adjustFontFallback: true,
 });
@@ -18,8 +17,7 @@ const poppins = Poppins({
 const literata = Literata({
   variable: "--font-serif",
   subsets: ["latin", "latin-ext"],
-  weight: ["400", "500", "600", "700"],
-  style: ["normal", "italic"],
+  weight: ["400", "600"],
   display: "swap",
   adjustFontFallback: true,
 });
@@ -28,7 +26,7 @@ const literata = Literata({
 const outfit = Outfit({
   variable: "--font-logo",
   subsets: ["latin", "latin-ext"],
-  weight: ["500", "600", "700", "800"],
+  weight: ["600", "700"],
   display: "swap",
   adjustFontFallback: true,
 });
@@ -49,11 +47,20 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
+    title: "ХДАК Бібліотека — Інтелектуальний асистент",
+    description: "Навігатор по ресурсах бібліотеки Харківської державної академії культури.",
     images: ["/og-image.svg"],
   },
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+  alternates: {
+    canonical: '/',
   },
 };
 
@@ -63,7 +70,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="uk" suppressHydrationWarning>
+    <html lang="uk" dir="ltr" suppressHydrationWarning>
       <body
         className={`${poppins.variable} ${literata.variable} ${outfit.variable} antialiased`}
       >

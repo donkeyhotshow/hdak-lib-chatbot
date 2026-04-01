@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { db, conversations } from '@/lib/db';
 import { lt } from 'drizzle-orm';
 import { timingSafeEqual } from 'crypto';
+import { checkRateLimit, generateFingerprint } from '@/lib/rate-limit';
 
 // Cleanup conversations older than 90 days
 // Call via cron: POST /api/cleanup with Authorization: Bearer <secret>
@@ -35,16 +36,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Не авторизовано' }, { status: 401 });
   }
 
+  // Rate limit
+  const fingerprint = generateFingerprint(request);
+  if (!(await checkRateLimit(fingerprint))) {
+    return NextResponse.json({ error: 'Забагато запитів' }, { status: 429 });
+  }
+
   try {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - 90);
 
-    // Use batched deletes to avoid long table locks
-    const deleted = await db.delete(conversations)
-      .where(lt(conversations.createdAt, cutoff))
-      .returning({ id: conversations.id });
+    // Delete without .returning() to avoid loading all IDs into memory
+    const result = await db.delete(conversations)
+      .where(lt(conversations.createdAt, cutoff));
 
-    return NextResponse.json({ deleted: deleted.length, cutoffDate: cutoff.toISOString() });
+    return NextResponse.json({ deleted: result.rowCount ?? 0, cutoffDate: cutoff.toISOString() });
   } catch (error) {
     console.error('Cleanup error:', error);
     return NextResponse.json({ error: 'Помилка очищення' }, { status: 500 });

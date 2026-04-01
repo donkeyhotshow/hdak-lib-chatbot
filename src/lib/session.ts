@@ -10,7 +10,8 @@ export function getSessionId(): string {
   if (typeof window === 'undefined') return '';
   try {
     let id = localStorage.getItem(SESSION_KEY);
-    if (!id || !/^[0-9a-f-]{36}$/.test(id)) {
+    // Strict UUID v4 format validation
+    if (!id || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
       id = crypto.randomUUID();
       localStorage.setItem(SESSION_KEY, id);
     }

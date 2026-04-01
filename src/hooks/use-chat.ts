@@ -59,7 +59,6 @@ export function useChat(toast: (opts: { description: string; duration?: number }
   const isLoadingMoreRef = useRef(false);
   // M20: stable ref for convOffset so loadMoreConversations doesn't recreate
   const convOffsetRef = useRef(0);
-  const [convOffset, setConvOffset] = useState(0);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -75,9 +74,11 @@ export function useChat(toast: (opts: { description: string; duration?: number }
   useEffect(() => { currentConversationRef.current = currentConversation; }, [currentConversation]);
 
   // Session header helper — reads sessionId lazily (client-only)
-  const sessionHeaders = useCallback((): Record<string, string> => ({
+  // Use ref so it doesn't appear in useCallback deps and cause cascading recreations
+  const sessionHeadersRef = useRef<() => Record<string, string>>(() => ({
     [SESSION_HEADER]: getSessionId(),
-  }), []);
+  }));
+  const sessionHeaders = sessionHeadersRef.current;
 
   // Load conversations on mount; H12: set isMountedRef here (not at declaration)
   // so StrictMode double-mount correctly resets it before the second mount runs
@@ -91,10 +92,14 @@ export function useChat(toast: (opts: { description: string; duration?: number }
         if (data) {
           setConversations(data.items ?? data);
           setHasMoreConversations(data.hasMore ?? false);
-          setConvOffset(data.items?.length ?? 0);
+          convOffsetRef.current = data.items?.length ?? 0;
         }
       })
-      .catch(() => {});
+      .catch((err) => {
+        if (err instanceof Error && err.name !== 'AbortError') {
+          console.error('Failed to load conversations:', err);
+        }
+      });
     return () => {
       isMountedRef.current = false;
       controller.abort();
@@ -114,7 +119,7 @@ export function useChat(toast: (opts: { description: string; duration?: number }
 
 
 
-  const refreshConversations = useCallback(async () => {
+  const refreshConversations = useCallback(async (): Promise<void> => {
     if (refreshDebounceRef.current) clearTimeout(refreshDebounceRef.current);
     return new Promise<void>((resolve) => {
       refreshDebounceRef.current = setTimeout(async () => {
@@ -125,9 +130,7 @@ export function useChat(toast: (opts: { description: string; duration?: number }
             const data = await res.json();
             setConversations(data.items ?? data);
             setHasMoreConversations(data.hasMore ?? false);
-            const newOffset = data.items?.length ?? 0;
-            convOffsetRef.current = newOffset;
-            setConvOffset(newOffset);
+            convOffsetRef.current = data.items?.length ?? 0;
           }
         } catch (err) {
           console.error('Не вдалося оновити список розмов:', err);
@@ -136,8 +139,6 @@ export function useChat(toast: (opts: { description: string; duration?: number }
       }, 300);
     });
   }, []);
-
-  // M13: cancel active stream when switching conversations
   const loadConversation = useCallback(async (id: string) => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -498,16 +499,14 @@ export function useChat(toast: (opts: { description: string; duration?: number }
         const data = await res.json();
         setConversations(prev => [...prev, ...(data.items ?? [])]);
         setHasMoreConversations(data.hasMore ?? false);
-        setConvOffset(prev => {
-          const next = prev + (data.items?.length ?? 0);
-          convOffsetRef.current = next;
-          return next;
-        });
+        convOffsetRef.current += (data.items?.length ?? 0);
       }
-    } catch {}
+    } catch (err) {
+      if (err instanceof Error && err.name !== 'AbortError') {
+        console.error('Failed to load more conversations:', err);
+      }
+    }
     finally { isLoadingMoreRef.current = false; }
-  // M20: stable — no convOffset in deps, reads from ref
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const formatTime = useCallback((d: string) => {
@@ -525,16 +524,24 @@ export function useChat(toast: (opts: { description: string; duration?: number }
   }, [toast]);
 
   const retryLastMessage = useCallback(() => {
-    const lastUserMsg = [...messages].reverse().find(m => m.role === 'USER');
-    if (lastUserMsg && !isTypingRef.current) {
-      setMessages(prev => {
-        const lastUserIdx = prev.map(m => m.role).lastIndexOf('USER');
-        return prev.slice(0, lastUserIdx);
-      });
-      setError(null);
-      handleSend(lastUserMsg.content);
-    }
-  }, [messages, handleSend]);
+    if (isTypingRef.current) return;
+    // Read last user message content before modifying state
+    const lastUserContent = (() => {
+      for (let i = messages.length - 1; i >= 0; i--) {
+        if (messages[i].role === 'USER') return messages[i].content;
+      }
+      return null;
+    })();
+    if (!lastUserContent) return;
+    // Remove last user message + any trailing bot response, then resend
+    setMessages(prev => {
+      const lastUserIdx = [...prev].map(m => m.role).lastIndexOf('USER');
+      if (lastUserIdx === -1) return prev;
+      return prev.slice(0, lastUserIdx);
+    });
+    setError(null);
+    handleSend(lastUserContent);
+  }, [handleSend, messages]);
 
   return {
     messages, inputValue, setInputValue, isTyping, isLoadingConversation, error,

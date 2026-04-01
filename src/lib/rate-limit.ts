@@ -46,10 +46,28 @@ function maybePurge(windowMs: number) {
   }
 }
 
+const MAX_RATE_LIMIT_ENTRIES = 10_000;
+
 function checkRateLimitMemory(key: string, limit: number, windowMs: number): boolean {
-  maybePurge(windowMs);
   const now = Date.now();
   const cutoff = now - windowMs;
+  
+  // Guard against unbounded map growth — purge first, then check capacity
+  if (rateLimits.size >= MAX_RATE_LIMIT_ENTRIES) {
+    // Force purge of expired entries before rejecting
+    for (const [k, info] of rateLimits.entries()) {
+      if (info.timestamps.length === 0 || info.timestamps[info.timestamps.length - 1] < cutoff) {
+        rateLimits.delete(k);
+      }
+    }
+    // If still at capacity after purge, reject
+    if (!rateLimits.has(key) && rateLimits.size >= MAX_RATE_LIMIT_ENTRIES) {
+      return false;
+    }
+  }
+
+  maybePurge(windowMs);
+  
   const info = rateLimits.get(key);
 
   if (!info) {
@@ -91,11 +109,15 @@ export async function checkRateLimit(key: string): Promise<boolean> {
  * Generate a fingerprint from the request for rate limiting.
  */
 export function generateFingerprint(req: Request): string {
-  const ip = (req.headers.get("x-forwarded-for") || "unknown").split(",")[0].trim();
+  const forwarded = req.headers.get("x-forwarded-for");
+  // Use first IP from x-forwarded-for (added by trusted proxy), fall back to other headers
+  const ip = forwarded?.split(",")[0]?.trim()
+    || req.headers.get("x-real-ip")?.trim()
+    || "nogroup";
   const ua = req.headers.get("user-agent") || "";
   const lang = req.headers.get("accept-language") || "";
   const enc = req.headers.get("accept-encoding") || "";
-  // M28: hash the fingerprint to keep key short and avoid storing raw IP/UA in Redis
+  // Hash the fingerprint to keep key short and avoid storing raw IP/UA in Redis
   const raw = `${ip}|${ua.substring(0, 80)}|${lang.substring(0, 20)}|${enc.substring(0, 20)}`;
   return createHash("sha256").update(raw).digest("hex").substring(0, 32);
 }

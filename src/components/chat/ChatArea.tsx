@@ -30,7 +30,7 @@ const itemVariants: Variants = {
 
 const BookIcon = memo(function BookIcon({ size = 24, className = '' }: { size?: number; className?: string }) {
   return (
-    <svg width={size} height={size * 0.8} viewBox='0 0 28 22' fill='none' className={className}>
+    <svg width={size} height={size * 0.8} viewBox='0 0 28 22' fill='none' className={className} aria-hidden="true">
       <path d='M14 3C14 3 9 1.5 3 3.5V19C9 17 14 18.5 14 18.5' stroke='currentColor' strokeWidth='1.2' fill='none'/>
       <path d='M14 3C14 3 19 1.5 25 3.5V19C19 17 14 18.5 14 18.5' stroke='currentColor' strokeWidth='1.2' fill='none' opacity='0.55'/>
       <line x1='14' y1='2.5' x2='14' y2='18' stroke='currentColor' strokeWidth='1'/>
