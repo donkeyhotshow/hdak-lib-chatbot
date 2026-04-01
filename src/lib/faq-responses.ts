@@ -1,20 +1,13 @@
 /**
  * Готові відповіді на часті запитання.
  * Симулюють відповідь LLM — без запиту до API.
+ * Підтримує українську та англійську мови.
  */
 
 import { LIBRARY, ALL_LINKS, isLibraryOpen } from './constants';
+import { FAQ_RESPONSES_EN, type FaqResponse } from './faq-responses-en';
 
-export interface FaqResponse {
-  /** Повний текст відповіді у Markdown (або функція що повертає актуальний текст) */
-  content: string | (() => string);
-  /** Затримка перед початком друку (мс) — імітація «думання» */
-  thinkDelay: number;
-  /** Швидкість друку: символів за крок */
-  charsPerStep: number;
-  /** Затримка між кроками (мс) */
-  stepDelay: number;
-}
+export type { FaqResponse };
 
 function randomThink(min = 500, max = 900): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -228,19 +221,39 @@ function normalize(s: string): string {
     .trim();
 }
 
-// Pre-build normalized lookup map once at module load
-const FAQ_NORMALIZED = new Map<string, FaqResponse>(
+/**
+ * Детектує мову запиту.
+ * Якщо є кирилиця — українська, інакше — англійська.
+ */
+function detectLang(query: string): 'uk' | 'en' {
+  return /[а-яёіїєґА-ЯЁІЇЄҐ]/u.test(query) ? 'uk' : 'en';
+}
+
+// Pre-build normalized lookup maps once at module load
+const FAQ_UK_NORMALIZED = new Map<string, FaqResponse>(
   Object.entries(FAQ_RESPONSES).map(([k, v]) => [normalize(k), v])
+);
+
+const FAQ_EN_NORMALIZED = new Map<string, FaqResponse>(
+  Object.entries(FAQ_RESPONSES_EN).map(([k, v]) => [normalize(k), v])
 );
 
 /**
  * Перевіряє, чи є текст запитом із готовою відповіддю.
- * Порівняння нечутливе до регістру та пунктуації.
+ * Автоматично визначає мову: кирилиця → uk, інакше → en.
+ * Якщо не знайдено в en — fallback на uk.
  */
 export function getFaqResponse(query: string): (Omit<FaqResponse, 'content'> & { content: string }) | null {
   const key = normalize(query);
-  const entry = FAQ_NORMALIZED.get(key);
+  const lang = detectLang(query);
+
+  // Try language-specific map first
+  const primaryMap = lang === 'en' ? FAQ_EN_NORMALIZED : FAQ_UK_NORMALIZED;
+  const fallbackMap = lang === 'en' ? FAQ_UK_NORMALIZED : null;
+
+  const entry = primaryMap.get(key) ?? fallbackMap?.get(key) ?? null;
   if (!entry) return null;
+
   return {
     ...entry,
     content: typeof entry.content === 'function' ? entry.content() : entry.content,

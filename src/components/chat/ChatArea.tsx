@@ -1,11 +1,11 @@
-import React, { memo, useMemo } from 'react';
+import React, { memo, useMemo, useEffect, useState } from 'react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import { Search, Clock, BookOpen, MapPin, ClipboardList, Globe, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Message } from './types';
 
-const QUICK_MENU = [
+const QUICK_MENU_UK = [
   { id: 'schedule', title: 'Графік роботи', icon: Clock, kw: 'Який графік роботи бібліотеки?' },
   { id: 'register', title: 'Як записатися', icon: ClipboardList, kw: 'Як записатися до бібліотеки?' },
   { id: 'catalog', title: 'Каталог', icon: Search, kw: 'Як знайти книгу в каталозі?' },
@@ -14,10 +14,25 @@ const QUICK_MENU = [
   { id: 'resources', title: 'Ресурси', icon: Globe, kw: 'Які електронні ресурси доступні?' },
 ] as const;
 
-const QUICK_CHIPS = [
+const QUICK_MENU_EN = [
+  { id: 'schedule', title: 'Library hours', icon: Clock, kw: 'What are the library hours?' },
+  { id: 'register', title: 'How to register', icon: ClipboardList, kw: 'How to register at the library?' },
+  { id: 'catalog', title: 'Catalog', icon: Search, kw: 'How to find a book in the catalog?' },
+  { id: 'contacts', title: 'Contacts', icon: MapPin, kw: 'What are the library contacts?' },
+  { id: 'rules', title: 'Rules', icon: BookOpen, kw: 'What are the library rules?' },
+  { id: 'resources', title: 'Resources', icon: Globe, kw: 'What electronic resources are available?' },
+] as const;
+
+const QUICK_CHIPS_UK = [
   { id: 'chip1', title: 'Графік роботи', kw: 'Який графік роботи бібліотеки?' },
   { id: 'chip2', title: 'Як записатися', kw: 'Як записатися до бібліотеки?' },
   { id: 'chip3', title: 'Пошук книги', kw: 'Як знайти книгу в каталозі?' },
+] as const;
+
+const QUICK_CHIPS_EN = [
+  { id: 'chip1', title: 'Library hours', kw: 'What are the library hours?' },
+  { id: 'chip2', title: 'How to register', kw: 'How to register at the library?' },
+  { id: 'chip3', title: 'Find a book', kw: 'How to find a book in the catalog?' },
 ] as const;
 
 const containerVariants: Variants = {
@@ -131,6 +146,16 @@ interface ChatAreaProps {
 }
 
 export function ChatArea({ messages, isTyping, isLoadingConversation, error, handleFaqSend, streamingMessageId, messagesEndRef, formatTime, copyToClipboard, onRetry }: ChatAreaProps) {
+  // Detect browser locale for localized quick buttons (client-only, no SSR mismatch)
+  const [locale, setLocale] = useState<'uk' | 'en'>('uk');
+  useEffect(() => {
+    const lang = navigator.language || navigator.languages?.[0] || 'uk';
+    setLocale(lang.startsWith('en') ? 'en' : 'uk');
+  }, []);
+
+  const QUICK_MENU = locale === 'en' ? QUICK_MENU_EN : QUICK_MENU_UK;
+  const QUICK_CHIPS = locale === 'en' ? QUICK_CHIPS_EN : QUICK_CHIPS_UK;
+
   // All hooks must be before any conditional return (Rules of Hooks)
   // Memoize O(n) scans so they don't run on every render
   const { lastMsg, lastMsgHasCatalog, lastAssistantContent } = useMemo(() => {
@@ -162,8 +187,8 @@ export function ChatArea({ messages, isTyping, isLoadingConversation, error, han
             <BookIcon size={18} className="text-[#B87830]" />
           </motion.div>
           <motion.h1 variants={itemVariants} className="hero-title mb-1 text-center">Асистент бібліотеки ХДАК</motion.h1>
-          <motion.p variants={itemVariants} className="hero-subtitle mb-2 text-center">Запитайте про графік, книги, правила або ресурси</motion.p>
-          <motion.p variants={itemVariants} className="text-[12px] text-[#7A756F]/50 mb-5 text-center">Наприклад: «Коли відкрита бібліотека?» або «Є книга з культурології?»</motion.p>
+          <motion.p variants={itemVariants} className="hero-subtitle mb-2 text-center">{locale === 'en' ? 'Ask about hours, books, rules, or resources' : 'Запитайте про графік, книги, правила або ресурси'}</motion.p>
+          <motion.p variants={itemVariants} className="text-[12px] text-[#7A756F]/50 mb-5 text-center">{locale === 'en' ? 'E.g.: "What are the library hours?" or "Find books on jazz"' : 'Наприклад: «Коли відкрита бібліотека?» або «Є книга з культурології?»'}</motion.p>
           {error && (
             <motion.div variants={itemVariants} className="mb-3 w-full p-3 bg-red-50/90 rounded-xl text-red-600 text-[13px] border border-red-100 flex items-center justify-between gap-3">
               <span>{error}</span>
@@ -205,7 +230,7 @@ export function ChatArea({ messages, isTyping, isLoadingConversation, error, han
         <AnimatePresence>{isTyping && <TypingIndicator />}</AnimatePresence>
         <AnimatePresence>{showChips && (
           <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-wrap gap-1.5 pt-1 pl-9">
-            <span className="text-[10px] text-[#7A756F]/45 w-full mb-0.5">Також можете запитати:</span>
+            <span className="text-[10px] text-[#7A756F]/45 w-full mb-0.5">{locale === 'en' ? 'You can also ask:' : 'Також можете запитати:'}</span>
             {QUICK_CHIPS.map((chip) => <button key={chip.id} onClick={() => handleFaqSend(chip.kw)} disabled={isTyping} className="quick-chip disabled:opacity-40 disabled:cursor-not-allowed">{chip.title}</button>)}
           </motion.div>
         )}</AnimatePresence>
