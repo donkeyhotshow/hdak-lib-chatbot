@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, pushSubscriptions } from '@/lib/db';
-import { eq, lte, and } from 'drizzle-orm';
+import { eq, lte, and, isNotNull } from 'drizzle-orm';
 import webpush from 'web-push';
 
 const VAPID_PUBLIC = process.env.VAPID_PUBLIC_KEY;
@@ -18,9 +18,14 @@ if (VAPID_PUBLIC && VAPID_PRIVATE) {
  * Protected by CRON_SECRET header.
  */
 export async function POST(request: NextRequest) {
-  // Auth check — require secret header
-  const secret = request.headers.get('x-cron-secret');
-  if (!CRON_SECRET || secret !== CRON_SECRET) {
+  // Auth check — Vercel Cron sends Authorization: Bearer <CRON_SECRET>
+  // Also support x-cron-secret for manual calls
+  const authHeader = request.headers.get('authorization');
+  const cronHeader = request.headers.get('x-cron-secret');
+  const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  const providedSecret = bearerToken ?? cronHeader;
+
+  if (!CRON_SECRET || providedSecret !== CRON_SECRET) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -32,9 +37,11 @@ export async function POST(request: NextRequest) {
   const windowEnd = new Date(now.getTime() + 24 * 60 * 60 * 1000); // +24h
 
   // Find unsent subscriptions due within next 24h
+  // BUG FIX: isNotNull guard — subscriptions without remindAt should never be sent
   const due = await db.select()
     .from(pushSubscriptions)
     .where(and(
+      isNotNull(pushSubscriptions.remindAt),
       lte(pushSubscriptions.remindAt, windowEnd),
       eq(pushSubscriptions.sent, false),
     ));

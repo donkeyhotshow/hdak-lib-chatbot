@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { SESSION_HEADER, getSessionId } from '@/lib/session';
 
 export type PushState = 'idle' | 'requesting' | 'subscribed' | 'denied' | 'unsupported';
 
@@ -15,21 +16,25 @@ function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
   return arr.buffer as ArrayBuffer;
 }
 
+function getPushInitialState(): PushState {
+  // BUG FIX: guard against SSR — window/navigator not available server-side
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') return 'idle';
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return 'unsupported';
+  // BUG FIX: Notification may not exist in some environments (e.g. Firefox private)
+  if (typeof Notification !== 'undefined' && Notification.permission === 'denied') return 'denied';
+  return 'idle';
+}
+
 export function usePush() {
-  const [state, setState] = useState<PushState>(() => {
-    if (typeof window === 'undefined') return 'idle';
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return 'unsupported';
-    if (Notification.permission === 'denied') return 'denied';
-    return 'idle';
-  });
+  const [state, setState] = useState<PushState>(getPushInitialState);
 
   const subscribe = useCallback(async (remindAt?: Date): Promise<boolean> => {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) {
       setState('unsupported');
       return false;
     }
     if (!VAPID_PUBLIC) {
-      console.warn('NEXT_PUBLIC_VAPID_PUBLIC_KEY not set');
+      console.warn('NEXT_PUBLIC_VAPID_PUBLIC_KEY not set — push notifications disabled');
       return false;
     }
 
@@ -48,15 +53,33 @@ export function usePush() {
       });
 
       const json = sub.toJSON();
-      await fetch('/api/push/subscribe', {
+      // BUG FIX: validate keys exist before sending
+      if (!json.endpoint || !json.keys?.p256dh || !json.keys?.auth) {
+        console.error('Push subscription missing required fields');
+        setState('idle');
+        return false;
+      }
+
+      // BUG FIX: include sessionId header + check server response
+      const res = await fetch('/api/push/subscribe', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          [SESSION_HEADER]: getSessionId(),
+        },
         body: JSON.stringify({
           endpoint: json.endpoint,
           keys: json.keys,
           remindAt: remindAt?.toISOString(),
         }),
       });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        console.error('Push subscribe server error:', err);
+        setState('idle');
+        return false;
+      }
 
       setState('subscribed');
       return true;
@@ -71,12 +94,16 @@ export function usePush() {
     try {
       const reg = await navigator.serviceWorker.ready;
       const sub = await reg.pushManager.getSubscription();
-      if (!sub) return;
+      if (!sub) { setState('idle'); return; }
       const endpoint = sub.endpoint;
       await sub.unsubscribe();
+      // BUG FIX: include sessionId header
       await fetch('/api/push/subscribe', {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          [SESSION_HEADER]: getSessionId(),
+        },
         body: JSON.stringify({ endpoint }),
       });
       setState('idle');

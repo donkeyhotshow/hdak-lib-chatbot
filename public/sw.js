@@ -68,10 +68,11 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
         }
         return response;
-      }).catch(() => {
+      }).catch(async () => {
         // Offline fallback — return cached root page
         if (request.headers.get('accept')?.includes('text/html')) {
-          return caches.match(OFFLINE_URL) ?? new Response('Офлайн', { status: 503 });
+          const cached = await caches.match(OFFLINE_URL);
+          return cached ?? new Response('Офлайн', { status: 503 });
         }
         return new Response('', { status: 503 });
       });

@@ -52,12 +52,13 @@ export async function POST(request: NextRequest) {
       endpoint,
       p256dh: keys.p256dh,
       auth: keys.auth,
-      remindAt: remindAtDate ?? undefined,
+      // BUG FIX: use null explicitly (not undefined) — Drizzle treats undefined as "omit column"
+      remindAt: remindAtDate,
       sent: false,
     }).onConflictDoUpdate({
       target: pushSubscriptions.endpoint,
       set: {
-        remindAt: remindAtDate ?? undefined,
+        remindAt: remindAtDate,
         sent: false,
         sessionId,
       },

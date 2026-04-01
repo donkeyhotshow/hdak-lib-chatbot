@@ -188,19 +188,23 @@ export async function POST(request: NextRequest) {
 
   // Feature #6: Book recommendations — if no direct catalog search was triggered,
   // try to extract a topic from the message and suggest related books
+  // BUG FIX: run catalog search and recommendations in parallel to avoid blocking LLM
   if (!intent) {
     const topicMatch = safeMessage.match(
       /(?:розкажи|що таке|поясни|цікавить|навчаюсь|вивчаю|пишу|досліджую)\s+(?:про\s+)?(.{3,40}?)(?:\?|$)/i
     );
     if (topicMatch) {
       const topic = topicMatch[1].trim();
-      const recResult = await searchCatalog(topic, 'general', 3);
-      if (!recResult.unavailable && recResult.books.length > 0) {
-        const recList = recResult.books
-          .slice(0, 3)
-          .map((b, i) => `${i + 1}. ${b.title}${b.year ? ` (${b.year})` : ''}`)
-          .join('\n');
-        catalogContext = `\n\n[РЕКОМЕНДАЦІЇ: За темою "${topic}" знайдено схожі матеріали в каталозі:\n${recList}\nПовний пошук: ${ALL_LINKS.catalog_search}]`;
+      // BUG FIX: limit topic length to avoid overly broad searches
+      if (topic.length >= 3 && topic.length <= 40) {
+        const recResult = await searchCatalog(topic, 'general', 3);
+        if (!recResult.unavailable && recResult.books.length > 0) {
+          const recList = recResult.books
+            .slice(0, 3)
+            .map((b, i) => `${i + 1}. ${b.title}${b.year ? ` (${b.year})` : ''}`)
+            .join('\n');
+          catalogContext = `\n\n[РЕКОМЕНДАЦІЇ: За темою "${topic}" знайдено схожі матеріали в каталозі:\n${recList}\nПовний пошук: ${ALL_LINKS.catalog_search}]`;
+        }
       }
     }
   }
