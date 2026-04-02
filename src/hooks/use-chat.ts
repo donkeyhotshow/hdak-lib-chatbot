@@ -51,6 +51,9 @@ export function useChat(toast: (opts: { description: string; duration?: number }
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
+  // Ref mirror for streamingMessageId to avoid stale closures in handleStop
+  const streamingMessageIdRef = useRef<string | null>(null);
+  useEffect(() => { streamingMessageIdRef.current = streamingMessageId; }, [streamingMessageId]);
   const [hasMoreConversations, setHasMoreConversations] = useState(false);
   const [isLoadingConversation, setIsLoadingConversation] = useState(false);
   // UX1: loading state for initial conversations list fetch
@@ -183,6 +186,8 @@ export function useChat(toast: (opts: { description: string; duration?: number }
     if (thinkTimerRef.current) { clearTimeout(thinkTimerRef.current); thinkTimerRef.current = null; }
     if (typeIntervalRef.current) { clearInterval(typeIntervalRef.current); typeIntervalRef.current = null; }
     abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
+    isTypingRef.current = false;
     setCurrentConversation(null);
     setMessages([]);
     setInputValue('');
@@ -271,6 +276,7 @@ export function useChat(toast: (opts: { description: string; duration?: number }
       role: 'USER',
       content: text,
       createdAt: new Date().toISOString(),
+      status: 'sent'
     }]);
 
     let streamStarted = false;
@@ -295,6 +301,7 @@ export function useChat(toast: (opts: { description: string; duration?: number }
         role: 'ASSISTANT',
         content: '',
         createdAt: new Date().toISOString(),
+        status: 'sending'
       }]);
       setStreamingMessageId(botId);
       streamStarted = true;
@@ -332,7 +339,7 @@ export function useChat(toast: (opts: { description: string; duration?: number }
             const raw = line.slice(5).trim();
             if (!raw) continue;
             try {
-              const chunk = JSON.parse(raw);
+              const chunk = JSON.parse( raw);
               if (chunk.text) {
                 pendingText += chunk.text;
                 if (!flushTimer) {
@@ -344,6 +351,7 @@ export function useChat(toast: (opts: { description: string; duration?: number }
                 if (flushTimer) { clearTimeout(flushTimer); flushTimer = null; }
                 flushPending();
                 setStreamingMessageId(null);
+                setMessages(prev => prev.map(m => m.id === botId ? { ...m, status: 'sent' } : m));
               }
             } catch { /* skip malformed */ }
           }
@@ -355,6 +363,7 @@ export function useChat(toast: (opts: { description: string; duration?: number }
       if (serverError) {
         setError('Сталася помилка під час відповіді. Показано частковий результат.');
         setStreamingMessageId(null);
+        setMessages(prev => prev.map(m => m.id === botId ? { ...m, status: 'error' } : m));
       }
 
       if (abortControllerRef.current === controller) {
@@ -364,16 +373,20 @@ export function useChat(toast: (opts: { description: string; duration?: number }
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') return;
 
+      toast({
+        description: "Помилка з'єднання. Перевірте інтернет та спробуйте ще раз.",
+      });
+
       // H1+H7: use functional update with captured IDs — safe against concurrent state
       setMessages(prev => {
         const botMsg = prev.find(m => m.id === botId);
         if (!streamStarted || !botMsg || !botMsg.content) {
-          // No partial content — remove only OUR messages by their stable IDs
-          return prev.filter(m => m.id !== tempUserId && m.id !== botId);
+          // No partial content — mark user message as error and remove empty bot message if it exists
+          return prev.map(m => m.id === tempUserId ? { ...m, status: 'error' as const } : m).filter(m => m.id !== botId);
         }
         // Has partial content — append error marker to our bot message only
         return prev.map(m => m.id === botId
-          ? { ...m, content: m.content + '\n\n_⚠️ З\'єднання перервано_' }
+          ? { ...m, content: m.content + '\n\n_⚠️ З\'єднання перервано_', status: 'error' as const }
           : m
         );
       });
@@ -387,7 +400,7 @@ export function useChat(toast: (opts: { description: string; duration?: number }
       }
     }
   // H20: removed isTyping — guard uses isTypingRef, no stale closure issue
-  }, [setInputValue, refreshConversations]);
+  }, [setInputValue, refreshConversations, toast]);
 
   // H6+M21: clear old timers AND abort active fetch before starting FAQ animation
   // H23: uses isTypingRef instead of isTyping — no stale closure, stable deps
@@ -484,21 +497,31 @@ export function useChat(toast: (opts: { description: string; duration?: number }
             }).catch((err) => {
               // C6: log FAQ save failures — conversation won't persist after reload
               console.error('FAQ save failed — conversation will not persist:', err);
+              if (isMountedRef.current) {
+                toast({ description: 'Не вдалося зберегти розмову. Вона не збережеться після перезавантаження.', duration: 4000 });
+              }
             });
           }
         }
       }, faq.stepDelay);
     }, faq.thinkDelay);
   // H23: removed isTyping from deps — guard uses isTypingRef synchronously
-  }, [handleSend, refreshConversations]);
+  }, [handleSend, refreshConversations, toast]);
 
   const handleStop = useCallback(() => {
     faqStoppedRef.current = true;
     if (thinkTimerRef.current) { clearTimeout(thinkTimerRef.current); thinkTimerRef.current = null; }
     if (typeIntervalRef.current) { clearInterval(typeIntervalRef.current); typeIntervalRef.current = null; }
     abortControllerRef.current?.abort();
-    isTypingRef.current = false; // H23: reset ref on stop
+    
+    isTypingRef.current = false;
     setIsTyping(false);
+    
+    // Use ref to avoid stale closure — read current value synchronously
+    const currentStreamingId = streamingMessageIdRef.current;
+    if (currentStreamingId) {
+      setMessages(prev => prev.map(m => m.id === currentStreamingId ? { ...m, status: 'sent' } : m));
+    }
     setStreamingMessageId(null);
   }, []);
 

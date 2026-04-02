@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
   let body: { question?: unknown; answer?: unknown };
   try {
     const contentLength = request.headers.get('content-length');
-    if (contentLength && parseInt(contentLength) > 100_000) {
+    if (contentLength && parseInt(contentLength, 10) > 100_000) {
       return NextResponse.json({ error: 'Занадто великий запит' }, { status: 413 });
     }
     body = await request.json();
@@ -31,11 +31,24 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Невірний формат запиту' }, { status: 400 });
   }
 
+  // BUG FIX: faq-save strips HTML from answer — this corrupts markdown (removes *bold*, links, etc.)
+  // Use a lighter sanitizer that only removes dangerous tags, not all markup
   const question = typeof body.question === 'string'
-    ? stripHtml(body.question).trim().substring(0, MAX_QUESTION_LENGTH)
+    ? stripHtml(body.question.trim()).substring(0, MAX_QUESTION_LENGTH)
     : '';
   const answer = typeof body.answer === 'string'
-    ? stripHtml(body.answer).trim().substring(0, MAX_ANSWER_LENGTH)
+    ? body.answer.trim()
+      .replace(/<script[\s\S]*?<\/script>/gi, '')
+      .replace(/<iframe[\s\S]*?<\/iframe>/gi, '')
+      .replace(/<object[\s\S]*?<\/object>/gi, '')
+      .replace(/<embed[\s\S]*?>/gi, '')
+      .replace(/<img[^>]*>/gi, '')
+      .replace(/<svg[\s\S]*?<\/svg>/gi, '')
+      .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
+      .replace(/javascript:/gi, '')
+      .replace(/vbscript:/gi, '')
+      .replace(/data:/gi, '')
+      .substring(0, MAX_ANSWER_LENGTH)
     : '';
 
   if (!question || !answer) {
@@ -45,21 +58,18 @@ export async function POST(request: NextRequest) {
   try {
     const sessionId = getSessionIdFromRequest(request);
 
-    const result = await db.transaction(async (tx) => {
-      const [conv] = await tx.insert(conversations).values({
-        title: question.substring(0, 50),
-        sessionId,
-      }).returning();
+    // neon-http driver does not support transactions — use sequential inserts
+    const [conv] = await db.insert(conversations).values({
+      title: question.substring(0, 50),
+      sessionId,
+    }).returning();
 
-      await tx.insert(messagesTable).values([
-        { conversationId: conv.id, role: 'USER', content: question },
-        { conversationId: conv.id, role: 'ASSISTANT', content: answer },
-      ]);
+    await db.insert(messagesTable).values([
+      { conversationId: conv.id, role: 'USER', content: question },
+      { conversationId: conv.id, role: 'ASSISTANT', content: answer },
+    ]);
 
-      return conv;
-    });
-
-    return NextResponse.json({ conversationId: result.id });
+    return NextResponse.json({ conversationId: conv.id });
   } catch (error) {
     console.error('faq-save DB error:', error);
     return NextResponse.json({ error: 'Помилка збереження' }, { status: 500 });

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Menu, X } from 'lucide-react';
@@ -7,17 +7,21 @@ import { useChat } from '@/hooks/use-chat';
 import { Sidebar } from '@/components/chat/Sidebar';
 import { ChatInput } from '@/components/chat/ChatInput';
 import { ChatArea } from '@/components/chat/ChatArea';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export default function ChatPage() {
+  const { toast } = useToast();
+  // BUG FIX: declare isMobile before any useEffect that uses it
+  const isMobile = useIsMobile() ?? false;
+
   // Fix #18: avoid hydration mismatch - start null, resolve after mount
   const [isSidebarOpen, setSidebarOpen] = useState<boolean | null>(null);
   const sidebarRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
-    setSidebarOpen(window.innerWidth >= 768);
-  }, []);
-
-  const { toast } = useToast();
+    setSidebarOpen(!isMobile);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // intentionally run once on mount  isMobile is undefined on server
 
   const {
     messages, inputValue, setInputValue, isTyping, isLoadingConversation, isLoadingConversations, error,
@@ -29,16 +33,16 @@ export default function ChatPage() {
     loadMoreConversations, formatTime, copyToClipboard, retryLastMessage,
   } = useChat(toast);
 
-  // Close sidebar on mobile click-outside or Escape key (M24)
+  // Close sidebar on mobile click-outside or Escape key
   useEffect(() => {
     if (!isSidebarOpen) return;
     const handleClick = (e: MouseEvent) => {
-      if (window.innerWidth < 768 && sidebarRef.current && !sidebarRef.current.contains(e.target as Node)) {
+      if (isMobile && sidebarRef.current && !sidebarRef.current.contains(e.target as Node)) {
         setSidebarOpen(false);
       }
     };
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && window.innerWidth < 768) setSidebarOpen(false);
+      if (e.key === 'Escape' && isMobile) setSidebarOpen(false);
     };
     document.addEventListener('mousedown', handleClick);
     document.addEventListener('keydown', handleKeyDown);
@@ -46,7 +50,7 @@ export default function ChatPage() {
       document.removeEventListener('mousedown', handleClick);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isSidebarOpen]);
+  }, [isSidebarOpen, isMobile]);
 
   // Avoid layout flash: render nothing until sidebar state is resolved
   if (isSidebarOpen === null) {
@@ -65,6 +69,7 @@ export default function ChatPage() {
       <Sidebar
         isOpen={isSidebarOpen}
         setIsOpen={setSidebarOpen}
+        isMobile={isMobile}
         sidebarRef={sidebarRef}
         conversations={conversations}
         currentConversation={currentConversation}
@@ -79,19 +84,20 @@ export default function ChatPage() {
       />
 
       <main className="flex-1 flex flex-col min-w-0 relative h-full overflow-hidden">
-        <header className="relative h-12 flex items-center justify-between px-4 border-b border-[#2A2520]/[0.04] bg-white/50 backdrop-blur-sm shrink-0">
+        <header className="glass-header h-14 flex items-center justify-between px-4 shrink-0">
           <button
             onClick={() => setSidebarOpen(v => !(v ?? false))}
             className="w-11 h-11 flex items-center justify-center rounded-xl text-[#7A756F] hover:text-[#2A2520] hover:bg-[#2A2520]/[0.04] transition-all"
             aria-label={isSidebarOpen ? 'Закрити меню' : 'Відкрити меню'}
           >
-            {isSidebarOpen ? <X size={17} strokeWidth={1.5} /> : <Menu size={17} strokeWidth={1.5} />}
+            {isSidebarOpen ? <X size={18} strokeWidth={1.5} /> : <Menu size={18} strokeWidth={1.5} />}
           </button>
-          <h1 className="logo-text text-[22px] m-0">ХДАК</h1>
-          <div className="w-9" />
+          <div className="flex flex-col items-center">
+            <h1 className="logo-text text-[24px] leading-tight m-0">ХДАК</h1>
+            <span className="text-[9px] uppercase tracking-[0.2em] text-[#D4A853]/60 font-bold -mt-0.5">БІБЛІОТЕКА</span>
+          </div>
+          <div className="w-11" />
         </header>
-
-        <div className="h-px bg-gradient-to-r from-transparent via-[#B87830]/20 to-transparent shrink-0" />
 
         <ChatArea
           messages={messages}

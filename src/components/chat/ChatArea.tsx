@@ -1,7 +1,7 @@
-import React, { memo, useMemo, useEffect, useState } from 'react';
+import React, { memo, useMemo, useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
-import { Search, Clock, BookOpen, MapPin, ClipboardList, Globe, Copy } from 'lucide-react';
+import { Search, Clock, BookOpen, MapPin, ClipboardList, Globe, Copy, ArrowDown, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Message } from './types';
 
@@ -84,53 +84,92 @@ const markdownComponents = {
   },
 };
 
-const MessageBubble = memo(function MessageBubble({ msg, isStreaming, formatTime, copyToClipboard }: {
-  msg: Message; isStreaming: boolean; formatTime: (d: string) => string; copyToClipboard: (t: string) => void;
+const MessageBubble = memo(function MessageBubble({ msg, isStreaming, formatTime, copyToClipboard, onRetry }: {
+  msg: Message; isStreaming: boolean; formatTime: (d: string) => string; copyToClipboard: (t: string) => void; onRetry?: () => void;
 }) {
   const isUser = msg.role === 'USER';
+  const isError = msg.status === 'error';
+
   return (
-    <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }} className={cn("flex gap-2.5 group", isUser && "flex-row-reverse")} role="article" aria-label={isUser ? 'Ваше повідомлення' : 'Відповідь асистента'}>
-      <div className={cn("w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5", isUser ? "bg-gradient-to-br from-[#1A1612] to-[#2A2520]" : "bg-gradient-to-br from-[#B87830]/12 to-[#D4A853]/8 border border-[#B87830]/12")}>
-        {isUser ? <span className="text-[8px] font-bold text-[#D4A853] tracking-wider">ВИ</span> : <BookIcon size={12} className="text-[#B87830]" />}
-      </div>
-      <div className={cn("flex flex-col", isUser ? "max-w-[72%] items-end" : "flex-1 min-w-0")}>
-        <div className={cn("px-4 py-3 text-[14px] leading-[1.7]", isUser ? "message-user" : "message-assistant")}>
+    <motion.div 
+      initial={{ opacity: 0, y: 10 }} 
+      animate={{ opacity: 1, y: 0 }} 
+      transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }} 
+      className={cn("flex gap-3 group animate-fade-in-slide-up", isUser && "flex-row-reverse")} 
+      role="article" 
+      aria-label={isUser ? 'Ваше повідомлення' : 'Відповідь асистента'}
+    >
+      {!isUser && (
+        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#B87830]/15 to-[#D4A853]/10 border border-[#B87830]/15 flex items-center justify-center shrink-0 mt-auto mb-1 shadow-sm">
+          <BookIcon size={14} className="text-[#B87830]" />
+        </div>
+      )}
+      <div className={cn("flex flex-col", isUser ? "max-w-[85%] items-end" : "flex-1 min-w-0")}>
+        <div className={cn(
+          "px-5 py-3.5 text-[14.5px] leading-[1.625] relative shadow-sm transition-all message-bubble",
+          isUser ? "message-user message-bubble-user rounded-[1.25rem] rounded-br-[4px]" : "message-assistant message-bubble-assistant rounded-[1.25rem] rounded-bl-[4px] bg-[#F9F7F2] border border-[#E5E1D8]",
+          isError && "border-red-400 bg-red-50/50 shadow-none"
+        )}>
           {isUser ? (
             <p className="whitespace-pre-wrap">{msg.content}</p>
           ) : (
-            <div className="prose prose-sm max-w-none">
+            <div className="prose prose-sm max-w-none prose-p:leading-[1.625] prose-strong:text-[#D4A853]">
               <ReactMarkdown components={markdownComponents}>{msg.content}</ReactMarkdown>
-              {isStreaming && <motion.span className="inline-block w-[2px] h-[13px] bg-[#B87830] ml-[1px] align-text-bottom" animate={{ opacity: [1, 0] }} transition={{ duration: 0.5, repeat: Infinity, ease: 'easeInOut' }} />}
+              {isStreaming && <motion.span className="inline-block w-[2px] h-[14px] bg-[#B87830] ml-[1px] align-baseline" animate={{ opacity: [1, 0] }} transition={{ duration: 0.5, repeat: Infinity, ease: 'easeInOut' }} />}
             </div>
           )}
+          {isError && (
+             <div className="flex items-center gap-1.5 mt-2 text-red-500 text-[11px] font-semibold">
+               <AlertCircle size={13} />
+               <span>Помилка доставки</span>
+               {onRetry && (
+                 <button onClick={onRetry} className="ml-1 underline decoration-red-300 underline-offset-2 hover:no-underline transition-all">Повторити</button>
+               )}
+             </div>
+          )}
         </div>
-        <div className="flex items-center gap-1.5 mt-1 px-1">
-          <span className="text-[10px] text-[#7A756F]/50 tabular-nums">{formatTime(msg.createdAt)}</span>
-          {!isUser && !isStreaming && (
+        <div className="flex items-center gap-2 mt-1.5 px-2">
+          <span className="text-[10px] text-[#7A756F]/40 tabular-nums font-medium uppercase tracking-wider">{formatTime(msg.createdAt)}</span>
+          {!isUser && !isStreaming && !isError && (
             <button
               onClick={() => copyToClipboard(msg.content)}
-              className="p-1 text-[#7A756F]/40 opacity-100 md:opacity-0 md:group-hover:opacity-100 hover:text-[#B87830] transition-all"
-              aria-label="Копіювати відповідь"
+              className="p-1 text-[#7A756F]/30 opacity-60 md:opacity-0 md:group-hover:opacity-100 message-actions-mobile-visible hover:text-[#B87830] transition-all"
+              aria-label="Копіювати"
             >
-              <Copy size={13} strokeWidth={1.5} />
+              <Copy size={13} strokeWidth={1.8} />
             </button>
           )}
         </div>
       </div>
     </motion.div>
   );
-});
+}, (prev, next) => (
+  prev.msg.id === next.msg.id &&
+  prev.msg.content === next.msg.content &&
+  prev.msg.status === next.msg.status &&
+  prev.isStreaming === next.isStreaming
+));
 
 const TypingIndicator = memo(function TypingIndicator() {
   return (
-    <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex gap-2.5" role="status" aria-label="Асистент друкує">
-      <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#B87830]/12 to-[#D4A853]/8 border border-[#B87830]/12 flex items-center justify-center shrink-0 mt-0.5"><BookIcon size={12} className="text-[#B87830]" /></div>
-      <div className="px-4 py-3 message-assistant"><div className="flex gap-1 items-center h-5">
-        {[0,1,2].map((i) => <motion.div key={i} className="w-1.5 h-1.5 rounded-full bg-[#B87830]/50" animate={{ y:[0,-3,0], opacity:[0.5,1,0.5] }} transition={{ duration:0.55, repeat:Infinity, delay:i*0.1, ease:'easeInOut' }} />)}
+    <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="flex gap-3" role="status" aria-label="Асистент думає">
+      <div className="w-8 h-8 rounded-full bg-[#B87830]/10 flex items-center justify-center shrink-0 mt-auto mb-1"><BookIcon size={14} className="text-[#B87830]" /></div>
+      <div className="px-5 py-3.5 message-assistant rounded-[1.25rem] rounded-bl-[4px] bg-[#F9F7F2] border border-[#E5E1D8] shadow-sm"><div className="flex gap-1.5 items-center h-5">
+        {[0,1,2].map((i) => <motion.div key={i} className="w-1.5 h-1.5 rounded-full bg-[#B87830]/40" animate={{ y:[0,-4,0] }} transition={{ duration:0.6, repeat:Infinity, delay:i*0.12, ease:'easeInOut' }} />)}
       </div></div>
     </motion.div>
   );
 });
+
+const MessageSkeleton = () => (
+  <div className="flex gap-3 mb-6 animate-pulse">
+    <div className="w-8 h-8 rounded-full bg-[#2A2520]/[0.03] shrink-0 mt-auto" />
+    <div className="flex flex-col flex-1 gap-2.5">
+      <div className="h-14 bg-[#2A2520]/[0.03] rounded-[1.25rem] w-full" />
+      <div className="h-3 bg-[#2A2520]/[0.03] rounded w-16 ml-2" />
+    </div>
+  </div>
+);
 
 interface ChatAreaProps {
   messages: Message[];
@@ -145,23 +184,33 @@ interface ChatAreaProps {
   onRetry?: () => void;
 }
 
-export function ChatArea({ messages, isTyping, isLoadingConversation, error, handleFaqSend, streamingMessageId, messagesEndRef, formatTime, copyToClipboard, onRetry }: ChatAreaProps) {
-  // Detect browser locale for localized quick buttons (client-only, no SSR mismatch)
+function ChatAreaComponent({ messages, isTyping, isLoadingConversation, error, handleFaqSend, streamingMessageId, messagesEndRef, formatTime, copyToClipboard, onRetry }: ChatAreaProps) {
   const [locale, setLocale] = useState<'uk' | 'en'>('uk');
   useEffect(() => {
     const lang = navigator.language || navigator.languages?.[0] || 'uk';
     setLocale(lang.startsWith('en') ? 'en' : 'uk');
   }, []);
 
+  const [showScrollButton, setShowScrollButton] = useState(false);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+
   const QUICK_MENU = locale === 'en' ? QUICK_MENU_EN : QUICK_MENU_UK;
   const QUICK_CHIPS = locale === 'en' ? QUICK_CHIPS_EN : QUICK_CHIPS_UK;
 
-  // All hooks must be before any conditional return (Rules of Hooks)
-  // Memoize O(n) scans so they don't run on every render
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    const isUp = scrollTop < scrollHeight - clientHeight - 200;
+    setShowScrollButton(isUp);
+  };
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   const { lastMsg, lastMsgHasCatalog, lastAssistantContent } = useMemo(() => {
     let lastAssistant = '';
-    let lastAssistantMsg: typeof messages[0] | undefined;
-    let last: typeof messages[0] | undefined;
+    let lastAssistantMsg: Message | undefined;
+    let last: Message | undefined;
     for (let i = messages.length - 1; i >= 0; i--) {
       if (!last) last = messages[i];
       if (messages[i].role === 'ASSISTANT') {
@@ -172,32 +221,54 @@ export function ChatArea({ messages, isTyping, isLoadingConversation, error, han
         break;
       }
     }
-    // H3: only check catalog on the last ASSISTANT message, not on USER messages
     const hasCatalog = lastAssistantMsg ? (lastAssistantMsg.content?.includes('[РЕЗУЛЬТАТИ КАТАЛОГУ') || lastAssistantMsg.content?.includes('Знайдено за')) : false;
     return { lastMsg: last, lastMsgHasCatalog: hasCatalog, lastAssistantContent: lastAssistant };
   }, [messages]);
 
   const showChips = !isTyping && !!lastMsg && lastMsg.role === 'ASSISTANT' && lastMsg.id !== streamingMessageId && !lastMsgHasCatalog;
 
-  if (messages.length === 0) {
+  if (messages.length === 0 && !isLoadingConversation) {
     return (
-      <motion.div variants={containerVariants} initial="initial" animate="animate" className="flex-1 overflow-y-auto custom-scrollbar chat-scroll-area flex flex-col items-center justify-center px-4 py-6">
-        <div className="w-full max-w-[520px] flex flex-col items-center">
-          <motion.div variants={itemVariants} className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#B87830]/10 to-[#D4A853]/5 flex items-center justify-center mb-3 border border-[#B87830]/10 animate-subtle-float shrink-0">
-            <BookIcon size={18} className="text-[#B87830]" />
+      <motion.div variants={containerVariants} initial="initial" animate="animate" className="flex-1 overflow-y-auto custom-scrollbar chat-scroll-area flex flex-col items-center justify-center px-6 py-12">
+        <div className="w-full max-w-[560px] flex flex-col items-center">
+          <motion.div variants={itemVariants} className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#B87830]/15 to-[#D4A853]/5 flex items-center justify-center mb-6 border border-[#B87830]/15 shadow-md shadow-[#B87830]/5 shrink-0">
+            <BookIcon size={24} className="text-[#B87830]" />
           </motion.div>
-          <motion.h1 variants={itemVariants} className="hero-title mb-1 text-center">Асистент бібліотеки ХДАК</motion.h1>
-          <motion.p variants={itemVariants} className="hero-subtitle mb-2 text-center">{locale === 'en' ? 'Ask about hours, books, rules, or resources' : 'Запитайте про графік, книги, правила або ресурси'}</motion.p>
-          <motion.p variants={itemVariants} className="text-[12px] text-[#7A756F]/50 mb-5 text-center">{locale === 'en' ? 'E.g.: "What are the library hours?" or "Find books on jazz"' : 'Наприклад: «Коли відкрита бібліотека?» або «Є книга з культурології?»'}</motion.p>
+          <motion.h2 variants={itemVariants} className="hero-title text-[28px] md:text-[32px] mb-2 text-center font-serif">Чим я можу допомогти?</motion.h2>
+          <motion.p variants={itemVariants} className="hero-subtitle text-[15px] mb-8 text-center text-[#7A756F]/80 max-w-[400px] leading-relaxed">
+            {locale === 'en' 
+              ? 'I can help with library hours, finding books in our catalog, registration rules, and online resources.' 
+              : 'Я допоможу дізнатися графік роботи, знайти книгу в каталозі, розкажу про правила запису та електронні ресурси.'}
+          </motion.p>
+          
           {error && (
-            <motion.div variants={itemVariants} className="mb-3 w-full p-3 bg-red-50/90 rounded-xl text-red-600 text-[13px] border border-red-100 flex items-center justify-between gap-3">
-              <span>{error}</span>
-              {onRetry && <button onClick={onRetry} className="shrink-0 text-[12px] font-medium underline underline-offset-2 hover:no-underline transition-all">Повторити</button>}
+            <motion.div variants={itemVariants} className="mb-6 w-full p-4 bg-red-50 rounded-2xl text-red-600 text-[14px] border border-red-100/50 flex items-center justify-between gap-4 shadow-sm">
+              <span className="font-medium">{error}</span>
+              {onRetry && <button onClick={onRetry} className="shrink-0 text-[13px] font-bold underline underline-offset-4 hover:no-underline transition-all">Спробувати знову</button>}
             </motion.div>
           )}
-          <motion.div variants={containerVariants} className="flex flex-wrap gap-2 justify-center">
-            {QUICK_MENU.map((item) => <QuickBtn key={item.id} {...item} isTyping={isTyping} onClick={handleFaqSend} />)}
+
+          <motion.div variants={containerVariants} className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+            {QUICK_MENU.map((item, idx) => (
+              <motion.button 
+                key={item.id}
+                variants={itemVariants}
+                onClick={() => handleFaqSend(item.kw)}
+                disabled={isTyping}
+                className={cn(
+                  "flex items-center gap-3.5 p-4 rounded-2xl bg-white border border-[#2A2520]/[0.06] hover:border-[#D4A853]/40 hover:bg-[#FDFBF7] hover:shadow-md transition-all group text-left",
+                  `stagger-delay-${idx + 1}`
+                )}
+              >
+                <div className="w-10 h-10 rounded-xl bg-[#B87830]/5 flex items-center justify-center transition-colors group-hover:bg-[#B87830]/10">
+                  <item.icon size={18} className="text-[#B87830]/70 group-hover:text-[#B87830]" />
+                </div>
+                <span className="text-[14px] font-semibold text-[#2A2520]/80 group-hover:text-[#1A1612]">{item.title}</span>
+              </motion.button>
+            ))}
           </motion.div>
+          
+          <motion.p variants={itemVariants} className="mt-10 text-[11px] font-bold text-[#7A756F]/40 uppercase tracking-[0.2em]">ХДАК БІБЛІОТЕКА © 2024</motion.p>
         </div>
       </motion.div>
     );
@@ -208,35 +279,67 @@ export function ChatArea({ messages, isTyping, isLoadingConversation, error, han
     <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
       {streamingMessageId ? lastAssistantContent : ''}
     </div>
-    <div className="flex-1 overflow-y-auto px-3 py-4 custom-scrollbar chat-scroll-area" aria-label="Повідомлення чату">
-      <div className="w-full max-w-[900px] mx-auto space-y-3">
+    <div className="flex-1 overflow-y-auto px-4 py-6 custom-scrollbar chat-scroll-area relative" onScroll={handleScroll} aria-label="Повідомлення чату">
+      <div className="w-full max-w-[800px] mx-auto space-y-7">
         {error && (
-          <div className="flex items-center justify-between gap-3 px-1 py-2 text-red-500/80 text-[13px] bg-red-50/60 rounded-lg">
-            <span>{error}</span>
-            {onRetry && <button onClick={onRetry} className="shrink-0 text-[12px] font-medium underline underline-offset-2 hover:no-underline">Повторити</button>}
+          <div className="flex items-center justify-between gap-3 px-4 py-3 text-red-600 text-[13.5px] bg-red-50 border border-red-100 rounded-xl shadow-sm">
+            <div className="flex items-center gap-2">
+              <AlertCircle size={15} />
+              <span className="font-medium">{error}</span>
+            </div>
+            {onRetry && <button onClick={onRetry} className="shrink-0 text-[12px] font-bold underline underline-offset-4 hover:no-underline">Повторити</button>}
           </div>
         )}
-        {isLoadingConversation && (
-          <div className="flex items-center gap-2 px-1 py-2 text-[#7A756F]/50 text-[13px]">
-            <div className="flex gap-1">
-              {[0,1,2].map(i => (
-                <div key={i} className="w-1.5 h-1.5 rounded-full bg-[#B87830]/40 animate-bounce" style={{ animationDelay: `${i * 0.1}s` }} />
+        {isLoadingConversation && messages.length === 0 && (
+          <div className="space-y-8 mt-4">
+             <MessageSkeleton />
+             <MessageSkeleton />
+             <MessageSkeleton />
+          </div>
+        )}
+        {messages.map((msg) => <MessageBubble key={msg.id} msg={msg} isStreaming={msg.id === streamingMessageId} formatTime={formatTime} copyToClipboard={copyToClipboard} onRetry={onRetry} />)}
+        <AnimatePresence>{isTyping && <TypingIndicator />}</AnimatePresence>
+        
+        <AnimatePresence>{showChips && (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="pt-2 pl-11">
+            <span className="text-[11px] font-bold text-[#7A756F]/40 uppercase tracking-wider block mb-3">{locale === 'en' ? 'Quick suggestions:' : 'Швидкі підказки:'}</span>
+            <div className="chip-scroll-container no-scrollbar">
+              {QUICK_CHIPS.map((chip, idx) => (
+                <button 
+                  key={chip.id} 
+                  onClick={() => handleFaqSend(chip.kw)} 
+                  disabled={isTyping} 
+                  className={cn(
+                    "flex-shrink-0 px-4 py-2 text-[13px] font-semibold rounded-full border border-[#D4A853]/30 text-[#B87830] hover:bg-[#D4A853]/10 hover:border-[#D4A853]/60 transition-all bg-white/50",
+                    `animate-fade-in-slide-up stagger-delay-${idx + 1}`
+                  )}
+                >
+                  {chip.title}
+                </button>
               ))}
             </div>
-            <span>Завантаження...</span>
-          </div>
-        )}
-        {messages.map((msg) => <MessageBubble key={msg.id} msg={msg} isStreaming={msg.id === streamingMessageId} formatTime={formatTime} copyToClipboard={copyToClipboard} />)}
-        <AnimatePresence>{isTyping && <TypingIndicator />}</AnimatePresence>
-        <AnimatePresence>{showChips && (
-          <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-wrap gap-1.5 pt-1 pl-9">
-            <span className="text-[10px] text-[#7A756F]/45 w-full mb-0.5">{locale === 'en' ? 'You can also ask:' : 'Також можете запитати:'}</span>
-            {QUICK_CHIPS.map((chip) => <button key={chip.id} onClick={() => handleFaqSend(chip.kw)} disabled={isTyping} className="quick-chip disabled:opacity-40 disabled:cursor-not-allowed">{chip.title}</button>)}
           </motion.div>
         )}</AnimatePresence>
         <div ref={messagesEndRef} />
       </div>
+
+      <AnimatePresence>
+        {showScrollButton && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: 20 }}
+            onClick={scrollToBottom}
+            className="scroll-to-bottom-btn"
+            aria-label="Прокрутити до кінця"
+          >
+            <ArrowDown size={20} strokeWidth={2.5} />
+          </motion.button>
+        )}
+      </AnimatePresence>
     </div>
     </>
   );
 }
+
+export const ChatArea = memo(ChatAreaComponent);

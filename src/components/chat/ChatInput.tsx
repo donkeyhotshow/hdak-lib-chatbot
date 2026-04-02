@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { Send, Square, Mic, MicOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSpeech } from '@/hooks/use-speech';
@@ -18,20 +18,51 @@ export function ChatInput({
   currentConversationId, onSpeechError,
 }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isFocused, setIsFocused] = useState(false);
+
   const hasInput = inputValue.trim().length > 0;
   const charCount = inputValue.length;
 
-  // Speech result handler — appends transcript to current input
+  // Auto-resize textarea (max 5 lines ~ 140px)
+  const adjustHeight = useCallback(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      const newHeight = Math.min(textareaRef.current.scrollHeight, 140);
+      textareaRef.current.style.height = `${newHeight}px`;
+    }
+  }, []);
+
+  // VisualViewport API for mobile keyboard stability
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const handleResize = () => {
+      if (containerRef.current) {
+        const offset = window.innerHeight - vv.height;
+        // Apply keyboard offset as bottom padding to keep input above the keyboard
+        containerRef.current.style.paddingBottom = offset > 0
+          ? `calc(${offset}px + env(safe-area-inset-bottom, 0px))`
+          : '';
+      }
+    };
+
+    vv.addEventListener('resize', handleResize);
+    vv.addEventListener('scroll', handleResize);
+    return () => {
+      vv.removeEventListener('resize', handleResize);
+      vv.removeEventListener('scroll', handleResize);
+    };
+  }, []);
+
   const handleSpeechResult = useCallback((text: string) => {
     setInputValue(inputValue ? `${inputValue} ${text}` : text);
     requestAnimationFrame(() => {
-      if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto';
-        textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 140)}px`;
-        textareaRef.current.focus();
-      }
+      adjustHeight();
+      textareaRef.current?.focus();
     });
-  }, [inputValue, setInputValue]);
+  }, [inputValue, setInputValue, adjustHeight]);
 
   const { state: speechState, isSupported: isSpeechSupported, start: startSpeech, stop: stopSpeech } = useSpeech({
     onResult: handleSpeechResult,
@@ -42,21 +73,14 @@ export function ChatInput({
   const isListening = speechState === 'listening';
   const isProcessing = speechState === 'processing';
 
-  // M4+M16: reset height when input is cleared externally
-  const prevValueRef = useRef<string | null>(null);
   useEffect(() => {
-    if (prevValueRef.current !== null && prevValueRef.current !== '' && inputValue === '' && textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-    }
-    prevValueRef.current = inputValue;
-  }, [inputValue]);
+    adjustHeight();
+  }, [inputValue, adjustHeight]);
 
-  // UX5: auto-focus textarea when conversation changes
   useEffect(() => {
     textareaRef.current?.focus();
   }, [currentConversationId]);
 
-  // Stop speech recognition when bot starts typing
   useEffect(() => {
     if (isTyping && isListening) stopSpeech();
   }, [isTyping, isListening, stopSpeech]);
@@ -65,98 +89,100 @@ export function ChatInput({
     if ((e.nativeEvent as KeyboardEvent).isComposing) return;
     if (e.key === 'Enter' && !e.shiftKey && !isTyping) {
       e.preventDefault();
-      if (textareaRef.current) textareaRef.current.style.height = 'auto';
       handleSend();
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInputValue(e.target.value);
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 140)}px`;
-    }
-  };
-
-  const handleSendClick = () => {
-    if (textareaRef.current) textareaRef.current.style.height = 'auto';
-    handleSend();
-  };
-
   const handleMicClick = () => {
-    if (isListening) {
-      stopSpeech();
-    } else {
-      startSpeech();
-    }
+    if (isListening) stopSpeech();
+    else startSpeech();
   };
 
   return (
-    <div className="input-area px-4 pb-5 pt-2 shrink-0">
-      <div className="input-wrap max-w-[900px] mx-auto">
-        <div className="input-container">
-          <textarea
-            ref={textareaRef}
-            rows={1}
-            value={inputValue}
-            onChange={handleChange}
-            onKeyDown={handleKeyDown}
-            placeholder={isListening ? 'Говоріть...' : 'Напишіть запитання...'}
-            disabled={isTyping}
-            className={cn("input-textarea transition-colors", isListening && "placeholder:text-[#B87830]/60")}
-            maxLength={2000}
-            aria-label="Повідомлення для чату"
-            aria-describedby="chat-input-hint"
-          />
-          <div className="input-footer">
-            <span className="input-hint" id="chat-input-hint">Enter — надіслати · Shift+Enter — новий рядок</span>
-            <div className="flex items-center gap-2">
-              {charCount > 1500 && (
-                <span className={cn(
-                  "input-counter transition-colors",
-                  charCount > 1900 ? "text-red-500/80 font-medium" : charCount > 1700 ? "text-orange-400/70" : "text-[#7A756F]/45"
-                )}>
-                  {2000 - charCount} залишилось
-                </span>
-              )}
+    <>
+      {/* Background Dimming Overlay */}
+      <div 
+        className={cn(
+          "fixed inset-0 bg-black/20 backdrop-blur-[1.5px] z-40 transition-opacity duration-300 pointer-events-none",
+          isFocused ? "opacity-100" : "opacity-0"
+        )} 
+      />
 
-              {isSpeechSupported && !isTyping && (
-                <button
-                  onClick={handleMicClick}
-                  disabled={isProcessing}
-                  className={cn(
-                    "send-btn transition-all",
-                    isListening && "mic-btn-listening",
-                    isProcessing && "opacity-50 cursor-wait"
-                  )}
-                  aria-label={isListening ? 'Зупинити запис' : 'Голосовий ввід'}
-                  title={isListening ? 'Зупинити запис' : 'Голосовий ввід'}
-                >
-                  {isListening
-                    ? <MicOff size={15} strokeWidth={2} className="text-[#B87830]" />
-                    : <Mic size={15} strokeWidth={2} />
-                  }
-                </button>
+      <div 
+        ref={containerRef}
+        className="input-area px-4 pb-4 pt-2 shrink-0 relative z-50"
+      >
+        <div className="input-wrap max-w-[800px] mx-auto">
+          <div className={cn(
+            "input-container transition-all duration-300 border-[#D4A853]/10",
+            isFocused && "border-[#D4A853]/40 shadow-xl shadow-[#D4A853]/5 ring-4 ring-[#D4A853]/5"
+          )}>
+            <textarea
+              ref={textareaRef}
+              rows={1}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
+              placeholder={isListening ? 'Слухаю...' : 'Запитайте про книги, графік або правила...'}
+              disabled={isTyping}
+              className={cn(
+                "input-textarea transition-all py-4 px-5 text-[15px] leading-relaxed", 
+                isListening && "placeholder:text-[#B87830] animate-pulse"
               )}
+              maxLength={2000}
+              aria-label="Запитання до асистента"
+            />
+            <div className="input-footer px-5 pb-3">
+              <span className="input-hint opacity-40 text-[11px] font-medium uppercase tracking-wider">
+                {charCount > 1800 ? `${2000 - charCount} символів` : "Enter — надіслати"}
+              </span>
+              
+              <div className="flex items-center gap-2">
+                {isSpeechSupported && !isTyping && (
+                  <button
+                    onClick={handleMicClick}
+                    disabled={isProcessing}
+                    className={cn(
+                      "w-11 h-11 rounded-xl flex items-center justify-center transition-all bg-[#2A2520]/[0.03] text-[#7A756F]",
+                      isListening && "bg-[#B87830]/10 text-[#B87830] ring-2 ring-[#B87830]/20",
+                      isProcessing && "opacity-40"
+                    )}
+                    aria-label={isListening ? 'Вимкнути мікрофон' : 'Увімкнути голосовий ввід'}
+                  >
+                    {isListening ? <MicOff size={18} /> : <Mic size={18} />}
+                  </button>
+                )}
 
-              {isTyping && onStop ? (
-                <button onClick={onStop} className="send-btn active" aria-label="Зупинити">
-                  <Square size={13} strokeWidth={2} fill="currentColor" />
-                </button>
-              ) : (
-                <button
-                  onClick={handleSendClick}
-                  disabled={!hasInput || isTyping}
-                  className={cn("send-btn", hasInput && !isTyping && "active")}
-                  aria-label="Надіслати"
-                >
-                  <Send size={15} strokeWidth={2} />
-                </button>
-              )}
+                {isTyping && onStop ? (
+                  <button 
+                    onClick={onStop} 
+                    className="w-11 h-11 rounded-xl flex items-center justify-center bg-gradient-to-br from-[#1A1612] to-[#2A2520] text-white shadow-lg"
+                    aria-label="Зупинити відповідь"
+                  >
+                    <Square size={16} fill="currentColor" />
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleSend()}
+                    disabled={!hasInput || isTyping}
+                    className={cn(
+                      "w-11 h-11 rounded-xl flex items-center justify-center transition-all",
+                      hasInput && !isTyping 
+                        ? "bg-gradient-to-br from-[#D4A853] via-[#B87830] to-[#A66B28] text-white shadow-lg shadow-[#B87830]/20 scale-100" 
+                        : "bg-[#2A2520]/[0.04] text-[#2A2520]/20 scale-95"
+                    )}
+                    aria-label="Надіслати повідомлення"
+                  >
+                    <Send size={18} className={cn(hasInput && "translate-x-0.5 -translate-y-0.5")} />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

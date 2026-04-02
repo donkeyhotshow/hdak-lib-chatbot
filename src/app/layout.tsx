@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import { Poppins, Literata, Outfit } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
@@ -73,8 +73,7 @@ export default function RootLayout({
     <html lang="uk" dir="ltr" suppressHydrationWarning>
       <head>
         <meta name="theme-color" content="#B87830" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-title" content="ХДАК" />
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
       </head>

@@ -5,11 +5,23 @@ import { stripHtml } from '@/lib/sanitize';
 import { checkRateLimit, generateFingerprint } from '@/lib/rate-limit';
 import { ALL_LINKS } from '@/lib/constants';
 import { buildSystemPrompt } from '@/lib/prompts';
-import { detectSearchIntent, searchCatalog, buildCatalogContext } from '@/lib/catalog-search';
+import { detectSearchIntent, searchCatalog, buildCatalogContext, SearchIntent } from '@/lib/catalog-search';
 import { isForbiddenOrigin } from '@/lib/cors';
 import { isValidUuid, getSessionIdFromRequest } from '@/lib/validation';
 
 const MAX_MESSAGE_LENGTH = 2000;
+const DB_TIMEOUT_MS = 10_000;
+
+// ─── Timeout wrapper for DB operations ──────────────────────────────────────
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`DB timeout: ${label} (${ms}ms)`)), ms)
+    ),
+  ]);
+}
 
 // ─── LLM config ──────────────────────────────────────────────────────────────
 
@@ -21,7 +33,7 @@ const QWEN_API_KEY = process.env.QWEN_API_KEY?.trim();
 const QWEN_URL = process.env.QWEN_URL || 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions';
 const QWEN_MODEL = (process.env.QWEN_MODEL_NAME || 'qwen-turbo').trim();
 
-interface ChatMessage { role: string; content: string; }
+interface ChatMessage { role: 'system' | 'user' | 'assistant'; content: string; }
 
 // Fallback error message — not persisted to DB to avoid polluting conversation history
 const FALLBACK_ERROR = 'Вибачте, сталася технічна помилка. Спробуйте пізніше.';
@@ -95,6 +107,7 @@ async function streamLLM(
         if (!trimmed.startsWith('data:')) continue;
         const data = trimmed.slice(5).trim();
         if (data === '[DONE]') continue;
+        if (!data || data === 'null') continue;
         try {
           const chunk = JSON.parse(data);
           const delta = chunk.choices?.[0]?.delta?.content;
@@ -102,7 +115,9 @@ async function streamLLM(
             full += delta;
             sendChunk(delta);
           }
-        } catch { /* skip malformed */ }
+        } catch (e) {
+          console.warn('Skipped malformed chunk (len:', data.length, ')');
+        }
       }
     }
     return full;
@@ -178,33 +193,46 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Невірний ідентифікатор розмови' }, { status: 400 });
   }
 
-  // Catalog search (uses shared module)
+  // Catalog search + recommendations — run in parallel when possible
   let catalogContext = '';
   const intent = detectSearchIntent(safeMessage);
+
+  // Build parallel search promises
+  const searchPromises: Promise<{ type: 'catalog' | 'recommendation'; result: Awaited<ReturnType<typeof searchCatalog>>; intent?: SearchIntent; topic?: string }>[] = [];
+
   if (intent) {
-    const result = await searchCatalog(intent.searchTerm, intent.searchType);
-    catalogContext = buildCatalogContext(intent, result, ALL_LINKS.catalog_search);
+    searchPromises.push(
+      searchCatalog(intent.searchTerm, intent.searchType)
+        .then(result => ({ type: 'catalog' as const, result, intent }))
+    );
   }
 
-  // Feature #6: Book recommendations — if no direct catalog search was triggered,
-  // try to extract a topic from the message and suggest related books
-  // BUG FIX: run catalog search and recommendations in parallel to avoid blocking LLM
-  if (!intent) {
-    const topicMatch = safeMessage.match(
-      /(?:розкажи|що таке|поясни|цікавить|навчаюсь|вивчаю|пишу|досліджую)\s+(?:про\s+)?(.{3,40}?)(?:\?|$)/i
-    );
-    if (topicMatch) {
-      const topic = topicMatch[1].trim();
-      // BUG FIX: limit topic length to avoid overly broad searches
-      if (topic.length >= 3 && topic.length <= 40) {
-        const recResult = await searchCatalog(topic, 'general', 3);
-        if (!recResult.unavailable && recResult.books.length > 0) {
-          const recList = recResult.books
-            .slice(0, 3)
-            .map((b, i) => `${i + 1}. ${b.title}${b.year ? ` (${b.year})` : ''}`)
-            .join('\n');
-          catalogContext = `\n\n[РЕКОМЕНДАЦІЇ: За темою "${topic}" знайдено схожі матеріали в каталозі:\n${recList}\nПовний пошук: ${ALL_LINKS.catalog_search}]`;
-        }
+  // Always try recommendations in parallel (extract topic from message)
+  const topicMatch = safeMessage.match(
+    /(?:розкажи|що таке|поясни|цікавить|навчаюсь|вивчаю|пишу|досліджую)\s+(?:про\s+)?(.{3,40}?)(?:\?|$)/i
+  );
+  if (topicMatch) {
+    const topic = topicMatch[1].trim();
+    if (topic.length >= 3 && topic.length <= 40) {
+      searchPromises.push(
+        searchCatalog(topic, 'general', 3)
+          .then(result => ({ type: 'recommendation' as const, result, topic }))
+      );
+    }
+  }
+
+  // Execute all searches in parallel with timeout
+  if (searchPromises.length > 0) {
+    const results = await Promise.all(searchPromises);
+    for (const { type, result, intent: searchIntent, topic } of results) {
+      if (type === 'catalog' && searchIntent) {
+        catalogContext = buildCatalogContext(searchIntent, result, ALL_LINKS.catalog_search);
+      } else if (type === 'recommendation' && topic && !result.unavailable && result.books.length > 0) {
+        const recList = result.books
+          .slice(0, 3)
+          .map((b, i) => `${i + 1}. ${b.title}${b.year ? ` (${b.year})` : ''}`)
+          .join('\n');
+        catalogContext += `\n\n[РЕКОМЕНДАЦІЇ: За темою "${topic}" знайдено схожі матеріали в каталозі:\n${recList}\nПовний пошук: ${ALL_LINKS.catalog_search}]`;
       }
     }
   }
@@ -212,37 +240,60 @@ export async function POST(request: NextRequest) {
   // Persist user message & get/create conversation
   let convId = conversationId;
   if (!convId) {
-    const [newConv] = await db.insert(conversations).values({
-      title: safeMessage.substring(0, 50),
-      sessionId,
-    }).returning();
+    const [newConv] = await withTimeout(
+      db.insert(conversations).values({
+        title: safeMessage.substring(0, 50),
+        sessionId,
+      }).returning(),
+      DB_TIMEOUT_MS,
+      'create conversation'
+    );
     convId = newConv.id;
   } else {
     // Verify conversation exists AND belongs to this session
-    const [existing] = await db.select({ id: conversations.id })
-      .from(conversations)
-      .where(and(eq(conversations.id, convId), eq(conversations.sessionId, sessionId)));
+    const [existing] = await withTimeout(
+      db.select({ id: conversations.id })
+        .from(conversations)
+        .where(and(eq(conversations.id, convId), eq(conversations.sessionId, sessionId))),
+      DB_TIMEOUT_MS,
+      'verify conversation'
+    );
     if (!existing) {
       // Either doesn't exist or belongs to another session — create new
-      const [newConv] = await db.insert(conversations).values({
-        title: safeMessage.substring(0, 50),
-        sessionId,
-      }).returning();
+      const [newConv] = await withTimeout(
+        db.insert(conversations).values({
+          title: safeMessage.substring(0, 50),
+          sessionId,
+        }).returning(),
+        DB_TIMEOUT_MS,
+        'create conversation fallback'
+      );
       convId = newConv.id;
     }
   }
 
-  await db.insert(messagesTable).values({ conversationId: convId, role: 'USER', content: safeMessage });
+  await withTimeout(
+    db.insert(messagesTable).values({ conversationId: convId, role: 'USER', content: safeMessage }),
+    DB_TIMEOUT_MS,
+    'insert user message'
+  );
 
-  const history = await db.select()
-    .from(messagesTable)
-    .where(eq(messagesTable.conversationId, convId))
-    .orderBy(desc(messagesTable.createdAt))
-    .limit(10);
+  const history = await withTimeout(
+    db.select()
+      .from(messagesTable)
+      .where(eq(messagesTable.conversationId, convId))
+      .orderBy(desc(messagesTable.createdAt))
+      .limit(10),
+    DB_TIMEOUT_MS,
+    'load history'
+  );
 
   const apiMessages: ChatMessage[] = [
     { role: 'system', content: buildSystemPrompt(catalogContext) },
-    ...[...history].reverse().map(m => ({ role: m.role.toLowerCase(), content: m.content })),
+    ...[...history].reverse().map(m => ({
+      role: (m.role.toLowerCase() === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
+      content: m.content,
+    })),
   ];
 
   // Streaming SSE response

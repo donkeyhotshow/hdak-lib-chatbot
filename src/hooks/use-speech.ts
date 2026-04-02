@@ -64,6 +64,12 @@ export function useSpeech({ onResult, onError, lang = 'uk-UA' }: UseSpeechOption
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
+  // BUG FIX: store callbacks in refs so start() always uses latest version
+  // without needing them in the dependency array (avoids recreation on every render)
+  const onResultRef = useRef(onResult);
+  const onErrorRef = useRef(onError);
+  useEffect(() => { onResultRef.current = onResult; }, [onResult]);
+  useEffect(() => { onErrorRef.current = onError; }, [onError]);
 
   // Check API availability once (client-only)
   const isSupported = typeof window !== 'undefined' &&
@@ -117,7 +123,7 @@ export function useSpeech({ onResult, onError, lang = 'uk-UA' }: UseSpeechOption
       setState('processing');
       const transcript = event.results[0]?.[0]?.transcript?.trim() ?? '';
       if (transcript) {
-        onResult(transcript);
+        onResultRef.current(transcript);
       }
       setState('idle');
       recognitionRef.current = null;
@@ -144,7 +150,7 @@ export function useSpeech({ onResult, onError, lang = 'uk-UA' }: UseSpeechOption
         'service-not-allowed': 'Сервіс розпізнавання мовлення недоступний.',
       };
       const msg = messages[event.error] ?? 'Помилка розпізнавання мовлення.';
-      onError?.(msg);
+      onErrorRef.current?.(msg);
 
       // Reset to idle after showing error
       setTimeout(() => {
@@ -164,7 +170,7 @@ export function useSpeech({ onResult, onError, lang = 'uk-UA' }: UseSpeechOption
 
     recognitionRef.current = recognition;
     recognition.start();
-  }, [isSupported, lang, onResult, onError]);
+  }, [isSupported, lang]);
 
   return { state, isSupported, start, stop };
 }
