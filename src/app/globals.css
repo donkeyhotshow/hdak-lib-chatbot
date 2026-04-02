@@ -125,15 +125,20 @@
    ============================================ */
 
 .sidebar-premium {
-  width: 280px;
-  min-width: 280px;
-  max-width: 280px;
+  width: 260px;
+  min-width: 260px;
+  max-width: 260px;
   flex-shrink: 0;
-  background: rgba(20, 20, 20, 0.85);
-  backdrop-filter: blur(8px) saturate(160%);
-  -webkit-backdrop-filter: blur(8px) saturate(160%);
+  background: rgba(18, 18, 18, 0.9);
+  backdrop-filter: blur(12px) saturate(160%);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
   border-right: 1px solid rgba(212, 168, 83, 0.07);
   box-shadow: 6px 0 48px rgba(0, 0, 0, 0.22);
+  /* Floating panel — does not touch top/bottom edges */
+  height: calc(100% - 16px);
+  margin: 8px 0 8px 8px;
+  border-radius: 14px;
+  overflow: hidden;
 }
 
 .sidebar-header {
@@ -153,9 +158,9 @@
 }
 
 .sidebar-logo-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 13px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   background: linear-gradient(
     145deg,
     rgba(212, 168, 83, 0.14) 0%,
@@ -830,11 +835,27 @@
 }
 
 /* ============================================
-   CHAT HEADER — iOS notch safe area
+   CHAT HEADER — always on top, iOS notch safe area
    ============================================ */
 
 .chat-header {
   padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* ============================================
+   SIDEBAR INLINE STATUS (minimalist)
+   ============================================ */
+
+.sidebar-status-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sidebar-status-inline-text {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
 }
 
 /* ============================================
@@ -845,14 +866,20 @@
   .sidebar-premium {
     position: fixed;
     left: 0;
-    top: 0;
-    bottom: 0;
+    top: calc(48px + env(safe-area-inset-top, 0px));
+    bottom: 10px;
     z-index: 50;
-    width: 280px;
+    width: 260px;
     max-width: 85vw;
+    height: auto;
+    margin: 0;
+    border-radius: 0 14px 14px 0;
     overscroll-behavior: contain;
-    padding-top: env(safe-area-inset-top, 0px);
     padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .sidebar-overlay {
+    top: calc(48px + env(safe-area-inset-top, 0px));
   }
 
   .hero-title {
