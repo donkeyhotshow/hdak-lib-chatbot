@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+﻿import type { Metadata, Viewport } from "next";
 import { Poppins, Literata, Outfit } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
@@ -29,24 +29,51 @@ const outfit = Outfit({
   adjustFontFallback: true,
 });
 
+export const viewport: Viewport = {
+  viewportFit: "cover",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+};
+
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://hdak-lib-chatbot.vercel.app'),
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL || "https://hdak-lib-chatbot.vercel.app",
+  ),
   title: "ХДАК Бібліотека  Інтелектуальний асистент",
-  description: "Інтелектуальний асистент бібліотеки Харківської державної академії культури. Пошук видань, графік роботи, ресурси та допомога.",
-  keywords: ["ХДАК", "бібліотека", "Харків", "академія культури", "книги", "ресурси", "ШІ асистент"],
+  description:
+    "Інтелектуальний асистент бібліотеки Харківської державної академії культури. Пошук видань, графік роботи, ресурси та допомога.",
+  keywords: [
+    "ХДАК",
+    "бібліотека",
+    "Харків",
+    "академія культури",
+    "книги",
+    "ресурси",
+    "ШІ асистент",
+  ],
   authors: [{ name: "ХДАК Бібліотека" }],
   openGraph: {
     title: "ХДАК Бібліотека  Інтелектуальний асистент",
-    description: "Навігатор по ресурсах бібліотеки Харківської державної академії культури.",
+    description:
+      "Навігатор по ресурсах бібліотеки Харківської державної академії культури.",
     type: "website",
     locale: "uk_UA",
     siteName: "HDAK Library Chatbot",
-    images: [{ url: "/og-image.svg", width: 1200, height: 630, alt: "ХДАК Бібліотека" }],
+    images: [
+      {
+        url: "/og-image.svg",
+        width: 1200,
+        height: 630,
+        alt: "ХДАК Бібліотека",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "ХДАК Бібліотека  Інтелектуальний асистент",
-    description: "Навігатор по ресурсах бібліотеки Харківської державної академії культури.",
+    description:
+      "Навігатор по ресурсах бібліотеки Харківської державної академії культури.",
     images: ["/og-image.svg"],
   },
   icons: {
@@ -60,7 +87,7 @@ export const metadata: Metadata = {
     follow: true,
   },
   alternates: {
-    canonical: '/',
+    canonical: "/",
   },
 };
 
@@ -81,9 +108,7 @@ export default function RootLayout({
       <body
         className={`${poppins.variable} ${literata.variable} ${outfit.variable} antialiased`}
       >
-        <ErrorBoundary>
-          {children}
-        </ErrorBoundary>
+        <ErrorBoundary>{children}</ErrorBoundary>
         <Toaster />
         <Script id="sw-register" strategy="afterInteractive">{`
           if ('serviceWorker' in navigator) {
@@ -98,4 +123,3 @@ export default function RootLayout({
     </html>
   );
 }
-
