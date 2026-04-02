@@ -1,14 +1,26 @@
-import React, { memo, useState, useRef, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { memo, useState, useRef, useEffect, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
-  Search, BookMarked, BookOpen, Phone, FlaskConical,
-  Star, X, Trash2, Plus, ExternalLink, ChevronDown,
-  Facebook, Instagram, Globe, Pencil, Check
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Conversation } from './types';
-import { ALL_LINKS, LIBRARY, isLibraryOpen } from '@/lib/constants';
-
+  Search,
+  BookMarked,
+  BookOpen,
+  Phone,
+  FlaskConical,
+  Star,
+  X,
+  Trash2,
+  Plus,
+  ExternalLink,
+  ChevronDown,
+  Facebook,
+  Instagram,
+  Globe,
+  Pencil,
+  Check,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Conversation } from "./types";
+import { ALL_LINKS, LIBRARY, isLibraryOpen } from "@/lib/constants";
 
 const MAIN_LINKS = [
   { icon: Search, title: "Електронний каталог", url: ALL_LINKS.catalog_search },
@@ -74,11 +86,27 @@ const BookIcon = memo(function BookIcon({
   );
 });
 
-const SidebarLink = memo(function SidebarLink({ icon: Icon, title, subtitle, url, onClick }: {
-  icon: React.ElementType; title: string; subtitle?: string; url: string; onClick?: () => void;
+const SidebarLink = memo(function SidebarLink({
+  icon: Icon,
+  title,
+  subtitle,
+  url,
+  onClick,
+}: {
+  icon: React.ElementType;
+  title: string;
+  subtitle?: string;
+  url: string;
+  onClick?: () => void;
 }) {
   return (
-    <a href={url} target="_blank" rel="noreferrer" onClick={onClick} className="sidebar-link group">
+    <a
+      href={url}
+      target="_blank"
+      rel="noreferrer"
+      onClick={onClick}
+      className="sidebar-link group"
+    >
       <div className="sidebar-link-icon-wrap">
         <Icon size={14} strokeWidth={1.7} className="sidebar-icon" />
       </div>
@@ -242,11 +270,19 @@ const ConvItem = memo(function ConvItem({
       )}
       <div className="flex items-center gap-0.5 shrink-0">
         {editing ? (
-          <button onClick={submitEdit} className="p-2 text-[#D4A853]/60 hover:text-[#D4A853] transition-colors rounded min-w-[28px] min-h-[28px] flex items-center justify-center" aria-label="Зберегти">
+          <button
+            onClick={submitEdit}
+            className="p-2 text-[#D4A853]/60 hover:text-[#D4A853] transition-colors rounded min-w-[28px] min-h-[28px] flex items-center justify-center"
+            aria-label="Зберегти"
+          >
             <Check size={11} strokeWidth={2} />
           </button>
         ) : (
-          <button onClick={startEdit} className="p-2 text-white/0 group-hover:text-white/20 hover:!text-[#D4A853]/60 transition-all rounded min-w-[28px] min-h-[28px] flex items-center justify-center" aria-label="Перейменувати">
+          <button
+            onClick={startEdit}
+            className="p-2 text-white/0 group-hover:text-white/20 hover:!text-[#D4A853]/60 transition-all rounded min-w-[28px] min-h-[28px] flex items-center justify-center"
+            aria-label="Перейменувати"
+          >
             <Pencil size={10} strokeWidth={1.5} />
           </button>
         )}
@@ -256,7 +292,7 @@ const ConvItem = memo(function ConvItem({
             "p-2 transition-all rounded text-[10px] min-w-[28px] min-h-[28px] flex items-center justify-center",
             confirmDelete
               ? "text-red-400/80 bg-red-400/10 font-medium px-2.5"
-              : "text-white/0 group-hover:text-white/25 hover:!text-red-400/60"
+              : "text-white/0 group-hover:text-white/25 hover:!text-red-400/60",
           )}
           aria-label={confirmDelete ? "Підтвердити видалення" : "Видалити"}
           title={
@@ -289,9 +325,20 @@ export interface SidebarProps {
 
 // Fix #15: memo on entire Sidebar
 export const Sidebar = memo(function Sidebar({
-  isOpen, setIsOpen, isMobile, sidebarRef, conversations, currentConversation,
-  newConversationId, loadConversation, deleteConversation, renameConversation,
-  createNewConversation, hasMore = false, loadMore, isLoadingConversations = false,
+  isOpen,
+  setIsOpen,
+  isMobile,
+  sidebarRef,
+  conversations,
+  currentConversation,
+  newConversationId,
+  loadConversation,
+  deleteConversation,
+  renameConversation,
+  createNewConversation,
+  hasMore = false,
+  loadMore,
+  isLoadingConversations = false,
 }: SidebarProps) {
   // H1: avoid hydration mismatch — evaluate library status only on client after mount
   const [open, setOpen] = useState(false);
@@ -331,15 +378,17 @@ export const Sidebar = memo(function Sidebar({
     if (!isOpen || !isMobile || !sidebarRef.current) return;
 
     const focusableElements = sidebarRef.current.querySelectorAll(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
     );
     if (focusableElements.length === 0) return;
 
     const firstElement = focusableElements[0] as HTMLElement;
-    const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
+    const lastElement = focusableElements[
+      focusableElements.length - 1
+    ] as HTMLElement;
 
     const handleTabKeyPress = (e: KeyboardEvent) => {
-      if (e.key !== 'Tab') return;
+      if (e.key !== "Tab") return;
 
       if (e.shiftKey) {
         if (document.activeElement === firstElement) {
@@ -354,19 +403,24 @@ export const Sidebar = memo(function Sidebar({
       }
     };
 
-    window.addEventListener('keydown', handleTabKeyPress);
-    return () => window.removeEventListener('keydown', handleTabKeyPress);
+    window.addEventListener("keydown", handleTabKeyPress);
+    return () => window.removeEventListener("keydown", handleTabKeyPress);
   }, [isOpen, isMobile, sidebarRef]);
 
   const handleNavClick = () => {
     if (isMobile) setIsOpen(false);
   };
 
-  const filtered = useMemo(() =>
-    search.trim()
-      ? conversations.filter(c => c.title.toLocaleLowerCase('uk').includes(search.toLocaleLowerCase('uk')))
-      : conversations,
-    [search, conversations]
+  const filtered = useMemo(
+    () =>
+      search.trim()
+        ? conversations.filter((c) =>
+            c.title
+              .toLocaleLowerCase("uk")
+              .includes(search.toLocaleLowerCase("uk")),
+          )
+        : conversations,
+    [search, conversations],
   );
 
   return (
@@ -456,37 +510,98 @@ export const Sidebar = memo(function Sidebar({
             {/* BODY */}
             <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0 py-3 px-3">
               <SidebarSection label="Ресурси">
-                  <div className="space-y-0.5">
-                    {MAIN_LINKS.map(item => <SidebarLink key={item.title} {...item} onClick={handleNavClick} />)}
-                  </div>
-                </SidebarSection>
+                <div className="space-y-0.5">
+                  {MAIN_LINKS.map((item) => (
+                    <SidebarLink
+                      key={item.title}
+                      {...item}
+                      onClick={handleNavClick}
+                    />
+                  ))}
+                </div>
+              </SidebarSection>
 
-                <SidebarSection label="Наукові бази" defaultOpen={false}>
-                  <div className="space-y-0.5">
-                    {SCIENCE_LINKS.map(item => <SidebarLink key={item.title} {...item} onClick={handleNavClick} />)}
-                  </div>
-                </SidebarSection>
+              <SidebarSection label="Наукові бази" defaultOpen={false}>
+                <div className="space-y-0.5">
+                  {SCIENCE_LINKS.map((item) => (
+                    <SidebarLink
+                      key={item.title}
+                      {...item}
+                      onClick={handleNavClick}
+                    />
+                  ))}
+                </div>
+              </SidebarSection>
 
-                <SidebarSection label="Контакти" defaultOpen={true}>
-                  <div className="space-y-1 px-1 pb-1">
-                    {CONTACT_ITEMS.map(item => (
-                      <a key={item.label} href={item.href} onClick={handleNavClick} className="sidebar-contact-row group">
-                        <span className="sidebar-contact-label">{item.label}</span>
-                        <span className="sidebar-contact-value group-hover:text-[#D4A853] transition-colors">{item.value}</span>
-                      </a>
-                    ))}
-                    <div className="flex gap-2 mt-2">
-                      <a href={ALL_LINKS.facebook} target="_blank" rel="noreferrer" onClick={handleNavClick} className="sidebar-social-btn" title="Facebook" aria-label="Facebook"><Facebook size={13} strokeWidth={1.6} /></a>
-                      <a href={ALL_LINKS.instagram} target="_blank" rel="noreferrer" onClick={handleNavClick} className="sidebar-social-btn" title="Instagram" aria-label="Instagram"><Instagram size={13} strokeWidth={1.6} /></a>
-                      <a href={ALL_LINKS.telegram} target="_blank" rel="noreferrer" onClick={handleNavClick} className="sidebar-social-btn" title="Telegram" aria-label="Telegram"><Phone size={13} strokeWidth={1.6} /></a>
-                    </div>
-                    <a href={ALL_LINKS.main} target="_blank" rel="noreferrer" onClick={handleNavClick} className="sidebar-website-btn">
-                      <Globe size={12} strokeWidth={1.6} />
-                      <span>Сайт бібліотеки</span>
-                      <ExternalLink size={10} strokeWidth={1.5} className="opacity-40 ml-auto" />
+              <SidebarSection label="Контакти" defaultOpen={true}>
+                <div className="space-y-1 px-1 pb-1">
+                  {CONTACT_ITEMS.map((item) => (
+                    <a
+                      key={item.label}
+                      href={item.href}
+                      onClick={handleNavClick}
+                      className="sidebar-contact-row group"
+                    >
+                      <span className="sidebar-contact-label">
+                        {item.label}
+                      </span>
+                      <span className="sidebar-contact-value group-hover:text-[#D4A853] transition-colors">
+                        {item.value}
+                      </span>
+                    </a>
+                  ))}
+                  <div className="flex gap-2 mt-2">
+                    <a
+                      href={ALL_LINKS.facebook}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={handleNavClick}
+                      className="sidebar-social-btn"
+                      title="Facebook"
+                      aria-label="Facebook"
+                    >
+                      <Facebook size={13} strokeWidth={1.6} />
+                    </a>
+                    <a
+                      href={ALL_LINKS.instagram}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={handleNavClick}
+                      className="sidebar-social-btn"
+                      title="Instagram"
+                      aria-label="Instagram"
+                    >
+                      <Instagram size={13} strokeWidth={1.6} />
+                    </a>
+                    <a
+                      href={ALL_LINKS.telegram}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={handleNavClick}
+                      className="sidebar-social-btn"
+                      title="Telegram"
+                      aria-label="Telegram"
+                    >
+                      <Phone size={13} strokeWidth={1.6} />
                     </a>
                   </div>
-                </SidebarSection>
+                  <a
+                    href={ALL_LINKS.main}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={handleNavClick}
+                    className="sidebar-website-btn"
+                  >
+                    <Globe size={12} strokeWidth={1.6} />
+                    <span>Сайт бібліотеки</span>
+                    <ExternalLink
+                      size={10}
+                      strokeWidth={1.5}
+                      className="opacity-40 ml-auto"
+                    />
+                  </a>
+                </div>
+              </SidebarSection>
 
               {/* History with search */}
               <SidebarSection label="Історія" defaultOpen={true}>
@@ -508,26 +623,20 @@ export const Sidebar = memo(function Sidebar({
                       Розмов ще немає. Почніть новий чат!
                     </p>
                   )}
-                  <div className="space-y-0.5">
-                    {filtered.map(conv => (
-                      <ConvItem
-                        key={conv.id}
-                        conv={conv}
-                        isActive={currentConversation?.id === conv.id}
-                        isNew={conv.id === newConversationId}
-                        onLoad={(id) => { loadConversation(id); handleNavClick(); }}
-                        onDelete={deleteConversation}
-                        onRename={renameConversation}
-                      />
-                    ))}
-                    {filtered.length === 0 && search && (
-                      <p className="text-[11px] text-white/25 text-center py-2">Нічого не знайдено</p>
-                    )}
-                    {hasMore && loadMore && !search && (
-                      <button onClick={() => { setIsLoadingMore(true); loadMore(); }} disabled={isLoadingMore} className="w-full py-1.5 text-[11px] text-[#D4A853]/30 hover:text-[#D4A853]/60 transition-colors text-center tracking-wide disabled:opacity-40 disabled:cursor-wait">
-                        {isLoadingMore ? 'Завантаження...' : 'Показати ще...'}
-                      </button>
-                    )}
+                {conversations.length >= 2 && (
+                  <div className="relative mb-1.5 px-1">
+                    <Search
+                      size={11}
+                      strokeWidth={1.8}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-white/25 pointer-events-none"
+                    />
+                    <input
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      placeholder="Пошук..."
+                      aria-label="Пошук розмов"
+                      className="w-full bg-white/[0.04] border border-white/[0.06] rounded-lg pl-7 pr-3 py-1.5 text-[11.5px] text-white/60 placeholder:text-white/25 outline-none focus:border-[#D4A853]/20 transition-colors"
+                    />
                   </div>
                 )}
                 <div className="space-y-0.5">
@@ -537,7 +646,10 @@ export const Sidebar = memo(function Sidebar({
                       conv={conv}
                       isActive={currentConversation?.id === conv.id}
                       isNew={conv.id === newConversationId}
-                      onLoad={loadConversation}
+                      onLoad={(id) => {
+                        loadConversation(id);
+                        handleNavClick();
+                      }}
                       onDelete={deleteConversation}
                       onRename={renameConversation}
                     />
@@ -565,7 +677,13 @@ export const Sidebar = memo(function Sidebar({
 
             {/* FOOTER */}
             <div className="px-3 pb-3 pt-2 shrink-0 border-t border-white/[0.04]">
-              <button onClick={() => { createNewConversation(); handleNavClick(); }} className="btn-new-chat w-full py-3 rounded-xl text-[11px] flex items-center justify-center gap-2 tracking-[0.12em]">
+              <button
+                onClick={() => {
+                  createNewConversation();
+                  handleNavClick();
+                }}
+                className="btn-new-chat w-full py-3 rounded-xl text-[11px] flex items-center justify-center gap-2 tracking-[0.12em]"
+              >
                 <Plus size={14} strokeWidth={2.5} />
                 <span>НОВИЙ ЧАТ</span>
               </button>
