@@ -125,11 +125,13 @@
    ============================================ */
 
 .sidebar-premium {
-  width: 272px;
-  min-width: 272px;
-  max-width: 272px;
+  width: 280px;
+  min-width: 280px;
+  max-width: 280px;
   flex-shrink: 0;
-  background: #0e0b08;
+  background: rgba(20, 20, 20, 0.85);
+  backdrop-filter: blur(8px) saturate(160%);
+  -webkit-backdrop-filter: blur(8px) saturate(160%);
   border-right: 1px solid rgba(212, 168, 83, 0.07);
   box-shadow: 6px 0 48px rgba(0, 0, 0, 0.22);
 }
@@ -387,6 +389,31 @@
     0 1px 3px rgba(42, 37, 32, 0.04),
     0 4px 20px rgba(184, 120, 48, 0.08),
     0 0 0 3px rgba(184, 120, 48, 0.05);
+}
+
+.input-container-active {
+  border-color: rgba(184, 120, 48, 0.35);
+  box-shadow:
+    0 1px 3px rgba(42, 37, 32, 0.04),
+    0 4px 20px rgba(184, 120, 48, 0.1),
+    0 0 0 3px rgba(184, 120, 48, 0.07);
+  animation: input-thinking-pulse 2s ease-in-out infinite;
+}
+
+@keyframes input-thinking-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 1px 3px rgba(42, 37, 32, 0.04),
+      0 4px 20px rgba(184, 120, 48, 0.1),
+      0 0 0 3px rgba(184, 120, 48, 0.07);
+  }
+  50% {
+    box-shadow:
+      0 1px 3px rgba(42, 37, 32, 0.04),
+      0 4px 24px rgba(184, 120, 48, 0.18),
+      0 0 0 3px rgba(184, 120, 48, 0.12);
+  }
 }
 
 .input-textarea {
@@ -821,8 +848,7 @@
     top: 0;
     bottom: 0;
     z-index: 50;
-    width: 320px;
-    min-width: 0;
+    width: 280px;
     max-width: 85vw;
     overscroll-behavior: contain;
     padding-top: env(safe-area-inset-top, 0px);
@@ -976,6 +1002,10 @@
 
   .sidebar-premium {
     transition: none !important;
+  }
+
+  .input-container-active {
+    animation: none !important;
   }
 
   .btn-new-chat:hover,

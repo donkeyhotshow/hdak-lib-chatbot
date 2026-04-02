@@ -1,7 +1,8 @@
 ﻿"use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Trash2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useChat } from "@/hooks/use-chat";
 import { Sidebar } from "@/components/chat/Sidebar";
@@ -115,8 +116,33 @@ export default function ChatPage() {
               <Menu size={17} strokeWidth={1.5} />
             )}
           </button>
-          <h1 className="logo-text text-[22px] m-0">ХДАК</h1>
-          <div className="w-11" />
+          <div className="flex flex-col items-center">
+            <h1 className="logo-text text-[22px] m-0 leading-none">ХДАК</h1>
+            <div className="flex items-center gap-1 mt-0.5">
+              <span
+                className={cn(
+                  "w-1.5 h-1.5 rounded-full shrink-0",
+                  error
+                    ? "bg-red-400"
+                    : isTyping
+                      ? "bg-amber-400 animate-pulse"
+                      : "bg-emerald-400",
+                )}
+              />
+              <span className="text-[10px] font-medium tracking-wide text-[#7A756F]/60">
+                {error ? "Помилка" : isTyping ? "Думає..." : "Онлайн"}
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={createNewConversation}
+            disabled={messages.length === 0}
+            className="w-11 h-11 flex items-center justify-center rounded-xl text-[#7A756F] hover:text-[#2A2520] hover:bg-[#2A2520]/[0.04] transition-all disabled:opacity-0 disabled:pointer-events-none"
+            aria-label="Очистити чат"
+            title="Очистити чат"
+          >
+            <Trash2 size={15} strokeWidth={1.6} />
+          </button>
         </header>
 
         <div className="h-px bg-gradient-to-r from-transparent via-[#B87830]/20 to-transparent shrink-0" />
