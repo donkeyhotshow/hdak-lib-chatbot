@@ -3,14 +3,28 @@ import { drizzle } from "drizzle-orm/neon-http";
 import { pgTable, text, timestamp, index, check, boolean } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
-const connectionString = process.env.DATABASE_URL;
+let _db: ReturnType<typeof drizzle> | null = null;
+let _dbError: Error | null = null;
 
-if (!connectionString) {
-  throw new Error("DATABASE_URL environment variable is required. Set it in .env or .env.local");
+function getDb(): ReturnType<typeof drizzle> {
+  if (_dbError) throw _dbError;
+  if (!_db) {
+    const connectionString = process.env.DATABASE_URL;
+    if (!connectionString) {
+      _dbError = new Error("DATABASE_URL environment variable is required. Set it in .env or .env.local");
+      throw _dbError;
+    }
+    const client = neon(connectionString);
+    _db = drizzle(client);
+  }
+  return _db;
 }
 
-const client = neon(connectionString);
-export const db = drizzle(client);
+export const db: ReturnType<typeof drizzle> = new Proxy({} as ReturnType<typeof drizzle>, {
+  get(_target, prop, receiver) {
+    return Reflect.get(getDb(), prop, receiver);
+  },
+});
 
 // Schema definitions
 export const conversations = pgTable("conversations", {

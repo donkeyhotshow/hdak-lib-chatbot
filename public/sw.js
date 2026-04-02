@@ -3,7 +3,8 @@
  * Стратегії: Cache First для статики, Network First для API
  */
 
-const CACHE_NAME = 'hdak-v1';
+const CACHE_VERSION = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+const CACHE_NAME = `hdak-${CACHE_VERSION}`;
 const OFFLINE_URL = '/';
 
 // Static assets to pre-cache on install

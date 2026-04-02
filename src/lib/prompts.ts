@@ -111,5 +111,14 @@ ${LIBRARY.schedule.automation}
   if (!catalogContext) {
     _promptCache = { value: result, ts: now, wasOpen: currentlyOpen };
   }
-  return catalogContext ? result + '\n\n' + catalogContext : result;
+
+  // Prompt injection protection: delimit user-provided catalog context
+  if (catalogContext) {
+    const sanitizedContext = catalogContext
+      .replace(/\[\/?(?:РЕЗУЛЬТАТИ КАТАЛОГУ|РЕКОМЕНДАЦІЇ|SYSTEM|INST|ASSISTANT)\]/gi, '')
+      .substring(0, 3000);
+    return result + '\n\n---\n[USER DATA START]\n' + sanitizedContext + '\n[USER DATA END]\n---';
+  }
+
+  return result;
 }

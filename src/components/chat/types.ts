@@ -3,6 +3,7 @@ export interface Message {
   role: 'USER' | 'ASSISTANT';
   content: string;
   createdAt: string;
+  status?: 'sending' | 'sent' | 'error';
 }
 
 // Matches DB schema: conversations table has id, title, createdAt only

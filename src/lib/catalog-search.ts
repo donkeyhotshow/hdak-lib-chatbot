@@ -3,6 +3,10 @@
  * Eliminates duplicated HTML parsing logic and provides a single robust parser.
  */
 
+import { stripHtml } from '@/lib/sanitize';
+
+// stripHtml is imported from @/lib/sanitize — do NOT duplicate here.
+
 const CATALOG_URL = process.env.CATALOG_URL || 'https://library-service.com.ua:8443/khkhdak/DocumentSearchResult';
 const CATALOG_FORM_URL = process.env.CATALOG_FORM_URL || 'https://library-service.com.ua:8443/khkhdak/DocumentSearchForm';
 
@@ -119,22 +123,6 @@ export function detectSearchIntent(message: string): SearchIntent | null {
 
 
 // ─── HTML parsing ───────────────────────────────────────────────────────────
-
-/**
- * Strip HTML tags and decode common entities.
- */
-export function stripHtml(html: string): string {
-  return html
-    .replace(/<br\s*\/?>/gi, ' ')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
 
 function isBookEntry(text: string): boolean {
   // Must have slash (bibliographic separator), year, and sufficient length
