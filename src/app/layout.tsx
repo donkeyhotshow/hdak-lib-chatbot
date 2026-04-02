@@ -1,5 +1,6 @@
 ﻿import type { Metadata, Viewport } from "next";
 import { Poppins, Literata, Outfit } from "next/font/google";
+import { headers } from "next/headers";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -91,16 +92,16 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const nonce = (await headers()).get('x-nonce') ?? '';
   return (
     <html lang="uk" dir="ltr" suppressHydrationWarning>
       <head>
         <meta name="theme-color" content="#B87830" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="ХДАК" />
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
@@ -110,7 +111,7 @@ export default function RootLayout({
       >
         <ErrorBoundary>{children}</ErrorBoundary>
         <Toaster />
-        <Script id="sw-register" strategy="afterInteractive">{`
+        <Script id="sw-register" strategy="afterInteractive" nonce={nonce}>{`
           if ('serviceWorker' in navigator) {
             window.addEventListener('load', function() {
               navigator.serviceWorker.register('/sw.js').catch(function(err) {
