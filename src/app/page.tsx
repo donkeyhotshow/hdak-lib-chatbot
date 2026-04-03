@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Menu, X, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -8,6 +8,7 @@ import { useChat } from "@/hooks/use-chat";
 import { Sidebar } from "@/components/chat/Sidebar";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { ChatArea } from "@/components/chat/ChatArea";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 export default function ChatPage() {
   // Fix #18: avoid hydration mismatch - start null, resolve after mount
@@ -16,6 +17,10 @@ export default function ChatPage() {
 
   useEffect(() => {
     setSidebarOpen(window.innerWidth >= 768);
+  }, []);
+
+  const toggleSidebar = useCallback(() => {
+    setSidebarOpen((v) => !(v ?? false));
   }, []);
 
   const { toast } = useToast();
@@ -90,7 +95,7 @@ export default function ChatPage() {
       {/* Header — fixed on mobile (z-30, below sidebar z-50 and backdrop z-40); in-flow on desktop */}
       <header className="chat-header fixed inset-x-0 top-0 z-30 h-12 flex items-center justify-between px-4 border-b border-[#2A2520]/[0.04] bg-white/50 backdrop-blur-sm md:relative md:z-[60] md:h-auto md:min-h-[48px] md:shrink-0">
         <button
-          onClick={() => setSidebarOpen((v) => !(v ?? false))}
+          onClick={toggleSidebar}
           className="w-11 h-11 flex items-center justify-center rounded-xl text-[#7A756F] hover:text-[#2A2520] hover:bg-[#2A2520]/[0.04] transition-all"
           aria-label={isSidebarOpen ? "Закрити меню" : "Відкрити меню"}
         >
@@ -150,28 +155,32 @@ export default function ChatPage() {
         />
 
         <main className="flex-1 flex flex-col min-w-0 relative overflow-hidden">
-          <ChatArea
-            messages={messages}
-            isTyping={isTyping}
-            isLoadingConversation={isLoadingConversation}
-            error={error}
-            handleFaqSend={handleFaqSend}
-            streamingMessageId={streamingMessageId}
-            messagesEndRef={messagesEndRef}
-            formatTime={formatTime}
-            copyToClipboard={copyToClipboard}
-            onRetry={retryLastMessage}
-          />
+          <ErrorBoundary onReset={createNewConversation}>
+            <ChatArea
+              messages={messages}
+              isTyping={isTyping}
+              isLoadingConversation={isLoadingConversation}
+              error={error}
+              handleFaqSend={handleFaqSend}
+              streamingMessageId={streamingMessageId}
+              messagesEndRef={messagesEndRef}
+              formatTime={formatTime}
+              copyToClipboard={copyToClipboard}
+              onRetry={retryLastMessage}
+            />
 
-          <ChatInput
-            inputValue={inputValue}
-            setInputValue={setInputValue}
-            isTyping={isTyping}
-            handleSend={handleSend}
-            onStop={handleStop}
-            currentConversationId={currentConversation?.id}
-            onSpeechError={(msg) => toast({ description: msg, duration: 4000 })}
-          />
+            <ChatInput
+              inputValue={inputValue}
+              setInputValue={setInputValue}
+              isTyping={isTyping}
+              handleSend={handleSend}
+              onStop={handleStop}
+              currentConversationId={currentConversation?.id}
+              onSpeechError={(msg) =>
+                toast({ description: msg, duration: 4000 })
+              }
+            />
+          </ErrorBoundary>
         </main>
       </div>
     </div>

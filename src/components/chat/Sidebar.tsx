@@ -1,4 +1,11 @@
-import React, { memo, useState, useRef, useEffect, useMemo } from "react";
+import React, {
+  memo,
+  useState,
+  useRef,
+  useEffect,
+  useMemo,
+  useCallback,
+} from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
@@ -407,9 +414,9 @@ export const Sidebar = memo(function Sidebar({
     return () => window.removeEventListener("keydown", handleTabKeyPress);
   }, [isOpen, isMobile, sidebarRef]);
 
-  const handleNavClick = () => {
+  const handleNavClick = useCallback(() => {
     if (isMobile) setIsOpen(false);
-  };
+  }, [isMobile, setIsOpen]);
 
   // Lock body scroll on mobile when drawer is open
   useEffect(() => {

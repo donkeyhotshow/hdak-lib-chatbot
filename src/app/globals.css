@@ -627,6 +627,10 @@
    CUSTOM SCROLLBAR
    ============================================ */
 
+.custom-scrollbar {
+  -webkit-overflow-scrolling: touch; /* iOS momentum scrolling */
+}
+
 .custom-scrollbar::-webkit-scrollbar {
   width: 3px;
 }
@@ -876,6 +880,7 @@
     border-radius: 0 14px 14px 0;
     overscroll-behavior: contain;
     padding-bottom: env(safe-area-inset-bottom, 0px);
+    will-change: transform; /* GPU compositing for CSS slide animation */
   }
 
   .hero-title {
