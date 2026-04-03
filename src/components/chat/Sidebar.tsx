@@ -411,6 +411,16 @@ export const Sidebar = memo(function Sidebar({
     if (isMobile) setIsOpen(false);
   };
 
+  // Lock body scroll on mobile when drawer is open
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.innerWidth >= 768) return;
+    document.body.style.overflow = isOpen ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
+
   const filtered = useMemo(
     () =>
       search.trim()
@@ -425,272 +435,270 @@ export const Sidebar = memo(function Sidebar({
 
   return (
     <>
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="sidebar-overlay fixed inset-0 bg-[#0D0B09]/60 backdrop-blur-sm z-40 md:hidden"
-            onClick={() => setIsOpen(false)}
-            aria-hidden="true"
-          />
+      {/* ── Backdrop (mobile only) ────────────────────────────────────────── */}
+      <div
+        className={cn(
+          "fixed inset-0 z-40 bg-[#0D0B09]/60 backdrop-blur-sm md:hidden",
+          "transition-opacity duration-200",
+          isOpen
+            ? "opacity-100 pointer-events-auto"
+            : "opacity-0 pointer-events-none",
         )}
-      </AnimatePresence>
+        onClick={() => setIsOpen(false)}
+        aria-hidden="true"
+      />
 
-      <AnimatePresence>
-        {isOpen && (
-          <motion.aside
-            ref={sidebarRef}
-            initial={{ x: "-100%", opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: "-100%", opacity: 0 }}
-            transition={{ duration: 0.28, ease: [0.25, 0.1, 0.25, 1] }}
-            className="sidebar-premium h-full fixed md:relative z-50 flex flex-col"
-            role="dialog"
-            aria-modal={isMobile ? "true" : "false"}
-            aria-label="Бокове меню"
-          >
-            {/* HEADER */}
-            <div className="sidebar-header shrink-0">
-              <div className="sidebar-header-glow" />
-              <div className="relative flex items-center justify-between px-4 pt-4 pb-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="sidebar-logo-icon">
-                    <BookIcon size={16} className="text-[#D4A853]" />
-                  </div>
-                  <div>
-                    <div className="logo-text text-[19px] leading-none">
-                      ХДАК
-                    </div>
-                    <div className="sidebar-subtitle">БІБЛІОТЕКА</div>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setIsOpen(false)}
-                  className="sidebar-close-btn"
-                  aria-label="Закрити меню"
-                >
-                  <X size={16} strokeWidth={1.8} />
-                </button>
+      {/* ── Drawer / Sidebar panel ────────────────────────────────────────── */}
+      <aside
+        ref={sidebarRef}
+        className={cn(
+          "sidebar-premium flex flex-col",
+          // Mobile: fixed overlay that slides; Desktop: relative in flex layout
+          "fixed md:relative z-50",
+          // CSS slide on mobile; no transition on desktop
+          "transition-transform duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)] md:transition-none",
+          // Mobile: translate in/out based on open state
+          isOpen ? "translate-x-0" : "-translate-x-full",
+          // Desktop: hide from flex layout when closed
+          !isOpen && "md:hidden",
+        )}
+        role="dialog"
+        aria-modal={isOpen ? "true" : "false"}
+        aria-label="Бокове меню"
+      >
+        {/* HEADER */}
+        <div className="sidebar-header shrink-0">
+          <div className="sidebar-header-glow" />
+          <div className="relative flex items-center justify-between px-4 pt-4 pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="sidebar-logo-icon">
+                <BookIcon size={16} className="text-[#D4A853]" />
               </div>
-              <div className="px-4 pb-3">
-                <div className="sidebar-status-inline">
-                  <span
-                    className={cn(
-                      "sidebar-status-dot",
-                      open ? "bg-emerald-400" : "bg-red-400/80",
-                    )}
-                  />
-                  <span
-                    className={cn(
-                      "sidebar-status-inline-text",
-                      open ? "text-emerald-400/70" : "text-red-400/60",
-                    )}
-                  >
-                    {open ? "Відкрито" : "Зачинено"}
-                  </span>
-                  <span className="sidebar-status-hours">
-                    {open
-                      ? (() => {
-                          const d = new Date().getDay();
-                          return d === 6 ? "до 13:30" : "до 16:45";
-                        })()
-                      : (() => {
-                          const d = new Date().getDay();
-                          return d === 6 ? "Сб 9:00–13:30" : "Пн–Пт 9:00–16:45";
-                        })()}
-                  </span>
-                </div>
+              <div>
+                <div className="logo-text text-[19px] leading-none">ХДАК</div>
+                <div className="sidebar-subtitle">БІБЛІОТЕКА</div>
               </div>
-              <div className="sidebar-header-divider" />
             </div>
-
-            {/* BODY */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0 py-3 px-3">
-              <SidebarSection label="Ресурси">
-                <div className="space-y-0.5">
-                  {MAIN_LINKS.map((item) => (
-                    <SidebarLink
-                      key={item.title}
-                      {...item}
-                      onClick={handleNavClick}
-                    />
-                  ))}
-                </div>
-              </SidebarSection>
-
-              <SidebarSection label="Наукові бази" defaultOpen={false}>
-                <div className="space-y-0.5">
-                  {SCIENCE_LINKS.map((item) => (
-                    <SidebarLink
-                      key={item.title}
-                      {...item}
-                      onClick={handleNavClick}
-                    />
-                  ))}
-                </div>
-              </SidebarSection>
-
-              <SidebarSection label="Контакти" defaultOpen={true}>
-                <div className="space-y-1 px-1 pb-1">
-                  {CONTACT_ITEMS.map((item) => (
-                    <a
-                      key={item.label}
-                      href={item.href}
-                      onClick={handleNavClick}
-                      className="sidebar-contact-row group"
-                    >
-                      <span className="sidebar-contact-label">
-                        {item.label}
-                      </span>
-                      <span className="sidebar-contact-value group-hover:text-[#D4A853] transition-colors">
-                        {item.value}
-                      </span>
-                    </a>
-                  ))}
-                  <div className="flex gap-2 mt-2">
-                    <a
-                      href={ALL_LINKS.facebook}
-                      target="_blank"
-                      rel="noreferrer"
-                      onClick={handleNavClick}
-                      className="sidebar-social-btn"
-                      title="Facebook"
-                      aria-label="Facebook"
-                    >
-                      <Facebook size={13} strokeWidth={1.6} />
-                    </a>
-                    <a
-                      href={ALL_LINKS.instagram}
-                      target="_blank"
-                      rel="noreferrer"
-                      onClick={handleNavClick}
-                      className="sidebar-social-btn"
-                      title="Instagram"
-                      aria-label="Instagram"
-                    >
-                      <Instagram size={13} strokeWidth={1.6} />
-                    </a>
-                    <a
-                      href={ALL_LINKS.telegram}
-                      target="_blank"
-                      rel="noreferrer"
-                      onClick={handleNavClick}
-                      className="sidebar-social-btn"
-                      title="Telegram"
-                      aria-label="Telegram"
-                    >
-                      <Phone size={13} strokeWidth={1.6} />
-                    </a>
-                  </div>
-                  <a
-                    href={ALL_LINKS.main}
-                    target="_blank"
-                    rel="noreferrer"
-                    onClick={handleNavClick}
-                    className="sidebar-website-btn"
-                  >
-                    <Globe size={12} strokeWidth={1.6} />
-                    <span>Сайт бібліотеки</span>
-                    <ExternalLink
-                      size={10}
-                      strokeWidth={1.5}
-                      className="opacity-40 ml-auto"
-                    />
-                  </a>
-                </div>
-              </SidebarSection>
-
-              {/* History with search */}
-              <SidebarSection label="Історія" defaultOpen={true}>
-                {isLoadingConversations && conversations.length === 0 && (
-                  <div className="space-y-2 px-1 py-2">
-                    {[0, 1, 2].map((i) => (
-                      <div
-                        key={i}
-                        className="h-8 rounded-lg bg-white/[0.04] animate-pulse"
-                        style={{ animationDelay: `${i * 0.1}s` }}
-                      />
-                    ))}
-                  </div>
+            <button
+              onClick={() => setIsOpen(false)}
+              className="sidebar-close-btn"
+              aria-label="Закрити меню"
+            >
+              <X size={16} strokeWidth={1.8} />
+            </button>
+          </div>
+          <div className="px-4 pb-3">
+            <div className="sidebar-status-inline">
+              <span
+                className={cn(
+                  "sidebar-status-dot",
+                  open ? "bg-emerald-400" : "bg-red-400/80",
                 )}
-                {!isLoadingConversations &&
-                  conversations.length === 0 &&
-                  !search && (
-                    <p className="text-[11px] text-white/25 text-center py-3 px-2">
-                      Розмов ще немає. Почніть новий чат!
-                    </p>
-                  )}
-                {conversations.length >= 2 && (
-                  <div className="relative mb-1.5 px-1">
-                    <Search
-                      size={11}
-                      strokeWidth={1.8}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-white/25 pointer-events-none"
-                    />
-                    <input
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                      placeholder="Пошук..."
-                      aria-label="Пошук розмов"
-                      className="w-full bg-white/[0.04] border border-white/[0.06] rounded-lg pl-7 pr-3 py-1.5 text-[11.5px] text-white/60 placeholder:text-white/25 outline-none focus:border-[#D4A853]/20 transition-colors"
-                    />
-                  </div>
+              />
+              <span
+                className={cn(
+                  "sidebar-status-inline-text",
+                  open ? "text-emerald-400/70" : "text-red-400/60",
                 )}
-                <div className="space-y-0.5">
-                  {filtered.map((conv) => (
-                    <ConvItem
-                      key={conv.id}
-                      conv={conv}
-                      isActive={currentConversation?.id === conv.id}
-                      isNew={conv.id === newConversationId}
-                      onLoad={(id) => {
-                        loadConversation(id);
-                        handleNavClick();
-                      }}
-                      onDelete={deleteConversation}
-                      onRename={renameConversation}
-                    />
-                  ))}
-                  {filtered.length === 0 && search && (
-                    <p className="text-[11px] text-white/25 text-center py-2">
-                      Нічого не знайдено
-                    </p>
-                  )}
-                  {hasMore && loadMore && !search && (
-                    <button
-                      onClick={() => {
-                        setIsLoadingMore(true);
-                        loadMore();
-                      }}
-                      disabled={isLoadingMore}
-                      className="w-full py-1.5 text-[11px] text-[#D4A853]/30 hover:text-[#D4A853]/60 transition-colors text-center tracking-wide disabled:opacity-40 disabled:cursor-wait"
-                    >
-                      {isLoadingMore ? "Завантаження..." : "Показати ще..."}
-                    </button>
-                  )}
-                </div>
-              </SidebarSection>
-            </div>
-
-            {/* FOOTER */}
-            <div className="px-3 pb-3 pt-2 shrink-0 border-t border-white/[0.04]">
-              <button
-                onClick={() => {
-                  createNewConversation();
-                  handleNavClick();
-                }}
-                className="btn-new-chat w-full py-3 rounded-xl text-[11px] flex items-center justify-center gap-2 tracking-[0.12em]"
               >
-                <Plus size={14} strokeWidth={2.5} />
-                <span>НОВИЙ ЧАТ</span>
-              </button>
+                {open ? "Відкрито" : "Зачинено"}
+              </span>
+              <span className="sidebar-status-hours">
+                {open
+                  ? (() => {
+                      const d = new Date().getDay();
+                      return d === 6 ? "до 13:30" : "до 16:45";
+                    })()
+                  : (() => {
+                      const d = new Date().getDay();
+                      return d === 6 ? "Сб 9:00–13:30" : "Пн–Пт 9:00–16:45";
+                    })()}
+              </span>
             </div>
-          </motion.aside>
-        )}
-      </AnimatePresence>
+          </div>
+          <div className="sidebar-header-divider" />
+        </div>
+
+        {/* BODY */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0 py-3 px-3">
+          <SidebarSection label="Ресурси">
+            <div className="space-y-0.5">
+              {MAIN_LINKS.map((item) => (
+                <SidebarLink
+                  key={item.title}
+                  {...item}
+                  onClick={handleNavClick}
+                />
+              ))}
+            </div>
+          </SidebarSection>
+
+          <SidebarSection label="Наукові бази" defaultOpen={false}>
+            <div className="space-y-0.5">
+              {SCIENCE_LINKS.map((item) => (
+                <SidebarLink
+                  key={item.title}
+                  {...item}
+                  onClick={handleNavClick}
+                />
+              ))}
+            </div>
+          </SidebarSection>
+
+          <SidebarSection label="Контакти" defaultOpen={true}>
+            <div className="space-y-1 px-1 pb-1">
+              {CONTACT_ITEMS.map((item) => (
+                <a
+                  key={item.label}
+                  href={item.href}
+                  onClick={handleNavClick}
+                  className="sidebar-contact-row group"
+                >
+                  <span className="sidebar-contact-label">{item.label}</span>
+                  <span className="sidebar-contact-value group-hover:text-[#D4A853] transition-colors">
+                    {item.value}
+                  </span>
+                </a>
+              ))}
+              <div className="flex gap-2 mt-2">
+                <a
+                  href={ALL_LINKS.facebook}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={handleNavClick}
+                  className="sidebar-social-btn"
+                  title="Facebook"
+                  aria-label="Facebook"
+                >
+                  <Facebook size={13} strokeWidth={1.6} />
+                </a>
+                <a
+                  href={ALL_LINKS.instagram}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={handleNavClick}
+                  className="sidebar-social-btn"
+                  title="Instagram"
+                  aria-label="Instagram"
+                >
+                  <Instagram size={13} strokeWidth={1.6} />
+                </a>
+                <a
+                  href={ALL_LINKS.telegram}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={handleNavClick}
+                  className="sidebar-social-btn"
+                  title="Telegram"
+                  aria-label="Telegram"
+                >
+                  <Phone size={13} strokeWidth={1.6} />
+                </a>
+              </div>
+              <a
+                href={ALL_LINKS.main}
+                target="_blank"
+                rel="noreferrer"
+                onClick={handleNavClick}
+                className="sidebar-website-btn"
+              >
+                <Globe size={12} strokeWidth={1.6} />
+                <span>Сайт бібліотеки</span>
+                <ExternalLink
+                  size={10}
+                  strokeWidth={1.5}
+                  className="opacity-40 ml-auto"
+                />
+              </a>
+            </div>
+          </SidebarSection>
+
+          {/* History with search */}
+          <SidebarSection label="Історія" defaultOpen={true}>
+            {isLoadingConversations && conversations.length === 0 && (
+              <div className="space-y-2 px-1 py-2">
+                {[0, 1, 2].map((i) => (
+                  <div
+                    key={i}
+                    className="h-8 rounded-lg bg-white/[0.04] animate-pulse"
+                    style={{ animationDelay: `${i * 0.1}s` }}
+                  />
+                ))}
+              </div>
+            )}
+            {!isLoadingConversations &&
+              conversations.length === 0 &&
+              !search && (
+                <p className="text-[11px] text-white/25 text-center py-3 px-2">
+                  Розмов ще немає. Почніть новий чат!
+                </p>
+              )}
+            {conversations.length >= 2 && (
+              <div className="relative mb-1.5 px-1">
+                <Search
+                  size={11}
+                  strokeWidth={1.8}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-white/25 pointer-events-none"
+                />
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Пошук..."
+                  aria-label="Пошук розмов"
+                  className="w-full bg-white/[0.04] border border-white/[0.06] rounded-lg pl-7 pr-3 py-1.5 text-[11.5px] text-white/60 placeholder:text-white/25 outline-none focus:border-[#D4A853]/20 transition-colors"
+                />
+              </div>
+            )}
+            <div className="space-y-0.5">
+              {filtered.map((conv) => (
+                <ConvItem
+                  key={conv.id}
+                  conv={conv}
+                  isActive={currentConversation?.id === conv.id}
+                  isNew={conv.id === newConversationId}
+                  onLoad={(id) => {
+                    loadConversation(id);
+                    handleNavClick();
+                  }}
+                  onDelete={deleteConversation}
+                  onRename={renameConversation}
+                />
+              ))}
+              {filtered.length === 0 && search && (
+                <p className="text-[11px] text-white/25 text-center py-2">
+                  Нічого не знайдено
+                </p>
+              )}
+              {hasMore && loadMore && !search && (
+                <button
+                  onClick={() => {
+                    setIsLoadingMore(true);
+                    loadMore();
+                  }}
+                  disabled={isLoadingMore}
+                  className="w-full py-1.5 text-[11px] text-[#D4A853]/30 hover:text-[#D4A853]/60 transition-colors text-center tracking-wide disabled:opacity-40 disabled:cursor-wait"
+                >
+                  {isLoadingMore ? "Завантаження..." : "Показати ще..."}
+                </button>
+              )}
+            </div>
+          </SidebarSection>
+        </div>
+
+        {/* FOOTER */}
+        <div className="px-3 pb-3 pt-2 shrink-0 border-t border-white/[0.04]">
+          <button
+            onClick={() => {
+              createNewConversation();
+              handleNavClick();
+            }}
+            className="btn-new-chat w-full py-3 rounded-xl text-[11px] flex items-center justify-center gap-2 tracking-[0.12em]"
+          >
+            <Plus size={14} strokeWidth={2.5} />
+            <span>НОВИЙ ЧАТ</span>
+          </button>
+        </div>
+      </aside>
     </>
   );
 });
