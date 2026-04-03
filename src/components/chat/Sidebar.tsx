@@ -432,7 +432,7 @@ export const Sidebar = memo(function Sidebar({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="sidebar-overlay fixed inset-x-0 bottom-0 bg-[#0D0B09]/60 backdrop-blur-sm z-40 md:hidden"
+            className="sidebar-overlay fixed inset-0 bg-[#0D0B09]/60 backdrop-blur-sm z-40 md:hidden"
             onClick={() => setIsOpen(false)}
             aria-hidden="true"
           />
@@ -472,7 +472,7 @@ export const Sidebar = memo(function Sidebar({
                   className="sidebar-close-btn"
                   aria-label="Закрити меню"
                 >
-                  <X size={14} strokeWidth={1.6} />
+                  <X size={16} strokeWidth={1.8} />
                 </button>
               </div>
               <div className="px-4 pb-3">
