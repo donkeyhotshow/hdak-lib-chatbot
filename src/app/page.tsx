@@ -86,9 +86,9 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-antique-paper bg-ambient-glow overflow-hidden">
-      {/* Header — always visible, above sidebar overlay */}
-      <header className="chat-header relative z-[60] min-h-[48px] flex items-center justify-between px-4 border-b border-[#2A2520]/[0.04] bg-white/50 backdrop-blur-sm shrink-0">
+    <div className="h-screen flex flex-col bg-antique-paper bg-ambient-glow overflow-hidden pt-12 md:pt-0">
+      {/* Header — fixed on mobile (z-30, below sidebar z-50 and backdrop z-40); in-flow on desktop */}
+      <header className="chat-header fixed inset-x-0 top-0 z-30 h-12 flex items-center justify-between px-4 border-b border-[#2A2520]/[0.04] bg-white/50 backdrop-blur-sm md:relative md:z-[60] md:h-auto md:min-h-[48px] md:shrink-0">
         <button
           onClick={() => setSidebarOpen((v) => !(v ?? false))}
           className="w-11 h-11 flex items-center justify-center rounded-xl text-[#7A756F] hover:text-[#2A2520] hover:bg-[#2A2520]/[0.04] transition-all"
