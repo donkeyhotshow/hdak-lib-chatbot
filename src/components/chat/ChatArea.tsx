@@ -234,7 +234,7 @@ function ChatAreaComponent({ messages, isTyping, isLoadingConversation, error, h
       if (chipsTimerRef.current) clearTimeout(chipsTimerRef.current);
       setChipsReady(false);
     }
-  }, [lastMessageRole, messages.length]);
+  }, [lastMessageRole]);
 
   // Show chips 3s after bot finishes responding (not while streaming)
   useEffect(() => {
@@ -247,8 +247,7 @@ function ChatAreaComponent({ messages, isTyping, isLoadingConversation, error, h
     return () => {
       if (chipsTimerRef.current) clearTimeout(chipsTimerRef.current);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isTyping, lastBotMessageId]);
+  }, [isTyping, lastBotMessageId, lastMessageRole]);
 
 
   const QUICK_MENU = locale === 'en' ? QUICK_MENU_EN : QUICK_MENU_UK;
