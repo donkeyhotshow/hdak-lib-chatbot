@@ -21,7 +21,7 @@ export default function ChatPage() {
 
   const toggleSidebar = useCallback(() => {
     setSidebarOpen((v) => !(v ?? false));
-  }, []);
+  }, []); // setSidebarOpen is a stable state setter — safe to omit from deps
 
   const { toast } = useToast();
 

@@ -499,7 +499,7 @@ function ChatAreaComponent({
   const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
     const isUp = scrollTop < scrollHeight - clientHeight - 200;
-    setShowScrollButton(isUp);
+    setShowScrollButton(isUp); // state setter is stable — safe to omit from deps
   }, []);
 
   const scrollToBottom = useCallback(() => {

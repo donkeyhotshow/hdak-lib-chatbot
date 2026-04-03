@@ -416,7 +416,7 @@ export const Sidebar = memo(function Sidebar({
 
   const handleNavClick = useCallback(() => {
     if (isMobile) setIsOpen(false);
-  }, [isMobile, setIsOpen]);
+  }, [isMobile]); // setIsOpen is a stable state setter — omitted from deps
 
   // Lock body scroll on mobile when drawer is open
   useEffect(() => {
