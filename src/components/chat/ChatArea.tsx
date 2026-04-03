@@ -1,7 +1,8 @@
 import React, { memo, useMemo, useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
-import { Search, Clock, BookOpen, MapPin, ClipboardList, Globe, Copy, ArrowDown, AlertCircle } from 'lucide-react';
+import remarkGfm from 'remark-gfm';
+import { Search, Clock, BookOpen, MapPin, ClipboardList, Globe, Copy, ArrowDown, AlertCircle, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Message } from './types';
 
@@ -82,6 +83,26 @@ const markdownComponents = {
       ? <code className="bg-[#1A1612]/5 text-[#B87830] px-1.5 py-0.5 rounded text-[13px]" {...rest} />
       : <code className={cn("block bg-[#1A1612]/5 p-3 rounded-lg text-[13px] overflow-x-auto", className)} {...rest} />;
   },
+  table: (props: React.HTMLAttributes<HTMLTableElement>) => (
+    <div className="overflow-x-auto my-3 rounded-xl border border-[#E5E1D8] shadow-sm">
+      <table className="w-full border-collapse text-[13px]" {...props} />
+    </div>
+  ),
+  thead: (props: React.HTMLAttributes<HTMLTableSectionElement>) => (
+    <thead className="bg-[#B87830]/10" {...props} />
+  ),
+  tbody: (props: React.HTMLAttributes<HTMLTableSectionElement>) => (
+    <tbody {...props} />
+  ),
+  tr: (props: React.HTMLAttributes<HTMLTableRowElement>) => (
+    <tr className="border-b border-[#E5E1D8] odd:bg-white even:bg-[#FDFBF7] last:border-0" {...props} />
+  ),
+  th: (props: React.ThHTMLAttributes<HTMLTableCellElement>) => (
+    <th className="text-left px-3 py-2 font-semibold text-[#1A1612] whitespace-nowrap" {...props} />
+  ),
+  td: (props: React.TdHTMLAttributes<HTMLTableCellElement>) => (
+    <td className="px-3 py-2 text-[#2A2520]" {...props} />
+  ),
 };
 
 const MessageBubble = memo(function MessageBubble({ msg, isStreaming, formatTime, copyToClipboard, onRetry }: {
@@ -114,7 +135,7 @@ const MessageBubble = memo(function MessageBubble({ msg, isStreaming, formatTime
             <p className="whitespace-pre-wrap">{msg.content}</p>
           ) : (
             <div className="prose prose-sm max-w-none prose-p:leading-[1.625] prose-strong:text-[#D4A853]">
-              <ReactMarkdown components={markdownComponents}>{msg.content}</ReactMarkdown>
+              <ReactMarkdown components={markdownComponents} remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
               {isStreaming && <motion.span className="inline-block w-[2px] h-[14px] bg-[#B87830] ml-[1px] align-baseline" animate={{ opacity: [1, 0] }} transition={{ duration: 0.5, repeat: Infinity, ease: 'easeInOut' }} />}
             </div>
           )}
@@ -194,6 +215,42 @@ function ChatAreaComponent({ messages, isTyping, isLoadingConversation, error, h
   const [showScrollButton, setShowScrollButton] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
+  // Auto-hide chips: visible only after 3s idle since last bot response; hidden on user interaction
+  const [chipsReady, setChipsReady] = useState(false);
+  const chipsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const lastBotMessageId = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === 'ASSISTANT') return messages[i].id;
+    }
+    return null;
+  }, [messages]);
+
+  const lastMessageRole = messages.length > 0 ? messages[messages.length - 1].role : null;
+
+  // Hide chips immediately when user sends a message
+  useEffect(() => {
+    if (lastMessageRole === 'USER') {
+      if (chipsTimerRef.current) clearTimeout(chipsTimerRef.current);
+      setChipsReady(false);
+    }
+  }, [lastMessageRole, messages.length]);
+
+  // Show chips 3s after bot finishes responding (not while streaming)
+  useEffect(() => {
+    if (!isTyping && lastBotMessageId && lastMessageRole === 'ASSISTANT') {
+      if (chipsTimerRef.current) clearTimeout(chipsTimerRef.current);
+      chipsTimerRef.current = setTimeout(() => setChipsReady(true), 3000);
+    } else {
+      if (chipsTimerRef.current) clearTimeout(chipsTimerRef.current);
+    }
+    return () => {
+      if (chipsTimerRef.current) clearTimeout(chipsTimerRef.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isTyping, lastBotMessageId]);
+
+
   const QUICK_MENU = locale === 'en' ? QUICK_MENU_EN : QUICK_MENU_UK;
   const QUICK_CHIPS = locale === 'en' ? QUICK_CHIPS_EN : QUICK_CHIPS_UK;
 
@@ -225,7 +282,13 @@ function ChatAreaComponent({ messages, isTyping, isLoadingConversation, error, h
     return { lastMsg: last, lastMsgHasCatalog: hasCatalog, lastAssistantContent: lastAssistant };
   }, [messages]);
 
-  const showChips = !isTyping && !!lastMsg && lastMsg.role === 'ASSISTANT' && lastMsg.id !== streamingMessageId && !lastMsgHasCatalog;
+  const showChips = chipsReady && !isTyping && !!lastMsg && lastMsg.role === 'ASSISTANT' && lastMsg.id !== streamingMessageId && !lastMsgHasCatalog;
+
+  const handleChipClick = (kw: string) => {
+    setChipsReady(false);
+    if (chipsTimerRef.current) clearTimeout(chipsTimerRef.current);
+    handleFaqSend(kw);
+  };
 
   if (messages.length === 0 && !isLoadingConversation) {
     return (
@@ -263,7 +326,8 @@ function ChatAreaComponent({ messages, isTyping, isLoadingConversation, error, h
                 <div className="w-10 h-10 rounded-xl bg-[#B87830]/5 flex items-center justify-center transition-colors group-hover:bg-[#B87830]/10">
                   <item.icon size={18} className="text-[#B87830]/70 group-hover:text-[#B87830]" />
                 </div>
-                <span className="text-[14px] font-semibold text-[#2A2520]/80 group-hover:text-[#1A1612]">{item.title}</span>
+                <span className="text-[14px] font-semibold text-[#2A2520]/80 group-hover:text-[#1A1612] flex-1">{item.title}</span>
+                <ChevronRight size={16} className="text-[#B87830]/30 group-hover:text-[#B87830]/60 shrink-0 transition-colors" />
               </motion.button>
             ))}
           </motion.div>
@@ -307,7 +371,7 @@ function ChatAreaComponent({ messages, isTyping, isLoadingConversation, error, h
               {QUICK_CHIPS.map((chip, idx) => (
                 <button 
                   key={chip.id} 
-                  onClick={() => handleFaqSend(chip.kw)} 
+                  onClick={() => handleChipClick(chip.kw)} 
                   disabled={isTyping} 
                   className={cn(
                     "flex-shrink-0 px-4 py-2 text-[13px] font-semibold rounded-full border border-[#D4A853]/30 text-[#B87830] hover:bg-[#D4A853]/10 hover:border-[#D4A853]/60 transition-all bg-white/50",
