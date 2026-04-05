@@ -1,0 +1,57 @@
+# fly.toml — Fly.io deployment configuration for hdak-lib-chatbot
+# Deploy with: fly launch  (first time)  or  fly deploy  (subsequent deploys)
+# See: https://fly.io/docs/reference/configuration/
+
+app = "hdak-lib-chatbot"
+primary_region = "fra"          # Frankfurt — change to the region nearest your users
+
+[build]
+  builder = "paketobuildpacks/builder:base"
+
+[processes]
+  app = "pnpm start"
+
+[env]
+  NODE_ENV  = "production"
+  PORT      = "3000"
+
+# All secret values (BUILT_IN_FORGE_API_KEY, JWT_SECRET, etc.) must be set via:
+#   fly secrets set BUILT_IN_FORGE_API_KEY=<value> JWT_SECRET=<value> ...
+# Never store secrets in this file.
+
+[[services]]
+  internal_port = 3000
+  protocol      = "tcp"
+  auto_stop_machines  = true
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[services.ports]]
+    port     = 80
+    handlers = ["http"]
+
+  [[services.ports]]
+    port     = 443
+    handlers = ["tls", "http"]
+
+  [services.concurrency]
+    type       = "requests"
+    hard_limit = 200
+    soft_limit = 150
+
+  [[services.http_checks]]
+    interval = 15000
+    timeout  = 5000
+    path     = "/api/health"
+    method   = "GET"
+
+  [[services.http_checks]]
+    interval = 30000
+    timeout  = 5000
+    path     = "/api/ready"
+    method   = "GET"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus     = 1
+  memory   = "512mb"

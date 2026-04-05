@@ -1,0 +1,476 @@
+import { describe, it, expect } from "vitest";
+import * as db from "./db";
+import { hdakResources } from "./system-prompts-official";
+import {
+  tools,
+  chatRequestSchema,
+  MAX_CHAT_MESSAGE_LENGTH,
+} from "./_core/chat";
+
+describe("Chatbot Database Functions", () => {
+  describe("Library Resource Management", () => {
+    it("should retrieve all resources from database", async () => {
+      const resources = await db.getAllResources();
+
+      expect(Array.isArray(resources)).toBe(true);
+      expect(resources.length).toBeGreaterThan(0);
+
+      // Verify seeded resources exist
+      const hasElectronicCatalog = resources.some(
+        r => r.nameEn === "Electronic Catalog"
+      );
+      expect(hasElectronicCatalog).toBe(true);
+    });
+
+    it("should search resources by English keywords", async () => {
+      const resources = await db.searchResources("library");
+
+      expect(Array.isArray(resources)).toBe(true);
+      expect(resources.length).toBeGreaterThan(0);
+    });
+
+    it("should search resources by Ukrainian keywords", async () => {
+      const resources = await db.searchResources("бібліотека");
+
+      expect(Array.isArray(resources)).toBe(true);
+    });
+
+    it("should search resources by Russian keywords", async () => {
+      const resources = await db.searchResources("база");
+
+      expect(Array.isArray(resources)).toBe(true);
+    });
+
+    it("should not return all resources when query is the % wildcard character", async () => {
+      const allResources = await db.getAllResources();
+      const wildResults = await db.searchResources("%");
+
+      // A bare "%" must NOT match every row — it should return an empty list
+      // (since none of the mock resource names/descriptions literally contain "%").
+      expect(wildResults.length).toBeLessThan(allResources.length);
+    });
+
+    it("should not return all resources when query is the _ wildcard character", async () => {
+      const allResources = await db.getAllResources();
+      const wildResults = await db.searchResources("_");
+
+      // Same reasoning: "_" must be treated as a literal underscore, not a
+      // single-character SQL wildcard.
+      expect(wildResults.length).toBeLessThan(allResources.length);
+    });
+
+    it("should filter resources by type database", async () => {
+      const resources = await db.getResourcesByType("database");
+
+      expect(Array.isArray(resources)).toBe(true);
+      expect(resources.length).toBeGreaterThan(0);
+
+      // Verify all returned resources are of type database
+      resources.forEach(r => {
+        expect(r.type).toBe("database");
+      });
+    });
+
+    it("should filter resources by type electronic_library", async () => {
+      const resources = await db.getResourcesByType("electronic_library");
+
+      expect(Array.isArray(resources)).toBe(true);
+      expect(resources.length).toBeGreaterThan(0);
+    });
+
+    it("should create a new resource", async () => {
+      const timestamp = Date.now();
+      const resource = await db.createResource({
+        nameEn: `Test Resource ${timestamp}`,
+        nameUk: `Тестовий ресурс ${timestamp}`,
+        nameRu: `Тестовый ресурс ${timestamp}`,
+        type: "other",
+        url: "https://test.example.com",
+      });
+
+      expect(resource).toBeDefined();
+      expect(resource?.url).toBe("https://test.example.com");
+    });
+
+    it("should update a resource", async () => {
+      const timestamp = Date.now();
+      const created = await db.createResource({
+        nameEn: `Original ${timestamp}`,
+        type: "other",
+      });
+
+      if (created) {
+        const updated = await db.updateResource(created.id, {
+          nameEn: `Updated ${timestamp}`,
+        });
+
+        expect(updated).toBeDefined();
+        expect(updated?.id).toBe(created.id);
+      }
+    });
+
+    it("should delete a resource", async () => {
+      const timestamp = Date.now();
+      const created = await db.createResource({
+        nameEn: `Delete Test ${timestamp}`,
+        type: "other",
+      });
+
+      if (created) {
+        const deleted = await db.deleteResource(created.id);
+        expect(deleted).toBe(true);
+      }
+    });
+  });
+
+  describe("Library Contact Management", () => {
+    it("should retrieve all contacts from database", async () => {
+      const contacts = await db.getAllContacts();
+
+      expect(Array.isArray(contacts)).toBe(true);
+      expect(contacts.length).toBeGreaterThan(0);
+
+      // Verify seeded contacts exist
+      const hasEmailContact = contacts.some(c => c.type === "email");
+      expect(hasEmailContact).toBe(true);
+    });
+
+    it("should create a new contact", async () => {
+      const timestamp = Date.now();
+      const contact = await db.createContact({
+        type: "email",
+        value: `test${timestamp}@example.com`,
+        labelEn: `Test Email ${timestamp}`,
+      });
+
+      expect(contact).toBeDefined();
+    });
+
+    it("should update a contact", async () => {
+      const timestamp = Date.now();
+      const created = await db.createContact({
+        type: "phone",
+        value: "+1234567890",
+        labelEn: `Phone ${timestamp}`,
+      });
+
+      if (created) {
+        const updated = await db.updateContact(created.id, {
+          value: "+0987654321",
+        });
+
+        expect(updated).toBeDefined();
+        expect(updated?.value).toBe("+0987654321");
+      }
+    });
+
+    it("should delete a contact", async () => {
+      const timestamp = Date.now();
+      const created = await db.createContact({
+        type: "address",
+        value: `Test Address ${timestamp}`,
+        labelEn: "Test Location",
+      });
+
+      if (created) {
+        const deleted = await db.deleteContact(created.id);
+        expect(deleted).toBe(true);
+      }
+    });
+  });
+
+  describe("Library Info Management", () => {
+    it("should retrieve existing library info", async () => {
+      const info = await db.getLibraryInfo("about");
+
+      expect(info).toBeDefined();
+      expect(info?.key).toBe("about");
+      expect(info?.valueEn).toBeDefined();
+    });
+
+    it("should set new library info", async () => {
+      const timestamp = Date.now();
+      const testKey = `test_info_${timestamp}`;
+
+      const info = await db.setLibraryInfo(
+        testKey,
+        "Test English Value",
+        "Тест українське значення",
+        "Тест русское значение"
+      );
+
+      expect(info).toBeDefined();
+    });
+
+    it("should update existing library info", async () => {
+      const timestamp = Date.now();
+      const testKey = `update_info_${timestamp}`;
+
+      // Create first
+      await db.setLibraryInfo(
+        testKey,
+        "Original Value",
+        "Оригінальне значення",
+        "Исходное значение"
+      );
+
+      // Update
+      const updated = await db.setLibraryInfo(
+        testKey,
+        "Updated Value",
+        "Оновлене значення",
+        "Обновленное значение"
+      );
+
+      expect(updated).toBeDefined();
+    });
+
+    it("should return all library info entries via getAllLibraryInfo", async () => {
+      const timestamp = Date.now();
+      const customKey = `custom_info_${timestamp}`;
+
+      // Add a custom key (not one of the three hardcoded keys)
+      await db.setLibraryInfo(customKey, "Custom EN", "Custom UK", "Custom RU");
+
+      const all = await db.getAllLibraryInfo();
+      expect(Array.isArray(all)).toBe(true);
+
+      // The seeded "about" key should be present
+      const aboutEntry = all.find(e => e.key === "about");
+      expect(aboutEntry).toBeDefined();
+
+      // The dynamically-added custom key should also be present
+      const customEntry = all.find(e => e.key === customKey);
+      expect(customEntry).toBeDefined();
+      expect(customEntry?.valueEn).toBe("Custom EN");
+    });
+
+    it("seeds editable knowledge entries in libraryInfo", async () => {
+      const seeded = await db.getLibraryInfo("editable-knowledge-entries-v1");
+      expect(seeded).toBeDefined();
+      const parsed = JSON.parse(seeded?.valueUk ?? "[]");
+      expect(Array.isArray(parsed)).toBe(true);
+      expect(parsed.length).toBeGreaterThan(0);
+      expect(parsed[0]).toHaveProperty("topic");
+      expect(parsed[0]).toHaveProperty("sourceUrls");
+    });
+  });
+
+  describe("User Query Logging", () => {
+    it("should log a user query", async () => {
+      const query = await db.logUserQuery(
+        1,
+        null,
+        "Test query about resources",
+        "en",
+        [1, 2]
+      );
+
+      expect(query).toBeDefined();
+    });
+
+    it("should log anonymous query", async () => {
+      const query = await db.logUserQuery(
+        null,
+        null,
+        "Anonymous test query",
+        "uk",
+        null
+      );
+
+      expect(query).toBeDefined();
+    });
+  });
+
+  describe("Conversation and Message Management", () => {
+    it("should retrieve conversations list", async () => {
+      const conversations = await db.getConversations(1);
+
+      expect(Array.isArray(conversations)).toBe(true);
+    });
+
+    it("should retrieve messages from conversation", async () => {
+      // Get first conversation if any exist
+      const conversations = await db.getConversations(1);
+
+      if (conversations.length > 0) {
+        const messages = await db.getMessages(conversations[0].id);
+        expect(Array.isArray(messages)).toBe(true);
+      }
+    });
+  });
+
+  describe("HDAK Site Resources", () => {
+    it("should return HDAK site resources list", () => {
+      expect(Array.isArray(hdakResources)).toBe(true);
+      expect(hdakResources.length).toBeGreaterThan(0);
+    });
+
+    it("should include the Electronic Catalog with correct URL", () => {
+      const catalog = hdakResources.find(r => r.name === "Електронний каталог");
+      expect(catalog).toBeDefined();
+      expect(catalog?.url).toBe("https://lib-hdak.in.ua/e-catalog.html");
+    });
+
+    it("should include the HDAK Repository with open access", () => {
+      const repo = hdakResources.find(r => r.type === "repository");
+      expect(repo).toBeDefined();
+      expect(repo?.accessConditions).toBe("відкритий доступ");
+    });
+
+    it("should mark corporate-access databases correctly", () => {
+      const corporateResources = hdakResources.filter(r =>
+        r.accessConditions?.includes("корпоративний доступ")
+      );
+      expect(corporateResources.length).toBeGreaterThan(0);
+      const names = corporateResources.map(r => r.name);
+      expect(names).toContain("Scopus");
+      expect(names).toContain("Web of Science");
+    });
+  });
+
+  describe("Chat tools — library integration", () => {
+    it("searchLibraryResources tool: finds resources by English keyword", async () => {
+      const result = await tools.searchLibraryResources.execute(
+        { query: "catalog" },
+        {} as any
+      );
+      expect(result.query).toBe("catalog");
+      expect(Array.isArray(result.dbResources)).toBe(true);
+      expect(Array.isArray(result.siteResources)).toBe(true);
+      expect(result.found).toBeGreaterThanOrEqual(0);
+    });
+
+    it("searchLibraryResources tool: finds resources by Ukrainian keyword", async () => {
+      const result = await tools.searchLibraryResources.execute(
+        { query: "каталог" },
+        {} as any
+      );
+      expect(result.found).toBeGreaterThan(0);
+      const allNames = [
+        ...result.dbResources.map((r: any) => r.name),
+        ...result.siteResources.map((r: any) => r.name),
+      ];
+      expect(
+        allNames.some((n: string) => n.toLowerCase().includes("каталог"))
+      ).toBe(true);
+    });
+
+    it("searchLibraryResources tool: returns siteResources for Scopus", async () => {
+      const result = await tools.searchLibraryResources.execute(
+        { query: "Scopus" },
+        {} as any
+      );
+      const scopusEntry = result.siteResources.find(
+        (r: any) => r.name === "Scopus"
+      );
+      expect(scopusEntry).toBeDefined();
+      expect(scopusEntry.url).toBe(
+        "https://lib-hdak.in.ua/search-scientific-info.html"
+      );
+    });
+
+    it("getCatalogSearchLink tool: returns catalog URL and steps for author search", async () => {
+      const result = await tools.getCatalogSearchLink.execute(
+        { searchTerm: "Шевченко", searchType: "author" },
+        {} as any
+      );
+      expect(result.catalogUrl).toBe("https://lib-hdak.in.ua/e-catalog.html");
+      expect(result.searchTerm).toBe("Шевченко");
+      expect(result.searchType).toBe("author");
+      expect(Array.isArray(result.steps)).toBe(true);
+      expect(result.steps.length).toBeGreaterThan(0);
+      expect(result.repositoryUrl).toBe(
+        "https://lib-hdak.in.ua/scientists-publications.html"
+      );
+    });
+
+    it("getCatalogSearchLink tool: defaults to author search type", async () => {
+      const result = await tools.getCatalogSearchLink.execute(
+        { searchTerm: "Франко", searchType: "author" },
+        {} as any
+      );
+      expect(result.searchFieldLabel).toContain("Автор");
+    });
+
+    it("getCatalogSearchLink tool: title search uses correct field label", async () => {
+      const result = await tools.getCatalogSearchLink.execute(
+        { searchTerm: "Кобзар", searchType: "title" },
+        {} as any
+      );
+      expect(result.searchFieldLabel).toContain("Назва");
+    });
+  });
+});
+
+describe("Chat API — request validation", () => {
+  const validMessage = { role: "user" as const, content: "Hello" };
+
+  it("accepts a valid single-message request", () => {
+    const result = chatRequestSchema.safeParse({ messages: [validMessage] });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts requests with language and conversationId", () => {
+    const result = chatRequestSchema.safeParse({
+      messages: [validMessage],
+      language: "uk",
+      conversationId: 42,
+      model: "openrouter/free",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects messages array when empty", () => {
+    const result = chatRequestSchema.safeParse({ messages: [] });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects unknown language values", () => {
+    const result = chatRequestSchema.safeParse({
+      messages: [validMessage],
+      language: "de",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it(`rejects a message whose content exceeds ${MAX_CHAT_MESSAGE_LENGTH} chars`, () => {
+    const oversized = {
+      role: "user" as const,
+      content: "A".repeat(MAX_CHAT_MESSAGE_LENGTH + 1),
+    };
+    const result = chatRequestSchema.safeParse({ messages: [oversized] });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      // Verify that the failure is a too_big issue on the content field
+      // — the handler uses this to distinguish 413 from generic 400.
+      const hasTooLargeContent = result.error.issues.some(
+        issue => issue.code === "too_big" && issue.path.includes("content")
+      );
+      expect(hasTooLargeContent).toBe(true);
+    }
+  });
+
+  it(`accepts a message whose content is exactly ${MAX_CHAT_MESSAGE_LENGTH} chars`, () => {
+    const exact = {
+      role: "user" as const,
+      content: "A".repeat(MAX_CHAT_MESSAGE_LENGTH),
+    };
+    const result = chatRequestSchema.safeParse({ messages: [exact] });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects messages with empty content", () => {
+    const result = chatRequestSchema.safeParse({
+      messages: [{ role: "user", content: "" }],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an invalid role", () => {
+    const result = chatRequestSchema.safeParse({
+      messages: [{ role: "system", content: "Hello" }],
+    });
+    expect(result.success).toBe(false);
+  });
+});

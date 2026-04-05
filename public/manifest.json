@@ -1,38 +1,21 @@
 {
-  "name": "ХДАК Бібліотека",
-  "short_name": "ХДАК",
-  "description": "Інтелектуальний асистент бібліотеки Харківської державної академії культури",
+  "name": "HDAK Library Chatbot",
+  "short_name": "HDAK Chatbot",
+  "description": "Чатбот бібліотеки Харківської державної академії культури",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#FDFBF7",
-  "theme_color": "#B87830",
-  "lang": "uk",
-  "orientation": "portrait-primary",
-  "categories": ["education", "productivity"],
+  "background_color": "#e8e0d5",
+  "theme_color": "#5c3a1e",
   "icons": [
     {
-      "src": "/icons/icon-192.png",
+      "src": "/icons/icon-192x192.png",
       "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
+      "type": "image/png"
     },
     {
-      "src": "/icons/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "/icons/icon-512.png",
+      "src": "/icons/icon-512x512.png",
       "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
+      "type": "image/png"
     }
   ]
 }

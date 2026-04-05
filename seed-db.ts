@@ -1,0 +1,257 @@
+import { drizzle } from "drizzle-orm/mysql2";
+import { createPool } from "mysql2/promise";
+import {
+  libraryResources,
+  libraryContacts,
+  libraryInfo,
+} from "./drizzle/schema";
+import initialEditableKnowledgeEntriesBase from "./lib/server/services/initialEditableKnowledgeEntries.json";
+
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl) {
+  throw new Error(
+    "DATABASE_URL is required to seed the database. Set it in your environment before running `pnpm run db:seed`."
+  );
+}
+
+const pool = createPool(databaseUrl);
+const db = drizzle(pool);
+
+async function seed() {
+  console.log("Starting database seed...");
+
+  try {
+    // Seed library resources
+    console.log("Seeding library resources...");
+
+    const resources = [
+      {
+        nameEn: "Electronic Library",
+        nameUk: "Електронна бібліотека",
+        nameRu: "Электронная библиотека",
+        descriptionEn:
+          "Access to digital textbooks, monographs, and educational materials (approximately 1400 documents) stored on Google Drive",
+        descriptionUk:
+          "Доступ до цифрових підручників, монографій та навчальних матеріалів (близько 1400 документів) на Google Drive",
+        descriptionRu:
+          "Доступ к цифровым учебникам, монографиям и учебным материалам (примерно 1400 документов) на Google Drive",
+        type: "electronic_library" as const,
+        url: "https://drive.google.com/",
+        keywords: JSON.stringify([
+          "textbooks",
+          "monographs",
+          "educational materials",
+          "documents",
+        ]),
+      },
+      {
+        nameEn: "HDAK Repository",
+        nameUk: "Репозитарій ХДАК",
+        nameRu: "Репозиторий ХДАК",
+        descriptionEn:
+          "Full-text publications by HDAK scholars and qualification works",
+        descriptionUk:
+          "Повнотекстові видання викладачів та кваліфікаційні роботи здобувачів ХДАК",
+        descriptionRu:
+          "Полнотекстовые издания преподавателей и квалификационные работы студентов ХДАК",
+        type: "repository" as const,
+        url: "https://lib-hdak.in.ua/scientists-publications.html",
+        keywords: JSON.stringify([
+          "research",
+          "publications",
+          "theses",
+          "dissertations",
+        ]),
+      },
+      {
+        nameEn: "Online Catalog",
+        nameUk: "Електронний каталог",
+        nameRu: "Электронный каталог",
+        descriptionEn:
+          "Search the traditional library collection including books, journals, and other printed materials",
+        descriptionUk:
+          "Пошук по традиційному фонду бібліотеки включаючи книги, журнали та інші друковані матеріали",
+        descriptionRu:
+          "Поиск по традиционному фонду библиотеки включая книги, журналы и другие печатные материалы",
+        type: "catalog" as const,
+        url: "https://lib-hdak.in.ua/e-catalog.html",
+        keywords: JSON.stringify(["catalog", "books", "journals", "search"]),
+      },
+      {
+        nameEn: "Scopus Database",
+        nameUk: "База даних Scopus",
+        nameRu: "База данных Scopus",
+        descriptionEn:
+          "International abstract and citation database of peer-reviewed literature covering science, technology, medicine, and social sciences",
+        descriptionUk:
+          "Міжнародна база даних рефератів та цитувань рецензованої літератури з науки, технологій, медицини та соціальних наук",
+        descriptionRu:
+          "Международная база данных рефератов и цитирований рецензируемой литературы по науке, технологиям, медицине и социальным наукам",
+        type: "database" as const,
+        url: "https://lib-hdak.in.ua/search-scientific-info.html",
+        keywords: JSON.stringify([
+          "international",
+          "peer-reviewed",
+          "science",
+          "research",
+        ]),
+      },
+      {
+        nameEn: "Web of Science",
+        nameUk: "Web of Science",
+        nameRu: "Web of Science",
+        descriptionEn:
+          "Multidisciplinary research platform providing access to peer-reviewed journals, conference proceedings, and other scholarly content",
+        descriptionUk:
+          "Мультидисциплінарна дослідницька платформа з доступом до рецензованих журналів, матеріалів конференцій та іншого наукового контенту",
+        descriptionRu:
+          "Мультидисциплинарная исследовательская платформа с доступом к рецензируемым журналам, материалам конференций и другому научному контенту",
+        type: "database" as const,
+        url: "https://lib-hdak.in.ua/search-scientific-info.html",
+        keywords: JSON.stringify([
+          "international",
+          "multidisciplinary",
+          "journals",
+          "research",
+        ]),
+      },
+      {
+        nameEn: "PubMed Central",
+        nameUk: "PubMed Central",
+        nameRu: "PubMed Central",
+        descriptionEn:
+          "Free full-text archive of biomedical and life sciences journal literature at the U.S. National Institutes of Health",
+        descriptionUk:
+          "Безкоштовний архів повнотекстових статей з біомедицини та наук про життя у Національних інститутах здоров'я США",
+        descriptionRu:
+          "Бесплатный архив полнотекстовых статей по биомедицине и наукам о жизни в Национальных институтах здоровья США",
+        type: "database" as const,
+        url: "https://lib-hdak.in.ua/search-scientific-info.html",
+        keywords: JSON.stringify([
+          "biomedical",
+          "health sciences",
+          "free",
+          "full-text",
+        ]),
+      },
+    ];
+
+    for (const resource of resources) {
+      await db.insert(libraryResources).values(resource);
+    }
+    console.log(`✓ Seeded ${resources.length} library resources`);
+
+    // Seed library contacts
+    console.log("Seeding library contacts...");
+
+    const contacts = [
+      {
+        type: "email" as const,
+        value: "library@hdak.edu.ua",
+        labelEn: "Library Email",
+        labelUk: "Електронна пошта бібліотеки",
+        labelRu: "Электронная почта библиотеки",
+      },
+      {
+        type: "phone" as const,
+        value: "+966-11-XXXX-XXXX",
+        labelEn: "Library Phone",
+        labelUk: "Телефон бібліотеки",
+        labelRu: "Телефон библиотеки",
+      },
+      {
+        type: "address" as const,
+        value: "вул. Бурсацький узвіз, 4, Харків, Україна",
+        labelEn: "Library Address",
+        labelUk: "Адреса бібліотеки",
+        labelRu: "Адрес библиотеки",
+      },
+      {
+        type: "telegram" as const,
+        value: "https://lib-hdak.in.ua/contacts.html",
+        labelEn: "Telegram Channel",
+        labelUk: "Канал Telegram",
+        labelRu: "Канал Telegram",
+      },
+      {
+        type: "facebook" as const,
+        value: "https://lib-hdak.in.ua/contacts.html",
+        labelEn: "Facebook Page",
+        labelUk: "Сторінка Facebook",
+        labelRu: "Страница Facebook",
+      },
+      {
+        type: "instagram" as const,
+        value: "https://lib-hdak.in.ua/contacts.html",
+        labelEn: "Instagram Account",
+        labelUk: "Акаунт Instagram",
+        labelRu: "Аккаунт Instagram",
+      },
+    ];
+
+    for (const contact of contacts) {
+      await db.insert(libraryContacts).values(contact);
+    }
+    console.log(`✓ Seeded ${contacts.length} library contacts`);
+
+    // Seed library info
+    console.log("Seeding library information...");
+
+    const initialEditableKnowledgeEntries = JSON.stringify(
+      initialEditableKnowledgeEntriesBase.map(entry => ({
+        ...entry,
+        updatedAt: new Date().toISOString(),
+        overrideBuiltInId: null,
+      }))
+    );
+
+    const libraryInfoData = [
+      {
+        key: "about",
+        valueEn:
+          "HDAK Library is an academic library of Kharkiv State Academy of Culture with electronic catalog, repository, and official research resources.",
+        valueUk:
+          "Бібліотека ХДАК — академічна бібліотека Харківської державної академії культури з електронним каталогом, репозитарієм та науковими ресурсами.",
+        valueRu:
+          "Библиотека ХДАК — академическая библиотека Харьковской государственной академии культуры с электронным каталогом, репозиторием и научными ресурсами.",
+      },
+      {
+        key: "hours",
+        valueEn:
+          "Monday to Friday: 8:00 AM - 8:00 PM, Saturday: 10:00 AM - 6:00 PM, Sunday: Closed",
+        valueUk:
+          "Понеділок-п'ятниця: 8:00-20:00, Субота: 10:00-18:00, Неділя: Закрито",
+        valueRu:
+          "Понедельник-пятница: 8:00-20:00, Суббота: 10:00-18:00, Воскресенье: Закрыто",
+      },
+      {
+        key: "thematic_search_form",
+        valueEn: "https://forms.gle/example",
+        valueUk: "https://forms.gle/example",
+        valueRu: "https://forms.gle/example",
+      },
+      {
+        key: "editable-knowledge-entries-v1",
+        valueEn: initialEditableKnowledgeEntries,
+        valueUk: initialEditableKnowledgeEntries,
+        valueRu: initialEditableKnowledgeEntries,
+      },
+    ];
+
+    for (const info of libraryInfoData) {
+      await db.insert(libraryInfo).values(info);
+    }
+    console.log(`✓ Seeded ${libraryInfoData.length} library info entries`);
+
+    console.log("\n✅ Database seed completed successfully!");
+  } catch (error) {
+    console.error("❌ Error seeding database:", error);
+    throw error;
+  } finally {
+    await pool.end();
+  }
+}
+
+seed().catch(() => {
+  process.exitCode = 1;
+});
