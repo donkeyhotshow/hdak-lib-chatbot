@@ -1,16 +1,15 @@
 import { defineConfig } from "drizzle-kit";
 
-if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL environment variable is required for drizzle-kit. Set it in .env or .env.local");
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) {
+  throw new Error("DATABASE_URL is required to run drizzle commands");
 }
 
 export default defineConfig({
-  schema: "./src/lib/db.ts",
+  schema: "./drizzle/schema.ts",
   out: "./drizzle",
-  dialect: "postgresql",
+  dialect: "mysql",
   dbCredentials: {
-    url: process.env.DATABASE_URL,
+    url: connectionString,
   },
-  verbose: process.env.NODE_ENV !== 'production',
-  strict: true,
 });

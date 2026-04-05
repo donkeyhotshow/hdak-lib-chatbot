@@ -1,25 +1,17 @@
 {
-  "installCommand": "npm ci",
-  "buildCommand": "npm run build",
   "framework": "nextjs",
+  "installCommand": "corepack enable && pnpm install --frozen-lockfile",
+  "buildCommand": "pnpm run build",
+  "devCommand": "pnpm dev",
   "functions": {
-    "src/app/api/chat/route.ts": {
+    "app/api/chat/route.ts": {
       "maxDuration": 60
     },
-    "src/app/api/catalog-search/route.ts": {
-      "maxDuration": 15
+    "app/api/trpc/[trpc]/route.ts": {
+      "maxDuration": 60
     },
-    "src/app/api/faq-save/route.ts": {
-      "maxDuration": 15
-    },
-    "src/app/api/push/remind/route.ts": {
-      "maxDuration": 30
+    "app/api/admin/process-pdf/route.ts": {
+      "maxDuration": 60
     }
-  },
-  "crons": [
-    {
-      "path": "/api/push/remind",
-      "schedule": "0 8 * * *"
-    }
-  ]
+  }
 }
