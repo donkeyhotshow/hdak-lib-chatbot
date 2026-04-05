@@ -211,7 +211,10 @@ function getMessageText(msg: DisplayMessage): string {
   return "";
 }
 
-function stripQuickReplyHeading(text: string, previousUserText?: string): string {
+function stripQuickReplyHeading(
+  text: string,
+  previousUserText?: string
+): string {
   if (!text) return text;
   let result = text
     .replace(/^#{1,3}\s*Швидка відповідь[^\n]*\n*/i, "")
@@ -223,7 +226,11 @@ function stripQuickReplyHeading(text: string, previousUserText?: string): string
   const lowerPrev = previousUserText?.toLowerCase().trim();
   if (lowerPrev && lowerText.startsWith(lowerPrev)) {
     let sliced = result.slice(lowerPrev.length).trim();
-    if (sliced.startsWith(":") || sliced.startsWith("-") || sliced.startsWith("—")) {
+    if (
+      sliced.startsWith(":") ||
+      sliced.startsWith("-") ||
+      sliced.startsWith("—")
+    ) {
       sliced = sliced.slice(1).trim();
     }
     result = sliced;
@@ -637,12 +644,14 @@ const MessageItem = memo(function MessageItem({
               !completedTypingIds[responseId] ? (
                 typedMessageText.length > 0 ? (
                   <div className="typing-message">
-                      <Markdown>
-                        {stripQuickReplyHeading(
-                          typedMessageText,
-                          previousUserMessage ? getMessageText(previousUserMessage) : undefined
-                        )}
-                      </Markdown>
+                    <Markdown>
+                      {stripQuickReplyHeading(
+                        typedMessageText,
+                        previousUserMessage
+                          ? getMessageText(previousUserMessage)
+                          : undefined
+                      )}
+                    </Markdown>
                   </div>
                 ) : (
                   <div className="typing-skeleton" />
@@ -651,7 +660,9 @@ const MessageItem = memo(function MessageItem({
                 <Markdown>
                   {stripQuickReplyHeading(
                     getMessageText(msg),
-                    previousUserMessage ? getMessageText(previousUserMessage) : undefined
+                    previousUserMessage
+                      ? getMessageText(previousUserMessage)
+                      : undefined
                   )}
                 </Markdown>
               )}
@@ -1389,10 +1400,6 @@ export default function Home() {
       typingTimeoutRef.current = null;
     }
 
-    const previousUserMessage = [...allMessages]
-      .slice(0, allMessages.length - 1)
-      .reverse()
-      .find(m => m.role === "user");
     const fullText = stripQuickReplyHeading(
       getMessageText(lastMessage),
       previousUserMessage ? getMessageText(previousUserMessage) : undefined
@@ -1835,8 +1842,9 @@ export default function Home() {
         .hdak-msg-scroll::-webkit-scrollbar-track { background: transparent; }
         .hdak-msg-scroll { padding-bottom: 10px; }
         .hdak-textarea { resize: none; background: transparent; border: none; outline: none; color: #5f4b3a; font-family: 'DM Sans', system-ui, sans-serif; font-size: 16px; line-height: 1.62; min-height: 22px; max-height: 100px; width: 100%; }
-        .hdak-kb-hint { display: flex; justify-content: center; }
-        @media (max-width: 639px) { .hdak-kb-hint { display: none; } }
+        .hdak-kb-hint, .hdak-input-hint { display: flex; justify-content: center; }
+        @media (max-width: 639px) { .hdak-kb-hint, .hdak-input-hint { display: none; } }
+        @media (pointer: coarse) { .hdak-kb-hint, .hdak-input-hint { display: none; } }
         .hdak-textarea::placeholder { color: #5f4b3a; opacity: 0.82; }
         .hdak-bubble a { color: #8b5e3c; text-underline-offset: 3px; font-weight: 500; }
         .hdak-bubble a:hover { color: #5c3a1e; }
@@ -2390,7 +2398,10 @@ export default function Home() {
                   style={{
                     fontSize: 10,
                     transition: "transform 0.2s",
-                    transform: openDropdown === "lang" ? "rotate(180deg)" : "rotate(0deg)",
+                    transform:
+                      openDropdown === "lang"
+                        ? "rotate(180deg)"
+                        : "rotate(0deg)",
                   }}
                 >
                   ▾
@@ -2808,7 +2819,6 @@ export default function Home() {
                 )}
               </div>
             )}
-
             <div
               className="hdak-input-row"
               style={{
@@ -2816,7 +2826,9 @@ export default function Home() {
                 alignItems: "flex-end",
                 gap: 8,
                 background: "#f5efe6",
-                border: inputFocused ? "1.5px solid #8b5e3c" : "1.5px solid #c8b898",
+                border: inputFocused
+                  ? "1.5px solid #8b5e3c"
+                  : "1.5px solid #c8b898",
                 borderRadius: 16,
                 padding: "8px 8px 8px 14px",
                 transition: "border-color 0.15s, box-shadow 0.15s",
@@ -2915,7 +2927,6 @@ export default function Home() {
               </button>
             </div>
             <div
-              classNam            <div
               className="hdak-kb-hint"
               style={{
                 fontSize: 11,
@@ -2924,7 +2935,8 @@ export default function Home() {
               }}
             >
               {t.hint}
-            </div>        {/* Visually-hidden accessible description for screen readers */}
+            </div>{" "}
+            {/* Visually-hidden accessible description for screen readers */}
             <span
               id="keyboard-hints-sr"
               style={{

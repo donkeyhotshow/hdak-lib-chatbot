@@ -1,630 +1,922 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="uk">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ХДАК Бібліотека — AI Асистент</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet">
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            'noir': '#0a0703',
-            'noir-light': '#110c08',
-            'noir-lighter': '#1a1510',
-            'gold': '#d4af37',
-            'gold-light': '#e8c670',
-            'gold-warm': '#c9a227',
-            'cream': '#f8f4eb',
-            'cream-light': '#faf8f3',
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>ХДАК Бібліотека — AI Асистент</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              noir: "#0a0703",
+              "noir-light": "#110c08",
+              "noir-lighter": "#1a1510",
+              gold: "#d4af37",
+              "gold-light": "#e8c670",
+              "gold-warm": "#c9a227",
+              cream: "#f8f4eb",
+              "cream-light": "#faf8f3",
+            },
+            fontFamily: {
+              serif: ["Cormorant Garamond", "Georgia", "serif"],
+              sans: ["Inter", "system-ui", "sans-serif"],
+              display: ["Playfair Display", "Georgia", "serif"],
+            },
           },
-          fontFamily: {
-            'serif': ['Cormorant Garamond', 'Georgia', 'serif'],
-            'sans': ['Inter', 'system-ui', 'sans-serif'],
-            'display': ['Playfair Display', 'Georgia', 'serif'],
-          },
+        },
+      };
+    </script>
+    <style>
+      * {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      html,
+      body {
+        overscroll-behavior: none;
+        touch-action: manipulation;
+      }
+
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
         }
       }
-    }
-  </script>
-  <style>
-    * { 
-      -webkit-font-smoothing: antialiased; 
-      -moz-osx-font-smoothing: grayscale; 
-      -webkit-tap-highlight-color: transparent;
-    }
-    
-    html, body { 
-      overscroll-behavior: none;
-      touch-action: manipulation;
-    }
-    
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-    
-    @keyframes slideIn {
-      from { transform: translateX(-100%); }
-      to { transform: translateX(0); }
-    }
-    
-    @keyframes float {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-5px); }
-    }
-    
-    .animate-fade-in-up {
-      animation: fadeInUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-      opacity: 0;
-    }
-    
-    .animate-fade-in {
-      animation: fadeIn 0.3s ease-out forwards;
-    }
-    
-    .animate-slide-in {
-      animation: slideIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-    }
-    
-    .animate-float {
-      animation: float 4s ease-in-out infinite;
-    }
-    
-    /* Custom scrollbar */
-    ::-webkit-scrollbar { width: 3px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(212, 175, 55, 0.2); border-radius: 10px; }
-    
-    /* Safe area for iOS */
-    .safe-bottom {
-      padding-bottom: env(safe-area-inset-bottom, 0);
-    }
-    
-    .safe-top {
-      padding-top: env(safe-area-inset-top, 0);
-    }
-  </style>
-</head>
-<body class="h-screen h-[100dvh] overflow-hidden bg-cream font-sans text-noir-lighter">
-  
-  <div id="app" class="h-full flex relative">
-    
-    <!-- ===== MOBILE OVERLAY ===== -->
-    <div id="overlay" 
-         class="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 hidden opacity-0 transition-opacity duration-300"
-         onclick="toggleSidebar()"></div>
-    
-    <!-- ===== SIDEBAR ===== -->
-    <aside id="sidebar" 
-           class="fixed md:relative inset-y-0 left-0 z-50 h-full w-[280px] sm:w-[270px]
-                  bg-gradient-to-b from-noir-light via-noir to-noir 
-                  flex flex-col border-r border-gold/[0.06] shrink-0
-                  transform -translate-x-full md:translate-x-0
-                  transition-transform duration-300 ease-out">
-      
-      <!-- Ambient glow -->
-      <div class="absolute top-0 left-0 right-0 h-48 bg-gradient-to-b from-gold/[0.04] to-transparent pointer-events-none"></div>
-      
-      <!-- Header -->
-      <div class="relative p-5 sm:p-6 pb-4 safe-top">
-        <div class="flex items-start justify-between">
-          <div>
-            <div class="flex items-center gap-2.5 sm:gap-3 mb-1.5">
-              <!-- Book Icon -->
-              <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br from-gold/15 to-gold-warm/8 
-                          flex items-center justify-center border border-gold/15 
-                          shadow-lg shadow-gold/[0.05]">
-                <svg width="22" height="18" viewBox="0 0 28 20" fill="none" class="sm:hidden">
-                  <path d="M14 2.5C14 2.5 10 1.5 4 3L3.5 17C9 15.5 13 16.5 14 16.5L14 2.5Z" 
-                        fill="rgba(212,175,55,0.2)" stroke="rgba(212,175,55,0.75)" stroke-width="0.5"/>
-                  <path d="M14 2.5C14 2.5 18 1.5 24 3L24.5 17C19 15.5 15 16.5 14 16.5L14 2.5Z" 
-                        fill="rgba(212,175,55,0.12)" stroke="rgba(212,175,55,0.55)" stroke-width="0.5"/>
-                  <line x1="14" y1="2" x2="14" y2="16.5" stroke="rgba(212,175,55,0.7)" stroke-width="0.6"/>
-                </svg>
-                <svg width="24" height="20" viewBox="0 0 28 20" fill="none" class="hidden sm:block">
-                  <path d="M14 2.5C14 2.5 10 1.5 4 3L3.5 17C9 15.5 13 16.5 14 16.5L14 2.5Z" 
-                        fill="rgba(212,175,55,0.18)" stroke="rgba(212,175,55,0.7)" stroke-width="0.6"/>
-                  <path d="M14 2.5C14 2.5 18 1.5 24 3L24.5 17C19 15.5 15 16.5 14 16.5L14 2.5Z" 
-                        fill="rgba(212,175,55,0.1)" stroke="rgba(212,175,55,0.5)" stroke-width="0.6"/>
-                  <line x1="14" y1="2" x2="14" y2="16.5" stroke="rgba(212,175,55,0.65)" stroke-width="0.7"/>
-                </svg>
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      @keyframes slideIn {
+        from {
+          transform: translateX(-100%);
+        }
+        to {
+          transform: translateX(0);
+        }
+      }
+
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-5px);
+        }
+      }
+
+      .animate-fade-in-up {
+        animation: fadeInUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        opacity: 0;
+      }
+
+      .animate-fade-in {
+        animation: fadeIn 0.3s ease-out forwards;
+      }
+
+      .animate-slide-in {
+        animation: slideIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      }
+
+      .animate-float {
+        animation: float 4s ease-in-out infinite;
+      }
+
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 3px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: rgba(212, 175, 55, 0.2);
+        border-radius: 10px;
+      }
+
+      /* Safe area for iOS */
+      .safe-bottom {
+        padding-bottom: env(safe-area-inset-bottom, 0);
+      }
+
+      .safe-top {
+        padding-top: env(safe-area-inset-top, 0);
+      }
+    </style>
+  </head>
+  <body
+    class="h-screen h-[100dvh] overflow-hidden bg-cream font-sans text-noir-lighter"
+  >
+    <div id="app" class="h-full flex relative">
+      <!-- ===== MOBILE OVERLAY ===== -->
+      <div
+        id="overlay"
+        class="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 hidden opacity-0 transition-opacity duration-300"
+        onclick="toggleSidebar()"
+      ></div>
+
+      <!-- ===== SIDEBAR ===== -->
+      <aside
+        id="sidebar"
+        class="fixed md:relative inset-y-0 left-0 z-50 h-full w-[280px] sm:w-[270px] bg-gradient-to-b from-noir-light via-noir to-noir flex flex-col border-r border-gold/[0.06] shrink-0 transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-out"
+      >
+        <!-- Ambient glow -->
+        <div
+          class="absolute top-0 left-0 right-0 h-48 bg-gradient-to-b from-gold/[0.04] to-transparent pointer-events-none"
+        ></div>
+
+        <!-- Header -->
+        <div class="relative p-5 sm:p-6 pb-4 safe-top">
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="flex items-center gap-2.5 sm:gap-3 mb-1.5">
+                <!-- Book Icon -->
+                <div
+                  class="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br from-gold/15 to-gold-warm/8 flex items-center justify-center border border-gold/15 shadow-lg shadow-gold/[0.05]"
+                >
+                  <svg
+                    width="22"
+                    height="18"
+                    viewBox="0 0 28 20"
+                    fill="none"
+                    class="sm:hidden"
+                  >
+                    <path
+                      d="M14 2.5C14 2.5 10 1.5 4 3L3.5 17C9 15.5 13 16.5 14 16.5L14 2.5Z"
+                      fill="rgba(212,175,55,0.2)"
+                      stroke="rgba(212,175,55,0.75)"
+                      stroke-width="0.5"
+                    />
+                    <path
+                      d="M14 2.5C14 2.5 18 1.5 24 3L24.5 17C19 15.5 15 16.5 14 16.5L14 2.5Z"
+                      fill="rgba(212,175,55,0.12)"
+                      stroke="rgba(212,175,55,0.55)"
+                      stroke-width="0.5"
+                    />
+                    <line
+                      x1="14"
+                      y1="2"
+                      x2="14"
+                      y2="16.5"
+                      stroke="rgba(212,175,55,0.7)"
+                      stroke-width="0.6"
+                    />
+                  </svg>
+                  <svg
+                    width="24"
+                    height="20"
+                    viewBox="0 0 28 20"
+                    fill="none"
+                    class="hidden sm:block"
+                  >
+                    <path
+                      d="M14 2.5C14 2.5 10 1.5 4 3L3.5 17C9 15.5 13 16.5 14 16.5L14 2.5Z"
+                      fill="rgba(212,175,55,0.18)"
+                      stroke="rgba(212,175,55,0.7)"
+                      stroke-width="0.6"
+                    />
+                    <path
+                      d="M14 2.5C14 2.5 18 1.5 24 3L24.5 17C19 15.5 15 16.5 14 16.5L14 2.5Z"
+                      fill="rgba(212,175,55,0.1)"
+                      stroke="rgba(212,175,55,0.5)"
+                      stroke-width="0.6"
+                    />
+                    <line
+                      x1="14"
+                      y1="2"
+                      x2="14"
+                      y2="16.5"
+                      stroke="rgba(212,175,55,0.65)"
+                      stroke-width="0.7"
+                    />
+                  </svg>
+                </div>
+                <!-- Logo -->
+                <span
+                  class="text-[26px] sm:text-[28px] text-gold font-black tracking-[0.08em] sm:tracking-[0.1em] uppercase font-display drop-shadow-[0_2px_10px_rgba(212,175,55,0.3)]"
+                >
+                  ХДАК
+                </span>
               </div>
-              <!-- Logo -->
-              <span class="text-[26px] sm:text-[28px] text-gold font-black tracking-[0.08em] sm:tracking-[0.1em] uppercase font-display 
-                           drop-shadow-[0_2px_10px_rgba(212,175,55,0.3)]">
-                ХДАК
+              <span
+                class="block pl-[48px] sm:pl-[56px] font-serif text-[16px] sm:text-[17px] font-medium text-white/70 tracking-wide italic"
+              >
+                Бібліотека
               </span>
             </div>
-            <span class="block pl-[48px] sm:pl-[56px] font-serif text-[16px] sm:text-[17px] font-medium text-white/70 tracking-wide italic">
-              Бібліотека
-            </span>
-          </div>
-          
-          <!-- Close button (mobile) -->
-          <button onclick="toggleSidebar()" 
-                  class="md:hidden p-2.5 rounded-xl bg-white/[0.03] text-white/50 hover:text-white/80 
-                         hover:bg-white/[0.06] transition-all duration-300 border border-white/[0.05]
-                         active:scale-95">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M18 6L6 18M6 6l12 12"/>
-            </svg>
-          </button>
-        </div>
-      </div>
-      
-      <!-- Divider -->
-      <div class="h-px mx-5 sm:mx-6 bg-gradient-to-r from-transparent via-gold/12 to-transparent"></div>
-      
-      <!-- Navigation -->
-      <nav class="flex-1 overflow-y-auto py-4 sm:py-5 px-3 sm:px-4">
-        
-        <!-- Section: Resources -->
-        <div class="mb-4">
-          <h3 class="text-[9px] sm:text-[10px] text-white/25 font-semibold uppercase tracking-[0.25em] sm:tracking-[0.28em] mb-2 sm:mb-3 px-2 sm:px-3">
-            Ресурси
-          </h3>
-          <div class="space-y-0.5">
-            <a href="#" class="group flex items-center gap-3 px-3 py-3 sm:py-2.5 rounded-xl 
-                              hover:bg-white/[0.04] active:bg-white/[0.06] transition-all duration-200 
-                              border border-transparent hover:border-gold/[0.06]">
-              <div class="w-8 h-8 rounded-xl bg-gold/8 flex items-center justify-center 
-                          group-hover:bg-gold/12 transition-colors duration-200">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" 
-                     stroke-width="1.5" class="text-gold/75 group-hover:text-gold transition-colors">
-                  <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-                </svg>
-              </div>
-              <span class="text-[13px] sm:text-[13px] font-medium text-white/60 group-hover:text-white/95 transition-colors">
-                Пошук в каталозі
-              </span>
-            </a>
-            
-            <a href="#" class="group flex items-center gap-3 px-3 py-3 sm:py-2.5 rounded-xl 
-                              hover:bg-white/[0.04] active:bg-white/[0.06] transition-all duration-200 
-                              border border-transparent hover:border-gold/[0.06]">
-              <div class="w-8 h-8 rounded-xl bg-gold/8 flex items-center justify-center 
-                          group-hover:bg-gold/12 transition-colors duration-200">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" 
-                     stroke-width="1.5" class="text-gold/75 group-hover:text-gold transition-colors">
-                  <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
-                </svg>
-              </div>
-              <span class="text-[13px] font-medium text-white/60 group-hover:text-white/95 transition-colors">
-                Репозитарій
-              </span>
-            </a>
-            
-            <a href="#" class="group flex items-center gap-3 px-3 py-3 sm:py-2.5 rounded-xl 
-                              hover:bg-white/[0.04] active:bg-white/[0.06] transition-all duration-200 
-                              border border-transparent hover:border-gold/[0.06]">
-              <div class="w-8 h-8 rounded-xl bg-gold/8 flex items-center justify-center 
-                          group-hover:bg-gold/12 transition-colors duration-200">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" 
-                     stroke-width="1.5" class="text-gold/75 group-hover:text-gold transition-colors">
-                  <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
-                </svg>
-              </div>
-              <span class="text-[13px] font-medium text-white/60 group-hover:text-white/95 transition-colors">
-                Нові надходження
-              </span>
-            </a>
-            
-            <a href="#" class="group flex items-center gap-3 px-3 py-3 sm:py-2.5 rounded-xl 
-                              hover:bg-white/[0.04] active:bg-white/[0.06] transition-all duration-200 
-                              border border-transparent hover:border-gold/[0.06]">
-              <div class="w-8 h-8 rounded-xl bg-gold/8 flex items-center justify-center 
-                          group-hover:bg-gold/12 transition-colors duration-200">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" 
-                     stroke-width="1.5" class="text-gold/75 group-hover:text-gold transition-colors">
-                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-                </svg>
-              </div>
-              <span class="text-[13px] font-medium text-white/60 group-hover:text-white/95 transition-colors">
-                Корисні посилання
-              </span>
-            </a>
-          </div>
-        </div>
-        
-      </nav>
-      
-      <!-- Footer -->
-      <div class="p-4 sm:p-5 border-t border-white/[0.025] safe-bottom">
-        <button class="w-full py-4 sm:py-3.5 rounded-2xl text-[13px] sm:text-[12px] font-semibold tracking-wider
-                       bg-gradient-to-r from-gold via-gold-light to-gold 
-                       text-noir hover:shadow-xl hover:shadow-gold/25 
-                       active:scale-[0.98] transition-all duration-200 
-                       flex items-center justify-center gap-2.5">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <path d="M12 5v14M5 12h14"/>
-          </svg>
-          <span>Новий чат</span>
-        </button>
-      </div>
-      
-    </aside>
-    
-    <!-- ===== MAIN CONTENT ===== -->
-    <main class="flex-1 flex flex-col h-full min-w-0 relative">
-      
-      <!-- Background -->
-      <div class="absolute inset-0 -z-10 bg-gradient-to-br from-cream via-cream-light to-[#f5f0e6]">
-        <!-- Warm radial glow -->
-        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] 
-                    bg-[radial-gradient(ellipse_at_top,rgba(212,175,55,0.04)_0%,transparent_55%)]"></div>
-        <!-- Bottom fade -->
-        <div class="absolute bottom-0 left-0 right-0 h-[300px] 
-                    bg-gradient-to-t from-white/60 to-transparent"></div>
-      </div>
-      
-      <!-- Header -->
-      <header class="h-14 sm:h-16 flex items-center justify-between px-4 sm:px-6 
-                     bg-noir/[0.012] border-b border-gold/[0.05] shrink-0 safe-top">
-        
-        <!-- Menu Button (mobile) -->
-        <button onclick="toggleSidebar()" 
-                class="md:hidden w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-xl 
-                       text-noir-lighter/50 hover:text-noir-lighter/80 hover:bg-gold/5 
-                       active:scale-95 transition-all duration-200">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="4" y1="6" x2="20" y2="6"/>
-            <line x1="4" y1="12" x2="20" y2="12"/>
-            <line x1="4" y1="18" x2="20" y2="18"/>
-          </svg>
-        </button>
-        
-        <!-- Center Logo -->
-        <div class="flex items-center gap-2">
-          <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-gold/12 to-gold-warm/6 
-                      flex items-center justify-center border border-gold/12">
-            <svg width="15" height="12" viewBox="0 0 28 20" fill="none" class="sm:hidden">
-              <path d="M14 2.5C14 2.5 10 1.5 4 3L3.5 17C9 15.5 13 16.5 14 16.5L14 2.5Z" 
-                    fill="rgba(212,175,55,0.15)" stroke="rgba(212,175,55,0.6)" stroke-width="0.5"/>
-              <path d="M14 2.5C14 2.5 18 1.5 24 3L24.5 17C19 15.5 15 16.5 14 16.5L14 2.5Z" 
-                    fill="rgba(212,175,55,0.08)" stroke="rgba(212,175,55,0.45)" stroke-width="0.5"/>
-              <line x1="14" y1="2" x2="14" y2="16.5" stroke="rgba(212,175,55,0.5)" stroke-width="0.5"/>
-            </svg>
-            <svg width="17" height="14" viewBox="0 0 28 20" fill="none" class="hidden sm:block">
-              <path d="M14 2.5C14 2.5 10 1.5 4 3L3.5 17C9 15.5 13 16.5 14 16.5L14 2.5Z" 
-                    fill="rgba(212,175,55,0.15)" stroke="rgba(212,175,55,0.6)" stroke-width="0.5"/>
-              <path d="M14 2.5C14 2.5 18 1.5 24 3L24.5 17C19 15.5 15 16.5 14 16.5L14 2.5Z" 
-                    fill="rgba(212,175,55,0.08)" stroke="rgba(212,175,55,0.45)" stroke-width="0.5"/>
-              <line x1="14" y1="2" x2="14" y2="16.5" stroke="rgba(212,175,55,0.5)" stroke-width="0.5"/>
-            </svg>
-          </div>
-          <span class="text-[22px] sm:text-[24px] text-gold-warm font-black tracking-[0.06em] sm:tracking-[0.08em] uppercase font-display">
-            ХДАК
-          </span>
-        </div>
-        
-        <!-- User Avatar -->
-        <div class="w-10 h-10 sm:w-11 sm:h-11 flex justify-end">
-          <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-noir to-noir-light 
-                      text-gold flex items-center justify-center text-[11px] sm:text-[12px] font-semibold 
-                      border border-gold/15 shadow-sm">
-            В
-          </div>
-        </div>
-        
-      </header>
-      
-      <!-- Content Area -->
-      <div class="flex-1 flex flex-col min-h-0 overflow-y-auto pb-24 sm:pb-0">
-        
-        <!-- Welcome Screen -->
-        <div class="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 py-6 sm:py-10">
-          <div class="text-center w-full max-w-lg">
-            
-            <!-- Book Icon -->
-            <div class="flex justify-center mb-4 sm:mb-5 animate-fade-in-up" style="animation-delay: 0ms">
-              <div class="relative">
-                <div class="absolute inset-[-8px] sm:inset-[-10px] rounded-full bg-gradient-to-br from-gold/8 to-transparent 
-                            blur-xl animate-float"></div>
-                <div class="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-gold/10 to-gold-warm/5 
-                            flex items-center justify-center border border-gold/12 
-                            shadow-xl shadow-gold/[0.03]">
-                  <svg width="44" height="36" viewBox="0 0 28 20" fill="none" class="sm:hidden animate-float">
-                    <path d="M14 2.5C14 2.5 10 1.5 4 3L3.5 17C9 15.5 13 16.5 14 16.5L14 2.5Z" 
-                          fill="rgba(212,175,55,0.12)" stroke="rgba(212,175,55,0.55)" stroke-width="0.4"/>
-                    <path d="M14 2.5C14 2.5 18 1.5 24 3L24.5 17C19 15.5 15 16.5 14 16.5L14 2.5Z" 
-                          fill="rgba(212,175,55,0.07)" stroke="rgba(212,175,55,0.4)" stroke-width="0.4"/>
-                    <line x1="14" y1="2" x2="14" y2="16.5" stroke="rgba(212,175,55,0.5)" stroke-width="0.5"/>
-                  </svg>
-                  <svg width="52" height="42" viewBox="0 0 28 20" fill="none" class="hidden sm:block animate-float">
-                    <path d="M14 2.5C14 2.5 10 1.5 4 3L3.5 17C9 15.5 13 16.5 14 16.5L14 2.5Z" 
-                          fill="rgba(212,175,55,0.12)" stroke="rgba(212,175,55,0.55)" stroke-width="0.4"/>
-                    <path d="M14 2.5C14 2.5 18 1.5 24 3L24.5 17C19 15.5 15 16.5 14 16.5L14 2.5Z" 
-                          fill="rgba(212,175,55,0.07)" stroke="rgba(212,175,55,0.4)" stroke-width="0.4"/>
-                    <line x1="14" y1="2" x2="14" y2="16.5" stroke="rgba(212,175,55,0.5)" stroke-width="0.5"/>
-                  </svg>
-                </div>
-              </div>
-            </div>
-            
-            <!-- Title -->
-            <h1 class="text-[22px] sm:text-[26px] font-serif text-noir-lighter mb-1.5 sm:mb-2 tracking-tight leading-tight 
-                       animate-fade-in-up" style="animation-delay: 60ms">
-              Ваш особистий асистент
-            </h1>
-            
-            <!-- Subtitle -->
-            <p class="text-[13px] sm:text-[14px] text-noir-lighter/40 mb-5 sm:mb-7 font-light leading-relaxed 
-                      animate-fade-in-up" style="animation-delay: 120ms">
-              Оберіть тему або напишіть запитання
-            </p>
-            
-            <!-- Topic Cards -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3.5 max-w-sm sm:max-w-md mx-auto">
-              
-              <!-- Card 1: Графік роботи -->
-              <button class="animate-fade-in-up group flex items-center gap-3 sm:gap-3.5 px-4 sm:px-5 py-3.5 sm:py-4 
-                            bg-white/85 backdrop-blur-sm border border-gold/[0.06] rounded-xl sm:rounded-2xl 
-                            shadow-sm shadow-black/[0.015] 
-                            hover:border-gold/30 active:scale-[0.98] sm:hover:-translate-y-0.5
-                            transition-all duration-200 text-left w-full
-                            focus:outline-none focus:ring-2 focus:ring-gold/20"
-                      style="animation-delay: 180ms">
-                <div class="w-10 h-10 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-gold/10 to-gold-warm/5 
-                            flex items-center justify-center group-hover:from-gold/15 group-hover:to-gold-warm/8 
-                            transition-all duration-200 border border-gold/[0.06] group-hover:border-gold/20 shrink-0">
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" 
-                       stroke-width="1.5" class="text-gold-warm/75 group-hover:text-gold-warm transition-colors">
-                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                  </svg>
-                </div>
-                <span class="text-[14px] sm:text-[14px] font-medium text-noir-lighter/75 group-hover:text-noir-lighter 
-                             transition-colors text-left">
-                  Графік роботи
-                </span>
-              </button>
-              
-              <!-- Card 2: Як записатися -->
-              <button class="animate-fade-in-up group flex items-center gap-3 sm:gap-3.5 px-4 sm:px-5 py-3.5 sm:py-4 
-                            bg-white/85 backdrop-blur-sm border border-gold/[0.06] rounded-xl sm:rounded-2xl 
-                            shadow-sm shadow-black/[0.015] 
-                            hover:border-gold/30 active:scale-[0.98] sm:hover:-translate-y-0.5
-                            transition-all duration-200 text-left w-full
-                            focus:outline-none focus:ring-2 focus:ring-gold/20"
-                      style="animation-delay: 220ms">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-gold/10 to-gold-warm/5 
-                            flex items-center justify-center group-hover:from-gold/15 group-hover:to-gold-warm/8 
-                            transition-all duration-200 border border-gold/[0.06] group-hover:border-gold/20 shrink-0">
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" 
-                       stroke-width="1.5" class="text-gold-warm/75 group-hover:text-gold-warm transition-colors">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                    <circle cx="9" cy="7" r="4"/>
-                    <line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/>
-                  </svg>
-                </div>
-                <span class="text-[14px] font-medium text-noir-lighter/75 group-hover:text-noir-lighter 
-                             transition-colors text-left">
-                  Як записатися
-                </span>
-              </button>
-              
-              <!-- Card 3: Пошук в каталозі -->
-              <button class="animate-fade-in-up group flex items-center gap-3 sm:gap-3.5 px-4 sm:px-5 py-3.5 sm:py-4 
-                            bg-white/85 backdrop-blur-sm border border-gold/[0.06] rounded-xl sm:rounded-2xl 
-                            shadow-sm shadow-black/[0.015] 
-                            hover:border-gold/30 active:scale-[0.98] sm:hover:-translate-y-0.5
-                            transition-all duration-200 text-left w-full
-                            focus:outline-none focus:ring-2 focus:ring-gold/20"
-                      style="animation-delay: 260ms">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-gold/10 to-gold-warm/5 
-                            flex items-center justify-center group-hover:from-gold/15 group-hover:to-gold-warm/8 
-                            transition-all duration-200 border border-gold/[0.06] group-hover:border-gold/20 shrink-0">
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" 
-                       stroke-width="1.5" class="text-gold-warm/75 group-hover:text-gold-warm transition-colors">
-                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-                  </svg>
-                </div>
-                <span class="text-[14px] font-medium text-noir-lighter/75 group-hover:text-noir-lighter 
-                             transition-colors text-left">
-                  Пошук в каталозі
-                </span>
-              </button>
-              
-              <!-- Card 4: Контакти -->
-              <button class="animate-fade-in-up group flex items-center gap-3 sm:gap-3.5 px-4 sm:px-5 py-3.5 sm:py-4 
-                            bg-white/85 backdrop-blur-sm border border-gold/[0.06] rounded-xl sm:rounded-2xl 
-                            shadow-sm shadow-black/[0.015] 
-                            hover:border-gold/30 active:scale-[0.98] sm:hover:-translate-y-0.5
-                            transition-all duration-200 text-left w-full
-                            focus:outline-none focus:ring-2 focus:ring-gold/20"
-                      style="animation-delay: 300ms">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-gold/10 to-gold-warm/5 
-                            flex items-center justify-center group-hover:from-gold/15 group-hover:to-gold-warm/8 
-                            transition-all duration-200 border border-gold/[0.06] group-hover:border-gold/20 shrink-0">
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" 
-                       stroke-width="1.5" class="text-gold-warm/75 group-hover:text-gold-warm transition-colors">
-                    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
-                    <circle cx="12" cy="10" r="3"/>
-                  </svg>
-                </div>
-                <span class="text-[14px] font-medium text-noir-lighter/75 group-hover:text-noir-lighter 
-                             transition-colors text-left">
-                  Контакти
-                </span>
-              </button>
-              
-              <!-- Card 5: Правила користування -->
-              <button class="animate-fade-in-up group flex items-center gap-3 sm:gap-3.5 px-4 sm:px-5 py-3.5 sm:py-4 
-                            bg-white/85 backdrop-blur-sm border border-gold/[0.06] rounded-xl sm:rounded-2xl 
-                            shadow-sm shadow-black/[0.015] 
-                            hover:border-gold/30 active:scale-[0.98] sm:hover:-translate-y-0.5
-                            transition-all duration-200 text-left w-full
-                            focus:outline-none focus:ring-2 focus:ring-gold/20"
-                      style="animation-delay: 340ms">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-gold/10 to-gold-warm/5 
-                            flex items-center justify-center group-hover:from-gold/15 group-hover:to-gold-warm/8 
-                            transition-all duration-200 border border-gold/[0.06] group-hover:border-gold/20 shrink-0">
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" 
-                       stroke-width="1.5" class="text-gold-warm/75 group-hover:text-gold-warm transition-colors">
-                    <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
-                  </svg>
-                </div>
-                <span class="text-[14px] font-medium text-noir-lighter/75 group-hover:text-noir-lighter 
-                             transition-colors text-left">
-                  Правила користування
-                </span>
-              </button>
-              
-              <!-- Card 6: Електронні ресурси -->
-              <button class="animate-fade-in-up group flex items-center gap-3 sm:gap-3.5 px-4 sm:px-5 py-3.5 sm:py-4 
-                            bg-white/85 backdrop-blur-sm border border-gold/[0.06] rounded-xl sm:rounded-2xl 
-                            shadow-sm shadow-black/[0.015] 
-                            hover:border-gold/30 active:scale-[0.98] sm:hover:-translate-y-0.5
-                            transition-all duration-200 text-left w-full
-                            focus:outline-none focus:ring-2 focus:ring-gold/20"
-                      style="animation-delay: 380ms">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-gold/10 to-gold-warm/5 
-                            flex items-center justify-center group-hover:from-gold/15 group-hover:to-gold-warm/8 
-                            transition-all duration-200 border border-gold/[0.06] group-hover:border-gold/20 shrink-0">
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" 
-                       stroke-width="1.5" class="text-gold-warm/75 group-hover:text-gold-warm transition-colors">
-                    <circle cx="12" cy="12" r="10"/>
-                    <line x1="2" x2="22" y1="12" y2="12"/>
-                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-                  </svg>
-                </div>
-                <span class="text-[14px] font-medium text-noir-lighter/75 group-hover:text-noir-lighter 
-                             transition-colors text-left">
-                  Електронні ресурси
-                </span>
-              </button>
-              
-            </div>
-            
-          </div>
-        </div>
-        
-      </div>
-      
-      <!-- Input Area - Fixed on Mobile -->
-      <div class="fixed sm:relative bottom-0 left-0 right-0 sm:left-auto sm:right-auto
-                  p-4 sm:p-5 bg-gradient-to-t from-white/95 via-white/80 to-white/40
-                  border-t border-gold/[0.04] sm:border-t-0 safe-bottom z-30">
-        <div class="max-w-2xl mx-auto relative">
-          
-          <!-- Ambient glow -->
-          <div class="absolute inset-0 bg-gradient-to-r from-gold/[0.02] via-transparent to-gold/[0.02] 
-                      rounded-2xl blur-xl opacity-70 hidden sm:block"></div>
-          
-          <!-- Input container -->
-          <div class="relative flex items-center">
-            <input type="text" 
-                   placeholder="Запитайте про каталог, контакти чи послуги..."
-                   class="w-full h-12 sm:h-14 pl-4 sm:pl-5 pr-14 sm:pr-16 
-                          bg-white border border-gold/[0.07] rounded-xl sm:rounded-2xl 
-                          shadow-lg shadow-black/[0.02] 
-                          focus:outline-none focus:border-gold/35 focus:ring-4 focus:ring-gold/10 
-                          text-[15px] font-normal placeholder:text-noir-lighter/30 
-                          transition-all duration-300">
-            
-            <!-- Send Button -->
-            <button class="absolute right-1.5 sm:right-2 w-11 h-11 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl 
-                          bg-gradient-to-br from-gold via-gold-light to-gold 
-                          text-white shadow-lg shadow-gold/25 
-                          hover:shadow-xl hover:shadow-gold/35 hover:scale-105 sm:hover:scale-105
-                          active:scale-95 transition-all duration-200
-                          flex items-center justify-center">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" 
-                   stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="m22 2-7 20-4-9-9-4Z"/>
-                <path d="M22 2 11 13"/>
+
+            <!-- Close button (mobile) -->
+            <button
+              onclick="toggleSidebar()"
+              class="md:hidden p-2.5 rounded-xl bg-white/[0.03] text-white/50 hover:text-white/80 hover:bg-white/[0.06] transition-all duration-300 border border-white/[0.05] active:scale-95"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M18 6L6 18M6 6l12 12" />
               </svg>
             </button>
           </div>
-          
         </div>
-      </div>
-      
-    </main>
-    
-  </div>
-  
-  <script>
-    // Toggle sidebar
-    function toggleSidebar() {
-      const sidebar = document.getElementById('sidebar');
-      const overlay = document.getElementById('overlay');
-      
-      const isOpen = sidebar.classList.contains('translate-x-0');
-      
-      if (isOpen) {
-        sidebar.classList.remove('translate-x-0');
-        sidebar.classList.add('-translate-x-full');
-        overlay.classList.add('hidden');
-        overlay.classList.remove('opacity-100');
-        overlay.classList.add('opacity-0');
-        document.body.style.overflow = '';
-      } else {
-        sidebar.classList.remove('-translate-x-full');
-        sidebar.classList.add('translate-x-0');
-        overlay.classList.remove('hidden');
-        setTimeout(() => {
-          overlay.classList.remove('opacity-0');
-          overlay.classList.add('opacity-100');
-        }, 10);
-        document.body.style.overflow = 'hidden';
+
+        <!-- Divider -->
+        <div
+          class="h-px mx-5 sm:mx-6 bg-gradient-to-r from-transparent via-gold/12 to-transparent"
+        ></div>
+
+        <!-- Navigation -->
+        <nav class="flex-1 overflow-y-auto py-4 sm:py-5 px-3 sm:px-4">
+          <!-- Section: Resources -->
+          <div class="mb-4">
+            <h3
+              class="text-[9px] sm:text-[10px] text-white/25 font-semibold uppercase tracking-[0.25em] sm:tracking-[0.28em] mb-2 sm:mb-3 px-2 sm:px-3"
+            >
+              Ресурси
+            </h3>
+            <div class="space-y-0.5">
+              <a
+                href="#"
+                class="group flex items-center gap-3 px-3 py-3 sm:py-2.5 rounded-xl hover:bg-white/[0.04] active:bg-white/[0.06] transition-all duration-200 border border-transparent hover:border-gold/[0.06]"
+              >
+                <div
+                  class="w-8 h-8 rounded-xl bg-gold/8 flex items-center justify-center group-hover:bg-gold/12 transition-colors duration-200"
+                >
+                  <svg
+                    width="15"
+                    height="15"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    class="text-gold/75 group-hover:text-gold transition-colors"
+                  >
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="m21 21-4.35-4.35" />
+                  </svg>
+                </div>
+                <span
+                  class="text-[13px] sm:text-[13px] font-medium text-white/60 group-hover:text-white/95 transition-colors"
+                >
+                  Пошук в каталозі
+                </span>
+              </a>
+
+              <a
+                href="#"
+                class="group flex items-center gap-3 px-3 py-3 sm:py-2.5 rounded-xl hover:bg-white/[0.04] active:bg-white/[0.06] transition-all duration-200 border border-transparent hover:border-gold/[0.06]"
+              >
+                <div
+                  class="w-8 h-8 rounded-xl bg-gold/8 flex items-center justify-center group-hover:bg-gold/12 transition-colors duration-200"
+                >
+                  <svg
+                    width="15"
+                    height="15"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    class="text-gold/75 group-hover:text-gold transition-colors"
+                  >
+                    <path
+                      d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"
+                    />
+                  </svg>
+                </div>
+                <span
+                  class="text-[13px] font-medium text-white/60 group-hover:text-white/95 transition-colors"
+                >
+                  Репозитарій
+                </span>
+              </a>
+
+              <a
+                href="#"
+                class="group flex items-center gap-3 px-3 py-3 sm:py-2.5 rounded-xl hover:bg-white/[0.04] active:bg-white/[0.06] transition-all duration-200 border border-transparent hover:border-gold/[0.06]"
+              >
+                <div
+                  class="w-8 h-8 rounded-xl bg-gold/8 flex items-center justify-center group-hover:bg-gold/12 transition-colors duration-200"
+                >
+                  <svg
+                    width="15"
+                    height="15"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    class="text-gold/75 group-hover:text-gold transition-colors"
+                  >
+                    <path
+                      d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"
+                    />
+                  </svg>
+                </div>
+                <span
+                  class="text-[13px] font-medium text-white/60 group-hover:text-white/95 transition-colors"
+                >
+                  Нові надходження
+                </span>
+              </a>
+
+              <a
+                href="#"
+                class="group flex items-center gap-3 px-3 py-3 sm:py-2.5 rounded-xl hover:bg-white/[0.04] active:bg-white/[0.06] transition-all duration-200 border border-transparent hover:border-gold/[0.06]"
+              >
+                <div
+                  class="w-8 h-8 rounded-xl bg-gold/8 flex items-center justify-center group-hover:bg-gold/12 transition-colors duration-200"
+                >
+                  <svg
+                    width="15"
+                    height="15"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    class="text-gold/75 group-hover:text-gold transition-colors"
+                  >
+                    <path
+                      d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"
+                    />
+                    <path
+                      d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"
+                    />
+                  </svg>
+                </div>
+                <span
+                  class="text-[13px] font-medium text-white/60 group-hover:text-white/95 transition-colors"
+                >
+                  Корисні посилання
+                </span>
+              </a>
+            </div>
+          </div>
+        </nav>
+
+        <!-- Footer -->
+        <div class="p-4 sm:p-5 border-t border-white/[0.025] safe-bottom">
+          <button
+            class="w-full py-4 sm:py-3.5 rounded-2xl text-[13px] sm:text-[12px] font-semibold tracking-wider bg-gradient-to-r from-gold via-gold-light to-gold text-noir hover:shadow-xl hover:shadow-gold/25 active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2.5"
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            <span>Новий чат</span>
+          </button>
+        </div>
+      </aside>
+
+      <!-- ===== MAIN CONTENT ===== -->
+      <main class="flex-1 flex flex-col h-full min-w-0 relative">
+        <!-- Background -->
+        <div
+          class="absolute inset-0 -z-10 bg-gradient-to-br from-cream via-cream-light to-[#f5f0e6]"
+        >
+          <!-- Warm radial glow -->
+          <div
+            class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-[radial-gradient(ellipse_at_top,rgba(212,175,55,0.04)_0%,transparent_55%)]"
+          ></div>
+          <!-- Bottom fade -->
+          <div
+            class="absolute bottom-0 left-0 right-0 h-[300px] bg-gradient-to-t from-white/60 to-transparent"
+          ></div>
+        </div>
+
+        <!-- Header -->
+        <header
+          class="h-14 sm:h-16 flex items-center justify-between px-4 sm:px-6 bg-noir/[0.012] border-b border-gold/[0.05] shrink-0 safe-top"
+        >
+          <!-- Menu Button (mobile) -->
+          <button
+            onclick="toggleSidebar()"
+            class="md:hidden w-10 h-10 sm:w-11 sm:h-11 flex items-center justify-center rounded-xl text-noir-lighter/50 hover:text-noir-lighter/80 hover:bg-gold/5 active:scale-95 transition-all duration-200"
+          >
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line x1="4" y1="6" x2="20" y2="6" />
+              <line x1="4" y1="12" x2="20" y2="12" />
+              <line x1="4" y1="18" x2="20" y2="18" />
+            </svg>
+          </button>
+
+          <!-- Center Logo -->
+          <div class="flex items-center gap-2">
+            <div
+              class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-gold/12 to-gold-warm/6 flex items-center justify-center border border-gold/12"
+            >
+              <svg
+                width="15"
+                height="12"
+                viewBox="0 0 28 20"
+                fill="none"
+                class="sm:hidden"
+              >
+                <path
+                  d="M14 2.5C14 2.5 10 1.5 4 3L3.5 17C9 15.5 13 16.5 14 16.5L14 2.5Z"
+                  fill="rgba(212,175,55,0.15)"
+                  stroke="rgba(212,175,55,0.6)"
+                  stroke-width="0.5"
+                />
+                <path
+                  d="M14 2.5C14 2.5 18 1.5 24 3L24.5 17C19 15.5 15 16.5 14 16.5L14 2.5Z"
+                  fill="rgba(212,175,55,0.08)"
+                  stroke="rgba(212,175,55,0.45)"
+                  stroke-width="0.5"
+                />
+                <line
+                  x1="14"
+                  y1="2"
+                  x2="14"
+                  y2="16.5"
+                  stroke="rgba(212,175,55,0.5)"
+                  stroke-width="0.5"
+                />
+              </svg>
+              <svg
+                width="17"
+                height="14"
+                viewBox="0 0 28 20"
+                fill="none"
+                class="hidden sm:block"
+              >
+                <path
+                  d="M14 2.5C14 2.5 10 1.5 4 3L3.5 17C9 15.5 13 16.5 14 16.5L14 2.5Z"
+                  fill="rgba(212,175,55,0.15)"
+                  stroke="rgba(212,175,55,0.6)"
+                  stroke-width="0.5"
+                />
+                <path
+                  d="M14 2.5C14 2.5 18 1.5 24 3L24.5 17C19 15.5 15 16.5 14 16.5L14 2.5Z"
+                  fill="rgba(212,175,55,0.08)"
+                  stroke="rgba(212,175,55,0.45)"
+                  stroke-width="0.5"
+                />
+                <line
+                  x1="14"
+                  y1="2"
+                  x2="14"
+                  y2="16.5"
+                  stroke="rgba(212,175,55,0.5)"
+                  stroke-width="0.5"
+                />
+              </svg>
+            </div>
+            <span
+              class="text-[22px] sm:text-[24px] text-gold-warm font-black tracking-[0.06em] sm:tracking-[0.08em] uppercase font-display"
+            >
+              ХДАК
+            </span>
+          </div>
+
+          <!-- User Avatar -->
+          <div class="w-10 h-10 sm:w-11 sm:h-11 flex justify-end">
+            <div
+              class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-noir to-noir-light text-gold flex items-center justify-center text-[11px] sm:text-[12px] font-semibold border border-gold/15 shadow-sm"
+            >
+              В
+            </div>
+          </div>
+        </header>
+
+        <!-- Content Area -->
+        <div class="flex-1 flex flex-col min-h-0 overflow-y-auto pb-24 sm:pb-0">
+          <!-- Welcome Screen -->
+          <div
+            class="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 py-6 sm:py-10"
+          >
+            <div class="text-center w-full max-w-lg">
+              <!-- Book Icon -->
+              <div
+                class="flex justify-center mb-4 sm:mb-5 animate-fade-in-up"
+                style="animation-delay: 0ms"
+              >
+                <div class="relative">
+                  <div
+                    class="absolute inset-[-8px] sm:inset-[-10px] rounded-full bg-gradient-to-br from-gold/8 to-transparent blur-xl animate-float"
+                  ></div>
+                  <div
+                    class="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-gold/10 to-gold-warm/5 flex items-center justify-center border border-gold/12 shadow-xl shadow-gold/[0.03]"
+                  >
+                    <svg
+                      width="44"
+                      height="36"
+                      viewBox="0 0 28 20"
+                      fill="none"
+                      class="sm:hidden animate-float"
+                    >
+                      <path
+                        d="M14 2.5C14 2.5 10 1.5 4 3L3.5 17C9 15.5 13 16.5 14 16.5L14 2.5Z"
+                        fill="rgba(212,175,55,0.12)"
+                        stroke="rgba(212,175,55,0.55)"
+                        stroke-width="0.4"
+                      />
+                      <path
+                        d="M14 2.5C14 2.5 18 1.5 24 3L24.5 17C19 15.5 15 16.5 14 16.5L14 2.5Z"
+                        fill="rgba(212,175,55,0.07)"
+                        stroke="rgba(212,175,55,0.4)"
+                        stroke-width="0.4"
+                      />
+                      <line
+                        x1="14"
+                        y1="2"
+                        x2="14"
+                        y2="16.5"
+                        stroke="rgba(212,175,55,0.5)"
+                        stroke-width="0.5"
+                      />
+                    </svg>
+                    <svg
+                      width="52"
+                      height="42"
+                      viewBox="0 0 28 20"
+                      fill="none"
+                      class="hidden sm:block animate-float"
+                    >
+                      <path
+                        d="M14 2.5C14 2.5 10 1.5 4 3L3.5 17C9 15.5 13 16.5 14 16.5L14 2.5Z"
+                        fill="rgba(212,175,55,0.12)"
+                        stroke="rgba(212,175,55,0.55)"
+                        stroke-width="0.4"
+                      />
+                      <path
+                        d="M14 2.5C14 2.5 18 1.5 24 3L24.5 17C19 15.5 15 16.5 14 16.5L14 2.5Z"
+                        fill="rgba(212,175,55,0.07)"
+                        stroke="rgba(212,175,55,0.4)"
+                        stroke-width="0.4"
+                      />
+                      <line
+                        x1="14"
+                        y1="2"
+                        x2="14"
+                        y2="16.5"
+                        stroke="rgba(212,175,55,0.5)"
+                        stroke-width="0.5"
+                      />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Title -->
+              <h1
+                class="text-[22px] sm:text-[26px] font-serif text-noir-lighter mb-1.5 sm:mb-2 tracking-tight leading-tight animate-fade-in-up"
+                style="animation-delay: 60ms"
+              >
+                Ваш особистий асистент
+              </h1>
+
+              <!-- Subtitle -->
+              <p
+                class="text-[13px] sm:text-[14px] text-noir-lighter/40 mb-5 sm:mb-7 font-light leading-relaxed animate-fade-in-up"
+                style="animation-delay: 120ms"
+              >
+                Оберіть тему або напишіть запитання
+              </p>
+
+              <!-- Topic Cards -->
+              <div
+                class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3.5 max-w-sm sm:max-w-md mx-auto"
+              >
+                <!-- Card 1: Графік роботи -->
+                <button
+                  class="animate-fade-in-up group flex items-center gap-3 sm:gap-3.5 px-4 sm:px-5 py-3.5 sm:py-4 bg-white/85 backdrop-blur-sm border border-gold/[0.06] rounded-xl sm:rounded-2xl shadow-sm shadow-black/[0.015] hover:border-gold/30 active:scale-[0.98] sm:hover:-translate-y-0.5 transition-all duration-200 text-left w-full focus:outline-none focus:ring-2 focus:ring-gold/20"
+                  style="animation-delay: 180ms"
+                >
+                  <div
+                    class="w-10 h-10 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-gold/10 to-gold-warm/5 flex items-center justify-center group-hover:from-gold/15 group-hover:to-gold-warm/8 transition-all duration-200 border border-gold/[0.06] group-hover:border-gold/20 shrink-0"
+                  >
+                    <svg
+                      width="17"
+                      height="17"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      class="text-gold-warm/75 group-hover:text-gold-warm transition-colors"
+                    >
+                      <circle cx="12" cy="12" r="10" />
+                      <polyline points="12 6 12 12 16 14" />
+                    </svg>
+                  </div>
+                  <span
+                    class="text-[14px] sm:text-[14px] font-medium text-noir-lighter/75 group-hover:text-noir-lighter transition-colors text-left"
+                  >
+                    Графік роботи
+                  </span>
+                </button>
+
+                <!-- Card 2: Як записатися -->
+                <button
+                  class="animate-fade-in-up group flex items-center gap-3 sm:gap-3.5 px-4 sm:px-5 py-3.5 sm:py-4 bg-white/85 backdrop-blur-sm border border-gold/[0.06] rounded-xl sm:rounded-2xl shadow-sm shadow-black/[0.015] hover:border-gold/30 active:scale-[0.98] sm:hover:-translate-y-0.5 transition-all duration-200 text-left w-full focus:outline-none focus:ring-2 focus:ring-gold/20"
+                  style="animation-delay: 220ms"
+                >
+                  <div
+                    class="w-10 h-10 rounded-xl bg-gradient-to-br from-gold/10 to-gold-warm/5 flex items-center justify-center group-hover:from-gold/15 group-hover:to-gold-warm/8 transition-all duration-200 border border-gold/[0.06] group-hover:border-gold/20 shrink-0"
+                  >
+                    <svg
+                      width="17"
+                      height="17"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      class="text-gold-warm/75 group-hover:text-gold-warm transition-colors"
+                    >
+                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                      <line x1="19" x2="19" y1="8" y2="14" />
+                      <line x1="22" x2="16" y1="11" y2="11" />
+                    </svg>
+                  </div>
+                  <span
+                    class="text-[14px] font-medium text-noir-lighter/75 group-hover:text-noir-lighter transition-colors text-left"
+                  >
+                    Як записатися
+                  </span>
+                </button>
+
+                <!-- Card 3: Пошук в каталозі -->
+                <button
+                  class="animate-fade-in-up group flex items-center gap-3 sm:gap-3.5 px-4 sm:px-5 py-3.5 sm:py-4 bg-white/85 backdrop-blur-sm border border-gold/[0.06] rounded-xl sm:rounded-2xl shadow-sm shadow-black/[0.015] hover:border-gold/30 active:scale-[0.98] sm:hover:-translate-y-0.5 transition-all duration-200 text-left w-full focus:outline-none focus:ring-2 focus:ring-gold/20"
+                  style="animation-delay: 260ms"
+                >
+                  <div
+                    class="w-10 h-10 rounded-xl bg-gradient-to-br from-gold/10 to-gold-warm/5 flex items-center justify-center group-hover:from-gold/15 group-hover:to-gold-warm/8 transition-all duration-200 border border-gold/[0.06] group-hover:border-gold/20 shrink-0"
+                  >
+                    <svg
+                      width="17"
+                      height="17"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      class="text-gold-warm/75 group-hover:text-gold-warm transition-colors"
+                    >
+                      <circle cx="11" cy="11" r="8" />
+                      <path d="m21 21-4.35-4.35" />
+                    </svg>
+                  </div>
+                  <span
+                    class="text-[14px] font-medium text-noir-lighter/75 group-hover:text-noir-lighter transition-colors text-left"
+                  >
+                    Пошук в каталозі
+                  </span>
+                </button>
+
+                <!-- Card 4: Контакти -->
+                <button
+                  class="animate-fade-in-up group flex items-center gap-3 sm:gap-3.5 px-4 sm:px-5 py-3.5 sm:py-4 bg-white/85 backdrop-blur-sm border border-gold/[0.06] rounded-xl sm:rounded-2xl shadow-sm shadow-black/[0.015] hover:border-gold/30 active:scale-[0.98] sm:hover:-translate-y-0.5 transition-all duration-200 text-left w-full focus:outline-none focus:ring-2 focus:ring-gold/20"
+                  style="animation-delay: 300ms"
+                >
+                  <div
+                    class="w-10 h-10 rounded-xl bg-gradient-to-br from-gold/10 to-gold-warm/5 flex items-center justify-center group-hover:from-gold/15 group-hover:to-gold-warm/8 transition-all duration-200 border border-gold/[0.06] group-hover:border-gold/20 shrink-0"
+                  >
+                    <svg
+                      width="17"
+                      height="17"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      class="text-gold-warm/75 group-hover:text-gold-warm transition-colors"
+                    >
+                      <path
+                        d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"
+                      />
+                      <circle cx="12" cy="10" r="3" />
+                    </svg>
+                  </div>
+                  <span
+                    class="text-[14px] font-medium text-noir-lighter/75 group-hover:text-noir-lighter transition-colors text-left"
+                  >
+                    Контакти
+                  </span>
+                </button>
+
+                <!-- Card 5: Правила користування -->
+                <button
+                  class="animate-fade-in-up group flex items-center gap-3 sm:gap-3.5 px-4 sm:px-5 py-3.5 sm:py-4 bg-white/85 backdrop-blur-sm border border-gold/[0.06] rounded-xl sm:rounded-2xl shadow-sm shadow-black/[0.015] hover:border-gold/30 active:scale-[0.98] sm:hover:-translate-y-0.5 transition-all duration-200 text-left w-full focus:outline-none focus:ring-2 focus:ring-gold/20"
+                  style="animation-delay: 340ms"
+                >
+                  <div
+                    class="w-10 h-10 rounded-xl bg-gradient-to-br from-gold/10 to-gold-warm/5 flex items-center justify-center group-hover:from-gold/15 group-hover:to-gold-warm/8 transition-all duration-200 border border-gold/[0.06] group-hover:border-gold/20 shrink-0"
+                  >
+                    <svg
+                      width="17"
+                      height="17"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      class="text-gold-warm/75 group-hover:text-gold-warm transition-colors"
+                    >
+                      <path
+                        d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"
+                      />
+                    </svg>
+                  </div>
+                  <span
+                    class="text-[14px] font-medium text-noir-lighter/75 group-hover:text-noir-lighter transition-colors text-left"
+                  >
+                    Правила користування
+                  </span>
+                </button>
+
+                <!-- Card 6: Електронні ресурси -->
+                <button
+                  class="animate-fade-in-up group flex items-center gap-3 sm:gap-3.5 px-4 sm:px-5 py-3.5 sm:py-4 bg-white/85 backdrop-blur-sm border border-gold/[0.06] rounded-xl sm:rounded-2xl shadow-sm shadow-black/[0.015] hover:border-gold/30 active:scale-[0.98] sm:hover:-translate-y-0.5 transition-all duration-200 text-left w-full focus:outline-none focus:ring-2 focus:ring-gold/20"
+                  style="animation-delay: 380ms"
+                >
+                  <div
+                    class="w-10 h-10 rounded-xl bg-gradient-to-br from-gold/10 to-gold-warm/5 flex items-center justify-center group-hover:from-gold/15 group-hover:to-gold-warm/8 transition-all duration-200 border border-gold/[0.06] group-hover:border-gold/20 shrink-0"
+                  >
+                    <svg
+                      width="17"
+                      height="17"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      class="text-gold-warm/75 group-hover:text-gold-warm transition-colors"
+                    >
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="2" x2="22" y1="12" y2="12" />
+                      <path
+                        d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
+                      />
+                    </svg>
+                  </div>
+                  <span
+                    class="text-[14px] font-medium text-noir-lighter/75 group-hover:text-noir-lighter transition-colors text-left"
+                  >
+                    Електронні ресурси
+                  </span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Input Area - Fixed on Mobile -->
+        <div
+          class="fixed sm:relative bottom-0 left-0 right-0 sm:left-auto sm:right-auto p-4 sm:p-5 bg-gradient-to-t from-white/95 via-white/80 to-white/40 border-t border-gold/[0.04] sm:border-t-0 safe-bottom z-30"
+        >
+          <div class="max-w-2xl mx-auto relative">
+            <!-- Ambient glow -->
+            <div
+              class="absolute inset-0 bg-gradient-to-r from-gold/[0.02] via-transparent to-gold/[0.02] rounded-2xl blur-xl opacity-70 hidden sm:block"
+            ></div>
+
+            <!-- Input container -->
+            <div class="relative flex items-center">
+              <input
+                type="text"
+                placeholder="Запитайте про каталог, контакти чи послуги..."
+                class="w-full h-12 sm:h-14 pl-4 sm:pl-5 pr-14 sm:pr-16 bg-white border border-gold/[0.07] rounded-xl sm:rounded-2xl shadow-lg shadow-black/[0.02] focus:outline-none focus:border-gold/35 focus:ring-4 focus:ring-gold/10 text-[15px] font-normal placeholder:text-noir-lighter/30 transition-all duration-300"
+              />
+
+              <!-- Send Button -->
+              <button
+                class="absolute right-1.5 sm:right-2 w-11 h-11 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gradient-to-br from-gold via-gold-light to-gold text-white shadow-lg shadow-gold/25 hover:shadow-xl hover:shadow-gold/35 hover:scale-105 sm:hover:scale-105 active:scale-95 transition-all duration-200 flex items-center justify-center"
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="m22 2-7 20-4-9-9-4Z" />
+                  <path d="M22 2 11 13" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      // Toggle sidebar
+      function toggleSidebar() {
+        const sidebar = document.getElementById("sidebar");
+        const overlay = document.getElementById("overlay");
+
+        const isOpen = sidebar.classList.contains("translate-x-0");
+
+        if (isOpen) {
+          sidebar.classList.remove("translate-x-0");
+          sidebar.classList.add("-translate-x-full");
+          overlay.classList.add("hidden");
+          overlay.classList.remove("opacity-100");
+          overlay.classList.add("opacity-0");
+          document.body.style.overflow = "";
+        } else {
+          sidebar.classList.remove("-translate-x-full");
+          sidebar.classList.add("translate-x-0");
+          overlay.classList.remove("hidden");
+          setTimeout(() => {
+            overlay.classList.remove("opacity-0");
+            overlay.classList.add("opacity-100");
+          }, 10);
+          document.body.style.overflow = "hidden";
+        }
       }
-    }
-    
-    // Handle resize
-    window.addEventListener('resize', () => {
-      if (window.innerWidth >= 768) {
-        const sidebar = document.getElementById('sidebar');
-        const overlay = document.getElementById('overlay');
-        
-        sidebar.classList.remove('-translate-x-full');
-        sidebar.classList.add('translate-x-0');
-        overlay.classList.add('hidden');
-        overlay.classList.remove('opacity-100');
-        overlay.classList.add('opacity-0');
-        document.body.style.overflow = '';
+
+      // Handle resize
+      window.addEventListener("resize", () => {
+        if (window.innerWidth >= 768) {
+          const sidebar = document.getElementById("sidebar");
+          const overlay = document.getElementById("overlay");
+
+          sidebar.classList.remove("-translate-x-full");
+          sidebar.classList.add("translate-x-0");
+          overlay.classList.add("hidden");
+          overlay.classList.remove("opacity-100");
+          overlay.classList.add("opacity-0");
+          document.body.style.overflow = "";
+        }
+      });
+
+      // Touch swipe to open sidebar
+      let touchStartX = 0;
+      let touchEndX = 0;
+
+      document.addEventListener(
+        "touchstart",
+        e => {
+          touchStartX = e.changedTouches[0].screenX;
+        },
+        { passive: true }
+      );
+
+      document.addEventListener(
+        "touchend",
+        e => {
+          touchEndX = e.changedTouches[0].screenX;
+          handleSwipe();
+        },
+        { passive: true }
+      );
+
+      function handleSwipe() {
+        const swipeDistance = touchEndX - touchStartX;
+        const sidebar = document.getElementById("sidebar");
+        const isOpen = sidebar.classList.contains("translate-x-0");
+
+        // Swipe right to open (from left edge)
+        if (swipeDistance > 60 && touchStartX < 30 && !isOpen) {
+          toggleSidebar();
+        }
+
+        // Swipe left to close
+        if (swipeDistance < -60 && isOpen) {
+          toggleSidebar();
+        }
       }
-    });
-    
-    // Touch swipe to open sidebar
-    let touchStartX = 0;
-    let touchEndX = 0;
-    
-    document.addEventListener('touchstart', (e) => {
-      touchStartX = e.changedTouches[0].screenX;
-    }, { passive: true });
-    
-    document.addEventListener('touchend', (e) => {
-      touchEndX = e.changedTouches[0].screenX;
-      handleSwipe();
-    }, { passive: true });
-    
-    function handleSwipe() {
-      const swipeDistance = touchEndX - touchStartX;
-      const sidebar = document.getElementById('sidebar');
-      const isOpen = sidebar.classList.contains('translate-x-0');
-      
-      // Swipe right to open (from left edge)
-      if (swipeDistance > 60 && touchStartX < 30 && !isOpen) {
-        toggleSidebar();
-      }
-      
-      // Swipe left to close
-      if (swipeDistance < -60 && isOpen) {
-        toggleSidebar();
-      }
-    }
-  </script>
-  
-</body>
+    </script>
+  </body>
 </html>
