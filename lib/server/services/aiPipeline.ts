@@ -5,6 +5,7 @@ import { SECURITY_CONFIG } from "../config/security";
 import * as db from "../db";
 import { logger } from "../_core/logger";
 import { ENV } from "../_core/env";
+import { getRedisClient } from "../_core/redisClient";
 import { getRagContext } from "./rag/retriever";
 import { buildRagPromptSection } from "./rag/promptBuilder";
 import {
@@ -23,15 +24,46 @@ export const AI_TEMPERATURE = 0.7;
 /** Default chat model name, centralised here so both pathways stay in sync. */
 export const AI_MODEL_NAME = ENV.aiModelName;
 
-/** Cache for AI conversation replies: key = hash of (prompt+lang+history), TTL = 24h. */
-const replyCache = new NodeCache({
-  stdTTL: 24 * 60 * 60,
+/** TTL (seconds) for reply cache entries: 24 hours. */
+const REPLY_CACHE_TTL_SECONDS = 24 * 60 * 60;
+
+/**
+ * In-process fallback cache used when Redis is not configured.
+ * When Redis IS configured this cache is unused.
+ */
+const localReplyCache = new NodeCache({
+  stdTTL: REPLY_CACHE_TTL_SECONDS,
   checkperiod: 60 * 60,
 });
 
+/** Read a cached reply — checks Redis first, falls back to in-process cache. */
+async function getReplyCached(key: string): Promise<string | undefined> {
+  const redis = getRedisClient();
+  if (redis) {
+    const value = await redis.get(key);
+    return value ?? undefined;
+  }
+  return localReplyCache.get<string>(key);
+}
+
+/** Write a reply to the cache (Redis when available, otherwise in-process). */
+async function setReplyCached(key: string, value: string): Promise<void> {
+  const redis = getRedisClient();
+  if (redis) {
+    await redis.set(key, value, "EX", REPLY_CACHE_TTL_SECONDS);
+    return;
+  }
+  localReplyCache.set(key, value);
+}
+
 /** Flush the reply cache — intended for testing only. */
-export function clearReplyCache(): void {
-  replyCache.flushAll();
+export async function clearReplyCache(): Promise<void> {
+  const redis = getRedisClient();
+  if (redis) {
+    await redis.flushdb();
+    return;
+  }
+  localReplyCache.flushAll();
 }
 
 /**
@@ -278,7 +310,7 @@ export async function generateConversationReply(
     // embedding API call).  On a cache hit the LLM + embedding calls are both
     // skipped; source is derived from the live catalog search above so UI
     // attribution labels remain accurate.
-    const cachedText = replyCache.get<string>(cacheKey);
+    const cachedText = await getReplyCached(cacheKey);
     if (cachedText !== undefined) {
       logger.info("[AI pipeline] Cache hit — returning cached reply", {
         conversationId,
@@ -335,7 +367,7 @@ export async function generateConversationReply(
       totalTokens: usage?.totalTokens ?? 0,
     });
 
-    replyCache.set(cacheKey, text);
+    await setReplyCached(cacheKey, text);
     return { text, source };
   } catch (error) {
     const cause = error instanceof Error ? error : new Error(String(error));

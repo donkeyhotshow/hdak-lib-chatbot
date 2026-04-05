@@ -51,9 +51,9 @@ vi.mock("./llmProviderFactory", () => ({
 // Tests
 // ---------------------------------------------------------------------------
 
-afterEach(() => {
+afterEach(async () => {
   vi.restoreAllMocks();
-  clearReplyCache();
+  await clearReplyCache();
 });
 
 describe("buildResourceContext — null-name and null-description fallbacks", () => {

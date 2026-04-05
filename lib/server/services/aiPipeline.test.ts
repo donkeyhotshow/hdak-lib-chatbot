@@ -61,9 +61,9 @@ const mockResource = {
 };
 
 describe("aiPipeline helpers", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
-    clearReplyCache();
+    await clearReplyCache();
     mockedSearchResources.mockResolvedValue([mockResource]);
     mockedLogUserQuery.mockResolvedValue(null);
     mockedGetRagContext.mockResolvedValue("\nRAG");
@@ -191,8 +191,8 @@ describe("sanitizeUntrustedContent", () => {
 });
 
 describe("generateConversationReply — cache key collision resistance", () => {
-  beforeEach(() => {
-    clearReplyCache();
+  beforeEach(async () => {
+    await clearReplyCache();
     // Set up required dependency mocks (same pattern as the outer describe block)
     mockedSearchResources.mockResolvedValue([]);
     mockedLogUserQuery.mockResolvedValue(null);
@@ -254,8 +254,8 @@ describe("generateConversationReply — cache skips embedding API call", () => {
   let mockedGetRagContext: ReturnType<typeof vi.fn>;
   let mockedGenerateText: ReturnType<typeof vi.fn>;
 
-  beforeEach(() => {
-    clearReplyCache();
+  beforeEach(async () => {
+    await clearReplyCache();
     mockedSearchResources = vi.mocked(searchResources);
     mockedLogUserQuery = vi.mocked(logUserQuery);
     mockedGetRagContext = vi.mocked(getRagContext);

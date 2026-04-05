@@ -205,7 +205,7 @@ export async function runSync(): Promise<{ synced: number; errors: string[] }> {
       // New data was added — invalidate the AI reply cache and library resource
       // cache so responses reflect the updated catalog rather than returning
       // stale cached answers.
-      clearReplyCache();
+      await clearReplyCache();
       invalidateResourceCache();
       logger.milestone(
         `[SYNC] Catalog sync complete: ${synced} new resources added — reply cache and library cache cleared`

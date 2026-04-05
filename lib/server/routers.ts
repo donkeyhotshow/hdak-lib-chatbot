@@ -394,7 +394,7 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         try {
           const result = await createEditableKnowledgeEntry(input);
-          clearReplyCache();
+          await clearReplyCache();
           return result;
         } catch (error) {
           throw new TRPCError({
@@ -414,7 +414,7 @@ export const appRouter = router({
         const { id, ...patch } = input;
         try {
           const result = await updateEditableKnowledgeEntry(id, patch);
-          clearReplyCache();
+          await clearReplyCache();
           return result;
         } catch (error) {
           throw new TRPCError({
@@ -432,7 +432,7 @@ export const appRouter = router({
             input.id,
             input.enabled
           );
-          clearReplyCache();
+          await clearReplyCache();
           return result;
         } catch (error) {
           throw new TRPCError({
@@ -448,7 +448,7 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         try {
           const result = await duplicateEditableKnowledgeEntry(input.id);
-          clearReplyCache();
+          await clearReplyCache();
           return result;
         } catch (error) {
           throw new TRPCError({
