@@ -68,8 +68,16 @@ export const SUGGESTED_PROMPTS = [
   "Де знайти наукові ресурси?",
 ];
 
-export const QUICK_PROMPTS: Record<"uk" | "en", string[]> = {
+export const QUICK_PROMPTS: Record<"uk" | "en" | "ru", string[]> = {
   uk: SUGGESTED_PROMPTS,
+  ru: [
+    "Как записаться в библиотеку?",
+    "Где электронный каталог?",
+    "Какие правила пользования библиотекой?",
+    "Какие правила электронного читального зала?",
+    "Где контакты библиотеки?",
+    "Где найти научные ресурсы?",
+  ],
   en: [
     "How to register for the library?",
     "Where is the electronic catalog?",

@@ -48,6 +48,7 @@ import {
   createKnowledgeEntryDraftFromQuery,
   getMergedKnowledgeTopics,
 } from "./services/knowledgeAdmin";
+import { clearReplyCache } from "./services/aiPipeline";
 
 /** Maximum number of previous messages included in the AI context window. */
 const MAX_CONVERSATION_HISTORY =
@@ -392,7 +393,9 @@ export const appRouter = router({
       .input(knowledgeEntrySchema)
       .mutation(async ({ input }) => {
         try {
-          return await createEditableKnowledgeEntry(input);
+          const result = await createEditableKnowledgeEntry(input);
+          clearReplyCache();
+          return result;
         } catch (error) {
           throw new TRPCError({
             code: "BAD_REQUEST",
@@ -410,7 +413,9 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         const { id, ...patch } = input;
         try {
-          return await updateEditableKnowledgeEntry(id, patch);
+          const result = await updateEditableKnowledgeEntry(id, patch);
+          clearReplyCache();
+          return result;
         } catch (error) {
           throw new TRPCError({
             code: "BAD_REQUEST",
@@ -423,10 +428,12 @@ export const appRouter = router({
       .input(z.object({ id: z.string().min(1), enabled: z.boolean() }))
       .mutation(async ({ input }) => {
         try {
-          return await setEditableKnowledgeEntryEnabled(
+          const result = await setEditableKnowledgeEntryEnabled(
             input.id,
             input.enabled
           );
+          clearReplyCache();
+          return result;
         } catch (error) {
           throw new TRPCError({
             code: "BAD_REQUEST",
@@ -440,7 +447,9 @@ export const appRouter = router({
       .input(z.object({ id: z.string().min(1) }))
       .mutation(async ({ input }) => {
         try {
-          return await duplicateEditableKnowledgeEntry(input.id);
+          const result = await duplicateEditableKnowledgeEntry(input.id);
+          clearReplyCache();
+          return result;
         } catch (error) {
           throw new TRPCError({
             code: "BAD_REQUEST",

@@ -66,8 +66,15 @@ export function buildKnowledgeAssistedFallback(
         : "За потреби уточніть запит — я звужу відповідь до потрібного розділу каталогу або правил.";
   const links = topic?.sourceUrls?.length ? topic.sourceUrls : FALLBACK_LINKS;
 
+  const linksHeading =
+    language === "en"
+      ? "Official links:"
+      : language === "ru"
+        ? "Официальные ссылки:"
+        : "Офіційні посилання:";
+
   return {
-    answer: `**${title}**\n\n${baseText}\n\n- ${guidance}\n\nОфіційні посилання:\n${links
+    answer: `**${title}**\n\n${baseText}\n\n- ${guidance}\n\n${linksHeading}\n${links
       .map(link => `- ${link}`)
       .join("\n")}`,
     links,

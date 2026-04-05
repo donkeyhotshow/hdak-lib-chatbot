@@ -404,7 +404,7 @@ export const officialLibraryInfo = {
   uk: {
     address: "вул. Бурсацький узвіз, 4, Харків, Україна",
     email: "library@hdak.edu.ua",
-    phone: "+38 (057) XXX-XX-XX",
+    phone: "+38 (057) 731-27-83",
     working_hours: "Пн-Пт: 9:00 - 17:00, Сб-Нд: Вихідний",
     rules:
       "Користування бібліотекою безкоштовне для студентів та викладачів ХДАК.",
@@ -414,7 +414,7 @@ export const officialLibraryInfo = {
   ru: {
     address: "ул. Бурсацкий узвоз, 4, Харьков, Украина",
     email: "library@hdak.edu.ua",
-    phone: "+38 (057) XXX-XX-XX",
+    phone: "+38 (057) 731-27-83",
     working_hours: "Пн-Пт: 9:00 - 17:00, Сб-Вс: Выходной",
     rules:
       "Пользование библиотекой бесплатно для студентов и преподавателей KSAC.",
@@ -424,7 +424,7 @@ export const officialLibraryInfo = {
   en: {
     address: "Bursatskyi Uzviz St., 4, Kharkiv, Ukraine",
     email: "library@hdak.edu.ua",
-    phone: "+38 (057) XXX-XX-XX",
+    phone: "+38 (057) 731-27-83",
     working_hours: "Mon-Fri: 9:00 - 17:00, Sat-Sun: Closed",
     rules: "Library access is free for HDAK students and faculty.",
     about:

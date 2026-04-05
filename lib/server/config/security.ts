@@ -19,6 +19,7 @@ export const SECURITY_CONFIG = {
   },
   toolSandbox: {
     allowedTools: [
+      "searchCatalog",
       "searchLibraryResources",
       "getCatalogSearchLink",
       "findUpcomingLibraryEvents",

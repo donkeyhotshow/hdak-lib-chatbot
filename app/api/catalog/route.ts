@@ -5,11 +5,26 @@ export const maxDuration = 15;
 import { NextRequest, NextResponse } from "next/server";
 import * as cheerio from "cheerio";
 import { logger } from "@/lib/server/_core/logger";
+import {
+  enforceSecurityRateLimit,
+  getRequestIp,
+} from "@/lib/server/security/rateLimiter";
 
 const CATALOG_BASE = "https://library-service.com.ua:8443/khkhdak";
 const CATALOG = `${CATALOG_BASE}/DocumentSearchForm`;
 
 export async function GET(req: NextRequest) {
+  const requestIp = getRequestIp({
+    ip: "unknown",
+    headers: Object.fromEntries(req.headers.entries()),
+  });
+
+  try {
+    await enforceSecurityRateLimit({ endpoint: "/api/catalog", ip: requestIp });
+  } catch {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
+
   const sp = req.nextUrl.searchParams;
   const qs = new URLSearchParams();
   const author = sp.get("author") ?? "";
