@@ -59,6 +59,7 @@ const LIBRARY_EMAIL = "library@hdak.edu.ua";
 const GUEST_HISTORY_STORAGE_KEY = "hdak-guest-history-v1";
 const GUEST_HISTORY_STORAGE_PREFIX = "hdak-guest-history-v1:";
 const GUEST_ID_STORAGE_KEY = "hdak-guest-id";
+const GUEST_HISTORY_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 type Language = "en" | "uk";
 
@@ -409,18 +410,32 @@ function formatTime(date: Date | string | null | undefined): string {
   return d.toLocaleDateString("uk-UA", { day: "numeric", month: "short" });
 }
 
-function getSuggestions(content: string): string[] {
-  if (/графік|розклад|години|working hours|schedule/i.test(content))
-    return ["Як записатися до бібліотеки?", "Контакти бібліотеки"];
-  if (/книг|автор|каталог|видання|збірник|підручник|поезі/i.test(content))
-    return ["Знайти ще книги", "Нові надходження"];
-  if (/наук|стат|дисертац|scopus|research|репозитар/i.test(content))
-    return ["Як отримати доступ до Scopus?", "Репозитарій ХДАК"];
-  if (/запис|квиток|реєстрац|signup/i.test(content))
-    return ["Графік роботи", "Контакти"];
-  if (/контакт|телефон|email|адрес/i.test(content))
-    return ["Графік роботи", "Як записатися?"];
-  return ["Знайти книгу", "Графік роботи", "Контакти"];
+function getSuggestions(content: string, language: Language): string[] {
+  if (language === "uk") {
+    if (/графік|розклад|години/i.test(content))
+      return ["Як записатися до бібліотеки?", "Контакти бібліотеки"];
+    if (/книг|автор|каталог|видання|збірник|підручник|поезі/i.test(content))
+      return ["Знайти ще книги", "Нові надходження"];
+    if (/наук|стат|дисертац|scopus|репозитар/i.test(content))
+      return ["Як отримати доступ до Scopus?", "Репозитарій ХДАК"];
+    if (/запис|квиток|реєстрац/i.test(content))
+      return ["Графік роботи", "Контакти"];
+    if (/контакт|телефон|email|адрес/i.test(content))
+      return ["Графік роботи", "Як записатися?"];
+    return ["Знайти книгу", "Графік роботи", "Контакти"];
+  }
+  // English fallback (also used for ru since lang detection is uk/en)
+  if (/schedule|hours|working hours/i.test(content))
+    return ["How to register?", "Library contacts"];
+  if (/book|author|catalog|edition|textbook/i.test(content))
+    return ["Find more books", "New arrivals"];
+  if (/research|thesis|scopus|repository/i.test(content))
+    return ["How to access Scopus?", "HDAK Repository"];
+  if (/register|signup|membership/i.test(content))
+    return ["Opening hours", "Contacts"];
+  if (/contact|phone|email|address/i.test(content))
+    return ["Opening hours", "How to register?"];
+  return ["Find a book", "Opening hours", "Contacts"];
 }
 
 type SourceBadgeType =
@@ -550,7 +565,7 @@ const MessageItem = memo(function MessageItem({
         .slice(0, 2);
     }
     // Fallback: context-aware chips for all LLM responses
-    return getSuggestions(getMessageText(msg))
+    return getSuggestions(getMessageText(msg), language)
       .filter(p => p.toLowerCase() !== userText)
       .slice(0, 2);
   })();
@@ -1109,7 +1124,7 @@ export default function Home() {
         conversations?: LocalConversation[];
         messagesByConversation?: Record<number, UIMessage[]>;
       };
-      if (parsed.ts && Date.now() - parsed.ts > 24 * 60 * 60 * 1000) {
+      if (parsed.ts && Date.now() - parsed.ts > GUEST_HISTORY_TTL_MS) {
         window.localStorage.removeItem(historyKey);
         window.localStorage.removeItem(GUEST_HISTORY_STORAGE_KEY);
         return;
