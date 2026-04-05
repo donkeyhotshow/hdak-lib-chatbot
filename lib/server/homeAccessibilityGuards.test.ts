@@ -8,6 +8,8 @@ describe("Accessibility guard tests (ARIA, contrast, focus, skip link)", () => {
   const homeContent = readFileSync(homePagePath, "utf8");
   const layoutPath = path.join(process.cwd(), "app/layout.tsx");
   const layoutContent = readFileSync(layoutPath, "utf8");
+  const skipLinkPath = path.join(process.cwd(), "components/SkipLink.tsx");
+  const skipLinkContent = readFileSync(skipLinkPath, "utf8");
   const globalsCssPath = path.join(process.cwd(), "app/globals.css");
   const globalsCssContent = readFileSync(globalsCssPath, "utf8");
 
@@ -97,9 +99,10 @@ describe("Accessibility guard tests (ARIA, contrast, focus, skip link)", () => {
     expect(globalsCssContent).toContain(":focus:not(:focus-visible)");
   });
 
-  // FIX 7: Skip link in layout.tsx
+  // FIX 7: Skip link in SkipLink.tsx (client component used in layout.tsx)
   it("layout.tsx contains skip navigation link", () => {
-    expect(layoutContent).toContain('href="#chat-input"');
-    expect(layoutContent).toContain("Перейти до поля вводу");
+    expect(layoutContent).toContain("SkipLink");
+    expect(skipLinkContent).toContain('href="#chat-input"');
+    expect(skipLinkContent).toContain("Перейти до поля вводу");
   });
 });
