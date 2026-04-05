@@ -16,6 +16,13 @@ type CircuitBreakerState = {
   openedUntil: number | null;
 };
 
+/**
+ * Maximum number of distinct hostnames tracked by the circuit breaker.
+ * Evicts the oldest entry (insertion-order LRU) when the cap is reached
+ * to prevent unbounded memory growth.
+ */
+const MAX_CIRCUIT_BREAKER_HOSTS = 1_000;
+
 const circuitBreakerStateByHost = new Map<string, CircuitBreakerState>();
 
 function hasForbiddenEncodedControls(value: string): boolean {
@@ -25,6 +32,10 @@ function hasForbiddenEncodedControls(value: string): boolean {
 function getCircuitBreakerState(hostname: string): CircuitBreakerState {
   const existing = circuitBreakerStateByHost.get(hostname);
   if (existing) return existing;
+  if (circuitBreakerStateByHost.size >= MAX_CIRCUIT_BREAKER_HOSTS) {
+    const oldestKey = circuitBreakerStateByHost.keys().next().value;
+    if (oldestKey !== undefined) circuitBreakerStateByHost.delete(oldestKey);
+  }
   const next = { failures: 0, openedUntil: null };
   circuitBreakerStateByHost.set(hostname, next);
   return next;

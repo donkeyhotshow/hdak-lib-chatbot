@@ -5,6 +5,13 @@ import { logSecurityEvent } from "../observability/securityLogger";
 
 type Bucket = { timestamps: number[] };
 
+/**
+ * Maximum number of distinct keys retained per bucket map.
+ * When the cap is reached the oldest entry is evicted (insertion-order LRU)
+ * to prevent unbounded memory growth in long-running servers with many IPs.
+ */
+const MAX_BUCKETS = 10_000;
+
 const ipBuckets = new Map<string, Bucket>();
 const userBuckets = new Map<string, Bucket>();
 const ipBurstBuckets = new Map<string, Bucket>();
@@ -12,6 +19,10 @@ const ipBurstBuckets = new Map<string, Bucket>();
 function getBucket(map: Map<string, Bucket>, key: string): Bucket {
   const existing = map.get(key);
   if (existing) return existing;
+  if (map.size >= MAX_BUCKETS) {
+    const oldestKey = map.keys().next().value;
+    if (oldestKey !== undefined) map.delete(oldestKey);
+  }
   const bucket = { timestamps: [] };
   map.set(key, bucket);
   return bucket;
