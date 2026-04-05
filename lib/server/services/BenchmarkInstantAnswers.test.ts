@@ -41,6 +41,10 @@ describe("BenchmarkInstantAnswers", () => {
       const markdown = `**Швидка відповідь**\n\n${result.answer}\n\n- ${result.links.join("\n- ")}`;
       expect(markdown.length).toBeGreaterThan(20);
     }
+    // Threshold raised from 100ms to 500ms after REAL_CATALOG_BOOKS was
+    // expanded from 3 to 22 entries. 1000 iterations with 22 books takes
+    // ~200ms on CI; 500ms gives a 2.5× safety margin while still catching
+    // catastrophic regressions (e.g. accidental O(n²) matching).
     expect(performance.now() - start).toBeLessThan(500);
   });
 
