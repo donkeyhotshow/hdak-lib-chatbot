@@ -409,6 +409,20 @@ function formatTime(date: Date | string | null | undefined): string {
   return d.toLocaleDateString("uk-UA", { day: "numeric", month: "short" });
 }
 
+function getSuggestions(content: string): string[] {
+  if (/графік|розклад|години|working hours|schedule/i.test(content))
+    return ["Як записатися до бібліотеки?", "Контакти бібліотеки"];
+  if (/книг|автор|каталог|видання|збірник|підручник|поезі/i.test(content))
+    return ["Знайти ще книги", "Нові надходження"];
+  if (/наук|стат|дисертац|scopus|research|репозитар/i.test(content))
+    return ["Як отримати доступ до Scopus?", "Репозитарій ХДАК"];
+  if (/запис|квиток|реєстрац|signup/i.test(content))
+    return ["Графік роботи", "Контакти"];
+  if (/контакт|телефон|email|адрес/i.test(content))
+    return ["Графік роботи", "Як записатися?"];
+  return ["Знайти книгу", "Графік роботи", "Контакти"];
+}
+
 type SourceBadgeType =
   | "quick"
   | "catalog"
@@ -527,19 +541,19 @@ const MessageItem = memo(function MessageItem({
       ? String(msg.id)
       : `${messageIndex}-${sourceBadgeType}`;
   const isCurrentlyTyping = typingMessageId === responseId;
-  const followUpPrompts =
-    !isUser && isLastAssistant && instantAnswerMeta
-      ? (instantAnswerMeta.suggestedFollowUps?.length
-          ? instantAnswerMeta.suggestedFollowUps
-          : QUICK_PROMPTS[language]
-        )
-          .filter(
-            prompt =>
-              prompt.toLowerCase() !==
-              getMessageText(previousUserMessage ?? msg).toLowerCase()
-          )
-          .slice(0, 2)
-      : [];
+  const followUpPrompts: string[] = (() => {
+    if (isUser || !isLastAssistant) return [];
+    const userText = getMessageText(previousUserMessage ?? msg).toLowerCase();
+    if (instantAnswerMeta?.suggestedFollowUps?.length) {
+      return instantAnswerMeta.suggestedFollowUps
+        .filter(p => p.toLowerCase() !== userText)
+        .slice(0, 2);
+    }
+    // Fallback: context-aware chips for all LLM responses
+    return getSuggestions(getMessageText(msg))
+      .filter(p => p.toLowerCase() !== userText)
+      .slice(0, 2);
+  })();
   const catalogMatches = !isUser
     ? (instantAnswerMeta?.catalogMatches ?? [])
     : [];
@@ -1091,9 +1105,15 @@ export default function Home() {
     if (!saved) return;
     try {
       const parsed = JSON.parse(saved) as {
+        ts?: number;
         conversations?: LocalConversation[];
         messagesByConversation?: Record<number, UIMessage[]>;
       };
+      if (parsed.ts && Date.now() - parsed.ts > 24 * 60 * 60 * 1000) {
+        window.localStorage.removeItem(historyKey);
+        window.localStorage.removeItem(GUEST_HISTORY_STORAGE_KEY);
+        return;
+      }
       const loadedConversations = parsed.conversations ?? [];
       setGuestConversations(loadedConversations);
       setGuestMessagesByConversation(parsed.messagesByConversation ?? {});
@@ -1117,6 +1137,7 @@ export default function Home() {
     window.localStorage.setItem(
       getGuestHistoryKey(guestIdRef.current),
       JSON.stringify({
+        ts: Date.now(),
         conversations: guestConversations,
         messagesByConversation: guestMessagesByConversation,
       })
