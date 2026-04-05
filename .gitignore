@@ -105,3 +105,9 @@ temp/
 *.db
 *.sqlite
 *.sqlite3
+
+# Windows reserved filenames
+nul
+
+# Vercel
+.vercel/
