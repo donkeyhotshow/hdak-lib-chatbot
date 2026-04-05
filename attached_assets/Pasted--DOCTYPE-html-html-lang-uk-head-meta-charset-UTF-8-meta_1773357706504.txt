@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ХДАК — Бібліотечний асистент</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:         #0b0f18;
+  --surface:    #131929;
+  --surface2:   #1a2236;
+  --border:     rgba(180,148,80,0.14);
+  --border-h:   rgba(180,148,80,0.35);
+  --gold:       #c8a84b;
+  --gold-soft:  rgba(200,168,75,0.10);
+  --gold-glow:  rgba(200,168,75,0.22);
+  --cream:      #ede3d0;
+  --cream-dim:  #a8997f;
+  --muted:      #566070;
+  --user-bg:    #1c1505;
+  --error:      #e05555;
+  --serif:      'Playfair Display', Georgia, serif;
+  --sans:       'DM Sans', system-ui, sans-serif;
+  --ease:       cubic-bezier(.25,.46,.45,.94);
+}
+
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--cream);
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* grain overlay */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='f'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23f)' opacity='0.035'/%3E%3C/svg%3E");
+  pointer-events: none; z-index: 0;
+}
+
+/* ─── TOPBAR ─── */
+.topbar {
+  position: relative; z-index: 10;
+  height: 52px;
+  display: flex; align-items: center;
+  padding: 0 20px; gap: 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  flex-shrink: 0;
+}
+
+.tb-logo {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 9px;
+  pointer-events: none;
+}
+.tb-logo-icon {
+  width: 28px; height: 28px;
+  background: var(--gold-soft);
+  border: 1px solid var(--border-h);
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+}
+.tb-logo-text {
+  font-family: var(--serif);
+  font-size: 15px;
+  color: var(--cream);
+  letter-spacing: 0.01em;
+}
+
+.tb-btn {
+  height: 30px; padding: 0 11px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  color: var(--muted);
+  font-family: var(--sans); font-size: 12px; font-weight: 400;
+  cursor: pointer;
+  display: flex; align-items: center; gap: 5px;
+  transition: all 0.18s var(--ease);
+  white-space: nowrap; flex-shrink: 0;
+}
+.tb-btn:hover, .tb-btn.active {
+  border-color: var(--border-h);
+  color: var(--cream);
+  background: var(--gold-soft);
+}
+.tb-btn svg { opacity: 0.55; transition: opacity 0.18s; }
+.tb-btn:hover svg, .tb-btn.active svg { opacity: 1; }
+
+.tb-right { margin-left: auto; display: flex; gap: 8px; }
+
+/* ─── DROPDOWNS ─── */
+.dd {
+  position: absolute; top: 57px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 6px;
+  z-index: 200;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.03);
+  display: none;
+  min-width: 210px;
+  animation: ddIn 0.15s var(--ease);
+}
+.dd.open { display: block; }
+@keyframes ddIn {
+  from { opacity:0; transform:translateY(-8px) scale(0.98); }
+  to   { opacity:1; transform:translateY(0) scale(1); }
+}
+#dd-hist { left: 20px; }
+#dd-res  { right: 90px; min-width: 268px; max-height: 440px; overflow-y: auto; }
+#dd-res::-webkit-scrollbar { width: 3px; }
+#dd-res::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+#dd-lang { right: 20px; min-width: 160px; }
+
+.dd-head {
+  font-size: 10px; font-weight: 500; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--muted);
+  padding: 5px 9px 9px;
+}
+.dd-divider { height: 1px; background: var(--border); margin: 5px 0; }
+
+.dd-new {
+  width: 100%; padding: 8px 10px; margin-bottom: 5px;
+  background: var(--gold-soft); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--gold);
+  font-family: var(--sans); font-size: 12px; font-weight: 500;
+  cursor: pointer; display: flex; align-items: center; gap: 7px;
+  transition: background 0.18s;
+}
+.dd-new:hover { background: rgba(200,168,75,0.16); }
+
+.hist-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; border-radius: 8px; cursor: pointer;
+  transition: background 0.15s;
+}
+.hist-row:hover, .hist-row.cur { background: var(--gold-soft); }
+.hist-row.cur { border-left: 2px solid var(--gold); padding-left: 8px; }
+.hist-title { flex:1; font-size: 13px; color: var(--cream); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hist-time  { font-size: 11px; color: var(--muted); flex-shrink: 0; }
+.hist-del   { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 12px; opacity:0; padding: 2px 3px; transition: opacity 0.15s, color 0.15s; }
+.hist-row:hover .hist-del { opacity: 1; }
+.hist-del:hover { color: var(--error); }
+
+.res-row {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 8px 10px; border-radius: 8px; text-decoration: none;
+  transition: background 0.15s; cursor: pointer;
+}
+.res-row:hover { background: var(--gold-soft); }
+.res-ico { font-size: 16px; width: 22px; text-align: center; flex-shrink: 0; padding-top: 1px; }
+.res-name { font-size: 12px; color: var(--cream); font-weight: 500; line-height: 1.3; }
+.res-sub  { font-size: 11px; color: var(--muted); line-height: 1.3; margin-top: 1px; }
+.res-lock { font-size: 10px; color: var(--gold); opacity: 0.75; margin-left: 4px; }
+
+.lang-row {
+  padding: 8px 12px; border-radius: 8px; cursor: pointer;
+  font-size: 13px; color: var(--muted);
+  transition: background 0.15s, color 0.15s;
+  display: flex; align-items: center; gap: 8px;
+}
+.lang-row:hover { background: var(--gold-soft); color: var(--cream); }
+.lang-row.cur { color: var(--gold); }
+
+/* ─── OVERLAY ─── */
+.overlay { position: fixed; inset:0; z-index: 100; display: none; }
+.overlay.on { display: block; }
+
+/* ─── MAIN ─── */
+.main {
+  flex: 1; overflow: hidden;
+  display: flex; flex-direction: column;
+  max-width: 740px; width: 100%;
+  margin: 0 auto; padding: 0 24px;
+  position: relative; z-index: 1;
+}
+
+/* ─── EMPTY STATE ─── */
+.empty {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 0; text-align: center;
+  animation: fadeUp 0.55s var(--ease) both;
+}
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(14px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+.empty-book {
+  width: 64px; height: 64px;
+  background: var(--gold-soft);
+  border: 1px solid var(--border-h);
+  border-radius: 16px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 30px;
+  margin-bottom: 22px;
+  box-shadow: 0 0 48px var(--gold-glow);
+  animation: breathe 4s ease-in-out infinite;
+}
+@keyframes breathe {
+  0%,100% { box-shadow: 0 0 32px var(--gold-glow); }
+  50%      { box-shadow: 0 0 64px rgba(200,168,75,0.35); }
+}
+
+.empty-title {
+  font-family: var(--serif);
+  font-size: 26px; font-weight: 600;
+  color: var(--cream);
+  margin-bottom: 10px;
+}
+.empty-sub {
+  font-size: 13px; color: var(--cream-dim);
+  max-width: 320px; line-height: 1.65;
+  margin-bottom: 30px;
+}
+
+.divider-line {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; max-width: 420px; margin-bottom: 22px;
+}
+.divider-line::before, .divider-line::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+.divider-gem { font-size: 12px; color: var(--gold); opacity: 0.5; }
+
+.chips {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  justify-content: center; max-width: 480px;
+}
+.chip {
+  padding: 8px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  font-size: 12px; color: var(--cream-dim);
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+}
+.chip:hover {
+  border-color: var(--gold);
+  color: var(--cream);
+  background: var(--gold-soft);
+  transform: translateY(-1px);
+}
+
+/* ─── MESSAGES ─── */
+.messages {
+  flex: 1; overflow-y: auto;
+  padding: 24px 0 10px;
+  display: flex; flex-direction: column; gap: 14px;
+  scroll-behavior: smooth;
+}
+.messages::-webkit-scrollbar { width: 3px; }
+.messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+.msg {
+  display: flex; gap: 10px;
+  animation: msgIn 0.28s var(--ease) both;
+}
+@keyframes msgIn {
+  from { opacity:0; transform:translateY(8px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+.msg.user { flex-direction: row-reverse; }
+
+.av {
+  width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; margin-top: 2px;
+  border: 1px solid var(--border);
+}
+.msg.bot  .av { background: var(--gold-soft); }
+.msg.user .av { background: var(--user-bg); border-color: rgba(200,168,75,0.2); }
+
+.bubble {
+  max-width: 540px; padding: 11px 15px;
+  border-radius: 13px; border: 1px solid var(--border);
+  font-size: 14px; line-height: 1.7;
+}
+.msg.bot  .bubble { background: var(--surface); border-top-left-radius: 3px; }
+.msg.user .bubble {
+  background: var(--user-bg);
+  border-color: rgba(200,168,75,0.18);
+  border-top-right-radius: 3px;
+}
+.bubble a      { color: var(--gold); text-underline-offset: 3px; }
+.bubble strong { color: #f2e8d5; font-weight: 500; }
+.bubble code   { background: rgba(255,255,255,0.06); padding: 1px 5px; border-radius: 4px; font-size: 12.5px; }
+.bubble ul     { padding-left: 18px; margin-top: 4px; }
+.bubble li     { margin-bottom: 3px; }
+
+/* typing */
+.typing { display:flex; gap:5px; align-items:center; padding: 5px 2px; }
+.dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--gold); opacity: 0.4;
+  animation: dotPulse 1.3s ease-in-out infinite;
+}
+.dot:nth-child(2) { animation-delay: .2s; }
+.dot:nth-child(3) { animation-delay: .4s; }
+@keyframes dotPulse {
+  0%,100% { transform:scale(.75); opacity:.3; }
+  50%      { transform:scale(1.2); opacity:.9; }
+}
+
+/* ─── INPUT ─── */
+.input-wrap { padding: 12px 0 22px; flex-shrink: 0; }
+
+.input-row {
+  display: flex; align-items: flex-end; gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px; padding: 10px 12px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.input-row:focus-within {
+  border-color: rgba(200,168,75,.38);
+  box-shadow: 0 0 0 4px rgba(200,168,75,.06);
+}
+
+textarea {
+  flex:1; background: transparent; border: none; outline: none;
+  color: var(--cream); font-family: var(--sans); font-size: 14px;
+  resize: none; line-height: 1.55;
+  min-height: 22px; max-height: 100px;
+}
+textarea::placeholder { color: var(--muted); }
+
+.send {
+  width: 34px; height: 34px; flex-shrink: 0;
+  background: var(--gold); border: none; border-radius: 9px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  color: #0b0f18; font-size: 15px;
+  transition: background 0.18s, transform 0.15s, box-shadow 0.18s;
+}
+.send:hover {
+  background: #d9b85a;
+  transform: scale(1.07);
+  box-shadow: 0 4px 14px rgba(200,168,75,.4);
+}
+.send:disabled { background: var(--surface2); color: var(--muted); cursor:default; transform:none; box-shadow:none; }
+
+.input-hint { font-size: 11px; color: var(--muted); text-align: center; margin-top: 7px; }
+
+/* ─── SCREEN SWITCHER (demo only) ─── */
+.demo-sw {
+  position: fixed; bottom: 16px; right: 16px; z-index: 300;
+  display: flex; gap: 6px;
+}
+.sw-btn {
+  padding: 6px 12px; border-radius: 20px; font-size: 11px;
+  border: 1px solid var(--border); background: var(--surface2);
+  color: var(--muted); cursor: pointer; transition: all 0.15s;
+}
+.sw-btn:hover, .sw-btn.on { background: var(--gold-soft); border-color: var(--border-h); color: var(--cream); }
+</style>
+</head>
+<body>
+
+<div class="overlay" id="ov"></div>
+
+<!-- ══════════ TOPBAR ══════════ -->
+<header class="topbar">
+
+  <!-- History -->
+  <button class="tb-btn" id="btn-hist" onclick="tog('hist')">
+    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    Історія
+  </button>
+
+  <div class="dd" id="dd-hist">
+    <div class="dd-head">Розмови</div>
+    <button class="dd-new">
+      <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      Новий чат
+    </button>
+    <div class="hist-row cur">
+      <span class="hist-title">Де знайти Scopus?</span>
+      <span class="hist-time">14:32</span>
+      <button class="hist-del">✕</button>
+    </div>
+    <div class="hist-row">
+      <span class="hist-title">Книги Тараса Шевченка</span>
+      <span class="hist-time">Вчора</span>
+      <button class="hist-del">✕</button>
+    </div>
+    <div class="hist-row">
+      <span class="hist-title">Як записатися до бібліотеки?</span>
+      <span class="hist-time">11 бер.</span>
+      <button class="hist-del">✕</button>
+    </div>
+    <div class="hist-row">
+      <span class="hist-title">Електронний каталог ХДАК</span>
+      <span class="hist-time">9 бер.</span>
+      <button class="hist-del">✕</button>
+    </div>
+  </div>
+
+  <!-- Logo center -->
+  <div class="tb-logo">
+    <div class="tb-logo-icon">📚</div>
+    <span class="tb-logo-text">Бібліотека ХДАК</span>
+  </div>
+
+  <div class="tb-right">
+
+    <!-- Resources -->
+    <button class="tb-btn" id="btn-res" onclick="tog('res')">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+      Ресурси
+    </button>
+
+    <div class="dd" id="dd-res">
+      <div class="dd-head">Офіційні ресурси бібліотеки</div>
+      <a class="res-row" href="https://library-service.com.ua:8443/khkhdak/DocumentSearchForm" target="_blank">
+        <span class="res-ico">🗂️</span>
+        <div><div class="res-name">Електронний каталог</div><div class="res-sub">Пошук книг, авторів, тем</div></div>
+      </a>
+      <a class="res-row" href="https://repository.ac.kharkov.ua/home" target="_blank">
+        <span class="res-ico">🏛️</span>
+        <div><div class="res-name">Репозитарій ХДАК</div><div class="res-sub">Наукові праці академії</div></div>
+      </a>
+      <a class="res-row" href="http://elib.nplu.org/" target="_blank">
+        <span class="res-ico">🎭</span>
+        <div><div class="res-name">Культура України</div><div class="res-sub">Електронна бібліотека</div></div>
+      </a>
+      <div class="dd-divider"></div>
+      <a class="res-row" href="https://www.scopus.com/" target="_blank">
+        <span class="res-ico">🔬</span>
+        <div><div class="res-name">Scopus <span class="res-lock">🔒 VPN</span></div><div class="res-sub">Реферативна база Elsevier</div></div>
+      </a>
+      <a class="res-row" href="https://www.webofscience.com/" target="_blank">
+        <span class="res-ico">🔭</span>
+        <div><div class="res-name">Web of Science <span class="res-lock">🔒 VPN</span></div><div class="res-sub">Наукові цитування Clarivate</div></div>
+      </a>
+      <a class="res-row" href="https://www.sciencedirect.com/" target="_blank">
+        <span class="res-ico">📰</span>
+        <div><div class="res-name">ScienceDirect <span class="res-lock">🔒 VPN</span></div><div class="res-sub">Журнали та книги Elsevier</div></div>
+      </a>
+      <a class="res-row" href="https://link.springer.com/" target="_blank">
+        <span class="res-ico">🔗</span>
+        <div><div class="res-name">Springer Link <span class="res-lock">🔒 VPN</span></div><div class="res-sub">Видання Springer Nature</div></div>
+      </a>
+      <a class="res-row" href="https://login.research4life.org/" target="_blank">
+        <span class="res-ico">🌍</span>
+        <div><div class="res-name">Research 4 Life <span class="res-lock">🔒 VPN</span></div><div class="res-sub">Міжнародний доступ для освіти</div></div>
+      </a>
+      <div class="dd-divider"></div>
+      <a class="res-row" href="https://lib-hdak.in.ua/catalog-doaj.html" target="_blank">
+        <span class="res-ico">📖</span>
+        <div><div class="res-name">DOAJ</div><div class="res-sub">Відкритий доступ до журналів</div></div>
+      </a>
+      <a class="res-row" href="http://nrat.ukrintei.ua/" target="_blank">
+        <span class="res-ico">📜</span>
+        <div><div class="res-name">УкрІНТЕІ</div><div class="res-sub">Авторефераты дисертацій</div></div>
+      </a>
+      <a class="res-row" href="https://lib-hdak.in.ua/" target="_blank">
+        <span class="res-ico">🏠</span>
+        <div><div class="res-name">Сайт бібліотеки</div><div class="res-sub">lib-hdak.in.ua</div></div>
+      </a>
+    </div>
+
+    <!-- Language -->
+    <button class="tb-btn" id="btn-lang" onclick="tog('lang')">🌐 УКР</button>
+    <div class="dd" id="dd-lang">
+      <div class="dd-head">Мова інтерфейсу</div>
+      <div class="lang-row cur" onclick="setLang(this,'УКР')">🇺🇦 Українська</div>
+      <div class="lang-row" onclick="setLang(this,'РУС')">🇷🇺 Русский</div>
+      <div class="lang-row" onclick="setLang(this,'ENG')">🇬🇧 English</div>
+    </div>
+
+  </div>
+</header>
+
+<!-- ══════════ MAIN ══════════ -->
+<main class="main">
+
+  <!-- EMPTY STATE -->
+  <div class="empty" id="view-empty">
+    <div class="empty-book">📖</div>
+    <h1 class="empty-title">Чим можу допомогти?</h1>
+    <p class="empty-sub">Знайду книги в каталозі, розповім про бази даних, допоможу орієнтуватися на сайті бібліотеки ХДАК.</p>
+    <div class="divider-line"><span class="divider-gem">✦</span></div>
+    <div class="chips">
+      <button class="chip" onclick="useChip(this)">📋 Як записатися до бібліотеки?</button>
+      <button class="chip" onclick="useChip(this)">🔬 Чи є доступ до Scopus?</button>
+      <button class="chip" onclick="useChip(this)">📚 Книги Тараса Шевченка</button>
+      <button class="chip" onclick="useChip(this)">🏛️ Що таке репозитарій ХДАК?</button>
+    </div>
+  </div>
+
+  <!-- ACTIVE CHAT -->
+  <div class="messages" id="view-chat" style="display:none">
+
+    <div class="msg user">
+      <div class="av">👤</div>
+      <div class="bubble">Де знайти Scopus і чи є доступ з дому?</div>
+    </div>
+
+    <div class="msg bot">
+      <div class="av">📚</div>
+      <div class="bubble">
+        <strong>Scopus</strong> — міжнародна наукометрична база даних, доступна для студентів і викладачів ХДАК.<br><br>
+        🔒 <strong>Умови доступу:</strong> тільки з комп'ютерів у мережі академії або через VPN.<br><br>
+        Посилання для входу: <a href="https://www.scopus.com/" target="_blank">scopus.com</a><br><br>
+        Щоб підключитися з дому — зверніться до бібліотеки або IT-відділу за інструкцією з налаштування VPN.
+      </div>
+    </div>
+
+    <div class="msg user">
+      <div class="av">👤</div>
+      <div class="bubble">А як знайти книги певного автора в каталозі?</div>
+    </div>
+
+    <div class="msg bot">
+      <div class="av">📚</div>
+      <div class="bubble">
+        Пошук автора в електронному каталозі ХДАК:<br><br>
+        <ul>
+          <li>Відкрийте <a href="https://library-service.com.ua:8443/khkhdak/DocumentSearchForm" target="_blank">електронний каталог</a></li>
+          <li>У полі <strong>«Автор»</strong> введіть прізвище (наприклад: <code>Шевченко</code>)</li>
+          <li>Натисніть <strong>«Пошук»</strong></li>
+          <li>У результатах виберіть потрібну книгу — буде видно наявність і розташування</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="msg user">
+      <div class="av">👤</div>
+      <div class="bubble">Дякую! А Web of Science теж тільки через VPN?</div>
+    </div>
+
+    <!-- typing -->
+    <div class="msg bot" id="typing">
+      <div class="av">📚</div>
+      <div class="bubble">
+        <div class="typing"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- INPUT -->
+  <div class="input-wrap">
+    <div class="input-row">
+      <textarea id="ta" rows="1" placeholder="Введіть своє запитання..."></textarea>
+      <button class="send" id="send" disabled>
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z"/></svg>
+      </button>
+    </div>
+    <div class="input-hint">Enter — надіслати &nbsp;·&nbsp; Shift+Enter — новий рядок</div>
+  </div>
+
+</main>
+
+<!-- demo switcher -->
+<div class="demo-sw">
+  <button class="sw-btn on" id="sw-e" onclick="showView('empty')">Порожній стан</button>
+  <button class="sw-btn"    id="sw-c" onclick="showView('chat')">Активний чат</button>
+</div>
+
+<script>
+// dropdown toggle
+function tog(name) {
+  const dd = document.getElementById('dd-' + name);
+  const btn = document.getElementById('btn-' + name);
+  const ov = document.getElementById('ov');
+  const open = dd.classList.contains('open');
+  document.querySelectorAll('.dd').forEach(d => d.classList.remove('open'));
+  document.querySelectorAll('.tb-btn').forEach(b => b.classList.remove('active'));
+  ov.classList.remove('on');
+  if (!open) { dd.classList.add('open'); btn.classList.add('active'); ov.classList.add('on'); }
+}
+document.getElementById('ov').addEventListener('click', () => {
+  document.querySelectorAll('.dd').forEach(d => d.classList.remove('open'));
+  document.querySelectorAll('.tb-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('ov').classList.remove('on');
+});
+
+// lang
+function setLang(el, code) {
+  document.querySelectorAll('.lang-row').forEach(r => r.classList.remove('cur'));
+  el.classList.add('cur');
+  document.getElementById('btn-lang').innerHTML = '🌐 ' + code;
+  tog('lang');
+}
+
+// textarea
+const ta = document.getElementById('ta');
+const sendBtn = document.getElementById('send');
+ta.addEventListener('input', () => {
+  ta.style.height = 'auto';
+  ta.style.height = Math.min(ta.scrollHeight, 100) + 'px';
+  sendBtn.disabled = !ta.value.trim();
+});
+ta.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!sendBtn.disabled) sendMsg(); }
+});
+function sendMsg() { showView('chat'); ta.value = ''; sendBtn.disabled = true; ta.style.height = 'auto'; }
+
+// chips
+function useChip(el) {
+  ta.value = el.textContent.replace(/^[^\s]+\s/, '');
+  sendBtn.disabled = false;
+  showView('chat');
+  ta.focus();
+}
+
+// view switcher
+function showView(v) {
+  document.getElementById('view-empty').style.display = v==='empty' ? 'flex' : 'none';
+  document.getElementById('view-chat').style.display  = v==='chat'  ? 'flex' : 'none';
+  document.getElementById('sw-e').classList.toggle('on', v==='empty');
+  document.getElementById('sw-c').classList.toggle('on', v==='chat');
+}
+
+// scroll chat to bottom
+const chat = document.getElementById('view-chat');
+if (chat) chat.scrollTop = chat.scrollHeight;
+</script>
+</body>
+</html>
