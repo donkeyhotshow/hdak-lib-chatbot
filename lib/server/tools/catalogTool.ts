@@ -1,6 +1,7 @@
 import { z } from "zod/v4";
 import { logger } from "../_core/logger";
 import type { ToolRegistryEntry } from "./registry";
+import { searchCatalogDirect } from "../services/catalogSearch";
 
 const searchCatalogSchema = z.object({
   author: z.string().optional(),
@@ -37,27 +38,17 @@ export const catalogTools = [
       title?: string;
       topic?: string;
     }) => {
-      const qs = new URLSearchParams();
-      if (author) qs.set("author", author);
-      if (title) qs.set("title", title);
-      if (topic) qs.set("topic", topic);
-      const base = process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : "http://localhost:3000";
-      const url = `${base}/api/catalog?${qs}`;
       try {
-        const res = await fetch(url, {
-          signal: AbortSignal.timeout(10000),
-        });
-        return await res.json();
+        return await searchCatalogDirect({ author, title, topic });
       } catch (err) {
-        logger.warn("[searchCatalog] Catalog fetch failed", {
+        logger.warn("[searchCatalog] Unexpected error calling catalog service", {
           error: err instanceof Error ? err.message : String(err),
         });
         return {
           ok: false,
           results: [],
-          search_url: url,
+          search_url: "https://lib-hdak.in.ua/e-catalog.html",
+          error_type: "unavailable" as const,
           fallback: [
             {
               label: "Відкрити каталог",

@@ -246,6 +246,32 @@ describe("generateConversationReply — cache key collision resistance", () => {
     // With JSON.stringify keys, each pair gets its own cache slot → "reply-B".
     expect(resultB.text).toBe("reply-B");
   });
+
+  it("does not serve cached reply from one user to a different user with identical prompt/history", async () => {
+    // User 1 sends "hello" first — populates cache
+    mockedGenerateText.mockResolvedValueOnce({ text: "reply-user1" });
+
+    const resultUser1 = await generateConversationReply({
+      prompt: "hello",
+      language: "uk",
+      conversationId: 10,
+      userId: 1,
+      history: [],
+    });
+    expect(resultUser1.text).toBe("reply-user1");
+
+    // User 2 sends the exact same "hello" — must NOT receive user 1's cached reply
+    mockedGenerateText.mockResolvedValueOnce({ text: "reply-user2" });
+
+    const resultUser2 = await generateConversationReply({
+      prompt: "hello",
+      language: "uk",
+      conversationId: 20,
+      userId: 2,
+      history: [],
+    });
+    expect(resultUser2.text).toBe("reply-user2");
+  });
 });
 
 describe("generateConversationReply — cache skips embedding API call", () => {

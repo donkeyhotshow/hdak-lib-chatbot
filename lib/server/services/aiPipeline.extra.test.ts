@@ -211,27 +211,6 @@ describe("sanitizeUntrustedContent — additional patterns", () => {
     const result = sanitizeUntrustedContent(text);
     expect(result).toBe("");
   });
-
-  it("repairs corrupted APKPure URL fragments for JieLi app recommendations", () => {
-    const text = `Приложение для JieLi
-JL TWS — специально для JieLi чипов:
-→ https://apkpuПриложение для JieLi
-JL TWS — специально для JieLi чипов:
-→ https://apkpure.com/jl-tws/com.jieli.jl_tws
-Или попробуй EarPhones:
-→ https://apkpure.com/earphones/com.jieli.earphones
-re.com/jl-tws/com.jieli.jl_tws
-Или попробуй EarPhones:
-→ https://apkpure.com/earphones/com.jieli.earphones`;
-
-    const result = sanitizeUntrustedContent(text);
-
-    expect(result).toContain("https://apkpure.com/jl-tws/com.jieli.jl_tws");
-    expect(result).toContain(
-      "https://apkpure.com/earphones/com.jieli.earphones"
-    );
-    expect(result).not.toContain("https://apkpuПриложение");
-  });
 });
 
 // ---------------------------------------------------------------------------

@@ -59,6 +59,8 @@ const LIBRARY_EMAIL = "library@hdak.ua";
 const GUEST_HISTORY_STORAGE_KEY = "hdak-guest-history-v1";
 const GUEST_HISTORY_STORAGE_PREFIX = "hdak-guest-history-v1:";
 const GUEST_ID_STORAGE_KEY = "hdak-guest-id";
+/** Guest history expires after 24 hours of inactivity. */
+const GUEST_HISTORY_TTL_MS = 24 * 60 * 60 * 1000;
 
 type Language = "en" | "uk";
 
@@ -1082,7 +1084,14 @@ export default function Home() {
       const parsed = JSON.parse(saved) as {
         conversations?: LocalConversation[];
         messagesByConversation?: Record<number, UIMessage[]>;
+        ts?: number;
       };
+      // Enforce 24-hour TTL: discard expired guest history
+      if (parsed.ts && Date.now() - parsed.ts > GUEST_HISTORY_TTL_MS) {
+        window.localStorage.removeItem(historyKey);
+        window.localStorage.removeItem(GUEST_HISTORY_STORAGE_KEY);
+        return;
+      }
       const loadedConversations = parsed.conversations ?? [];
       setGuestConversations(loadedConversations);
       setGuestMessagesByConversation(parsed.messagesByConversation ?? {});
@@ -1108,6 +1117,7 @@ export default function Home() {
       JSON.stringify({
         conversations: guestConversations,
         messagesByConversation: guestMessagesByConversation,
+        ts: Date.now(),
       })
     );
   }, [guestConversations, guestMessagesByConversation]);
