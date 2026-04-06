@@ -81,7 +81,14 @@ function parseBooks(html: string, searchUrl: string): CatalogBook[] {
     if (!title) return;
 
     const href = $(row).find("a").first().attr("href") ?? "";
-    const url = href.startsWith("http") ? href : href ? `${CATALOG_BASE}${href}` : searchUrl;
+    let url: string;
+    if (href.startsWith("http")) {
+      url = href;
+    } else if (href) {
+      url = `${CATALOG_BASE}${href}`;
+    } else {
+      url = searchUrl;
+    }
 
     books.push({
       title,
@@ -120,6 +127,7 @@ export async function searchCatalogDirect(
   params: CatalogSearchParams
 ): Promise<CatalogSearchResult> {
   const searchUrl = buildSearchUrl(params);
+  let lastError = "";
 
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
@@ -136,32 +144,22 @@ export async function searchCatalogDirect(
         search_url: searchUrl,
       };
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
+      lastError = err instanceof Error ? err.message : String(err);
       if (attempt === 1) {
         logger.warn("[catalogSearch] Attempt 1 failed, retrying…", {
-          error: message,
+          error: lastError,
           searchUrl,
         });
         await new Promise(resolve => setTimeout(resolve, CATALOG_RETRY_DELAY_MS));
-        continue;
       }
-      // Both attempts failed
-      logger.warn("[catalogSearch] Both attempts failed — catalog unavailable", {
-        error: message,
-        searchUrl,
-      });
-      return {
-        ok: false,
-        results: [],
-        search_url: searchUrl,
-        error_type: "unavailable",
-        fallback: buildFallback(searchUrl),
-      };
     }
   }
 
-  // Should never reach here, but TypeScript requires a return
-  /* istanbul ignore next */
+  // Both attempts failed
+  logger.warn("[catalogSearch] Both attempts failed — catalog unavailable", {
+    error: lastError,
+    searchUrl,
+  });
   return {
     ok: false,
     results: [],
