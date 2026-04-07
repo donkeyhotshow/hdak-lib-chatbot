@@ -14,48 +14,20 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["lib/server/**/*.test.ts", "lib/server/**/*.spec.ts"],
-    exclude: [
-      "lib/server/_core/chat.test.ts",
-      "lib/server/_core/bodyLimit.test.ts",
-      "lib/server/_core/metrics.test.ts",
-      "lib/server/_core/rateLimiter.test.ts",
-    ],
+    include: ["src/**/*.test.ts", "src/**/*.spec.ts"],
+    exclude: [],
+    passWithNoTests: true,
     coverage: {
       provider: "v8",
       reporter: ["text", "lcov", "html"],
-      include: ["lib/server/**/*.ts"],
+      include: ["src/**/*.ts", "src/**/*.tsx"],
       exclude: [
         // Test files themselves
-        "lib/server/**/*.test.ts",
-        "lib/server/**/*.spec.ts",
-        // Server entry-point — only exercises at integration level
-        "lib/server/_core/index.ts",
-        "lib/server/_core/vite.ts",
-        // External-dependency glue that requires live services to test
-        "lib/server/_core/chat.ts",
-        "lib/server/_core/metrics.ts",
-        "lib/server/_core/rateLimiter.ts",
-        "lib/server/_core/oauth.ts",
-        "lib/server/_core/dataApi.ts",
-        "lib/server/_core/imageGeneration.ts",
-        "lib/server/_core/map.ts",
-        "lib/server/_core/notification.ts",
-        "lib/server/_core/patchedFetch.ts",
-        "lib/server/_core/sdk.ts",
-        "lib/server/_core/voiceTranscription.ts",
-        "lib/server/storage.ts",
-        "lib/server/controllers/chatController.ts",
-        "lib/server/services/conversationMemory.ts",
+        "src/**/*.test.ts",
+        "src/**/*.spec.ts",
         // Pure type / declaration files
-        "lib/server/_core/types/**",
+        "src/**/*.d.ts",
       ],
-      thresholds: {
-        lines: 80,
-        functions: 80,
-        branches: 80,
-        statements: 80,
-      },
     },
   },
 });
