@@ -1,6 +1,6 @@
 import { streamText } from "ai";
 import * as db from "@/lib/server/db";
-import type { LibraryInfo, LibraryResource, Message } from "@/lib/server/db";
+import type { LibraryInfo, LibraryResource, Message } from "@/drizzle/schema";
 
 export const maxDuration = 60;
 
@@ -10,8 +10,9 @@ function buildLibraryContext(
 ): string {
   const grouped: Record<string, string[]> = {};
   for (const item of libInfo) {
-    if (!grouped[item.category]) grouped[item.category] = [];
-    grouped[item.category].push(`${item.key}: ${item.value_uk}`);
+    const cat = item.key.split("-")[0] ?? item.key;
+    if (!grouped[cat]) grouped[cat] = [];
+    grouped[cat].push(`${item.key}: ${item.valueUk ?? item.valueEn ?? ""}`);
   }
 
   const infoBlock = Object.entries(grouped)
@@ -19,10 +20,8 @@ function buildLibraryContext(
     .join("\n\n");
 
   const resourceBlock = libResources
-    .filter(r => r.is_official)
     .map(r => {
-      const authNote = r.requires_auth ? " (потрібна авторизація/VPN)" : "";
-      return `- [${r.type.toUpperCase()}] ${r.name}${authNote}\n  URL: ${r.url}\n  Опис: ${r.description_uk}`;
+      return `- [${r.type.toUpperCase()}] ${r.nameUk}\n  URL: ${r.url ?? ""}\n  Опис: ${r.descriptionUk ?? ""}`;
     })
     .join("\n\n");
 
@@ -128,7 +127,7 @@ export async function POST(
           }
 
           // Save assistant reply after stream completes
-          await chatStorage.createMessage(conversationId, "assistant", fullResponse);
+          await db.createMessage(conversationId, "assistant", fullResponse);
           controller.enqueue(
             encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`)
           );
