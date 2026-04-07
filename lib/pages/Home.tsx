@@ -1399,10 +1399,6 @@ export default function Home() {
       typingTimeoutRef.current = null;
     }
 
-    const previousUserMessage = [...allMessages]
-      .slice(0, allMessages.length - 1)
-      .reverse()
-      .find(m => m.role === "user");
     const fullText = stripQuickReplyHeading(
       getMessageText(lastMessage),
       previousUserMessage ? getMessageText(previousUserMessage) : undefined

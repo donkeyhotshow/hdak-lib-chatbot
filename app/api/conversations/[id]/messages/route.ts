@@ -1,6 +1,6 @@
 import { streamText } from "ai";
-import { chatStorage } from "@/lib/storage";
-import type { LibraryInfo, LibraryResource } from "@/lib/db";
+import * as db from "@/lib/server/db";
+import type { LibraryInfo, LibraryResource, Message } from "@/lib/server/db";
 
 export const maxDuration = 60;
 
@@ -84,14 +84,13 @@ export async function POST(
     const { content } = await request.json();
 
     // Save user message first
-    await chatStorage.createMessage(conversationId, "user", content);
+    await db.createMessage(conversationId, "user", content);
 
-    // Ensure library data is seeded, then fetch context
-    await chatStorage.seedLibraryData();
+    // Fetch library context and conversation history
     const [libInfo, libResources, historyMessages] = await Promise.all([
-      chatStorage.getLibraryInfo(),
-      chatStorage.getLibraryResources(),
-      chatStorage.getMessagesByConversation(conversationId),
+      db.getAllLibraryInfo(),
+      db.getAllResources(),
+      db.getMessages(conversationId),
     ]);
 
     // Build structured context and system prompt
@@ -100,7 +99,7 @@ export async function POST(
 
     // Build chat message array for AI SDK
     const messages: { role: "user" | "assistant"; content: string }[] = 
-      historyMessages.map(m => ({
+      historyMessages.map((m: Message) => ({
         role: m.role as "user" | "assistant",
         content: m.content,
       }));
@@ -110,7 +109,7 @@ export async function POST(
       model: "openai/gpt-4o-mini",
       system: systemPrompt,
       messages,
-      maxTokens: 8192,
+      maxOutputTokens: 8192,
       abortSignal: request.signal,
     });
 
