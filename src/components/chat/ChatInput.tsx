@@ -26,10 +26,19 @@ export function ChatInput({
   const hasInput = inputValue.trim().length > 0;
   const charCount = inputValue.length;
 
-  // Speech result handler — appends transcript to current input
+  // Keep a ref to the latest inputValue so handleSpeechResult never closes over a stale value
+  const inputValueRef = useRef(inputValue);
+  useEffect(() => {
+    inputValueRef.current = inputValue;
+  }, [inputValue]);
+
+  // Speech result handler — appends transcript to current input.
+  // Uses inputValueRef (not the prop directly) so the callback is stable and doesn't
+  // get recreated on every keystroke (which would cause useSpeech to re-register it).
   const handleSpeechResult = useCallback(
     (text: string) => {
-      setInputValue(inputValue ? `${inputValue} ${text}` : text);
+      const current = inputValueRef.current;
+      setInputValue(current ? `${current} ${text}` : text);
       requestAnimationFrame(() => {
         if (textareaRef.current) {
           textareaRef.current.style.height = "auto";
@@ -38,7 +47,7 @@ export function ChatInput({
         }
       });
     },
-    [inputValue, setInputValue]
+    [setInputValue] // setInputValue is stable (useCallback([]) in useChat)
   );
 
   const {

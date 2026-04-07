@@ -12,7 +12,11 @@ import {
   SearchIntent,
 } from "@/lib/catalog-search";
 import { isForbiddenOrigin } from "@/lib/cors";
-import { isValidUuid, getSessionIdFromRequest } from "@/lib/validation";
+import {
+  isValidUuid,
+  getSessionIdFromRequest,
+  buildSessionCookie,
+} from "@/lib/validation";
 
 const MAX_MESSAGE_LENGTH = 2000;
 const DB_TIMEOUT_MS = 10_000;
@@ -462,6 +466,8 @@ export async function POST(request: NextRequest) {
       "Cache-Control": "no-cache",
       Connection: "keep-alive",
       "X-Accel-Buffering": "no",
+      // Persist session so cookie-less clients get a stable session across reloads
+      "Set-Cookie": buildSessionCookie(sessionId),
     },
   });
 }

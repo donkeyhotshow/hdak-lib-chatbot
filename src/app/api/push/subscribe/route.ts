@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, pushSubscriptions } from "@/lib/db";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { getSessionIdFromRequest } from "@/lib/validation";
 import { isForbiddenOrigin } from "@/lib/cors";
 import { checkRateLimit, generateFingerprint } from "@/lib/rate-limit";
@@ -90,6 +90,12 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: "Заборонене джерело" }, { status: 403 });
   }
 
+  // Rate-limit DELETE same as POST to prevent enumeration attacks
+  const fingerprint = generateFingerprint(request);
+  if (!(await checkRateLimit(fingerprint))) {
+    return NextResponse.json({ error: "Забагато запитів" }, { status: 429 });
+  }
+
   let body: { endpoint: string };
   try {
     body = await request.json();
@@ -101,10 +107,18 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: "Відсутній endpoint" }, { status: 400 });
   }
 
+  // Session ownership check — only the session that created the subscription can delete it
+  const sessionId = getSessionIdFromRequest(request);
+
   try {
     await db
       .delete(pushSubscriptions)
-      .where(eq(pushSubscriptions.endpoint, body.endpoint));
+      .where(
+        and(
+          eq(pushSubscriptions.endpoint, body.endpoint),
+          eq(pushSubscriptions.sessionId, sessionId)
+        )
+      );
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("Push unsubscribe error:", err);

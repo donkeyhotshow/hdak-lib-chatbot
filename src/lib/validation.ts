@@ -64,10 +64,16 @@ export function ensureSessionCookie(
 }
 
 /**
- * Extract and validate sessionId from request header.
+ * Extract and validate sessionId from request header or cookie.
  * Returns null if invalid or missing.
+ * Unlike getSessionIdFromRequest, never generates a fallback UUID.
  */
 export function getSessionIdStrict(request: NextRequest): string | null {
+  // Cookie takes priority (set by chat route, HttpOnly)
+  const cookie = request.cookies.get(SESSION_COOKIE)?.value?.trim();
+  if (cookie && UUID_REGEX.test(cookie)) return cookie;
+
+  // Fallback: header (for clients that send x-session-id explicitly)
   const raw = request.headers.get(SESSION_HEADER)?.trim();
   if (!raw || !UUID_REGEX.test(raw)) return null;
   return raw;

@@ -50,13 +50,17 @@ export async function POST(request: NextRequest) {
           .replace(/<script[\s\S]*?<\/script>/gi, "")
           .replace(/<iframe[\s\S]*?<\/iframe>/gi, "")
           .replace(/<object[\s\S]*?<\/object>/gi, "")
-          .replace(/<embed[\s\S]*?>/gi, "")
+          .replace(/<embed[^>]*>/gi, "")
           .replace(/<img[^>]*>/gi, "")
           .replace(/<svg[\s\S]*?<\/svg>/gi, "")
-          .replace(/on\w+\s*=\s*["'][^"']*["']/gi, "")
-          .replace(/javascript:/gi, "")
-          .replace(/vbscript:/gi, "")
-          .replace(/data:/gi, "")
+          // Strip form tags (not content — removes the tag only)
+          .replace(/<\/?form[^>]*>/gi, "")
+          // Strip all event handlers — quoted AND unquoted values
+          .replace(/\bon\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+          .replace(/\bjavascript\s*:/gi, "")
+          .replace(/\bvbscript\s*:/gi, "")
+          // Only strip actual data-URIs (data:type/subtype,...) — not plain Ukrainian "дані: ..."
+          .replace(/\bdata\s*:[a-z][^,\s]{0,50},/gi, "")
           .substring(0, MAX_ANSWER_LENGTH)
       : "";
 

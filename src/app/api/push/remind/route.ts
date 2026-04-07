@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db, pushSubscriptions } from "@/lib/db";
 import { eq, lte, and, isNotNull } from "drizzle-orm";
 import webpush from "web-push";
+import { timingSafeEqual } from "crypto";
 
 const VAPID_PUBLIC = process.env.VAPID_PUBLIC_KEY;
 const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY;
@@ -28,7 +29,22 @@ export async function POST(request: NextRequest) {
     : null;
   const providedSecret = bearerToken ?? cronHeader;
 
-  if (!CRON_SECRET || providedSecret !== CRON_SECRET) {
+  // C1: timing-safe comparison to prevent timing side-channel attacks on CRON_SECRET
+  let authorized = false;
+  if (CRON_SECRET && providedSecret !== null) {
+    try {
+      const maxLen = Math.max(providedSecret.length, CRON_SECRET.length, 32);
+      const a = Buffer.alloc(maxLen);
+      const b = Buffer.alloc(maxLen);
+      Buffer.from(providedSecret).copy(a);
+      Buffer.from(CRON_SECRET).copy(b);
+      authorized =
+        timingSafeEqual(a, b) && providedSecret.length === CRON_SECRET.length;
+    } catch {
+      authorized = false;
+    }
+  }
+  if (!authorized) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

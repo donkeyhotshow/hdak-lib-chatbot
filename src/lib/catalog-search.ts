@@ -208,6 +208,26 @@ export function parseBooksFromHtml(html: string, maxBooks = 10): SearchResult {
 
 // ─── Catalog API call ───────────────────────────────────────────────────────
 
+/** One retry (with 600 ms back-off) on transient network / 5xx errors. */
+async function fetchCatalog(
+  url: string,
+  body: string,
+  attempt = 0
+): Promise<Response> {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body,
+    signal: AbortSignal.timeout(8000),
+  });
+  if (!res.ok && res.status >= 500 && attempt === 0) {
+    // Retry once on server-side errors
+    await new Promise(r => setTimeout(r, 600));
+    return fetchCatalog(url, body, 1);
+  }
+  return res;
+}
+
 export async function searchCatalog(
   searchTerm: string,
   searchType: "title" | "author" | "general" | "udc" | "subject" | "keyword",
@@ -247,12 +267,18 @@ export async function searchCatalog(
 
     if (!CATALOG_URL) return { books: [], total: 0, unavailable: true };
 
-    const response = await fetch(CATALOG_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: formData.toString(),
-      signal: AbortSignal.timeout(8000),
-    });
+    let response: Response;
+    try {
+      response = await fetchCatalog(CATALOG_URL, formData.toString());
+    } catch (networkErr) {
+      // Network error on first attempt — retry once
+      try {
+        await new Promise(r => setTimeout(r, 600));
+        response = await fetchCatalog(CATALOG_URL, formData.toString(), 1);
+      } catch {
+        throw networkErr;
+      }
+    }
 
     if (!response.ok) return { books: [], total: 0, unavailable: true };
     const html = await response.text();
