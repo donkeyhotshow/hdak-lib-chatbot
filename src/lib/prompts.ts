@@ -2,28 +2,28 @@
  * System prompt builder for the chat LLM.
  * Extracted from chat/route.ts for maintainability.
  */
-import { LIBRARY, ALL_LINKS, isLibraryOpen } from '@/lib/constants';
+import { LIBRARY, ALL_LINKS, isLibraryOpen } from "@/lib/constants";
 
 // Cache base prompt (without catalog context).
 // L15: invalidate when library open/closed status changes, not just on TTL.
 // We track the last known status to bust cache on transitions.
 let _promptCache: { value: string; ts: number; wasOpen: boolean } | null = null;
 
-export function buildSystemPrompt(catalogContext = ''): string {
+export function buildSystemPrompt(catalogContext = ""): string {
   const now = Date.now();
   const currentlyOpen = isLibraryOpen();
 
   // Invalidate if: TTL expired OR open/closed status changed since last cache
-  const cacheValid = _promptCache
-    && (now - _promptCache.ts < 60_000)
-    && (_promptCache.wasOpen === currentlyOpen)
-    && !catalogContext;
+  const cacheValid =
+    _promptCache &&
+    now - _promptCache.ts < 60_000 &&
+    _promptCache.wasOpen === currentlyOpen &&
+    !catalogContext;
 
-  if (cacheValid) return (_promptCache as NonNullable<typeof _promptCache>).value;
+  if (cacheValid)
+    return (_promptCache as NonNullable<typeof _promptCache>).value;
 
-  const openStatus = currentlyOpen
-    ? 'ВІДКРИТА зараз'
-    : 'ЗАЧИНЕНА зараз';
+  const openStatus = currentlyOpen ? "ВІДКРИТА зараз" : "ЗАЧИНЕНА зараз";
 
   const result = `Ви — бібліотечний асистент ХДАК (Харківська державна академія культури).
 
@@ -133,9 +133,17 @@ ${ALL_LINKS.catalog_search} (запропонуй ввести назву або
   // Prompt injection protection: delimit user-provided catalog context
   if (catalogContext) {
     const sanitizedContext = catalogContext
-      .replace(/\[\/?(?:РЕЗУЛЬТАТИ КАТАЛОГУ|РЕКОМЕНДАЦІЇ|SYSTEM|INST|ASSISTANT)\]/gi, '')
+      .replace(
+        /\[\/?(?:РЕЗУЛЬТАТИ КАТАЛОГУ|РЕКОМЕНДАЦІЇ|SYSTEM|INST|ASSISTANT)\]/gi,
+        ""
+      )
       .substring(0, 3000);
-    return result + '\n\n---\n[USER DATA START]\n' + sanitizedContext + '\n[USER DATA END]\n---';
+    return (
+      result +
+      "\n\n---\n[USER DATA START]\n" +
+      sanitizedContext +
+      "\n[USER DATA END]\n---"
+    );
   }
 
   return result;

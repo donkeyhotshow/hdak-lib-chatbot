@@ -38,7 +38,7 @@ export function ChatInput({
         }
       });
     },
-    [inputValue, setInputValue],
+    [inputValue, setInputValue]
   );
 
   const {
@@ -115,7 +115,7 @@ export function ChatInput({
         <div
           className={cn(
             "input-container",
-            isTyping && "input-container-active",
+            isTyping && "input-container-active"
           )}
         >
           <textarea
@@ -128,7 +128,7 @@ export function ChatInput({
             disabled={isTyping}
             className={cn(
               "input-textarea transition-colors",
-              isListening && "placeholder:text-[#B87830]/60",
+              isListening && "placeholder:text-[#B87830]/60"
             )}
             maxLength={2000}
             aria-label="Повідомлення для чату"
@@ -147,7 +147,7 @@ export function ChatInput({
                       ? "text-red-500/80 font-medium"
                       : charCount > 1700
                         ? "text-orange-400/70"
-                        : "text-[#7A756F]/45",
+                        : "text-[#7A756F]/45"
                   )}
                 >
                   {2000 - charCount} залишилось
@@ -161,7 +161,7 @@ export function ChatInput({
                   className={cn(
                     "send-btn transition-all",
                     isListening && "mic-btn-listening",
-                    isProcessing && "opacity-50 cursor-wait",
+                    isProcessing && "opacity-50 cursor-wait"
                   )}
                   aria-label={isListening ? "Зупинити запис" : "Голосовий ввід"}
                   title={isListening ? "Зупинити запис" : "Голосовий ввід"}

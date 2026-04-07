@@ -3,15 +3,21 @@
  * Eliminates duplicated HTML parsing logic and provides a single robust parser.
  */
 
-import { stripHtml } from '@/lib/sanitize';
+import { stripHtml } from "@/lib/sanitize";
 
 // stripHtml is imported from @/lib/sanitize — do NOT duplicate here.
 
-const CATALOG_URL = process.env.CATALOG_URL || 'https://library-service.com.ua:8443/khkhdak/DocumentSearchResult';
-const CATALOG_FORM_URL = process.env.CATALOG_FORM_URL || 'https://library-service.com.ua:8443/khkhdak/DocumentSearchForm';
+const CATALOG_URL =
+  process.env.CATALOG_URL ||
+  "https://library-service.com.ua:8443/khkhdak/DocumentSearchResult";
+const CATALOG_FORM_URL =
+  process.env.CATALOG_FORM_URL ||
+  "https://library-service.com.ua:8443/khkhdak/DocumentSearchForm";
 
 if (!process.env.CATALOG_URL || !process.env.CATALOG_FORM_URL) {
-  console.warn("⚠️ CATALOG_URL or CATALOG_FORM_URL not set — using hardcoded defaults.");
+  console.warn(
+    "⚠️ CATALOG_URL or CATALOG_FORM_URL not set — using hardcoded defaults."
+  );
 }
 
 export interface BookResult {
@@ -30,7 +36,7 @@ export interface SearchResult {
 
 export interface SearchIntent {
   searchTerm: string;
-  searchType: 'title' | 'author' | 'general' | 'udc' | 'subject' | 'keyword';
+  searchType: "title" | "author" | "general" | "udc" | "subject" | "keyword";
 }
 
 // ─── Intent detection patterns ──────────────────────────────────────────────
@@ -63,7 +69,7 @@ const AUTHOR_PATTERNS = [
 ];
 
 function cleanTerm(raw: string): string {
-  return raw.replace(/[?!.,;:]+$/, '').trim();
+  return raw.replace(/[?!.,;:]+$/, "").trim();
 }
 
 // ─── Extended search patterns ────────────────────────────────────────────────
@@ -88,62 +94,71 @@ export function detectSearchIntent(message: string): SearchIntent | null {
   // УДК — highest priority (very specific pattern)
   for (const pattern of UDC_PATTERNS) {
     const raw = message.match(pattern)?.[1]?.trim();
-    const term = raw ? cleanTerm(raw) : '';
-    if (term && /^[\d.]+$/.test(term)) return { searchTerm: term, searchType: 'udc' };
+    const term = raw ? cleanTerm(raw) : "";
+    if (term && /^[\d.]+$/.test(term))
+      return { searchTerm: term, searchType: "udc" };
   }
   // Ключові слова
   for (const pattern of KEYWORD_PATTERNS) {
     const raw = message.match(pattern)?.[1]?.trim();
-    const term = raw ? cleanTerm(raw) : '';
-    if (term && term.length >= 3) return { searchTerm: term, searchType: 'keyword' };
+    const term = raw ? cleanTerm(raw) : "";
+    if (term && term.length >= 3)
+      return { searchTerm: term, searchType: "keyword" };
   }
   // Тема
   for (const pattern of SUBJECT_PATTERNS) {
     const raw = message.match(pattern)?.[1]?.trim();
-    const term = raw ? cleanTerm(raw) : '';
-    if (term && term.length >= 3) return { searchTerm: term, searchType: 'subject' };
+    const term = raw ? cleanTerm(raw) : "";
+    if (term && term.length >= 3)
+      return { searchTerm: term, searchType: "subject" };
   }
   for (const pattern of AUTHOR_PATTERNS) {
     const raw = message.match(pattern)?.[1]?.trim();
-    const term = raw ? cleanTerm(raw) : '';
-    if (term && term.length >= 3) return { searchTerm: term, searchType: 'author' };
+    const term = raw ? cleanTerm(raw) : "";
+    if (term && term.length >= 3)
+      return { searchTerm: term, searchType: "author" };
   }
   for (const pattern of TITLE_PATTERNS) {
     const raw = message.match(pattern)?.[1]?.trim();
-    const term = raw ? cleanTerm(raw) : '';
-    if (term && term.length >= 3) return { searchTerm: term, searchType: 'title' };
+    const term = raw ? cleanTerm(raw) : "";
+    if (term && term.length >= 3)
+      return { searchTerm: term, searchType: "title" };
   }
   // Quoted text with book-related context
   const quotedMatch = message.match(/[«"'](.{3,80})[»"']/);
-  if (quotedMatch && /книг|каталог|бібліотек|є у вас|маєте|шукаю/i.test(message)) {
-    return { searchTerm: quotedMatch[1].trim(), searchType: 'title' };
+  if (
+    quotedMatch &&
+    /книг|каталог|бібліотек|є у вас|маєте|шукаю/i.test(message)
+  ) {
+    return { searchTerm: quotedMatch[1].trim(), searchType: "title" };
   }
   return null;
 }
-
 
 // ─── HTML parsing ───────────────────────────────────────────────────────────
 
 function isBookEntry(text: string): boolean {
   // Must have slash (bibliographic separator), year, and sufficient length
   // Exclude URL-like strings (http/https/ftp) and short fragments
-  if (!text.includes('/') || !/\d{4}\./.test(text) || text.length <= 30) return false;
+  if (!text.includes("/") || !/\d{4}\./.test(text) || text.length <= 30)
+    return false;
   if (/https?:\/\/|ftp:\/\//.test(text)) return false;
   // Must have at least one comma (author, title, publisher pattern)
-  return text.includes(',');
+  return text.includes(",");
 }
 
 function buildBook(text: string, rawHtml: string): BookResult {
   const yearMatch = text.match(/[,]\s*[^,]+,\s*(\d{4})\./);
-  const year = yearMatch?.[1] ?? '';
+  const year = yearMatch?.[1] ?? "";
 
-  const titleMatch = text.match(/^([^/]{3,80}(?=\s*\/))/) || text.match(/^(.{3,80})/);
+  const titleMatch =
+    text.match(/^([^/]{3,80}(?=\s*\/))/) || text.match(/^(.{3,80})/);
   const title = titleMatch?.[1]?.trim() ?? text.slice(0, 60);
 
   const hasFile =
     /електронн/i.test(text) ||
-    rawHtml.includes('DocumentDownload') ||
-    rawHtml.includes('.pdf');
+    rawHtml.includes("DocumentDownload") ||
+    rawHtml.includes(".pdf");
 
   return { title, description: text, year, hasFile };
 }
@@ -178,11 +193,14 @@ export function parseBooksFromHtml(html: string, maxBooks = 10): SearchResult {
 
   // Total count from pagination line "X - Y з Z"
   const countMatch = html.match(/(\d+)\s*[-–]\s*\d+\s+[зз]\s+(\d+)/i);
-  const total = countMatch ? parseInt(countMatch[2], 10) || books.length : books.length;
+  const total = countMatch
+    ? parseInt(countMatch[2], 10) || books.length
+    : books.length;
 
   // M48: if HTML is suspiciously short and no books found, it may be an error page
   // rather than a genuine empty result — mark as potentially unavailable
-  const likelyErrorPage = books.length === 0 && html.length < 500 && !html.includes('DocumentSearch');
+  const likelyErrorPage =
+    books.length === 0 && html.length < 500 && !html.includes("DocumentSearch");
   if (likelyErrorPage) return { books: [], total: 0, unavailable: true };
 
   return { books, total, unavailable: false as const };
@@ -192,9 +210,9 @@ export function parseBooksFromHtml(html: string, maxBooks = 10): SearchResult {
 
 export async function searchCatalog(
   searchTerm: string,
-  searchType: 'title' | 'author' | 'general' | 'udc' | 'subject' | 'keyword',
+  searchType: "title" | "author" | "general" | "udc" | "subject" | "keyword",
   pageSize = 8,
-  page = 1,
+  page = 1
 ): Promise<SearchResult> {
   try {
     const safeTerm = searchTerm.substring(0, 200);
@@ -203,35 +221,35 @@ export async function searchCatalog(
 
     const formData = new URLSearchParams();
 
-    if (searchType === 'author') {
-      formData.append('author', safeTerm);
-      formData.append('author_cond', 'authorAnyWord');
-    } else if (searchType === 'udc') {
+    if (searchType === "author") {
+      formData.append("author", safeTerm);
+      formData.append("author_cond", "authorAnyWord");
+    } else if (searchType === "udc") {
       // УДК — only digits and dots allowed (validated before call)
-      formData.append('udc', safeTerm);
-    } else if (searchType === 'subject') {
-      formData.append('subject', safeTerm);
-      formData.append('subject_cond', 'subjectAnyWord');
-    } else if (searchType === 'keyword') {
-      formData.append('keywords', safeTerm);
-      formData.append('keywords_cond', 'keywordsAnyWord');
+      formData.append("udc", safeTerm);
+    } else if (searchType === "subject") {
+      formData.append("subject", safeTerm);
+      formData.append("subject_cond", "subjectAnyWord");
+    } else if (searchType === "keyword") {
+      formData.append("keywords", safeTerm);
+      formData.append("keywords_cond", "keywordsAnyWord");
     } else {
       // title | general
-      formData.append('name_value', safeTerm);
-      formData.append('name_cond', 'nameAnyWord');
+      formData.append("name_value", safeTerm);
+      formData.append("name_cond", "nameAnyWord");
     }
 
-    formData.append('page_size', String(safePageSize));
-    formData.append('page_number', String(safePage));
-    formData.append('sorting1', 'author');
-    formData.append('sorting_direction1', 'asc');
-    formData.append('i_lang', 'ukr');
+    formData.append("page_size", String(safePageSize));
+    formData.append("page_number", String(safePage));
+    formData.append("sorting1", "author");
+    formData.append("sorting_direction1", "asc");
+    formData.append("i_lang", "ukr");
 
     if (!CATALOG_URL) return { books: [], total: 0, unavailable: true };
 
     const response = await fetch(CATALOG_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: formData.toString(),
       signal: AbortSignal.timeout(8000),
     });
@@ -240,26 +258,33 @@ export async function searchCatalog(
     const html = await response.text();
     return parseBooksFromHtml(html, safePageSize);
   } catch (err) {
-    console.error('Catalog search failed:', err instanceof Error ? err.message : err);
+    console.error(
+      "Catalog search failed:",
+      err instanceof Error ? err.message : err
+    );
     return { books: [], total: 0, unavailable: true };
   }
 }
 
 // ─── Context builder for LLM prompt ─────────────────────────────────────────
 
-export function buildCatalogContext(intent: SearchIntent, result: SearchResult, catalogSearchUrl: string): string {
+export function buildCatalogContext(
+  intent: SearchIntent,
+  result: SearchResult,
+  catalogSearchUrl: string
+): string {
   const { searchTerm, searchType } = intent;
   const { books, total, unavailable } = result;
 
-  const typeLabel: Record<SearchIntent['searchType'], string> = {
-    author: 'автором',
-    title: 'назвою',
-    general: 'запитом',
-    udc: 'УДК',
-    subject: 'темою',
-    keyword: 'ключовими словами',
+  const typeLabel: Record<SearchIntent["searchType"], string> = {
+    author: "автором",
+    title: "назвою",
+    general: "запитом",
+    udc: "УДК",
+    subject: "темою",
+    keyword: "ключовими словами",
   };
-  const label = typeLabel[searchType] ?? 'запитом';
+  const label = typeLabel[searchType] ?? "запитом";
 
   if (unavailable) {
     return `\n\n[РЕЗУЛЬТАТИ КАТАЛОГУ: Каталог тимчасово недоступний (помилка з'єднання). Запропонуйте користувачу скористатися прямим посиланням: ${catalogSearchUrl}]`;
@@ -269,13 +294,18 @@ export function buildCatalogContext(intent: SearchIntent, result: SearchResult, 
     return `\n\n[РЕЗУЛЬТАТИ КАТАЛОГУ: Пошук за ${label} "${searchTerm}" — нічого не знайдено. Посилання для ручного пошуку: ${catalogSearchUrl}]`;
   }
 
-  const list = books.map((b, i) => {
-    const fileNote = b.hasFile ? ' 📄 (є електронна версія)' : '';
-    const yearNote = b.year ? ` (${b.year})` : '';
-    return `${i + 1}. ${b.title}${yearNote}${fileNote}`;
-  }).join('\n');
+  const list = books
+    .map((b, i) => {
+      const fileNote = b.hasFile ? " 📄 (є електронна версія)" : "";
+      const yearNote = b.year ? ` (${b.year})` : "";
+      return `${i + 1}. ${b.title}${yearNote}${fileNote}`;
+    })
+    .join("\n");
 
-  const moreNote = total > books.length ? `\nВсього знайдено: ${total}. Показано перші ${books.length}.` : '';
+  const moreNote =
+    total > books.length
+      ? `\nВсього знайдено: ${total}. Показано перші ${books.length}.`
+      : "";
   return `\n\n[РЕЗУЛЬТАТИ КАТАЛОГУ: Знайдено за ${label} "${searchTerm}" (${total} результатів):\n${list}${moreNote}\nПосилання для повного пошуку: ${catalogSearchUrl}]`;
 }
 

@@ -106,7 +106,7 @@ export default function ChatPage() {
       <main className="flex-1 flex flex-col min-w-0 relative h-full overflow-hidden">
         <header className="chat-header relative min-h-[48px] flex items-center justify-between px-4 border-b border-[#2A2520]/[0.04] bg-white/50 backdrop-blur-sm shrink-0">
           <button
-            onClick={() => setSidebarOpen((v) => !(v ?? false))}
+            onClick={() => setSidebarOpen(v => !(v ?? false))}
             className="w-11 h-11 flex items-center justify-center rounded-xl text-[#7A756F] hover:text-[#2A2520] hover:bg-[#2A2520]/[0.04] transition-all"
             aria-label={isSidebarOpen ? "Закрити меню" : "Відкрити меню"}
           >
@@ -126,7 +126,7 @@ export default function ChatPage() {
                     ? "bg-red-400"
                     : isTyping
                       ? "bg-amber-400 animate-pulse"
-                      : "bg-emerald-400",
+                      : "bg-emerald-400"
                 )}
               />
               <span className="text-[10px] font-medium tracking-wide text-[#7A756F]/60">
@@ -167,7 +167,7 @@ export default function ChatPage() {
           handleSend={handleSend}
           onStop={handleStop}
           currentConversationId={currentConversation?.id}
-          onSpeechError={(msg) => toast({ description: msg, duration: 4000 })}
+          onSpeechError={msg => toast({ description: msg, duration: 4000 })}
         />
       </main>
     </div>

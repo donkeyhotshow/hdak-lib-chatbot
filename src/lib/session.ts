@@ -4,14 +4,19 @@
  * This is NOT authentication — it's just conversation isolation per browser.
  */
 
-const SESSION_KEY = 'hdak_session_id';
+const SESSION_KEY = "hdak_session_id";
 
 export function getSessionId(): string {
-  if (typeof window === 'undefined') return '';
+  if (typeof window === "undefined") return "";
   try {
     let id = localStorage.getItem(SESSION_KEY);
     // Strict UUID v4 format validation
-    if (!id || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
+    if (
+      !id ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        id
+      )
+    ) {
       id = crypto.randomUUID();
       localStorage.setItem(SESSION_KEY, id);
     }
@@ -23,6 +28,6 @@ export function getSessionId(): string {
 }
 
 // In-memory fallback for when localStorage is unavailable
-let _memorySessionId = '';
+let _memorySessionId = "";
 
-export const SESSION_HEADER = 'x-session-id';
+export const SESSION_HEADER = "x-session-id";

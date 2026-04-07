@@ -7,7 +7,10 @@ import { Redis } from "@upstash/redis";
 // ---------------------------------------------------------------------------
 let upstashLimiter: Ratelimit | null = null;
 
-if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+if (
+  process.env.UPSTASH_REDIS_REST_URL &&
+  process.env.UPSTASH_REDIS_REST_TOKEN
+) {
   const redis = new Redis({
     url: process.env.UPSTASH_REDIS_REST_URL,
     token: process.env.UPSTASH_REDIS_REST_TOKEN,
@@ -40,7 +43,10 @@ function maybePurge(windowMs: number) {
   for (const [key, info] of rateLimits.entries()) {
     const cutoff = now - windowMs;
     // Remove entries with no recent timestamps
-    if (info.timestamps.length === 0 || info.timestamps[info.timestamps.length - 1] < cutoff) {
+    if (
+      info.timestamps.length === 0 ||
+      info.timestamps[info.timestamps.length - 1] < cutoff
+    ) {
       rateLimits.delete(key);
     }
   }
@@ -48,18 +54,25 @@ function maybePurge(windowMs: number) {
 
 const MAX_RATE_LIMIT_ENTRIES = 10_000;
 
-function checkRateLimitMemory(key: string, limit: number, windowMs: number): boolean {
+function checkRateLimitMemory(
+  key: string,
+  limit: number,
+  windowMs: number
+): boolean {
   const now = Date.now();
   const cutoff = now - windowMs;
 
   // M4: always purge expired entries (respects 5-min cooldown internally)
   maybePurge(windowMs);
-  
+
   // Guard against unbounded map growth — purge first, then check capacity
   if (rateLimits.size >= MAX_RATE_LIMIT_ENTRIES) {
     // Force purge of expired entries before rejecting
     for (const [k, info] of rateLimits.entries()) {
-      if (info.timestamps.length === 0 || info.timestamps[info.timestamps.length - 1] < cutoff) {
+      if (
+        info.timestamps.length === 0 ||
+        info.timestamps[info.timestamps.length - 1] < cutoff
+      ) {
         rateLimits.delete(k);
       }
     }
@@ -112,9 +125,10 @@ export async function checkRateLimit(key: string): Promise<boolean> {
 export function generateFingerprint(req: Request): string {
   const forwarded = req.headers.get("x-forwarded-for");
   // Use first IP from x-forwarded-for (added by trusted proxy), fall back to other headers
-  const ip = forwarded?.split(",")[0]?.trim()
-    || req.headers.get("x-real-ip")?.trim()
-    || "nogroup";
+  const ip =
+    forwarded?.split(",")[0]?.trim() ||
+    req.headers.get("x-real-ip")?.trim() ||
+    "nogroup";
   const ua = req.headers.get("user-agent") || "";
   const lang = req.headers.get("accept-language") || "";
   const enc = req.headers.get("accept-encoding") || "";
