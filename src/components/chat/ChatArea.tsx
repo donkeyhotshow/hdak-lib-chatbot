@@ -82,6 +82,17 @@ const markdownComponents = {
       ? <code className="bg-[#1A1612]/5 text-[#B87830] px-1.5 py-0.5 rounded text-[13px]" {...rest} />
       : <code className={cn("block bg-[#1A1612]/5 p-3 rounded-lg text-[13px] overflow-x-auto", className)} {...rest} />;
   },
+  table: (props: React.HTMLAttributes<HTMLTableElement>) => (
+    <div className="overflow-x-auto my-3 rounded-lg border border-[#E5E1D8]">
+      <table className="text-[13px] border-collapse w-full min-w-[280px]" {...props} />
+    </div>
+  ),
+  th: (props: React.HTMLAttributes<HTMLTableCellElement>) => (
+    <th className="border-b border-[#E5E1D8] px-3 py-2 bg-[#F2EDE4] text-left font-semibold text-[#1A1612] text-[12px] uppercase tracking-wide" {...props} />
+  ),
+  td: (props: React.HTMLAttributes<HTMLTableCellElement>) => (
+    <td className="border-b border-[#E5E1D8]/60 px-3 py-2 text-[#2A2520]/80 last:border-0" {...props} />
+  ),
 };
 
 const MessageBubble = memo(function MessageBubble({ msg, isStreaming, formatTime, copyToClipboard, onRetry }: {
@@ -195,7 +206,23 @@ function ChatAreaComponent({ messages, isTyping, isLoadingConversation, error, h
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   const QUICK_MENU = locale === 'en' ? QUICK_MENU_EN : QUICK_MENU_UK;
-  const QUICK_CHIPS = locale === 'en' ? QUICK_CHIPS_EN : QUICK_CHIPS_UK;
+
+  const getSuggestions = (content: string): string[] => {
+    const c = content.toLowerCase();
+    if (locale === 'en') {
+      if (/schedule|hours|working|open/i.test(c)) return ['How to register?', 'Library contacts'];
+      if (/book|author|catalog|title|find/i.test(c)) return ['Search more books', 'New arrivals'];
+      if (/research|thesis|scopus|repository|science/i.test(c)) return ['Access Scopus?', 'HDAK Repository'];
+      if (/register|membership|card/i.test(c)) return ['Library hours', 'Contacts'];
+      return ['Find a book', 'Library hours', 'Contacts'];
+    }
+    if (/графік|розклад|години|відкри|зачин/i.test(c)) return ['Як записатися?', 'Контакти бібліотеки'];
+    if (/книг|автор|каталог|видання|збірник|підручник|поезі|знайд/i.test(c)) return ['Знайти ще книги', 'Нові надходження'];
+    if (/наук|стат|дисертац|scopus|research|репозитар/i.test(c)) return ['Як отримати Scopus?', 'Репозитарій ХДАК'];
+    if (/запис|квиток|реєстрац/i.test(c)) return ['Графік роботи', 'Контакти'];
+    if (/контакт|телефон|email|адрес/i.test(c)) return ['Графік роботи', 'Як записатися?'];
+    return ['Знайти книгу', 'Графік роботи', 'Контакти'];
+  };
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
@@ -225,7 +252,9 @@ function ChatAreaComponent({ messages, isTyping, isLoadingConversation, error, h
     return { lastMsg: last, lastMsgHasCatalog: hasCatalog, lastAssistantContent: lastAssistant };
   }, [messages]);
 
-  const showChips = !isTyping && !!lastMsg && lastMsg.role === 'ASSISTANT' && lastMsg.id !== streamingMessageId && !lastMsgHasCatalog;
+  // Show chips after all assistant responses — catalog results included (helpful for follow-up searches)
+  const showChips = !isTyping && !!lastMsg && lastMsg.role === 'ASSISTANT' && lastMsg.id !== streamingMessageId;
+  const dynamicChips = showChips ? getSuggestions(lastAssistantContent) : [];
 
   if (messages.length === 0 && !isLoadingConversation) {
     return (
@@ -300,21 +329,21 @@ function ChatAreaComponent({ messages, isTyping, isLoadingConversation, error, h
         {messages.map((msg) => <MessageBubble key={msg.id} msg={msg} isStreaming={msg.id === streamingMessageId} formatTime={formatTime} copyToClipboard={copyToClipboard} onRetry={onRetry} />)}
         <AnimatePresence>{isTyping && <TypingIndicator />}</AnimatePresence>
         
-        <AnimatePresence>{showChips && (
+        <AnimatePresence>{showChips && dynamicChips.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="pt-2 pl-11">
             <span className="text-[11px] font-bold text-[#7A756F]/40 uppercase tracking-wider block mb-3">{locale === 'en' ? 'Quick suggestions:' : 'Швидкі підказки:'}</span>
             <div className="chip-scroll-container no-scrollbar">
-              {QUICK_CHIPS.map((chip, idx) => (
+              {dynamicChips.map((label, idx) => (
                 <button 
-                  key={chip.id} 
-                  onClick={() => handleFaqSend(chip.kw)} 
+                  key={label} 
+                  onClick={() => handleFaqSend(label)} 
                   disabled={isTyping} 
                   className={cn(
-                    "flex-shrink-0 px-4 py-2 text-[13px] font-semibold rounded-full border border-[#D4A853]/30 text-[#B87830] hover:bg-[#D4A853]/10 hover:border-[#D4A853]/60 transition-all bg-white/50",
+                    "flex-shrink-0 px-4 py-2 text-[13px] font-semibold rounded-full border border-[#D4A853]/30 text-[#B87830] hover:bg-[#D4A853]/10 hover:border-[#D4A853]/60 transition-all bg-white/50 active:scale-95",
                     `animate-fade-in-slide-up stagger-delay-${idx + 1}`
                   )}
                 >
-                  {chip.title}
+                  {label}
                 </button>
               ))}
             </div>

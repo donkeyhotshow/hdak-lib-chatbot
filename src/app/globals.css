@@ -1,4 +1,4 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
@@ -1042,5 +1042,39 @@
   .mic-btn-listening {
     animation: none !important;
     box-shadow: 0 0 0 2px rgba(184, 120, 48, 0.4) !important;
+  }
+}
+
+/* ============================================
+   MOBILE ADAPTATIONS — < 480px
+   ============================================ */
+
+@media (max-width: 480px) {
+  /* Slightly wider user messages on narrow screens */
+  .message-user {
+    max-width: 92% !important;
+  }
+
+  /* Smaller quick-button text on tiny screens */
+  .quick-btn-text {
+    font-size: 11.5px;
+  }
+
+  /* Chips: larger touch target, horizontal scroll */
+  .chip-scroll-container button {
+    min-height: 36px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  /* Hero title adjustment */
+  .hero-title {
+    font-size: 22px;
+  }
+
+  /* Tighten chat padding on mobile */
+  .chat-scroll-area {
+    padding-left: 12px;
+    padding-right: 12px;
   }
 }

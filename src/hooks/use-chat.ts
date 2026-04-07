@@ -90,15 +90,28 @@ export function useChat(toast: (opts: { description: string; duration?: number }
     isMountedRef.current = true;
     const controller = new AbortController();
     setIsLoadingConversations(true);
+    // L12: Load from cache first for zero-latency UI immersion
+    try {
+      const cached = localStorage.getItem('hdak_conv_cache');
+      if (cached) {
+        const { items, hasMore } = JSON.parse(cached);
+        setConversations(items || []);
+        setHasMoreConversations(hasMore || false);
+      }
+    } catch { /* ignore cache parse errors */ }
+
     fetch('/api/conversations?limit=15&offset=0', { signal: controller.signal, headers: sessionHeaders() })
       .then(res => res.ok ? res.json() : null)
       .then(data => {
         if (!isMountedRef.current) return;
         if (data) {
-          // H5: if server says sessionRequired, sessionId wasn't ready yet — will retry on next mount
-          setConversations(data.items ?? data);
-          setHasMoreConversations(data.hasMore ?? false);
-          convOffsetRef.current = data.items?.length ?? 0;
+          const items = data.items ?? data;
+          const hasMore = data.hasMore ?? false;
+          setConversations(items);
+          setHasMoreConversations(hasMore);
+          convOffsetRef.current = items.length;
+          // S15: persist successful fetch to cache
+          try { localStorage.setItem('hdak_conv_cache', JSON.stringify({ items, hasMore, ts: Date.now() })); } catch (e) {}
         }
       })
       .catch((err) => {
@@ -121,6 +134,15 @@ export function useChat(toast: (opts: { description: string; duration?: number }
     };
   }, []);
 
+  // Sync current messages to localStorage for guest persistence
+  useEffect(() => {
+    if (messages.length === 0) return;
+    const convId = currentConversationRef.current?.id || 'new';
+    try {
+      localStorage.setItem(`hdak_msg_cache_${convId}`, JSON.stringify({ messages, ts: Date.now() }));
+    } catch (e) { /* ignore quota errors */ }
+  }, [messages]);
+
   // Auto-scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: messages.length > 3 ? 'auto' : 'smooth' });
@@ -137,9 +159,12 @@ export function useChat(toast: (opts: { description: string; duration?: number }
           const res = await fetch('/api/conversations?limit=15&offset=0', { headers: sessionHeaders() });
           if (res.ok && isMountedRef.current) {
             const data = await res.json();
-            setConversations(data.items ?? data);
-            setHasMoreConversations(data.hasMore ?? false);
-            convOffsetRef.current = data.items?.length ?? 0;
+            const items = data.items ?? data;
+            const hasMore = data.hasMore ?? false;
+            setConversations(items);
+            setHasMoreConversations(hasMore);
+            convOffsetRef.current = items.length;
+            try { localStorage.setItem('hdak_conv_cache', JSON.stringify({ items, hasMore, ts: Date.now() })); } catch (e) {}
           }
         } catch (err) {
           console.error('Не вдалося оновити список розмов:', err);
@@ -165,11 +190,21 @@ export function useChat(toast: (opts: { description: string; duration?: number }
       const res = await fetch(`/api/conversations/${id}`, { headers: sessionHeaders() });
       if (res.ok) {
         const data = await res.json();
-        // M51: update ref immediately so handleSend uses correct convId before next render
         currentConversationRef.current = data;
         setCurrentConversation(data);
-        setMessages(data.messages || []);
+        const msgs = data.messages || [];
+        setMessages(msgs);
+        // P5: cache messages for this conversation id
+        try { localStorage.setItem(`hdak_msg_cache_${id}`, JSON.stringify({ messages: msgs, ts: Date.now() })); } catch (e) {}
       } else {
+        // Fallback to cache if server fails
+        try {
+          const cached = localStorage.getItem(`hdak_msg_cache_${id}`);
+          if (cached) {
+            const { messages: msgs } = JSON.parse(cached);
+            setMessages(msgs);
+          }
+        } catch (e) {}
         setError('Не вдалося завантажити розмову. Перевірте з\'єднання.');
       }
     } catch (err) {
