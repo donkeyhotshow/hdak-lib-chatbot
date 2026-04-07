@@ -1,14 +1,9 @@
 {
   "include": [
-    "_core/**/*",
-    "app/**/*",
-    "components/**/*",
-    "contexts/**/*",
-    "hooks/**/*",
-    "lib/**/*",
+    "src/**/*",
     "next-env.d.ts",
-    "shared/**/*",
-    ".next/types/**/*.ts"
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
@@ -25,17 +20,24 @@
     "noEmit": true,
     "module": "ESNext",
     "strict": true,
-    "lib": ["esnext", "dom", "dom.iterable"],
-    "jsx": "preserve",
+    "lib": [
+      "esnext",
+      "dom",
+      "dom.iterable"
+    ],
+    "jsx": "react-jsx",
     "esModuleInterop": true,
     "skipLibCheck": true,
     "allowImportingTsExtensions": true,
     "moduleResolution": "bundler",
     "baseUrl": ".",
-    "types": ["node"],
+    "types": [
+      "node"
+    ],
     "paths": {
-      "@/*": ["./*"],
-      "@shared/*": ["./shared/*"]
+      "@/*": [
+        "./src/*"
+      ]
     },
     "target": "ES2017",
     "allowJs": true,
