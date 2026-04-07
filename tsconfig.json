@@ -32,7 +32,6 @@
       "@/*": ["./src/*"]
     },
     "target": "ES2017",
-    "allowJs": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "plugins": [

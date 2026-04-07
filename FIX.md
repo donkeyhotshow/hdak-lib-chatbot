@@ -32,7 +32,7 @@ const sessionHeaders = () => ({ [SESSION_HEADER]: sessionIdRef.current });
 
 ---
 
-### C3 · `sanitize.ts` — `data:` видаляється з будь-якого тексту, не тільки з URL
+### ~~C3~~ ✅ · `sanitize.ts` — `data:` видаляється з будь-якого тексту, не тільки з URL
 
 `replace(/data:/gi, '')` видаляє підрядок "data:" з будь-якого тексту, включаючи легітимний ("data: дані про...").
 
@@ -153,7 +153,7 @@ CSS використовує `font-weight: 500` (sidebar-text, quick-btn-text), 
 
 ---
 
-### M7 · `vercel.json` — відсутні security headers
+### ~~M7~~ ✅ · `next.config.ts` — security headers додані
 
 Security headers є тільки в `next.config.ts`. При деплої через Vercel CLI без Next.js — headers не застосовуються.
 
@@ -190,7 +190,7 @@ Security headers є тільки в `next.config.ts`. При деплої чер
 
 ---
 
-### UX4 · Sidebar на мобільних не закривається свайпом
+### ~~UX4~~ ✅ · Sidebar на мобільних не закривається свайпом
 
 Стандартний жест drawer (swipe left) не підтримується.
 
@@ -225,7 +225,7 @@ Security headers є тільки в `next.config.ts`. При деплої чер
 
 ---
 
-### UX8 · Заголовок розмови в sidebar не оновлюється одразу після першого повідомлення
+### ~~UX8~~ ✅ · Заголовок розмови в sidebar не оновлюється одразу після першого повідомлення
 
 Оновлення через `refreshConversations()` з debounce 300ms — може бути затримка.
 
@@ -235,13 +235,13 @@ Security headers є тільки в `next.config.ts`. При деплої чер
 
 ## ⚪ Низькі проблеми
 
-| #   | Проблема                                                  | Файл                   | Виправлення                   |
-| --- | --------------------------------------------------------- | ---------------------- | ----------------------------- |
-| L1  | `simulated` поле в `Message` ніде не використовується     | `types.ts:6`           | Видалити або реалізувати      |
-| L2  | `.sidebar-section-divider` CSS клас не використовується   | `globals.css`          | Видалити                      |
-| L3  | `images.minimumCacheTTL: 60` — занадто малий TTL          | `next.config.ts:18`    | Збільшити до 86400            |
-| L4  | `ErrorBoundary` "Спробувати знову" не перезавантажує дані | `ErrorBoundary.tsx:28` | Передавати `onReset` callback |
-| L5  | Відсутній `maxDuration` для `faq-save` route              | `vercel.json`          | Додати `"maxDuration": 15`    |
+| #         | Проблема                                                  | Файл                   | Виправлення                   |
+| --------- | --------------------------------------------------------- | ---------------------- | ----------------------------- |
+| L1        | `simulated` поле в `Message` ніде не використовується     | `types.ts:6`           | Видалити або реалізувати      |
+| L2        | `.sidebar-section-divider` CSS клас не використовується   | `globals.css`          | Видалити                      |
+| ~~L3~~ ✅ | `images.minimumCacheTTL: 86400` — встановлено             | `next.config.ts`       | Виправлено                    |
+| L4        | `ErrorBoundary` "Спробувати знову" не перезавантажує дані | `ErrorBoundary.tsx:28` | Передавати `onReset` callback |
+| L5        | Відсутній `maxDuration` для `faq-save` route              | `vercel.json`          | Додати `"maxDuration": 15`    |
 
 ---
 
@@ -315,7 +315,7 @@ _Оновлено: квітень 2026_
 
 ---
 
-### C5 · `use-chat.ts:359` — `refreshConversations()` викликається без `await`
+### ~~C5~~ ✅ · `use-chat.ts:359` — `refreshConversations()` викликається без `await`
 
 Після успішного стріму `refreshConversations()` викликається fire-and-forget. Якщо компонент розмонтується до завершення debounce (300ms) — `isMountedRef.current = false`, але `refreshDebounceRef.current` вже запущений і виконається.
 
@@ -429,7 +429,7 @@ _Оновлено: квітень 2026_
 
 Sitemap URL захардкоджений. При зміні домену — robots.txt буде вказувати на старий URL.
 
-**Файл:** `public/robots.txt:5`
+**Файл:** ~~`public/robots.txt:5`~~ ✅ видалено, використовується `src/app/robots.ts`
 **Виправлення:** Генерувати динамічно через `src/app/robots.ts` (Next.js metadata API).
 
 ---
@@ -490,7 +490,7 @@ Sitemap URL захардкоджений. При зміні домену — rob
 
 ---
 
-### UX11 · `ChatArea.tsx` — `isLoadingConversation` показує dots без тексту опису
+### ~~UX11~~ ✅ · `ChatArea.tsx` — `isLoadingConversation` показує dots без тексту опису
 
 Loading indicator показує 3 крапки і "Завантаження..." але не вказує що саме завантажується. При повільному з'єднанні — незрозуміло.
 
@@ -499,7 +499,7 @@ Loading indicator показує 3 крапки і "Завантаження..."
 
 ---
 
-### UX12 · `page.tsx` — `window.innerWidth` перевіряється при кожному resize event
+### ~~UX12~~ ✅ · `page.tsx` — `window.innerWidth` замінений на `useIsMobile()`
 
 `if (window.innerWidth < 768)` в обробнику click і keydown — перевіряється при кожному кліку. Краще використовувати `useIsMobile()` хук.
 
@@ -510,16 +510,16 @@ Loading indicator показує 3 крапки і "Завантаження..."
 
 ## ⚪ Нові низькі проблеми (Wave 2)
 
-| #   | Проблема                                                                                                                   | Файл                                  | Виправлення                                                 |
-| --- | -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- | ----------------------------------------------------------- |
-| L6  | `use-mobile.ts` не використовується ніде в проекті                                                                         | `src/hooks/use-mobile.ts`             | Видалити або використати в `page.tsx`                       |
-| L7  | `tw-animate-css` в dependencies, але не в devDependencies                                                                  | `package.json`                        | Перенести в devDependencies                                 |
-| L8  | `sharp` в dependencies — потрібен тільки для image optimization                                                            | `package.json`                        | Перенести в devDependencies або optionalDependencies        |
-| L9  | `clsx` і `tailwind-merge` — обидва встановлені, але `cn()` вже об'єднує їх                                                 | `package.json`                        | Нормально, але можна замінити на `clsx` + inline merge      |
-| L10 | `tsconfig.json` — `allowJs: true` без `checkJs: true`                                                                      | `tsconfig.json`                       | Додати `"checkJs": true` або видалити `allowJs`             |
-| L11 | `drizzle.config.ts` — `verbose: true` в production                                                                         | `drizzle.config.ts`                   | Встановити `verbose: process.env.NODE_ENV !== 'production'` |
-| L12 | `catalog-search.ts` — URL каталогу в `constants.ts` і в `catalog-search.ts` — різні (одна для форми, інша для результатів) | `src/lib/catalog-search.ts:6-7`       | Задокументувати різницю                                     |
-| L13 | `ErrorBoundary` не логує в production monitoring (Sentry, etc.)                                                            | `src/components/ErrorBoundary.tsx:26` | Додати інтеграцію з error tracking                          |
+| #          | Проблема                                                                                                                   | Файл                                  | Виправлення                                                 |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- | ----------------------------------------------------------- |
+| ~~L6~~ ✅  | `use-mobile.ts` використовується в `page.tsx`                                                                              | `src/hooks/use-mobile.ts`             | Виправлено (UX12)                                           |
+| L7         | `tw-animate-css` в dependencies, але не в devDependencies                                                                  | `package.json`                        | Перенести в devDependencies                                 |
+| L8         | `sharp` в dependencies — потрібен тільки для image optimization                                                            | `package.json`                        | Перенести в devDependencies або optionalDependencies        |
+| L9         | `clsx` і `tailwind-merge` — обидва встановлені, але `cn()` вже об'єднує їх                                                 | `package.json`                        | Нормально, але можна замінити на `clsx` + inline merge      |
+| ~~L10~~ ✅ | `tsconfig.json` — `allowJs` видалено (немає .js файлів в src/)                                                             | `tsconfig.json`                       | Виправлено                                                  |
+| L11        | `drizzle.config.ts` — `verbose: true` в production                                                                         | `drizzle.config.ts`                   | Встановити `verbose: process.env.NODE_ENV !== 'production'` |
+| L12        | `catalog-search.ts` — URL каталогу в `constants.ts` і в `catalog-search.ts` — різні (одна для форми, інша для результатів) | `src/lib/catalog-search.ts:6-7`       | Задокументувати різницю                                     |
+| L13        | `ErrorBoundary` не логує в production monitoring (Sentry, etc.)                                                            | `src/components/ErrorBoundary.tsx:26` | Додати інтеграцію з error tracking                          |
 
 ---
 

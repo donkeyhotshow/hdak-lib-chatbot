@@ -447,6 +447,13 @@ export const Sidebar = memo(function Sidebar({
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: "-100%", opacity: 0 }}
             transition={{ duration: 0.28, ease: [0.25, 0.1, 0.25, 1] }}
+            // UX4: swipe left to close sidebar on mobile
+            drag={isMobile ? "x" : false}
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={{ left: 0.3, right: 0 }}
+            onDragEnd={(_e, info) => {
+              if (isMobile && info.offset.x < -60) setIsOpen(false);
+            }}
             className="sidebar-premium h-full fixed md:relative z-50 flex flex-col"
             role="dialog"
             aria-modal={isMobile ? "true" : "false"}

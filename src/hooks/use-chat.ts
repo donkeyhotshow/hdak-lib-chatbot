@@ -492,6 +492,21 @@ export function useChat(
                       m.id === botId ? { ...m, status: "sent" } : m
                     )
                   );
+                  // UX8: update local conversation list immediately on done
+                  if (chunk.conversationId && !currentConversationRef.current) {
+                    const newConv = {
+                      id: chunk.conversationId as string,
+                      title: text.substring(0, 50),
+                      createdAt: new Date().toISOString(),
+                    };
+                    currentConversationRef.current = newConv;
+                    setCurrentConversation(newConv);
+                    setConversations(prev => {
+                      if (prev.some(c => c.id === chunk.conversationId))
+                        return prev;
+                      return [newConv, ...prev];
+                    });
+                  }
                 }
               } catch {
                 /* skip malformed */
@@ -516,7 +531,8 @@ export function useChat(
         }
 
         if (abortControllerRef.current === controller) {
-          refreshConversations();
+          // C5: await so isMountedRef guard inside debounce is respected
+          await refreshConversations();
         }
       } catch (err) {
         if (err instanceof Error && err.name === "AbortError") return;

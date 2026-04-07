@@ -413,13 +413,11 @@ export async function POST(request: NextRequest) {
           // Don't persist LLM fallback errors — they pollute conversation history
           if (fullResponse !== FALLBACK_ERROR) {
             try {
-              await db
-                .insert(messagesTable)
-                .values({
-                  conversationId: convId,
-                  role: "ASSISTANT",
-                  content: fullResponse,
-                });
+              await db.insert(messagesTable).values({
+                conversationId: convId,
+                role: "ASSISTANT",
+                content: fullResponse,
+              });
             } catch (e) {
               console.error("Не вдалося зберегти відповідь:", e);
             }

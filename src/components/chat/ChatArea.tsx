@@ -630,6 +630,9 @@ function ChatAreaComponent({
           )}
           {isLoadingConversation && messages.length === 0 && (
             <div className="space-y-8 mt-4">
+              <p className="text-center text-sm text-[#7A756F]/60 mb-2">
+                Завантаження розмови…
+              </p>
               <MessageSkeleton />
               <MessageSkeleton />
               <MessageSkeleton />
