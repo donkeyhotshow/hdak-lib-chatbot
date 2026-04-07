@@ -1871,7 +1871,7 @@ export default function Home() {
         .hdak-action-btn--catalog:hover { background: #bfae8d; border-color: rgba(121,90,57,0.52); color: #5f4b3a; }
         .hdak-action-btn--secondary { background: transparent; border-color: rgba(121,90,57,0.28); color: #795a39; box-shadow: none; font-size: 11px; }
         .hdak-action-btn--secondary:hover { background: transparent; border-color: #795a39; color: #5c3a1e; text-decoration: underline; }
-        .hdak-followup-chip { min-height: 44px; height: auto; padding: 10px 12px; background: transparent; border: 1px solid rgba(121,90,57,0.34); border-radius: 20px; color: #795a39; font-size: 12px; cursor: pointer; font-family: 'DM Sans', system-ui, sans-serif; transition: all 0.15s; display: inline-flex; align-items: center; white-space: nowrap; max-width: fit-content; animation: chipIn 0.2s ease both; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+        .hdak-followup-chip { min-height: 28px; height: auto; padding: 4px 10px; background: transparent; border: 1px solid rgba(121,90,57,0.34); border-radius: 14px; color: #795a39; font-size: 11px; cursor: pointer; font-family: 'DM Sans', system-ui, sans-serif; transition: all 0.15s; display: inline-flex; align-items: center; white-space: nowrap; max-width: fit-content; animation: chipIn 0.2s ease both; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
         .hdak-followup-chip:hover { border-color: #795a39; color: #5c3a1e; background: rgba(121,90,57,0.06); }
         .hdak-ctx-btn { min-height: 44px; height: auto; padding: 0 14px; background: #ffffff; border: 1px solid #e0d5c5; border-radius: 20px; color: #5f4b3a; font-size: 13px; cursor: pointer; font-family: 'DM Sans', system-ui, sans-serif; transition: all 0.15s; display: inline-flex; align-items: center; gap: 5px; animation: ctxIn 0.3s ease both; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
         .hdak-ctx-btn:hover { background: #5c3a1e; border-color: #5c3a1e; color: #ffffff; }
@@ -2639,11 +2639,11 @@ export default function Home() {
                     className="hdak-chip"
                     onClick={() => handleQuickStart(chip.text)}
                     style={{
-                      minHeight: 44,
-                      padding: "10px 14px",
+                      minHeight: 32,
+                      padding: "6px 10px",
                       background: "#f9f5ee",
                       border: "1px solid rgba(121,90,57,0.28)",
-                      borderRadius: 18,
+                      borderRadius: 14,
                       fontSize: 11,
                       color: "#795a39",
                       cursor: "pointer",
@@ -2925,7 +2925,6 @@ export default function Home() {
               </button>
             </div>
             <div
-              classNam            <div
               className="hdak-kb-hint"
               style={{
                 fontSize: 11,
