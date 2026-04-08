@@ -137,9 +137,7 @@ Use `.env.example` as the source of truth.
 
 ## Deployment
 
-- Recommended: **Vercel**
-- Alternatives: **Railway**, **Render**
-- Fly.io: доступен как дополнительный вариант (см. `fly.toml`)
+- **Vercel** (recommended)
 
 ### Что нужно для деплоя
 
@@ -216,13 +214,12 @@ Use `.env.example` as the source of truth.
   - `OPENROUTER_FALLBACK_MODELS` (comma-separated fallback models, e.g. `openrouter/auto,openai/gpt-4o-mini:free`)
 - Без этих env стоимость считается как `0` (токены и usage всё равно собираются).
 
-## Render launch checklist
+## Production launch checklist
 
-1. Render service: `hdak-lib-chatbot.onrender.com`
-2. Domain: CNAME → `hdak-lib-chatbot.onrender.com`
-3. SSL/TLS: включить сертификат и HTTPS redirect
-4. Monitoring: log drains (Slack/Email), webhook alerts для 5xx, metrics dashboard
-5. Launch: onboard первых 10 библиотекарей + ежедневный feedback review в `/admin`
+1. Domain: CNAME → Vercel project URL
+2. SSL/TLS: автоматически через Vercel
+3. Monitoring: log drains, webhook alerts для 5xx, metrics dashboard
+4. Launch: onboard первых библиотекарей + ежедневный feedback review в `/admin`
 
 ## Limits / caveats
 
