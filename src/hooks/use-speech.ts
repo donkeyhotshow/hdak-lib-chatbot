@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect } from "react";
 
-export type SpeechState = 'idle' | 'listening' | 'processing' | 'error';
+export type SpeechState = "idle" | "listening" | "processing" | "error";
 
 interface UseSpeechOptions {
   onResult: (text: string) => void;
@@ -49,7 +49,7 @@ interface SpeechRecognitionInstance extends EventTarget {
   abort(): void;
 }
 interface SpeechRecognitionConstructor {
-  new(): SpeechRecognitionInstance;
+  new (): SpeechRecognitionInstance;
 }
 
 declare global {
@@ -59,8 +59,12 @@ declare global {
   }
 }
 
-export function useSpeech({ onResult, onError, lang = 'uk-UA' }: UseSpeechOptions): UseSpeechReturn {
-  const [state, setState] = useState<SpeechState>('idle');
+export function useSpeech({
+  onResult,
+  onError,
+  lang = "uk-UA",
+}: UseSpeechOptions): UseSpeechReturn {
+  const [state, setState] = useState<SpeechState>("idle");
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
@@ -68,11 +72,16 @@ export function useSpeech({ onResult, onError, lang = 'uk-UA' }: UseSpeechOption
   // without needing them in the dependency array (avoids recreation on every render)
   const onResultRef = useRef(onResult);
   const onErrorRef = useRef(onError);
-  useEffect(() => { onResultRef.current = onResult; }, [onResult]);
-  useEffect(() => { onErrorRef.current = onError; }, [onError]);
+  useEffect(() => {
+    onResultRef.current = onResult;
+  }, [onResult]);
+  useEffect(() => {
+    onErrorRef.current = onError;
+  }, [onError]);
 
   // Check API availability once (client-only)
-  const isSupported = typeof window !== 'undefined' &&
+  const isSupported =
+    typeof window !== "undefined" &&
     !!(window.SpeechRecognition || window.webkitSpeechRecognition);
 
   useEffect(() => {
@@ -85,10 +94,13 @@ export function useSpeech({ onResult, onError, lang = 'uk-UA' }: UseSpeechOption
   }, []);
 
   const stop = useCallback(() => {
-    if (timeoutRef.current) { clearTimeout(timeoutRef.current); timeoutRef.current = null; }
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
     recognitionRef.current?.stop();
     recognitionRef.current = null;
-    if (isMountedRef.current) setState('idle');
+    if (isMountedRef.current) setState("idle");
   }, []);
 
   const start = useCallback(() => {
@@ -97,9 +109,13 @@ export function useSpeech({ onResult, onError, lang = 'uk-UA' }: UseSpeechOption
     // Stop any existing session
     recognitionRef.current?.abort();
     recognitionRef.current = null;
-    if (timeoutRef.current) { clearTimeout(timeoutRef.current); timeoutRef.current = null; }
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
 
-    const SpeechRecognitionAPI = window.SpeechRecognition ?? window.webkitSpeechRecognition;
+    const SpeechRecognitionAPI =
+      window.SpeechRecognition ?? window.webkitSpeechRecognition;
     if (!SpeechRecognitionAPI) return;
 
     const recognition = new SpeechRecognitionAPI();
@@ -110,7 +126,7 @@ export function useSpeech({ onResult, onError, lang = 'uk-UA' }: UseSpeechOption
 
     recognition.onstart = () => {
       if (!isMountedRef.current) return;
-      setState('listening');
+      setState("listening");
       // Auto-stop after 10s of silence
       timeoutRef.current = setTimeout(() => {
         recognition.stop();
@@ -119,52 +135,62 @@ export function useSpeech({ onResult, onError, lang = 'uk-UA' }: UseSpeechOption
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
       if (!isMountedRef.current) return;
-      if (timeoutRef.current) { clearTimeout(timeoutRef.current); timeoutRef.current = null; }
-      setState('processing');
-      const transcript = event.results[0]?.[0]?.transcript?.trim() ?? '';
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      setState("processing");
+      const transcript = event.results[0]?.[0]?.transcript?.trim() ?? "";
       if (transcript) {
         onResultRef.current(transcript);
       }
-      setState('idle');
+      setState("idle");
       recognitionRef.current = null;
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       if (!isMountedRef.current) return;
-      if (timeoutRef.current) { clearTimeout(timeoutRef.current); timeoutRef.current = null; }
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
       recognitionRef.current = null;
 
       // 'aborted' is triggered by our own stop() — not a real error
-      if (event.error === 'aborted') {
-        setState('idle');
+      if (event.error === "aborted") {
+        setState("idle");
         return;
       }
 
-      setState('error');
+      setState("error");
 
       const messages: Record<string, string> = {
-        'not-allowed': 'Доступ до мікрофона заборонено. Дозвольте доступ у налаштуваннях браузера.',
-        'no-speech': 'Мовлення не розпізнано. Спробуйте ще раз.',
-        'network': 'Помилка мережі. Перевірте з\'єднання.',
-        'audio-capture': 'Мікрофон недоступний.',
-        'service-not-allowed': 'Сервіс розпізнавання мовлення недоступний.',
+        "not-allowed":
+          "Доступ до мікрофона заборонено. Дозвольте доступ у налаштуваннях браузера.",
+        "no-speech": "Мовлення не розпізнано. Спробуйте ще раз.",
+        network: "Помилка мережі. Перевірте з'єднання.",
+        "audio-capture": "Мікрофон недоступний.",
+        "service-not-allowed": "Сервіс розпізнавання мовлення недоступний.",
       };
-      const msg = messages[event.error] ?? 'Помилка розпізнавання мовлення.';
+      const msg = messages[event.error] ?? "Помилка розпізнавання мовлення.";
       onErrorRef.current?.(msg);
 
       // Reset to idle after showing error
       setTimeout(() => {
-        if (isMountedRef.current) setState('idle');
+        if (isMountedRef.current) setState("idle");
       }, 3000);
     };
 
     recognition.onend = () => {
       if (!isMountedRef.current) return;
-      if (timeoutRef.current) { clearTimeout(timeoutRef.current); timeoutRef.current = null; }
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
       // Only reset if we didn't already handle result/error
       if (recognitionRef.current === recognition) {
         recognitionRef.current = null;
-        setState('idle');
+        setState("idle");
       }
     };
 

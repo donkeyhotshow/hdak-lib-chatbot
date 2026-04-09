@@ -38,7 +38,7 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL || "https://hdak-lib-chatbot.vercel.app",
+    process.env.NEXT_PUBLIC_SITE_URL || "https://hdak-lib-chatbot.vercel.app"
   ),
   title: "ХДАК Бібліотека  Інтелектуальний асистент",
   description:

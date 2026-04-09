@@ -26,10 +26,19 @@ export function ChatInput({
   const hasInput = inputValue.trim().length > 0;
   const charCount = inputValue.length;
 
-  // Speech result handler — appends transcript to current input
+  // Keep a ref to the latest inputValue so handleSpeechResult never closes over a stale value
+  const inputValueRef = useRef(inputValue);
+  useEffect(() => {
+    inputValueRef.current = inputValue;
+  }, [inputValue]);
+
+  // Speech result handler — appends transcript to current input.
+  // Uses inputValueRef (not the prop directly) so the callback is stable and doesn't
+  // get recreated on every keystroke (which would cause useSpeech to re-register it).
   const handleSpeechResult = useCallback(
     (text: string) => {
-      setInputValue(inputValue ? `${inputValue} ${text}` : text);
+      const current = inputValueRef.current;
+      setInputValue(current ? `${current} ${text}` : text);
       requestAnimationFrame(() => {
         if (textareaRef.current) {
           textareaRef.current.style.height = "auto";
@@ -38,7 +47,7 @@ export function ChatInput({
         }
       });
     },
-    [inputValue, setInputValue],
+    [setInputValue] // setInputValue is stable (useCallback([]) in useChat)
   );
 
   const {
@@ -115,7 +124,7 @@ export function ChatInput({
         <div
           className={cn(
             "input-container",
-            isTyping && "input-container-active",
+            isTyping && "input-container-active"
           )}
         >
           <textarea
@@ -128,7 +137,7 @@ export function ChatInput({
             disabled={isTyping}
             className={cn(
               "input-textarea transition-colors",
-              isListening && "placeholder:text-[#B87830]/60",
+              isListening && "placeholder:text-[#B87830]/60"
             )}
             maxLength={2000}
             aria-label="Повідомлення для чату"
@@ -147,7 +156,7 @@ export function ChatInput({
                       ? "text-red-500/80 font-medium"
                       : charCount > 1700
                         ? "text-orange-400/70"
-                        : "text-[#7A756F]/45",
+                        : "text-[#7A756F]/45"
                   )}
                 >
                   {2000 - charCount} залишилось
@@ -161,7 +170,7 @@ export function ChatInput({
                   className={cn(
                     "send-btn transition-all",
                     isListening && "mic-btn-listening",
-                    isProcessing && "opacity-50 cursor-wait",
+                    isProcessing && "opacity-50 cursor-wait"
                   )}
                   aria-label={isListening ? "Зупинити запис" : "Голосовий ввід"}
                   title={isListening ? "Зупинити запис" : "Голосовий ввід"}

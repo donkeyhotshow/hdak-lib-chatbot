@@ -4,8 +4,8 @@
  * Підтримує українську та англійську мови.
  */
 
-import { LIBRARY, ALL_LINKS, isLibraryOpen } from './constants';
-import { FAQ_RESPONSES_EN, type FaqResponse } from './faq-responses-en';
+import { LIBRARY, ALL_LINKS, isLibraryOpen } from "./constants";
+import { FAQ_RESPONSES_EN, type FaqResponse } from "./faq-responses-en";
 
 export type { FaqResponse };
 
@@ -14,35 +14,35 @@ function randomThink(min = 500, max = 900): number {
 }
 
 export const FAQ_RESPONSES: Record<string, FaqResponse> = {
-
   // ─── Графік роботи ───────────────────────────────────────────
-  'Який графік роботи бібліотеки?': {
-    content: () => [
-      `Звісно, ось актуальний графік роботи бібліотеки ХДАК:`,
-      ``,
-      `| День | Години роботи |`,
-      `|------|--------------|`,
-      `| Понеділок – П'ятниця | **9:00 – 16:45** _(перерва 13:00–13:45)_ |`,
-      `| Субота | **9:00 – 13:30** |`,
-      `| Неділя | вихідний |`,
-      ``,
-      `> ⚠️ **Санітарний день** — остання п'ятниця кожного місяця _(абонементи не працюють)_`,
-      ``,
-      isLibraryOpen()
-        ? `🟢 **Зараз бібліотека відкрита** — чекаємо на вас!`
-        : `🔴 **Зараз бібліотека зачинена.** Завітайте в робочі години.`,
-      ``,
-      `📍 ${LIBRARY.addressUk}`,
-      ``,
-      `_Якщо маєте додаткові запитання — просто напишіть, я допоможу._`,
-    ].join('\n'),
+  "Який графік роботи бібліотеки?": {
+    content: () =>
+      [
+        `Звісно, ось актуальний графік роботи бібліотеки ХДАК:`,
+        ``,
+        `| День | Години роботи |`,
+        `|------|--------------|`,
+        `| Понеділок – П'ятниця | **9:00 – 16:45** _(перерва 13:00–13:45)_ |`,
+        `| Субота | **9:00 – 13:30** |`,
+        `| Неділя | вихідний |`,
+        ``,
+        `> ⚠️ **Санітарний день** — остання п'ятниця кожного місяця _(абонементи не працюють)_`,
+        ``,
+        isLibraryOpen()
+          ? `🟢 **Зараз бібліотека відкрита** — чекаємо на вас!`
+          : `🔴 **Зараз бібліотека зачинена.** Завітайте в робочі години.`,
+        ``,
+        `📍 ${LIBRARY.addressUk}`,
+        ``,
+        `_Якщо маєте додаткові запитання — просто напишіть, я допоможу._`,
+      ].join("\n"),
     thinkDelay: 0, // overridden by getFaqResponse() with randomThink()
     charsPerStep: 5,
     stepDelay: 12,
   },
 
   // ─── Як записатися ───────────────────────────────────────────
-  'Як записатися до бібліотеки?': {
+  "Як записатися до бібліотеки?": {
     content: [
       `Записатися до бібліотеки ХДАК дуже просто. Ось що потрібно:`,
       ``,
@@ -66,14 +66,14 @@ export const FAQ_RESPONSES: Record<string, FaqResponse> = {
       `📧 Email: **${LIBRARY.email}**`,
       ``,
       `_Якщо виникнуть питання — звертайтеся, я завжди поруч._`,
-    ].join('\n'),
+    ].join("\n"),
     thinkDelay: 0, // overridden by getFaqResponse() with randomThink()
     charsPerStep: 5,
     stepDelay: 12,
   },
 
   // ─── Пошук у каталозі ────────────────────────────────────────
-  'Як знайти книгу в каталозі?': {
+  "Як знайти книгу в каталозі?": {
     content: [
       `Знайти потрібну книгу в нашому каталозі — легко. Ось кілька способів:`,
       ``,
@@ -97,14 +97,14 @@ export const FAQ_RESPONSES: Record<string, FaqResponse> = {
       `---`,
       ``,
       `_Якщо не можете знайти потрібну книгу — напишіть мені назву або тему, і я спробую допомогти._`,
-    ].join('\n'),
+    ].join("\n"),
     thinkDelay: 0, // overridden by getFaqResponse() with randomThink()
     charsPerStep: 5,
     stepDelay: 12,
   },
 
   // ─── Контакти ────────────────────────────────────────────────
-  'Які контакти бібліотеки?': {
+  "Які контакти бібліотеки?": {
     content: [
       `Ось усі способи зв'язатися з бібліотекою ХДАК:`,
       ``,
@@ -114,11 +114,11 @@ export const FAQ_RESPONSES: Record<string, FaqResponse> = {
       ``,
       `---`,
       ``,
-      `**📞 Телефон:** [${LIBRARY.phoneFull}](tel:${LIBRARY.phoneFull.replace(/[\s()\-]/g, '')})`,
+      `**📞 Телефон:** [${LIBRARY.phoneFull}](tel:${LIBRARY.phoneFull.replace(/[\s()\-]/g, "")})`,
       ``,
       `**📧 Email:** [${LIBRARY.email}](mailto:${LIBRARY.email})`,
       ``,
-      `**💬 Viber / Telegram:** [${LIBRARY.messenger}](https://t.me/+${LIBRARY.messenger.replace('+', '')})`,
+      `**💬 Viber / Telegram:** [${LIBRARY.messenger}](https://t.me/+${LIBRARY.messenger.replace("+", "")})`,
       ``,
       `---`,
       ``,
@@ -132,14 +132,14 @@ export const FAQ_RESPONSES: Record<string, FaqResponse> = {
       `---`,
       ``,
       `_Оберіть зручний для вас спосіб — ми завжди раді допомогти!_`,
-    ].join('\n'),
+    ].join("\n"),
     thinkDelay: 0, // overridden by getFaqResponse() with randomThink()
     charsPerStep: 5,
     stepDelay: 12,
   },
 
   // ─── Правила ─────────────────────────────────────────────────
-  'Які правила користування бібліотекою?': {
+  "Які правила користування бібліотекою?": {
     content: [
       `Ось основні правила, які варто знати кожному читачу бібліотеки ХДАК:`,
       ``,
@@ -167,14 +167,14 @@ export const FAQ_RESPONSES: Record<string, FaqResponse> = {
       `📄 [Правила електронного читального залу](${ALL_LINKS.rules_eroom})`,
       ``,
       `_Дотримання правил — запорука комфорту для всіх читачів. Дякуємо за розуміння!_`,
-    ].join('\n'),
+    ].join("\n"),
     thinkDelay: 0, // overridden by getFaqResponse() with randomThink()
     charsPerStep: 5,
     stepDelay: 12,
   },
 
   // ─── Електронні ресурси ──────────────────────────────────────
-  'Які електронні ресурси доступні?': {
+  "Які електронні ресурси доступні?": {
     content: [
       `Бібліотека ХДАК надає доступ до широкого спектру електронних ресурсів. Ось що доступно:`,
       ``,
@@ -203,7 +203,7 @@ export const FAQ_RESPONSES: Record<string, FaqResponse> = {
       `> 💡 Для доступу до платних баз даних — зверніться до бібліотекаря або скористайтеся **мережею ХДАК**.`,
       ``,
       `_Потрібна допомога з пошуком наукової інформації? Напишіть — підкажу._`,
-    ].join('\n'),
+    ].join("\n"),
     thinkDelay: 0, // overridden by getFaqResponse() with randomThink()
     charsPerStep: 5,
     stepDelay: 12,
@@ -216,8 +216,8 @@ export const FAQ_RESPONSES: Record<string, FaqResponse> = {
 function normalize(s: string): string {
   return s
     .toLowerCase()
-    .replace(/[?!.,;:…«»"'""'']/g, '')
-    .replace(/\s+/g, ' ')
+    .replace(/[?!.,;:…«»"'""'']/g, "")
+    .replace(/\s+/g, " ")
     .trim();
 }
 
@@ -225,8 +225,8 @@ function normalize(s: string): string {
  * Детектує мову запиту.
  * Якщо є кирилиця — українська, інакше — англійська.
  */
-function detectLang(query: string): 'uk' | 'en' {
-  return /[а-яёіїєґА-ЯЁІЇЄҐ]/u.test(query) ? 'uk' : 'en';
+function detectLang(query: string): "uk" | "en" {
+  return /[а-яёіїєґА-ЯЁІЇЄҐ]/u.test(query) ? "uk" : "en";
 }
 
 // Pre-build normalized lookup maps once at module load
@@ -243,20 +243,23 @@ const FAQ_EN_NORMALIZED = new Map<string, FaqResponse>(
  * Автоматично визначає мову: кирилиця → uk, інакше → en.
  * Якщо не знайдено в en — fallback на uk.
  */
-export function getFaqResponse(query: string): (Omit<FaqResponse, 'content'> & { content: string }) | null {
+export function getFaqResponse(
+  query: string
+): (Omit<FaqResponse, "content"> & { content: string }) | null {
   const key = normalize(query);
   const lang = detectLang(query);
 
   // Try language-specific map first
-  const primaryMap = lang === 'en' ? FAQ_EN_NORMALIZED : FAQ_UK_NORMALIZED;
-  const fallbackMap = lang === 'en' ? FAQ_UK_NORMALIZED : null;
+  const primaryMap = lang === "en" ? FAQ_EN_NORMALIZED : FAQ_UK_NORMALIZED;
+  const fallbackMap = lang === "en" ? FAQ_UK_NORMALIZED : null;
 
   const entry = primaryMap.get(key) ?? fallbackMap?.get(key) ?? null;
   if (!entry) return null;
 
   return {
     ...entry,
-    content: typeof entry.content === 'function' ? entry.content() : entry.content,
+    content:
+      typeof entry.content === "function" ? entry.content() : entry.content,
     thinkDelay: randomThink(),
   };
 }

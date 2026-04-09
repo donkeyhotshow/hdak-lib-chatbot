@@ -3,7 +3,7 @@
  * Mirrors the Ukrainian FAQ_RESPONSES structure.
  */
 
-import { LIBRARY, ALL_LINKS, isLibraryOpen } from './constants';
+import { LIBRARY, ALL_LINKS, isLibraryOpen } from "./constants";
 
 export interface FaqResponse {
   content: string | (() => string);
@@ -13,35 +13,35 @@ export interface FaqResponse {
 }
 
 export const FAQ_RESPONSES_EN: Record<string, FaqResponse> = {
-
   // ─── Library hours ────────────────────────────────────────────
-  'What are the library hours?': {
-    content: () => [
-      `Here are the current opening hours of the HDAK Library:`,
-      ``,
-      `| Day | Hours |`,
-      `|-----|-------|`,
-      `| Monday – Friday | **9:00 – 16:45** _(lunch break 13:00–13:45)_ |`,
-      `| Saturday | **9:00 – 13:30** |`,
-      `| Sunday | closed |`,
-      ``,
-      `> ⚠️ **Sanitary day** — last Friday of each month _(lending desks closed)_`,
-      ``,
-      isLibraryOpen()
-        ? `🟢 **The library is open right now** — come visit us!`
-        : `🔴 **The library is currently closed.** Please visit during working hours.`,
-      ``,
-      `📍 ${LIBRARY.addressEn}`,
-      ``,
-      `_Feel free to ask if you have any other questions._`,
-    ].join('\n'),
+  "What are the library hours?": {
+    content: () =>
+      [
+        `Here are the current opening hours of the HDAK Library:`,
+        ``,
+        `| Day | Hours |`,
+        `|-----|-------|`,
+        `| Monday – Friday | **9:00 – 16:45** _(lunch break 13:00–13:45)_ |`,
+        `| Saturday | **9:00 – 13:30** |`,
+        `| Sunday | closed |`,
+        ``,
+        `> ⚠️ **Sanitary day** — last Friday of each month _(lending desks closed)_`,
+        ``,
+        isLibraryOpen()
+          ? `🟢 **The library is open right now** — come visit us!`
+          : `🔴 **The library is currently closed.** Please visit during working hours.`,
+        ``,
+        `📍 ${LIBRARY.addressEn}`,
+        ``,
+        `_Feel free to ask if you have any other questions._`,
+      ].join("\n"),
     thinkDelay: 0,
     charsPerStep: 5,
     stepDelay: 12,
   },
 
   // ─── How to register ─────────────────────────────────────────
-  'How to register at the library?': {
+  "How to register at the library?": {
     content: [
       `Registering at the HDAK Library is quick and easy. Here's what you need:`,
       ``,
@@ -65,14 +65,14 @@ export const FAQ_RESPONSES_EN: Record<string, FaqResponse> = {
       `📧 Email: **${LIBRARY.email}**`,
       ``,
       `_Don't hesitate to reach out if you have questions._`,
-    ].join('\n'),
+    ].join("\n"),
     thinkDelay: 0,
     charsPerStep: 5,
     stepDelay: 12,
   },
 
   // ─── How to find a book ───────────────────────────────────────
-  'How to find a book in the catalog?': {
+  "How to find a book in the catalog?": {
     content: [
       `Finding a book in our catalog is easy. Here are your options:`,
       ``,
@@ -96,14 +96,14 @@ export const FAQ_RESPONSES_EN: Record<string, FaqResponse> = {
       `---`,
       ``,
       `_Can't find what you're looking for? Tell me the title or topic and I'll try to help._`,
-    ].join('\n'),
+    ].join("\n"),
     thinkDelay: 0,
     charsPerStep: 5,
     stepDelay: 12,
   },
 
   // ─── Contacts ─────────────────────────────────────────────────
-  'What are the library contacts?': {
+  "What are the library contacts?": {
     content: [
       `Here are all the ways to reach the HDAK Library:`,
       ``,
@@ -113,11 +113,11 @@ export const FAQ_RESPONSES_EN: Record<string, FaqResponse> = {
       ``,
       `---`,
       ``,
-      `**📞 Phone:** [${LIBRARY.phoneFull}](tel:${LIBRARY.phoneFull.replace(/[\s()\-]/g, '')})`,
+      `**📞 Phone:** [${LIBRARY.phoneFull}](tel:${LIBRARY.phoneFull.replace(/[\s()\-]/g, "")})`,
       ``,
       `**📧 Email:** [${LIBRARY.email}](mailto:${LIBRARY.email})`,
       ``,
-      `**💬 Viber / Telegram:** [${LIBRARY.messenger}](https://t.me/+${LIBRARY.messenger.replace('+', '')})`,
+      `**💬 Viber / Telegram:** [${LIBRARY.messenger}](https://t.me/+${LIBRARY.messenger.replace("+", "")})`,
       ``,
       `---`,
       ``,
@@ -131,14 +131,14 @@ export const FAQ_RESPONSES_EN: Record<string, FaqResponse> = {
       `---`,
       ``,
       `_Choose the most convenient way — we're always happy to help!_`,
-    ].join('\n'),
+    ].join("\n"),
     thinkDelay: 0,
     charsPerStep: 5,
     stepDelay: 12,
   },
 
   // ─── Library rules ────────────────────────────────────────────
-  'What are the library rules?': {
+  "What are the library rules?": {
     content: [
       `Here are the key rules every HDAK Library reader should know:`,
       ``,
@@ -166,14 +166,14 @@ export const FAQ_RESPONSES_EN: Record<string, FaqResponse> = {
       `📄 [E-reading room rules](${ALL_LINKS.rules_eroom})`,
       ``,
       `_Following the rules ensures a comfortable experience for everyone. Thank you!_`,
-    ].join('\n'),
+    ].join("\n"),
     thinkDelay: 0,
     charsPerStep: 5,
     stepDelay: 12,
   },
 
   // ─── Electronic resources ─────────────────────────────────────
-  'What electronic resources are available?': {
+  "What electronic resources are available?": {
     content: [
       `The HDAK Library provides access to a wide range of electronic resources:`,
       ``,
@@ -202,7 +202,7 @@ export const FAQ_RESPONSES_EN: Record<string, FaqResponse> = {
       `> 💡 For access to paid databases — contact a librarian or use the **HDAK network**.`,
       ``,
       `_Need help finding academic information? Just ask — I'm here to help._`,
-    ].join('\n'),
+    ].join("\n"),
     thinkDelay: 0,
     charsPerStep: 5,
     stepDelay: 12,

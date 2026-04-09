@@ -5,18 +5,22 @@ import { Menu, X, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useChat } from "@/hooks/use-chat";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Sidebar } from "@/components/chat/Sidebar";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { ChatArea } from "@/components/chat/ChatArea";
 
 export default function ChatPage() {
-  // Fix #18: avoid hydration mismatch - start null, resolve after mount
+  // L6/UX12: use the dedicated hook instead of window.innerWidth checks
+  const isMobileDevice = useIsMobile();
+  // Fix #18: avoid hydration mismatch — start null, resolve after isMobileDevice is known
   const [isSidebarOpen, setSidebarOpen] = useState<boolean | null>(null);
   const sidebarRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
-    setSidebarOpen(window.innerWidth >= 768);
-  }, []);
+    if (isMobileDevice === undefined) return; // still mounting
+    setSidebarOpen(!isMobileDevice);
+  }, [isMobileDevice]);
 
   const { toast } = useToast();
 
@@ -52,7 +56,7 @@ export default function ChatPage() {
     if (!isSidebarOpen) return;
     const handleClick = (e: MouseEvent) => {
       if (
-        window.innerWidth < 768 &&
+        isMobileDevice &&
         sidebarRef.current &&
         !sidebarRef.current.contains(e.target as Node)
       ) {
@@ -60,7 +64,7 @@ export default function ChatPage() {
       }
     };
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && window.innerWidth < 768) setSidebarOpen(false);
+      if (e.key === "Escape" && isMobileDevice) setSidebarOpen(false);
     };
     document.addEventListener("mousedown", handleClick);
     document.addEventListener("keydown", handleKeyDown);
@@ -68,7 +72,7 @@ export default function ChatPage() {
       document.removeEventListener("mousedown", handleClick);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isSidebarOpen]);
+  }, [isSidebarOpen, isMobileDevice]);
 
   // Avoid layout flash: render nothing until sidebar state is resolved
   if (isSidebarOpen === null) {
@@ -91,6 +95,7 @@ export default function ChatPage() {
         isOpen={isSidebarOpen}
         setIsOpen={setSidebarOpen}
         sidebarRef={sidebarRef}
+        isMobile={isMobileDevice ?? false}
         conversations={conversations}
         currentConversation={currentConversation}
         loadConversation={loadConversation}
@@ -106,7 +111,7 @@ export default function ChatPage() {
       <main className="flex-1 flex flex-col min-w-0 relative h-full overflow-hidden">
         <header className="chat-header relative min-h-[48px] flex items-center justify-between px-4 border-b border-[#2A2520]/[0.04] bg-white/50 backdrop-blur-sm shrink-0">
           <button
-            onClick={() => setSidebarOpen((v) => !(v ?? false))}
+            onClick={() => setSidebarOpen(v => !(v ?? false))}
             className="w-11 h-11 flex items-center justify-center rounded-xl text-[#7A756F] hover:text-[#2A2520] hover:bg-[#2A2520]/[0.04] transition-all"
             aria-label={isSidebarOpen ? "Закрити меню" : "Відкрити меню"}
           >
@@ -126,7 +131,7 @@ export default function ChatPage() {
                     ? "bg-red-400"
                     : isTyping
                       ? "bg-amber-400 animate-pulse"
-                      : "bg-emerald-400",
+                      : "bg-emerald-400"
                 )}
               />
               <span className="text-[10px] font-medium tracking-wide text-[#7A756F]/60">
@@ -167,7 +172,7 @@ export default function ChatPage() {
           handleSend={handleSend}
           onStop={handleStop}
           currentConversationId={currentConversation?.id}
-          onSpeechError={(msg) => toast({ description: msg, duration: 4000 })}
+          onSpeechError={msg => toast({ description: msg, duration: 4000 })}
         />
       </main>
     </div>

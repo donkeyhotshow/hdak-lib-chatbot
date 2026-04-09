@@ -12,6 +12,14 @@ const compat = new FlatCompat({
 export default [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
-    ignores: ["node_modules/**", ".next/**", "out/**", "build/**", "next-env.d.ts", "examples/**", "skills/**"]
-  }
+    ignores: [
+      "node_modules/**",
+      ".next/**",
+      "out/**",
+      "build/**",
+      "next-env.d.ts",
+      "examples/**",
+      "skills/**",
+    ],
+  },
 ];

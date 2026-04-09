@@ -1,11 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { db, pushSubscriptions } from '@/lib/db';
-import { eq, lte, and, isNotNull } from 'drizzle-orm';
-import webpush from 'web-push';
+import { NextRequest, NextResponse } from "next/server";
+import { db, pushSubscriptions } from "@/lib/db";
+import { eq, lte, and, isNotNull } from "drizzle-orm";
+import webpush from "web-push";
+import { timingSafeEqual } from "crypto";
 
 const VAPID_PUBLIC = process.env.VAPID_PUBLIC_KEY;
 const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY;
-const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:abon@xdak.ukr.education';
+const VAPID_SUBJECT =
+  process.env.VAPID_SUBJECT || "mailto:abon@xdak.ukr.education";
 const CRON_SECRET = process.env.CRON_SECRET;
 
 if (VAPID_PUBLIC && VAPID_PRIVATE) {
@@ -20,17 +22,37 @@ if (VAPID_PUBLIC && VAPID_PRIVATE) {
 export async function POST(request: NextRequest) {
   // Auth check — Vercel Cron sends Authorization: Bearer <CRON_SECRET>
   // Also support x-cron-secret for manual calls
-  const authHeader = request.headers.get('authorization');
-  const cronHeader = request.headers.get('x-cron-secret');
-  const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  const authHeader = request.headers.get("authorization");
+  const cronHeader = request.headers.get("x-cron-secret");
+  const bearerToken = authHeader?.startsWith("Bearer ")
+    ? authHeader.slice(7)
+    : null;
   const providedSecret = bearerToken ?? cronHeader;
 
-  if (!CRON_SECRET || providedSecret !== CRON_SECRET) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // C1: timing-safe comparison to prevent timing side-channel attacks on CRON_SECRET
+  let authorized = false;
+  if (CRON_SECRET && providedSecret !== null) {
+    try {
+      const maxLen = Math.max(providedSecret.length, CRON_SECRET.length, 32);
+      const a = Buffer.alloc(maxLen);
+      const b = Buffer.alloc(maxLen);
+      Buffer.from(providedSecret).copy(a);
+      Buffer.from(CRON_SECRET).copy(b);
+      authorized =
+        timingSafeEqual(a, b) && providedSecret.length === CRON_SECRET.length;
+    } catch {
+      authorized = false;
+    }
+  }
+  if (!authorized) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
-    return NextResponse.json({ error: 'VAPID keys not configured' }, { status: 503 });
+    return NextResponse.json(
+      { error: "VAPID keys not configured" },
+      { status: 503 }
+    );
   }
 
   const now = new Date();
@@ -38,13 +60,16 @@ export async function POST(request: NextRequest) {
 
   // Find unsent subscriptions due within next 24h
   // BUG FIX: isNotNull guard — subscriptions without remindAt should never be sent
-  const due = await db.select()
+  const due = await db
+    .select()
     .from(pushSubscriptions)
-    .where(and(
-      isNotNull(pushSubscriptions.remindAt),
-      lte(pushSubscriptions.remindAt, windowEnd),
-      eq(pushSubscriptions.sent, false),
-    ));
+    .where(
+      and(
+        isNotNull(pushSubscriptions.remindAt),
+        lte(pushSubscriptions.remindAt, windowEnd),
+        eq(pushSubscriptions.sent, false)
+      )
+    );
 
   let sent = 0;
   let failed = 0;
@@ -52,22 +77,33 @@ export async function POST(request: NextRequest) {
   for (const sub of due) {
     try {
       await webpush.sendNotification(
-        { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+        {
+          endpoint: sub.endpoint,
+          keys: { p256dh: sub.p256dh, auth: sub.auth },
+        },
         JSON.stringify({
-          title: 'ХДАК Бібліотека — Нагадування',
-          body: 'Завтра термін повернення книги. Не забудьте здати вчасно!',
+          title: "ХДАК Бібліотека — Нагадування",
+          body: "Завтра термін повернення книги. Не забудьте здати вчасно!",
         })
       );
-      await db.update(pushSubscriptions)
+      await db
+        .update(pushSubscriptions)
         .set({ sent: true })
         .where(eq(pushSubscriptions.id, sub.id));
       sent++;
     } catch (err: unknown) {
       // 410 Gone — subscription expired, remove it
-      if (err && typeof err === 'object' && 'statusCode' in err && (err as { statusCode: number }).statusCode === 410) {
-        await db.delete(pushSubscriptions).where(eq(pushSubscriptions.id, sub.id));
+      if (
+        err &&
+        typeof err === "object" &&
+        "statusCode" in err &&
+        (err as { statusCode: number }).statusCode === 410
+      ) {
+        await db
+          .delete(pushSubscriptions)
+          .where(eq(pushSubscriptions.id, sub.id));
       } else {
-        console.error('Push send failed for', sub.endpoint, err);
+        console.error("Push send failed for", sub.endpoint, err);
         failed++;
       }
     }
