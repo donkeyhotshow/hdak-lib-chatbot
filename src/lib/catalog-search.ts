@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Shared catalog search module — used by chat/route.ts and catalog-search/route.ts.
  * Eliminates duplicated HTML parsing logic and provides a single robust parser.
  */
@@ -228,6 +228,31 @@ async function fetchCatalog(
   return res;
 }
 
+/**
+ * Check if the catalog service is reachable.
+ * Performs a lightweight HEAD or GET request to the form URL.
+ */
+export async function checkCatalogAvailability(): Promise<boolean> {
+  try {
+    const res = await fetch(CATALOG_FORM_URL, {
+      method: "HEAD",
+      signal: AbortSignal.timeout(3000),
+    });
+    return res.ok;
+  } catch (e) {
+    // Fallback to GET if HEAD is not supported
+    try {
+      const res = await fetch(CATALOG_FORM_URL, {
+        method: "GET",
+        signal: AbortSignal.timeout(3000),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }
+}
+
 export async function searchCatalog(
   searchTerm: string,
   searchType: "title" | "author" | "general" | "udc" | "subject" | "keyword",
@@ -313,7 +338,7 @@ export function buildCatalogContext(
   const label = typeLabel[searchType] ?? "запитом";
 
   if (unavailable) {
-    return `\n\n[РЕЗУЛЬТАТИ КАТАЛОГУ: Каталог тимчасово недоступний (помилка з'єднання). Запропонуйте користувачу скористатися прямим посиланням: ${catalogSearchUrl}]`;
+    return `\n\n[РЕЗУЛЬТАТИ КАТАЛОГУ: Каталог тимчасово недоступний (помилка з'єднання). Запропонуйте користувачу скористатися прямим посиланням: ${catalogSearchUrl}. Також повідомте, що вони можуть залишити запит через контакти в меню, якщо каталог не запрацює найближчим часом.]`;
   }
 
   if (books.length === 0) {

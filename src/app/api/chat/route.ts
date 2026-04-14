@@ -9,6 +9,7 @@ import {
   detectSearchIntent,
   searchCatalog,
   buildCatalogContext,
+  checkCatalogAvailability,
   SearchIntent,
 } from "@/lib/catalog-search";
 import { isForbiddenOrigin } from "@/lib/cors";
@@ -259,13 +260,21 @@ export async function POST(request: NextRequest) {
 
   // Build parallel search promises
   const searchPromises: Promise<{
-    type: "catalog" | "recommendation";
-    result: Awaited<ReturnType<typeof searchCatalog>>;
+    type: "catalog" | "recommendation" | "availability";
+    result: Awaited<ReturnType<typeof searchCatalog>> | boolean;
     intent?: SearchIntent;
     topic?: string;
   }>[] = [];
 
+  // M1: Always check availability in parallel if we have an intent
   if (intent) {
+    searchPromises.push(
+      checkCatalogAvailability().then(isAvailable => ({
+        type: "availability" as const,
+        result: isAvailable,
+      }))
+    );
+
     searchPromises.push(
       searchCatalog(intent.searchTerm, intent.searchType).then(result => ({
         type: "catalog" as const,
@@ -295,18 +304,31 @@ export async function POST(request: NextRequest) {
   // Execute all searches in parallel with timeout
   if (searchPromises.length > 0) {
     const results = await Promise.all(searchPromises);
+    let isCatalogAvailable = true;
+
+    // First pass: check availability
+    for (const res of results) {
+      if (res.type === "availability") isCatalogAvailable = res.result as boolean;
+    }
+
     for (const { type, result, intent: searchIntent, topic } of results) {
       if (type === "catalog" && searchIntent) {
+        const searchResult = result as Awaited<ReturnType<typeof searchCatalog>>;
+        // If availability check failed but search somehow worked, trust search.
+        // If search failed with unavailable, or availability check failed, mark as unavailable.
+        if (!isCatalogAvailable && searchResult.books.length === 0) {
+          searchResult.unavailable = true;
+        }
         catalogContext = buildCatalogContext(
           searchIntent,
-          result,
+          searchResult,
           ALL_LINKS.catalog_search
         );
       } else if (
         type === "recommendation" &&
         topic &&
-        !result.unavailable &&
-        result.books.length > 0
+        !(result as any).unavailable &&
+        (result as any).books.length > 0
       ) {
         const recList = result.books
           .slice(0, 3)
