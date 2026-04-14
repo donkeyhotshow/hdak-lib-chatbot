@@ -106,9 +106,10 @@ export function isLibraryOpen(now = new Date()): boolean {
 
   // Check if today is the last Friday of the month (санітарний день абонементів)
   if (day === 5) {
-    const nextFriday = new Date(Date.UTC(yearNum, monthNum - 1, dayNum + 7));
-    const nextFridayMonth = nextFriday.getUTCMonth() + 1;
-    if (nextFridayMonth !== monthNum) return false;
+    // Correct logic: if adding 7 days moves us to the next month, it's the last Friday
+    const nextWeek = new Date(Date.UTC(yearNum, monthNum - 1, dayNum + 7));
+    const nextWeekMonth = nextWeek.getUTCMonth() + 1;
+    if (nextWeekMonth !== monthNum) return false;
   }
 
   // Check if today is the last Thursday of the month (санітарний день читального залу та автоматизації)

@@ -642,13 +642,13 @@ function ChatAreaComponent({
             <MessageBubble
               key={msg.id}
               msg={msg}
-              isStreaming={msg.id === streamingMessageId}
+              isStreaming={msg.id === streamingMessageId && isTyping}
               formatTime={formatTime}
               copyToClipboard={copyToClipboard}
               onRetry={onRetry}
             />
           ))}
-          <AnimatePresence>{isTyping && <TypingIndicator />}</AnimatePresence>
+          <AnimatePresence>{isTyping && !streamingMessageId && <TypingIndicator />}</AnimatePresence>
 
           <AnimatePresence>
             {showChips && dynamicChips.length > 0 && (
