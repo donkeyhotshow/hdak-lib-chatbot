@@ -327,12 +327,17 @@ export async function POST(request: NextRequest) {
       } else if (
         type === "recommendation" &&
         topic &&
-        !(result as any).unavailable &&
-        (result as any).books.length > 0
+        result &&
+        typeof result === "object" &&
+        "books" in result &&
+        !("unavailable" in result && result.unavailable) &&
+        Array.isArray(result.books) &&
+        result.books.length > 0
       ) {
-        const recList = result.books
+        const searchResult = result as Awaited<ReturnType<typeof searchCatalog>>;
+        const recList = searchResult.books
           .slice(0, 3)
-          .map((b, i) => `${i + 1}. ${b.title}${b.year ? ` (${b.year})` : ""}`)
+          .map((b: any, i: number) => `${i + 1}. ${b.title}${b.year ? ` (${b.year})` : ""}`)
           .join("\n");
         catalogContext += `\n\n[РЕКОМЕНДАЦІЇ: За темою "${topic}" знайдено схожі матеріали в каталозі:\n${recList}\nПовний пошук: ${ALL_LINKS.catalog_search}]`;
       }

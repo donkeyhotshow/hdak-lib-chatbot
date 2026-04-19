@@ -214,40 +214,66 @@ const markdownComponents = {
       {...props}
     />
   ),
-  code: ({ className, ...rest }: React.HTMLAttributes<HTMLElement>) => {
+  code: ({ className, children, ...rest }: React.HTMLAttributes<HTMLElement>) => {
     const isInline = !className?.startsWith("language-");
-    return isInline ? (
-      <code
-        className="bg-[#1A1612]/5 text-[#B87830] px-1.5 py-0.5 rounded text-[13px]"
-        {...rest}
-      />
-    ) : (
-      <code
-        className={cn(
-          "block bg-[#1A1612]/5 p-3 rounded-lg text-[13px] overflow-x-auto",
-          className
-        )}
-        {...rest}
-      />
+    if (isInline) {
+      return (
+        <code
+          className="bg-[#1A1612]/5 text-[#B87830] px-1.5 py-0.5 rounded text-[13px] break-words"
+          {...rest}
+        >
+          {children}
+        </code>
+      );
+    }
+    return (
+      <div className="relative group my-3">
+        <code
+          className={cn(
+            "block bg-[#1A1612]/5 p-4 rounded-lg text-[12px] md:text-[13px] overflow-x-auto font-mono",
+            className
+          )}
+          {...rest}
+        >
+          {children}
+        </code>
+        <button
+          onClick={() => {
+            if (typeof children === "string") {
+              navigator.clipboard.writeText(children).catch(() => {
+                // Silently fail if clipboard is not available
+              });
+            }
+          }}
+          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 md:opacity-100 px-2 py-1 bg-[#B87830]/80 hover:bg-[#B87830] text-white text-[11px] rounded transition-all"
+          aria-label="Копіювати код"
+          title="Копіювати код"
+        >
+          Копіювати
+        </button>
+      </div>
     );
   },
   table: (props: React.HTMLAttributes<HTMLTableElement>) => (
-    <div className="overflow-x-auto my-3 rounded-lg border border-[#E5E1D8]">
-      <table
-        className="text-[13px] border-collapse w-full min-w-[280px]"
-        {...props}
-      />
+    <div className="relative my-3 rounded-lg border border-[#E5E1D8] overflow-hidden">
+      <div className="overflow-x-auto">
+        <table
+          className="text-[12px] md:text-[13px] border-collapse w-full min-w-[280px]"
+          {...props}
+        />
+      </div>
+      <div className="md:hidden absolute bottom-0 right-0 h-full w-8 bg-gradient-to-l from-white pointer-events-none" />
     </div>
   ),
   th: (props: React.HTMLAttributes<HTMLTableCellElement>) => (
     <th
-      className="border-b border-[#E5E1D8] px-3 py-2 bg-[#F2EDE4] text-left font-semibold text-[#1A1612] text-[12px] uppercase tracking-wide"
+      className="border-b border-[#E5E1D8] px-2 md:px-3 py-2 bg-[#F2EDE4] text-left font-semibold text-[#1A1612] text-[11px] md:text-[12px] uppercase tracking-wide whitespace-nowrap"
       {...props}
     />
   ),
   td: (props: React.HTMLAttributes<HTMLTableCellElement>) => (
     <td
-      className="border-b border-[#E5E1D8]/60 px-3 py-2 text-[#2A2520]/80 last:border-0"
+      className="border-b border-[#E5E1D8]/60 px-2 md:px-3 py-2 text-[#2A2520]/80 last:border-0 whitespace-nowrap"
       {...props}
     />
   ),
@@ -295,7 +321,7 @@ const MessageBubble = memo(
         >
           <div
             className={cn(
-              "px-5 py-3.5 text-[14.5px] leading-[1.625] relative shadow-sm transition-all message-bubble",
+              "px-5 py-3.5 text-[14.5px] leading-[1.625] relative shadow-sm transition-all message-bubble overflow-hidden",
               isUser
                 ? "message-user message-bubble-user rounded-[1.25rem] rounded-br-[4px]"
                 : "message-assistant message-bubble-assistant rounded-[1.25rem] rounded-bl-[4px] bg-[#F9F7F2] border border-[#E5E1D8]",
@@ -303,7 +329,7 @@ const MessageBubble = memo(
             )}
           >
             {isUser ? (
-              <p className="whitespace-pre-wrap">{msg.content}</p>
+              <p className="whitespace-pre-wrap break-words">{msg.content}</p>
             ) : (
               <div className="prose prose-sm max-w-none prose-p:leading-[1.625] prose-strong:text-[#D4A853]">
                 <ReactMarkdown components={markdownComponents}>
