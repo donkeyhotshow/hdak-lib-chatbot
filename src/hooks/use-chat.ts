@@ -5,6 +5,37 @@ import { Message, Conversation } from "@/components/chat/types";
 import { getFaqResponse } from "@/lib/faq-responses";
 import { getSessionId, SESSION_HEADER } from "@/lib/session";
 
+// Safe localStorage wrapper for environments where localStorage is disabled/unavailable
+const safeStorage = {
+  getItem: (key: string): string | null => {
+    try {
+      return typeof window !== "undefined" && window.localStorage
+        ? window.localStorage.getItem(key)
+        : null;
+    } catch {
+      return null;
+    }
+  },
+  setItem: (key: string, value: string): void => {
+    try {
+      if (typeof window !== "undefined" && window.localStorage) {
+        window.localStorage.setItem(key, value);
+      }
+    } catch {
+      // Silently fail if localStorage is full or disabled
+    }
+  },
+  removeItem: (key: string): void => {
+    try {
+      if (typeof window !== "undefined" && window.localStorage) {
+        window.localStorage.removeItem(key);
+      }
+    } catch {
+      // Silently fail
+    }
+  },
+};
+
 interface UseChatReturn {
   messages: Message[];
   inputValue: string;
@@ -49,6 +80,8 @@ export function useChat(
   const [isTyping, setIsTyping] = useState(false);
   // M27: ref mirrors isTyping for synchronous double-send guard
   const isTypingRef = useRef(false);
+  // Timeout for stuck typing state (120 seconds max)
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversation, setCurrentConversation] =
@@ -105,7 +138,7 @@ export function useChat(
     setIsLoadingConversations(true);
     // L12: Load from cache first for zero-latency UI immersion
     try {
-      const cached = localStorage.getItem("hdak_conv_cache");
+      const cached = safeStorage.getItem("hdak_conv_cache");
       if (cached) {
         const { items, hasMore } = JSON.parse(cached);
         setConversations(items || []);
@@ -130,7 +163,7 @@ export function useChat(
           convOffsetRef.current = items.length;
           // S15: persist successful fetch to cache
           try {
-            localStorage.setItem(
+            safeStorage.setItem(
               "hdak_conv_cache",
               JSON.stringify({ items, hasMore, ts: Date.now() })
             );
@@ -162,7 +195,7 @@ export function useChat(
     if (messages.length === 0) return;
     const convId = currentConversationRef.current?.id || "new";
     try {
-      localStorage.setItem(
+      safeStorage.setItem(
         `hdak_msg_cache_${convId}`,
         JSON.stringify({ messages, ts: Date.now() })
       );
@@ -195,7 +228,7 @@ export function useChat(
             setHasMoreConversations(hasMore);
             convOffsetRef.current = items.length;
             try {
-              localStorage.setItem(
+              safeStorage.setItem(
                 "hdak_conv_cache",
                 JSON.stringify({ items, hasMore, ts: Date.now() })
               );
@@ -208,7 +241,16 @@ export function useChat(
       }, 300);
     });
   }, []);
+  // Helper to safely clear typing timeout
+  const clearTypingTimeout = useCallback(() => {
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+    }
+  }, []);
+
   const loadConversation = useCallback(async (id: string) => {
+    clearTypingTimeout();
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
@@ -239,7 +281,7 @@ export function useChat(
         setMessages(msgs);
         // P5: cache messages for this conversation id
         try {
-          localStorage.setItem(
+          safeStorage.setItem(
             `hdak_msg_cache_${id}`,
             JSON.stringify({ messages: msgs, ts: Date.now() })
           );
@@ -247,7 +289,7 @@ export function useChat(
       } else {
         // Fallback to cache if server fails
         try {
-          const cached = localStorage.getItem(`hdak_msg_cache_${id}`);
+          const cached = safeStorage.getItem(`hdak_msg_cache_${id}`);
           if (cached) {
             const { messages: msgs } = JSON.parse(cached);
             setMessages(msgs);
@@ -341,11 +383,11 @@ export function useChat(
           const next = prev.filter(c => c.id !== id);
           try {
             const cache = JSON.stringify({ items: next, ts: Date.now() });
-            localStorage.setItem("hdak_conv_cache", cache);
+            safeStorage.setItem("hdak_conv_cache", cache);
           } catch (e) {
             // L34: QuotaExceededError or SecurityError — silently clear stale cache
             try {
-              localStorage.removeItem("hdak_conv_cache");
+              safeStorage.removeItem("hdak_conv_cache");
             } catch {
               /* ignore */
             }
@@ -382,6 +424,18 @@ export function useChat(
       isTypingRef.current = true;
       setIsTyping(true);
       setError(null);
+
+      // Clear any existing timeout and set new one for stuck typing state
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      typingTimeoutRef.current = setTimeout(() => {
+        if (isMountedRef.current) {
+          isTypingRef.current = false;
+          setIsTyping(false);
+          setError("Часова межа відповіді перевищена (120сек). Натисніть 'Зупинити' або спробуйте знову.");
+        }
+      }, 120000); // 120 seconds
 
       // H7: capture stable IDs for this specific send invocation
       const tempUserId = `temp-user-${crypto.randomUUID()}`;
@@ -725,6 +779,7 @@ export function useChat(
 
   const handleStop = useCallback(() => {
     faqStoppedRef.current = true;
+    clearTypingTimeout();
     if (thinkTimerRef.current) {
       clearTimeout(thinkTimerRef.current);
       thinkTimerRef.current = null;
@@ -773,6 +828,19 @@ export function useChat(
       isLoadingMoreRef.current = false;
     }
   }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      clearTypingTimeout();
+      if (thinkTimerRef.current) clearTimeout(thinkTimerRef.current);
+      if (typeIntervalRef.current) clearInterval(typeIntervalRef.current);
+      if (refreshDebounceRef.current) clearTimeout(refreshDebounceRef.current);
+      if (newConvTimerRef.current) clearTimeout(newConvTimerRef.current);
+      abortControllerRef.current?.abort();
+    };
+  }, [clearTypingTimeout]);
 
   const formatTime = useCallback((d: string) => {
     try {

@@ -119,7 +119,7 @@ export function ChatInput({
   };
 
   return (
-    <div className="input-area px-4 pb-5 pt-2 shrink-0">
+    <div className="input-area px-3 md:px-4 pb-5 pt-2 shrink-0">
       <div className="input-wrap max-w-[900px] mx-auto">
         <div
           className={cn(
@@ -142,6 +142,7 @@ export function ChatInput({
             maxLength={2000}
             aria-label="Повідомлення для чату"
             aria-describedby="chat-input-hint"
+            spellCheck="true"
           />
           <div className="input-footer">
             <span className="input-hint" id="chat-input-hint">
@@ -168,7 +169,7 @@ export function ChatInput({
                   onClick={handleMicClick}
                   disabled={isProcessing}
                   className={cn(
-                    "send-btn transition-all",
+                    "send-btn transition-all active:scale-95",
                     isListening && "mic-btn-listening",
                     isProcessing && "opacity-50 cursor-wait"
                   )}
@@ -190,7 +191,7 @@ export function ChatInput({
               {isTyping && onStop ? (
                 <button
                   onClick={onStop}
-                  className="send-btn active"
+                  className="send-btn active active:scale-95"
                   aria-label="Зупинити"
                 >
                   <Square size={13} strokeWidth={2} fill="currentColor" />
@@ -199,7 +200,10 @@ export function ChatInput({
                 <button
                   onClick={handleSendClick}
                   disabled={!hasInput || isTyping}
-                  className={cn("send-btn", hasInput && !isTyping && "active")}
+                  className={cn(
+                    "send-btn active:scale-95",
+                    hasInput && !isTyping && "active"
+                  )}
                   aria-label="Надіслати"
                 >
                   <Send size={15} strokeWidth={2} />

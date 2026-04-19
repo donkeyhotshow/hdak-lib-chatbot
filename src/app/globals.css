@@ -297,6 +297,9 @@
     0 2px 8px rgba(0, 0, 0, 0.15),
     inset 0 1px 0 rgba(255, 255, 255, 0.25);
   transition: all 0.25s ease;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .btn-new-chat:hover {
@@ -305,6 +308,10 @@
     0 4px 12px rgba(0, 0, 0, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.3);
   transform: translateY(-1px);
+}
+
+.btn-new-chat:active {
+  transform: scale(0.98);
 }
 
 /* ============================================
@@ -464,6 +471,8 @@
 .send-btn {
   width: 36px;
   height: 36px;
+  min-width: 36px;
+  min-height: 36px;
   border-radius: 10px;
   display: flex;
   align-items: center;
@@ -474,11 +483,16 @@
   cursor: pointer;
   transition: all 0.2s ease;
   flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .send-btn:hover:not(:disabled) {
   background: rgba(42, 37, 32, 0.08);
   color: rgba(42, 37, 32, 0.5);
+}
+
+.send-btn:active:not(:disabled) {
+  transform: scale(0.95);
 }
 
 .send-btn.active {
@@ -495,6 +509,47 @@
 .send-btn:disabled {
   cursor: not-allowed;
   opacity: 0.4;
+}
+
+/* ============================================
+   SCROLL TO BOTTOM BUTTON
+   ============================================ */
+
+.scroll-to-bottom-btn {
+  position: absolute;
+  bottom: 20px;
+  right: 16px;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #d4a853 0%, #b87830 100%);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(184, 120, 48, 0.3);
+  transition: all 0.2s ease;
+  z-index: 30;
+}
+
+.scroll-to-bottom-btn:hover {
+  box-shadow: 0 6px 24px rgba(184, 120, 48, 0.4);
+  transform: translateY(-2px);
+}
+
+.scroll-to-bottom-btn:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 767px) {
+  .scroll-to-bottom-btn {
+    width: 48px;
+    height: 48px;
+    bottom: 16px;
+    right: 12px;
+  }
 }
 
 /* ============================================
@@ -853,6 +908,8 @@
     overscroll-behavior: contain;
     padding-top: env(safe-area-inset-top, 0px);
     padding-bottom: env(safe-area-inset-bottom, 0px);
+    -webkit-user-select: none;
+    user-select: none;
   }
 
   .hero-title {
@@ -861,12 +918,15 @@
 
   .logo-text {
     font-size: 20px;
+    letter-spacing: 0.15em;
   }
 
-  /* Larger touch targets on mobile */
+  /* Larger touch targets on mobile - min 44x44 */
   .quick-btn {
     padding: 10px 16px;
     min-height: 44px;
+    min-width: 44px;
+    font-size: 13px;
   }
 
   .quick-btn-text {
@@ -876,16 +936,20 @@
   .quick-chip {
     padding: 10px 16px;
     min-height: 44px;
+    min-width: 44px;
     font-size: 13px;
   }
 
   /* Input area: safe-area padding for notched phones */
   .input-area {
     padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
   }
 
   .input-textarea {
     font-size: 16px; /* prevent iOS zoom on focus */
+    -webkit-user-select: text;
   }
 
   /* Hide input hint on mobile - accessible via sr-only */
@@ -901,11 +965,36 @@
     border: 0;
   }
 
-  /* Send button larger on mobile */
+  /* Send button larger on mobile - touch target 44x44 */
   .send-btn {
     width: 44px;
     height: 44px;
+    min-width: 44px;
+    min-height: 44px;
     border-radius: 12px;
+  }
+
+  /* Header safe area and touch targets */
+  .chat-header {
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+
+  .chat-header button {
+    min-width: 44px;
+    min-height: 44px;
+    border-radius: 12px;
+  }
+
+  /* Prevent layout shift from scrollbar */
+  html {
+    overflow-y: scroll;
+  }
+
+  /* Smooth scrolling on mobile */
+  .chat-scroll-area {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
   }
 }
 
@@ -1046,6 +1135,50 @@
 }
 
 /* ============================================
+   SWIPE & GESTURE SUPPORT
+   ============================================ */
+
+/* Enable hardware acceleration for smooth swipes */
+.sidebar-premium {
+  will-change: transform;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+}
+
+/* Touch feedback for interactive elements */
+button,
+a,
+input,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Prevent text selection during swipe/drag */
+.swipe-area {
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+
+/* Haptic feedback trigger class */
+.haptic-feedback {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Swipe back detection zone */
+.swipe-back-zone {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 20px;
+  height: 100%;
+  z-index: 10;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* ============================================
    MOBILE ADAPTATIONS — < 480px
    ============================================ */
 
@@ -1076,5 +1209,18 @@
   .chat-scroll-area {
     padding-left: 12px;
     padding-right: 12px;
+  }
+
+  /* Ensure buttons are always tapable on small screens */
+  button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Better spacing for message bubbles on small screens */
+  .message-user,
+  .message-assistant {
+    padding: 10px 14px;
+    font-size: 15px;
   }
 }

@@ -687,7 +687,7 @@ export const Sidebar = memo(function Sidebar({
                   createNewConversation();
                   handleNavClick();
                 }}
-                className="btn-new-chat w-full py-3 rounded-xl text-[11px] flex items-center justify-center gap-2 tracking-[0.12em]"
+                className="btn-new-chat w-full py-3 md:py-3 rounded-xl text-[11px] flex items-center justify-center gap-2 tracking-[0.12em] min-h-[44px] md:min-h-auto active:scale-95 transition-transform"
               >
                 <Plus size={14} strokeWidth={2.5} />
                 <span>НОВИЙ ЧАТ</span>
