@@ -607,9 +607,10 @@ function ChatAreaComponent({
         {streamingMessageId ? lastAssistantContent : ""}
       </div>
       <div
-        className="flex-1 overflow-y-auto px-4 py-6 custom-scrollbar chat-scroll-area relative"
+        className="flex-1 overflow-y-auto px-3 md:px-4 py-4 md:py-6 custom-scrollbar chat-scroll-area relative"
         onScroll={handleScroll}
         aria-label="Повідомлення чату"
+        role="region"
       >
         <div className="w-full max-w-[800px] mx-auto space-y-7">
           {error && (
@@ -668,7 +669,7 @@ function ChatAreaComponent({
                       onClick={() => handleFaqSend(label)}
                       disabled={isTyping}
                       className={cn(
-                        "flex-shrink-0 px-4 py-2 text-[13px] font-semibold rounded-full border border-[#D4A853]/30 text-[#B87830] hover:bg-[#D4A853]/10 hover:border-[#D4A853]/60 transition-all bg-white/50 active:scale-95",
+                        "flex-shrink-0 px-4 md:px-4 py-2.5 md:py-2 text-sm md:text-[13px] font-semibold rounded-full border border-[#D4A853]/30 text-[#B87830] hover:bg-[#D4A853]/10 hover:border-[#D4A853]/60 transition-all bg-white/50 active:scale-95 min-h-[44px] md:min-h-auto flex items-center justify-center",
                         `animate-fade-in-slide-up stagger-delay-${idx + 1}`
                       )}
                     >
@@ -689,7 +690,7 @@ function ChatAreaComponent({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.8, y: 20 }}
               onClick={scrollToBottom}
-              className="scroll-to-bottom-btn"
+              className="scroll-to-bottom-btn active:scale-95"
               aria-label="Прокрутити до кінця"
             >
               <ArrowDown size={20} strokeWidth={2.5} />
