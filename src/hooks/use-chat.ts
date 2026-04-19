@@ -10,7 +10,7 @@ const safeStorage = {
   getItem: (key: string): string | null => {
     try {
       return typeof window !== "undefined" && window.localStorage
-        ? window.safeStorage.getItem(key)
+        ? window.localStorage.getItem(key)
         : null;
     } catch {
       return null;
@@ -19,7 +19,7 @@ const safeStorage = {
   setItem: (key: string, value: string): void => {
     try {
       if (typeof window !== "undefined" && window.localStorage) {
-        window.safeStorage.setItem(key, value);
+        window.localStorage.setItem(key, value);
       }
     } catch {
       // Silently fail if localStorage is full or disabled
@@ -28,7 +28,7 @@ const safeStorage = {
   removeItem: (key: string): void => {
     try {
       if (typeof window !== "undefined" && window.localStorage) {
-        window.safeStorage.removeItem(key);
+        window.localStorage.removeItem(key);
       }
     } catch {
       // Silently fail
