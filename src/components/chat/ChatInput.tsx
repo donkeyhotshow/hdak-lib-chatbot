@@ -119,11 +119,11 @@ export function ChatInput({
   };
 
   return (
-    <div className="input-area px-3 md:px-4 pb-5 pt-2 shrink-0">
+    <div className="input-area px-3 md:px-4 pb-5 pt-3 shrink-0">
       <div className="input-wrap max-w-[900px] mx-auto">
         <div
           className={cn(
-            "input-container",
+            "input-container group",
             isTyping && "input-container-active"
           )}
         >
