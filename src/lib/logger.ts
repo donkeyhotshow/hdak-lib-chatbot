@@ -99,19 +99,24 @@ class Logger {
 
   error(message: string, error?: Error | unknown, data?: unknown): void {
     const errorObj = error instanceof Error ? error : new Error(String(error));
+    const contextExtras = this.getContext();
     const context: LogContext = {
       timestamp: this.formatTime(),
       level: "error",
       message,
       error: errorObj,
       data,
-      ...this.getContext(),
+      userAgent: contextExtras.userAgent,
+      url: contextExtras.url,
     };
     this.addLog(context);
-    this.formatOutput("error", `${message}: ${errorObj.message}`, {
+    const outputData: Record<string, unknown> = {
       stack: errorObj.stack,
-      ...data,
-    });
+    };
+    if (data && typeof data === "object") {
+      Object.assign(outputData, data);
+    }
+    this.formatOutput("error", `${message}: ${errorObj.message}`, outputData);
   }
 
   getLogs(): LogContext[] {
