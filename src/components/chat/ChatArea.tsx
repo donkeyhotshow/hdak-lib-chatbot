@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { Message } from "./types";
 import { useScrollDetection } from "@/hooks/use-intersection-observer";
 import { logger } from "@/lib/logger";
+import { sanitizeHtml, sanitizeUrl } from "@/lib/sanitize";
 
 const QUICK_MENU_UK = [
   {
@@ -208,14 +209,18 @@ const markdownComponents = {
   strong: (props: React.HTMLAttributes<HTMLElement>) => (
     <strong className="font-semibold text-[#1A1612]" {...props} />
   ),
-  a: (props: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
-    <a
-      target="_blank"
-      rel="noopener noreferrer"
-      className="text-[#B87830] underline underline-offset-2 hover:text-[#D4A853] transition-colors"
-      {...props}
-    />
-  ),
+  a: (props: React.AnchorHTMLAttributes<HTMLAnchorElement>) => {
+    const href = props.href ? sanitizeUrl(props.href) : "";
+    return (
+      <a
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-[#B87830] underline underline-offset-2 hover:text-[#D4A853] transition-colors"
+        href={href}
+        {...props}
+      />
+    );
+  },
   code: ({ className, children, ...rest }: React.HTMLAttributes<HTMLElement>) => {
     const isInline = !className?.startsWith("language-");
     if (isInline) {
@@ -485,7 +490,7 @@ function ChatAreaComponent({
     }
     if (/графік|розклад|години|відкри|зачин/i.test(c))
       return ["Як записатися?", "Контакти бібліотеки"];
-    if (/книг|автор|каталог|видання|збірник|підручник|поезі|знайд/i.test(c))
+    if (/книг|автор|катал��г|видання|збірник|підручник|поезі|знайд/i.test(c))
       return ["Знайти ��е книги", "Нові надходження"];
     if (/наук|стат|дисертац|scopus|research|репозитар/i.test(c))
       return ["Як отримати Scopus?", "Репозитарій ХДАК"];
