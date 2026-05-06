@@ -111,3 +111,10 @@ nul
 
 # Vercel
 .vercel/
+
+# Playwright
+test-results/
+playwright-report/
+.auth/
+user_read_only_context/
+

@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Message } from "./types";
+import { useScrollDetection } from "@/hooks/use-intersection-observer";
+import { logger } from "@/lib/logger";
 
 const QUICK_MENU_UK = [
   {
@@ -484,7 +486,7 @@ function ChatAreaComponent({
     if (/графік|розклад|години|відкри|зачин/i.test(c))
       return ["Як записатися?", "Контакти бібліотеки"];
     if (/книг|автор|каталог|видання|збірник|підручник|поезі|знайд/i.test(c))
-      return ["Знайти ще книги", "Нові надходження"];
+      return ["Знайти ��е книги", "Нові надходження"];
     if (/наук|стат|дисертац|scopus|research|репозитар/i.test(c))
       return ["Як отримати Scopus?", "Репозитарій ХДАК"];
     if (/запис|квиток|реєстрац/i.test(c)) return ["Графік роботи", "Контакти"];
@@ -500,7 +502,14 @@ function ChatAreaComponent({
   };
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    try {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      logger.debug("Scrolled to bottom");
+    } catch (error) {
+      logger.error("Error scrolling to bottom", error as Error);
+      // Fallback: try without smooth behavior
+      messagesEndRef.current?.scrollIntoView?.();
+    }
   };
 
   const { lastMsg, lastMsgHasCatalog, lastAssistantContent } = useMemo(() => {

@@ -4,6 +4,8 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { Message, Conversation } from "@/components/chat/types";
 import { getFaqResponse } from "@/lib/faq-responses";
 import { getSessionId, SESSION_HEADER } from "@/lib/session";
+import { withRetry } from "@/lib/retry";
+import { logger } from "@/lib/logger";
 
 // Safe localStorage wrapper for environments where localStorage is disabled/unavailable
 const safeStorage = {
@@ -455,15 +457,25 @@ export function useChat(
       let streamStarted = false;
 
       try {
-        const res = await fetch("/api/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", ...sessionHeaders() },
-          body: JSON.stringify({
-            conversationId: currentConversationRef.current?.id || null,
-            message: text,
-          }),
-          signal: controller.signal,
-        });
+        const res = await withRetry(
+          () =>
+            fetch("/api/chat", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", ...sessionHeaders() },
+              body: JSON.stringify({
+                conversationId: currentConversationRef.current?.id || null,
+                message: text,
+              }),
+              signal: controller.signal,
+            }),
+          {
+            maxRetries: 2,
+            initialDelay: 1000,
+            onRetry: (attempt, delay) => {
+              logger.warn(`API retry attempt ${attempt}, waiting ${Math.round(delay)}ms`);
+            },
+          }
+        );
 
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
