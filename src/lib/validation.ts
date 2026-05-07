@@ -1,8 +1,97 @@
+import { z } from "zod";
 import { NextRequest, NextResponse } from "next/server";
 import { SESSION_HEADER } from "@/lib/session";
 
 export const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * ============================================
+ * INPUT VALIDATION SCHEMAS (Zod)
+ * ============================================
+ */
+
+// Chat message validation
+export const ChatMessageSchema = z.object({
+  conversationId: z.string().uuid().nullable().optional(),
+  message: z
+    .string()
+    .min(1, "Message cannot be empty")
+    .max(2000, "Message too long (max 2000 characters)")
+    .trim(),
+});
+
+export type ChatMessage = z.infer<typeof ChatMessageSchema>;
+
+// Conversation operations
+export const ConversationUpdateSchema = z.object({
+  title: z
+    .string()
+    .max(200, "Title too long")
+    .trim()
+    .optional(),
+});
+
+export type ConversationUpdate = z.infer<typeof ConversationUpdateSchema>;
+
+// Catalog search validation
+export const CatalogSearchSchema = z.object({
+  query: z
+    .string()
+    .min(2, "Query too short (min 2 characters)")
+    .max(200, "Query too long (max 200 characters)")
+    .trim(),
+  type: z
+    .enum([
+      "title",
+      "author",
+      "subject",
+      "udc",
+      "keywords",
+      "general",
+    ])
+    .optional()
+    .default("general"),
+  page: z.number().int().positive().default(1),
+  limit: z.number().int().positive().max(100).default(10),
+});
+
+export type CatalogSearch = z.infer<typeof CatalogSearchSchema>;
+
+// Push subscription validation
+export const PushSubscriptionSchema = z.object({
+  endpoint: z.string().url("Invalid subscription endpoint"),
+  expirationTime: z.number().nullable().optional(),
+  keys: z.object({
+    p256dh: z.string().min(1),
+    auth: z.string().min(1),
+  }),
+});
+
+export type PushSubscription = z.infer<typeof PushSubscriptionSchema>;
+
+/**
+ * Safe validation function that catches and logs errors
+ */
+export async function validateInput<T>(
+  schema: z.ZodSchema<T>,
+  data: unknown
+): Promise<{ success: boolean; data?: T; error?: string }> {
+  try {
+    const validated = await schema.parseAsync(data);
+    return { success: true, data: validated };
+  } catch (error) {
+    const message =
+      error instanceof z.ZodError
+        ? error.errors.map((e) => `${e.path.join(".")}: ${e.message}`).join("; ")
+        : String(error);
+
+    return {
+      success: false,
+      error: `Validation failed: ${message}`,
+    };
+  }
+}
 
 const SESSION_COOKIE = "hdak_sid";
 

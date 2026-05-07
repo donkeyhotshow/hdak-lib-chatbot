@@ -4,8 +4,7 @@
  */
 
 import { stripHtml } from "@/lib/sanitize";
-
-// stripHtml is imported from @/lib/sanitize — do NOT duplicate here.
+import { logger } from "@/lib/logger";
 
 const CATALOG_URL =
   process.env.CATALOG_URL ||
@@ -247,7 +246,8 @@ export async function checkCatalogAvailability(): Promise<boolean> {
         signal: AbortSignal.timeout(3000),
       });
       return res.ok;
-    } catch {
+    } catch (error) {
+      logger.error("Catalog HEAD/GET check failed", error as Error);
       return false;
     }
   }
@@ -300,7 +300,8 @@ export async function searchCatalog(
       try {
         await new Promise(r => setTimeout(r, 600));
         response = await fetchCatalog(CATALOG_URL, formData.toString(), 1);
-      } catch {
+      } catch (retryErr) {
+        logger.error("Catalog search retry failed", retryErr as Error);
         throw networkErr;
       }
     }
@@ -309,9 +310,9 @@ export async function searchCatalog(
     const html = await response.text();
     return parseBooksFromHtml(html, safePageSize);
   } catch (err) {
-    console.error(
-      "Catalog search failed:",
-      err instanceof Error ? err.message : err
+    logger.error(
+      "Catalog search failed",
+      err instanceof Error ? err : new Error(String(err))
     );
     return { books: [], total: 0, unavailable: true };
   }

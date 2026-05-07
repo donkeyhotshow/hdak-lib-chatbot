@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
+import { logger } from "@/lib/logger";
 
 export type SpeechState = "idle" | "listening" | "processing" | "error";
 
@@ -127,8 +128,10 @@ export function useSpeech({
     recognition.onstart = () => {
       if (!isMountedRef.current) return;
       setState("listening");
+      logger.debug("Speech recognition started");
       // Auto-stop after 10s of silence
       timeoutRef.current = setTimeout(() => {
+        logger.debug("Speech recognition timeout (10s silence)");
         recognition.stop();
       }, 10_000);
     };
@@ -159,10 +162,12 @@ export function useSpeech({
       // 'aborted' is triggered by our own stop() — not a real error
       if (event.error === "aborted") {
         setState("idle");
+        logger.debug("Speech recognition aborted by user");
         return;
       }
 
       setState("error");
+      logger.error("Speech recognition error", new Error(`Speech error: ${event.error}`));
 
       const messages: Record<string, string> = {
         "not-allowed":
@@ -173,6 +178,7 @@ export function useSpeech({
         "service-not-allowed": "Сервіс розпізнавання мовлення недоступний.",
       };
       const msg = messages[event.error] ?? "Помилка розпізнавання мовлення.";
+      logger.warn(`Speech error message: ${msg}`);
       onErrorRef.current?.(msg);
 
       // Reset to idle after showing error

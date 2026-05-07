@@ -170,10 +170,10 @@ export default function ChatPage() {
       />
 
       <main className="flex-1 flex flex-col min-w-0 relative h-full overflow-hidden">
-        <header className="chat-header relative min-h-[56px] md:min-h-[48px] flex items-center justify-between px-4 md:px-6 border-b border-[#2A2520]/[0.04] bg-white/50 backdrop-blur-sm shrink-0">
+        <header className="chat-header relative min-h-[56px] md:min-h-[48px] flex items-center justify-between px-4 md:px-6 border-b border-[#D4A853]/[0.12] bg-white/45 backdrop-blur-lg shrink-0 shadow-sm">
           <button
             onClick={() => setSidebarOpen(v => !(v ?? false))}
-            className="w-12 h-12 md:w-11 md:h-11 flex items-center justify-center rounded-lg md:rounded-xl text-[#7A756F] hover:text-[#2A2520] hover:bg-[#2A2520]/[0.04] transition-all active:scale-95 flex-shrink-0"
+            className="w-12 h-12 md:w-11 md:h-11 flex items-center justify-center rounded-lg md:rounded-xl text-[#7A756F] hover:text-[#1A1612] hover:bg-[#D4A853]/[0.08] transition-all active:scale-95 flex-shrink-0 hover:shadow-sm"
             aria-label={isSidebarOpen ? "Закрити меню" : "Відкрити меню"}
           >
             {isSidebarOpen ? (
@@ -183,21 +183,21 @@ export default function ChatPage() {
             )}
           </button>
           <div className="flex flex-col items-center flex-1 px-3">
-            <h1 className="logo-text text-[20px] md:text-[22px] m-0 leading-none">
+            <h1 className="logo-text text-[20px] md:text-[24px] m-0 leading-none font-bold">
               ХДАК
             </h1>
-            <div className="flex items-center gap-1.5 mt-1">
+            <div className="flex items-center gap-2 mt-1.5">
               <span
                 className={cn(
-                  "w-1.5 h-1.5 rounded-full shrink-0",
+                  "w-2 h-2 rounded-full shrink-0 shadow-lg",
                   error
-                    ? "bg-red-400"
+                    ? "bg-red-500"
                     : isTyping
-                      ? "bg-amber-400 animate-pulse"
-                      : "bg-emerald-400"
+                      ? "bg-amber-500 animate-pulse"
+                      : "bg-emerald-500"
                 )}
               />
-              <span className="text-[9px] md:text-[10px] font-medium tracking-wide text-[#7A756F]/60 whitespace-nowrap">
+              <span className="text-[9px] md:text-[10px] font-semibold tracking-wider text-[#7A756F] whitespace-nowrap uppercase">
                 {error ? "Помилка" : isTyping ? "Думає..." : "Онлайн"}
               </span>
             </div>
@@ -205,7 +205,7 @@ export default function ChatPage() {
           <button
             onClick={createNewConversation}
             disabled={messages.length === 0}
-            className="w-12 h-12 md:w-11 md:h-11 flex items-center justify-center rounded-lg md:rounded-xl text-[#7A756F] hover:text-[#2A2520] hover:bg-[#2A2520]/[0.04] transition-all disabled:opacity-0 disabled:pointer-events-none active:scale-95 flex-shrink-0"
+            className="w-12 h-12 md:w-11 md:h-11 flex items-center justify-center rounded-lg md:rounded-xl text-[#7A756F] hover:text-[#1A1612] hover:bg-[#D4A853]/[0.08] transition-all disabled:opacity-0 disabled:pointer-events-none active:scale-95 flex-shrink-0 hover:shadow-sm"
             aria-label="Очистити чат"
             title="Очистити чат"
           >
@@ -213,7 +213,7 @@ export default function ChatPage() {
           </button>
         </header>
 
-        <div className="h-px bg-gradient-to-r from-transparent via-[#B87830]/20 to-transparent shrink-0" />
+        <div className="h-px bg-gradient-to-r from-transparent via-[#D4A853]/25 to-transparent shrink-0" />
 
         <ChatArea
           messages={messages}
