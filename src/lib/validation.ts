@@ -117,7 +117,7 @@ export async function validateInput<T>(
   } catch (err) {
     const message =
       err instanceof z.ZodError
-        ? err.issues.map(issue => `${issue.path.join(".")}: ${issue.message}`).join("; ")
+        ? err.message
         : String(err);
 
     return {
