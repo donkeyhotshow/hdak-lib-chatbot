@@ -114,11 +114,11 @@ export async function validateInput<T>(
   try {
     const validated = await schema.parseAsync(data);
     return { success: true, data: validated };
-  } catch (error) {
+  } catch (err) {
     const message =
-      error instanceof z.ZodError
-        ? error.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`).join("; ")
-        : String(error);
+      err instanceof z.ZodError
+        ? err.issues.map(issue => `${issue.path.join(".")}: ${issue.message}`).join("; ")
+        : String(err);
 
     return {
       success: false,
