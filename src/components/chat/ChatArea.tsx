@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 import { Message } from "./types";
 import { useScrollDetection } from "@/hooks/use-intersection-observer";
 import { logger } from "@/lib/logger";
-import { sanitizeHtml, sanitizeUrl } from "@/lib/sanitize";
+import { sanitizeUrl } from "@/lib/sanitize";
 
 const QUICK_MENU_UK = [
   {
@@ -210,15 +210,18 @@ const markdownComponents = {
     <strong className="font-semibold text-[#1A1612]" {...props} />
   ),
   a: (props: React.AnchorHTMLAttributes<HTMLAnchorElement>) => {
-    const href = props.href ? sanitizeUrl(props.href) : "";
+    const { href: rawHref, children, title } = props;
+    const href = rawHref ? sanitizeUrl(rawHref) : "";
     return (
       <a
         target="_blank"
         rel="noopener noreferrer"
         className="text-[#B87830] underline underline-offset-2 hover:text-[#D4A853] transition-colors"
         href={href}
-        {...props}
-      />
+        title={title}
+      >
+        {children}
+      </a>
     );
   },
   code: ({ className, children, ...rest }: React.HTMLAttributes<HTMLElement>) => {
@@ -339,7 +342,7 @@ const MessageBubble = memo(
               <p className="whitespace-pre-wrap break-words">{msg.content}</p>
             ) : (
               <div className="prose prose-sm max-w-none prose-p:leading-[1.625] prose-strong:text-[#D4A853]">
-                <ReactMarkdown components={markdownComponents}>
+                <ReactMarkdown skipHtml components={markdownComponents}>
                   {msg.content}
                 </ReactMarkdown>
                 {isStreaming && (

@@ -5,25 +5,33 @@ import { NextRequest } from "next/server";
  * Only enforced in production — dev/test environments allow all origins.
  */
 export function isForbiddenOrigin(request: NextRequest): boolean {
-  const origin = request.headers.get("origin");
-
-  // In production, requests without Origin are forbidden
-  // (prevents curl/Postman/server-to-server bypass)
-  if (!origin) {
-    if (process.env.NODE_ENV === "production") return true;
-    return false; // dev/test — allow all
-  }
   if (process.env.NODE_ENV !== "production") return false;
 
   try {
+    const method = request.method.toUpperCase();
+    const isMutating = !["GET", "HEAD", "OPTIONS"].includes(method);
+    const secFetchSite = request.headers.get("sec-fetch-site");
+    if (
+      isMutating &&
+      secFetchSite &&
+      !["same-origin", "same-site", "none"].includes(secFetchSite)
+    ) {
+      return true;
+    }
+
     const requestUrl = new URL(request.url);
     const reqHost = requestUrl.hostname;
     const localHosts = ["localhost", "127.0.0.1", "0.0.0.0"];
+    const source = request.headers.get("origin") ?? request.headers.get("referer");
 
-    // origin is guaranteed non-null here (checked above)
-    const originHost = new URL(origin).hostname;
-    if (originHost === reqHost) return false;
-    if (localHosts.includes(originHost) && localHosts.includes(reqHost))
+    // For mutating methods in production, require either Origin or Referer.
+    // If both are missing, treat request as potentially forged (CSRF) and block it.
+    // This returns true (forbidden) for POST/PATCH/DELETE and false for GET/HEAD/OPTIONS.
+    if (!source) return isMutating;
+
+    const sourceHost = new URL(source).hostname;
+    if (sourceHost === reqHost) return false;
+    if (localHosts.includes(sourceHost) && localHosts.includes(reqHost))
       return false;
     return true;
   } catch {

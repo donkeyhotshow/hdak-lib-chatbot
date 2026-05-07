@@ -4,7 +4,12 @@ import { eq, asc, and } from "drizzle-orm";
 import { stripHtml } from "@/lib/sanitize";
 import { checkRateLimit, generateFingerprint } from "@/lib/rate-limit";
 import { isForbiddenOrigin } from "@/lib/cors";
-import { isValidUuid, getSessionIdStrict } from "@/lib/validation";
+import {
+  isValidUuid,
+  getSessionIdStrict,
+  ConversationUpdateSchema,
+  validateInput,
+} from "@/lib/validation";
 
 const MAX_TITLE_LENGTH = 200;
 
@@ -145,7 +150,7 @@ export async function PATCH(
       );
     }
 
-    let body: { title?: unknown };
+    let body: unknown;
     try {
       body = await request.json();
     } catch {
@@ -155,14 +160,15 @@ export async function PATCH(
       );
     }
 
-    if (typeof body.title !== "string" || !body.title.trim()) {
+    const parsed = await validateInput(ConversationUpdateSchema, body);
+    if (!parsed.success || !parsed.data?.title) {
       return NextResponse.json(
-        { error: "Назва не може бути порожньою" },
+        { error: parsed.error || "Назва не може бути порожньою" },
         { status: 400 }
       );
     }
 
-    const title = stripHtml(body.title.trim()).substring(0, MAX_TITLE_LENGTH);
+    const title = stripHtml(parsed.data.title.trim()).substring(0, MAX_TITLE_LENGTH);
     if (!title) {
       return NextResponse.json(
         { error: "Назва не може бути порожньою" },
