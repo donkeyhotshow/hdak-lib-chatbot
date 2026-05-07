@@ -811,7 +811,7 @@ export function useChat(
   );
 
   const handleStop = useCallback(() => {
-    requestIdRef.current += 1;
+    ++requestIdRef.current;
     faqStoppedRef.current = true;
     clearTypingTimeout();
     if (thinkTimerRef.current) {

@@ -30,10 +30,7 @@ export const ConversationUpdateSchema = z.object({
     .min(1, "Title cannot be empty")
     .max(200, "Title too long")
     .trim()
-    .optional()
-    .refine(value => value === undefined || value.length > 0, {
-      message: "Title cannot be empty",
-    }),
+    .optional(),
 });
 
 export type ConversationUpdate = z.infer<typeof ConversationUpdateSchema>;

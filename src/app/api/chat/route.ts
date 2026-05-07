@@ -236,7 +236,7 @@ export async function POST(request: NextRequest) {
 
   const { conversationId, message } = parsed.data;
   const safeMessage = stripHtml(message).trim();
-  if (!safeMessage || safeMessage.length > MAX_MESSAGE_LENGTH) {
+  if (!safeMessage) {
     return NextResponse.json({ error: "Недійсний вміст повідомлення" }, { status: 400 });
   }
 
