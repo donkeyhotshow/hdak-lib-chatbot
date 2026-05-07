@@ -17,6 +17,8 @@ import {
   isValidUuid,
   getSessionIdFromRequest,
   buildSessionCookie,
+  ChatMessageSchema,
+  validateInput,
 } from "@/lib/validation";
 
 const MAX_MESSAGE_LENGTH = 2000;
@@ -60,28 +62,6 @@ interface ChatMessage {
 // Fallback error message — not persisted to DB to avoid polluting conversation history
 const FALLBACK_ERROR = "Вибачте, сталася технічна помилка. Спробуйте пізніше.";
 
-// ─── Validation ───────────────────────────────────────────────────────────────
-
-function validateMessage(message: unknown): {
-  valid: boolean;
-  error?: string;
-  sanitized?: string;
-} {
-  if (typeof message !== "string")
-    return { valid: false, error: "Повідомлення має бути рядком" };
-  if (!message.trim())
-    return { valid: false, error: "Повідомлення не може бути порожнім" };
-  if (message.length > MAX_MESSAGE_LENGTH)
-    return {
-      valid: false,
-      error: `Повідомлення перевищує ${MAX_MESSAGE_LENGTH} символів`,
-    };
-  const sanitized = stripHtml(message).trim();
-  if (!sanitized)
-    return { valid: false, error: "Недійсний вміст повідомлення" };
-  return { valid: true, sanitized };
-}
-
 // ─── Streaming LLM call ───────────────────────────────────────────────────────
 
 async function streamLLM(
@@ -99,18 +79,24 @@ async function streamLLM(
     apiKey: string,
     model: string
   ): Promise<string> => {
-    // C6+H11: combine client disconnect signal with 30s timeout
-    // Create combined controller; always clear timer in finally to prevent leak
+    const IDLE_TIMEOUT_MS = 30_000;
     const tc = new AbortController();
-    const timer = setTimeout(() => tc.abort(new Error("LLM timeout")), 30_000);
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const resetTimeout = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => tc.abort(new Error("LLM stream timeout")), IDLE_TIMEOUT_MS);
+    };
     const onClientAbort = () => {
-      clearTimeout(timer);
+      if (timer) clearTimeout(timer);
       tc.abort(signal.reason);
     };
     signal.addEventListener("abort", onClientAbort, { once: true });
 
     let res: Response;
+    let reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
     try {
+      if (signal.aborted) tc.abort(signal.reason);
+      resetTimeout();
       res = await fetch(url, {
         method: "POST",
         headers: {
@@ -124,52 +110,57 @@ async function streamLLM(
           temperature: 0.7,
           stream: true,
         }),
-        signal: signal.aborted ? signal : tc.signal,
+        signal: tc.signal,
       });
-    } finally {
-      // Always clean up timer and listener regardless of outcome
-      clearTimeout(timer);
-      signal.removeEventListener("abort", onClientAbort);
-    }
 
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    if (!res.body) throw new Error("No response body");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.body) throw new Error("No response body");
 
-    const reader = res.body.getReader();
-    const dec = new TextDecoder();
-    let full = "";
-    let buf = "";
+      reader = res.body.getReader();
+      const dec = new TextDecoder();
+      let full = "";
+      let buf = "";
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) {
-        // Finalize TextDecoder to flush any pending multi-byte UTF-8 sequences
-        buf += dec.decode();
-        break;
-      }
-      buf += dec.decode(value, { stream: true });
-      const lines = buf.split("\n");
-      buf = lines.pop() ?? "";
+      while (true) {
+        resetTimeout();
+        const { done, value } = await reader.read();
+        if (done) {
+          // Finalize TextDecoder to flush any pending multi-byte UTF-8 sequences
+          buf += dec.decode();
+          break;
+        }
+        buf += dec.decode(value, { stream: true });
+        const lines = buf.split("\n");
+        buf = lines.pop() ?? "";
 
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed.startsWith("data:")) continue;
-        const data = trimmed.slice(5).trim();
-        if (data === "[DONE]") continue;
-        if (!data || data === "null") continue;
-        try {
-          const chunk = JSON.parse(data);
-          const delta = chunk.choices?.[0]?.delta?.content;
-          if (delta) {
-            full += delta;
-            sendChunk(delta);
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed.startsWith("data:")) continue;
+          const data = trimmed.slice(5).trim();
+          if (data === "[DONE]") continue;
+          if (!data || data === "null") continue;
+          try {
+            const chunk = JSON.parse(data);
+            const delta = chunk.choices?.[0]?.delta?.content;
+            if (delta) {
+              full += delta;
+              sendChunk(delta);
+            }
+          } catch {
+            console.warn("Skipped malformed chunk (len:", data.length, ")");
           }
-        } catch (e) {
-          console.warn("Skipped malformed chunk (len:", data.length, ")");
         }
       }
+      return full;
+    } finally {
+      if (timer) clearTimeout(timer);
+      signal.removeEventListener("abort", onClientAbort);
+      try {
+        await reader?.cancel();
+      } catch {
+        // no-op if already closed/aborted
+      }
     }
-    return full;
   };
 
   // Early bail if client already disconnected
@@ -218,7 +209,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Parse body with size guard
-  let body: { conversationId?: string; message?: unknown };
+  let body: unknown;
   try {
     const contentLength = request.headers.get("content-length");
     if (contentLength && parseInt(contentLength, 10) > 100_000) {
@@ -235,13 +226,19 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { conversationId, message } = body;
-  const validation = validateMessage(message);
-  if (!validation.valid || !validation.sanitized) {
-    return NextResponse.json({ error: validation.error }, { status: 400 });
+  const parsed = await validateInput(ChatMessageSchema, body);
+  if (!parsed.success || !parsed.data) {
+    return NextResponse.json(
+      { error: parsed.error || "Невалідні вхідні дані" },
+      { status: 400 }
+    );
   }
 
-  const safeMessage = validation.sanitized;
+  const { conversationId, message } = parsed.data;
+  const safeMessage = stripHtml(message).trim();
+  if (!safeMessage || safeMessage.length > MAX_MESSAGE_LENGTH) {
+    return NextResponse.json({ error: "Недійсний вміст повідомлення" }, { status: 400 });
+  }
 
   // Extract and validate sessionId
   const sessionId = getSessionIdFromRequest(request);

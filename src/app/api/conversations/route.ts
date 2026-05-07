@@ -4,7 +4,11 @@ import { desc, eq } from "drizzle-orm";
 import { stripHtml } from "@/lib/sanitize";
 import { checkRateLimit, generateFingerprint } from "@/lib/rate-limit";
 import { isForbiddenOrigin } from "@/lib/cors";
-import { getSessionIdStrict } from "@/lib/validation";
+import {
+  getSessionIdStrict,
+  ConversationCreateSchema,
+  validateInput,
+} from "@/lib/validation";
 
 const PAGE_SIZE = 15;
 const MAX_TITLE_LENGTH = 200;
@@ -83,7 +87,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let body: { title?: unknown };
+  let body: unknown;
   try {
     body = await request.json();
   } catch {
@@ -93,9 +97,17 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const parsed = await validateInput(ConversationCreateSchema, body);
+  if (!parsed.success || !parsed.data) {
+    return NextResponse.json(
+      { error: parsed.error || "Невалідні вхідні дані" },
+      { status: 400 }
+    );
+  }
+
   let title = "Новий діалог";
-  if (typeof body.title === "string" && body.title.trim()) {
-    title = stripHtml(body.title.trim()).substring(0, MAX_TITLE_LENGTH);
+  if (typeof parsed.data.title === "string" && parsed.data.title.trim()) {
+    title = stripHtml(parsed.data.title.trim()).substring(0, MAX_TITLE_LENGTH);
     if (!title) title = "Новий діалог";
   }
 

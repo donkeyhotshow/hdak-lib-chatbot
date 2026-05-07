@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, pushSubscriptions } from "@/lib/db";
 import { eq, and } from "drizzle-orm";
-import { getSessionIdFromRequest } from "@/lib/validation";
+import {
+  getSessionIdFromRequest,
+  PushSubscriptionSchema,
+  PushUnsubscribeSchema,
+  validateInput,
+} from "@/lib/validation";
 import { isForbiddenOrigin } from "@/lib/cors";
 import { checkRateLimit, generateFingerprint } from "@/lib/rate-limit";
-
-interface SubscribeBody {
-  endpoint: string;
-  keys: { p256dh: string; auth: string };
-  remindAt?: string; // ISO date string
-}
 
 export async function POST(request: NextRequest) {
   if (isForbiddenOrigin(request)) {
@@ -21,27 +20,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Забагато запитів" }, { status: 429 });
   }
 
-  let body: SubscribeBody;
+  let body: unknown;
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Невірний формат" }, { status: 400 });
   }
 
-  const { endpoint, keys, remindAt } = body;
-  if (!endpoint || !keys?.p256dh || !keys?.auth) {
+  const parsed = await validateInput(PushSubscriptionSchema, body);
+  if (!parsed.success || !parsed.data) {
     return NextResponse.json(
-      { error: "Відсутні обовʼязкові поля: endpoint, keys.p256dh, keys.auth" },
+      { error: parsed.error || "Невалідні вхідні дані" },
       { status: 400 }
     );
   }
 
-  // Validate endpoint is a URL
-  try {
-    new URL(endpoint);
-  } catch {
-    return NextResponse.json({ error: "Невалідний endpoint" }, { status: 400 });
-  }
+  const { endpoint, keys, remindAt } = parsed.data;
 
   const remindAtDate = remindAt ? new Date(remindAt) : null;
   if (remindAt && isNaN(remindAtDate!.getTime())) {
@@ -96,14 +90,15 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: "Забагато запитів" }, { status: 429 });
   }
 
-  let body: { endpoint: string };
+  let body: unknown;
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Невірний формат" }, { status: 400 });
   }
 
-  if (!body.endpoint) {
+  const parsed = await validateInput(PushUnsubscribeSchema, body);
+  if (!parsed.success || !parsed.data?.endpoint) {
     return NextResponse.json({ error: "Відсутній endpoint" }, { status: 400 });
   }
 
@@ -115,7 +110,7 @@ export async function DELETE(request: NextRequest) {
       .delete(pushSubscriptions)
       .where(
         and(
-          eq(pushSubscriptions.endpoint, body.endpoint),
+          eq(pushSubscriptions.endpoint, parsed.data.endpoint),
           eq(pushSubscriptions.sessionId, sessionId)
         )
       );

@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 import { Message } from "./types";
 import { useScrollDetection } from "@/hooks/use-intersection-observer";
 import { logger } from "@/lib/logger";
-import { sanitizeHtml, sanitizeUrl } from "@/lib/sanitize";
+import { sanitizeUrl } from "@/lib/sanitize";
 
 const QUICK_MENU_UK = [
   {
@@ -213,11 +213,11 @@ const markdownComponents = {
     const href = props.href ? sanitizeUrl(props.href) : "";
     return (
       <a
+        {...props}
         target="_blank"
         rel="noopener noreferrer"
         className="text-[#B87830] underline underline-offset-2 hover:text-[#D4A853] transition-colors"
         href={href}
-        {...props}
       />
     );
   },
@@ -339,7 +339,7 @@ const MessageBubble = memo(
               <p className="whitespace-pre-wrap break-words">{msg.content}</p>
             ) : (
               <div className="prose prose-sm max-w-none prose-p:leading-[1.625] prose-strong:text-[#D4A853]">
-                <ReactMarkdown components={markdownComponents}>
+                <ReactMarkdown skipHtml components={markdownComponents}>
                   {msg.content}
                 </ReactMarkdown>
                 {isStreaming && (
