@@ -170,8 +170,8 @@ export function useChat(
               "hdak_conv_cache",
               JSON.stringify({ items, hasMore, ts: Date.now() })
             );
-          } catch (e) {
-            logger.warn("Failed to cache conversations after initial load", { error: e });
+          } catch (error) {
+            logger.warn("Failed to cache conversations after initial load", { error });
           }
         }
       })
@@ -237,8 +237,8 @@ export function useChat(
                 "hdak_conv_cache",
                 JSON.stringify({ items, hasMore, ts: Date.now() })
               );
-            } catch (e) {
-              logger.warn("Failed to cache refreshed conversations", { error: e });
+            } catch (error) {
+              logger.warn("Failed to cache refreshed conversations", { error });
             }
           }
         } catch (err) {
@@ -292,8 +292,8 @@ export function useChat(
             `hdak_msg_cache_${id}`,
             JSON.stringify({ messages: msgs, ts: Date.now() })
           );
-        } catch (e) {
-          logger.warn("Failed to cache conversation messages", { error: e });
+        } catch (error) {
+          logger.warn("Failed to cache conversation messages", { error });
         }
       } else {
         // Fallback to cache if server fails
@@ -303,8 +303,8 @@ export function useChat(
             const { messages: msgs } = JSON.parse(cached);
             setMessages(msgs);
           }
-        } catch (e) {
-          logger.warn("Failed to restore cached conversation messages", { error: e });
+        } catch (error) {
+          logger.warn("Failed to restore cached conversation messages", { error });
         }
         setError("Не вдалося завантажити розмову. Перевірте з'єднання.");
       }

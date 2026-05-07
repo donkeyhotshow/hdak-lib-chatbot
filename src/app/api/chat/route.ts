@@ -23,6 +23,7 @@ import {
 
 const MAX_MESSAGE_LENGTH = 2000;
 const DB_TIMEOUT_MS = 10_000;
+const LLM_STREAM_IDLE_TIMEOUT_MS = 30_000;
 
 // ─── Timeout wrapper for DB operations ──────────────────────────────────────
 
@@ -79,12 +80,14 @@ async function streamLLM(
     apiKey: string,
     model: string
   ): Promise<string> => {
-    const IDLE_TIMEOUT_MS = 30_000;
     const tc = new AbortController();
     let timer: ReturnType<typeof setTimeout> | null = null;
     const resetTimeout = () => {
       if (timer) clearTimeout(timer);
-      timer = setTimeout(() => tc.abort(new Error("LLM stream timeout")), IDLE_TIMEOUT_MS);
+      timer = setTimeout(
+        () => tc.abort(new Error("LLM stream timeout")),
+        LLM_STREAM_IDLE_TIMEOUT_MS
+      );
     };
     const onClientAbort = () => {
       if (timer) clearTimeout(timer);
