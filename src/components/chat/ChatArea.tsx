@@ -210,16 +210,18 @@ const markdownComponents = {
     <strong className="font-semibold text-[#1A1612]" {...props} />
   ),
   a: (props: React.AnchorHTMLAttributes<HTMLAnchorElement>) => {
-    const { href: rawHref, target: _target, rel: _rel, className: _className, ...rest } = props;
+    const { href: rawHref, children, title } = props;
     const href = rawHref ? sanitizeUrl(rawHref) : "";
     return (
       <a
-        {...rest}
         target="_blank"
         rel="noopener noreferrer"
         className="text-[#B87830] underline underline-offset-2 hover:text-[#D4A853] transition-colors"
         href={href}
-      />
+        title={title}
+      >
+        {children}
+      </a>
     );
   },
   code: ({ className, children, ...rest }: React.HTMLAttributes<HTMLElement>) => {

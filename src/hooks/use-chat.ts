@@ -171,7 +171,7 @@ export function useChat(
               JSON.stringify({ items, hasMore, ts: Date.now() })
             );
           } catch (e) {
-            logger.warn("Failed to cache conversations after initial load", e);
+            logger.warn("Failed to cache conversations after initial load", { error: e });
           }
         }
       })
@@ -238,7 +238,7 @@ export function useChat(
                 JSON.stringify({ items, hasMore, ts: Date.now() })
               );
             } catch (e) {
-              logger.warn("Failed to cache refreshed conversations", e);
+              logger.warn("Failed to cache refreshed conversations", { error: e });
             }
           }
         } catch (err) {
@@ -293,7 +293,7 @@ export function useChat(
             JSON.stringify({ messages: msgs, ts: Date.now() })
           );
         } catch (e) {
-          logger.warn("Failed to cache conversation messages", e);
+          logger.warn("Failed to cache conversation messages", { error: e });
         }
       } else {
         // Fallback to cache if server fails
@@ -304,7 +304,7 @@ export function useChat(
             setMessages(msgs);
           }
         } catch (e) {
-          logger.warn("Failed to restore cached conversation messages", e);
+          logger.warn("Failed to restore cached conversation messages", { error: e });
         }
         setError("Не вдалося завантажити розмову. Перевірте з'єднання.");
       }

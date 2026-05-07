@@ -115,9 +115,15 @@ export async function validateInput<T>(
     const validated = await schema.parseAsync(data);
     return { success: true, data: validated };
   } catch (err) {
-    const message =
+    const zodIssues =
       err instanceof z.ZodError
-        ? err.message
+        ? (err.issues ??
+          (err as unknown as { errors?: Array<{ path: Array<string | number>; message: string }> }).errors ??
+          [])
+        : [];
+    const message =
+      zodIssues.length > 0
+        ? zodIssues.map(issue => `${issue.path.join(".")}: ${issue.message}`).join("; ")
         : String(err);
 
     return {
