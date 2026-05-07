@@ -115,12 +115,7 @@ export async function validateInput<T>(
     const validated = await schema.parseAsync(data);
     return { success: true, data: validated };
   } catch (err) {
-    const zodIssues =
-      err instanceof z.ZodError
-        ? (err.issues ??
-          (err as unknown as { errors?: Array<{ path: Array<string | number>; message: string }> }).errors ??
-          [])
-        : [];
+    const zodIssues = err instanceof z.ZodError ? err.issues : [];
     const message =
       zodIssues.length > 0
         ? zodIssues.map(issue => `${issue.path.join(".")}: ${issue.message}`).join("; ")

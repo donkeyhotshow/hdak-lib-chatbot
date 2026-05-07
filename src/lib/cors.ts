@@ -26,6 +26,7 @@ export function isForbiddenOrigin(request: NextRequest): boolean {
 
     // For mutating methods in production, require either Origin or Referer.
     // If both are missing, treat request as potentially forged (CSRF) and block it.
+    // This returns true (forbidden) for POST/PATCH/DELETE and false for GET/HEAD/OPTIONS.
     if (!source) return isMutating;
 
     const sourceHost = new URL(source).hostname;

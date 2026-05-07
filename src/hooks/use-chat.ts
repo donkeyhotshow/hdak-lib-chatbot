@@ -811,6 +811,7 @@ export function useChat(
   );
 
   const handleStop = useCallback(() => {
+    // Invalidate all in-flight send handlers so stale callbacks can't mutate latest UI state.
     ++requestIdRef.current;
     faqStoppedRef.current = true;
     clearTypingTimeout();
