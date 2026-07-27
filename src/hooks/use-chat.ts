@@ -547,6 +547,23 @@ export function useChat(
               if (!raw) continue;
               try {
                 const chunk = JSON.parse(raw);
+                if (
+                  isCurrentRequest() &&
+                  typeof chunk.conversationId === "string" &&
+                  !currentConversationRef.current
+                ) {
+                  const newConv = {
+                    id: chunk.conversationId,
+                    title: text.substring(0, 50),
+                    createdAt: new Date().toISOString(),
+                  };
+                  currentConversationRef.current = newConv;
+                  setCurrentConversation(newConv);
+                  setConversations(prev => {
+                    if (prev.some(c => c.id === chunk.conversationId)) return prev;
+                    return [newConv, ...prev];
+                  });
+                }
                 if (chunk.text) {
                   pendingText += chunk.text;
                   if (!flushTimer) {
@@ -571,25 +588,6 @@ export function useChat(
                         )
                       );
                     }
-                  // UX8: update local conversation list immediately on done
-                    if (
-                      isCurrentRequest() &&
-                      chunk.conversationId &&
-                      !currentConversationRef.current
-                    ) {
-                    const newConv = {
-                      id: chunk.conversationId as string,
-                      title: text.substring(0, 50),
-                      createdAt: new Date().toISOString(),
-                    };
-                    currentConversationRef.current = newConv;
-                    setCurrentConversation(newConv);
-                    setConversations(prev => {
-                      if (prev.some(c => c.id === chunk.conversationId))
-                        return prev;
-                      return [newConv, ...prev];
-                    });
-                  }
                 }
               } catch {
                 /* skip malformed */
@@ -851,7 +849,13 @@ export function useChat(
       );
       if (res.ok && isMountedRef.current) {
         const data = await res.json();
-        setConversations(prev => [...prev, ...(data.items ?? [])]);
+        setConversations(prev => {
+          const existingIds = new Set(prev.map(c => c.id));
+          const incoming = (data.items ?? []).filter(
+            (item: Conversation) => !existingIds.has(item.id)
+          );
+          return [...prev, ...incoming];
+        });
         setHasMoreConversations(data.hasMore ?? false);
         convOffsetRef.current += data.items?.length ?? 0;
       }

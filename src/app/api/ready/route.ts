@@ -1,22 +1,27 @@
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  const criticalEnv = [
-    "GROQ_API_KEY",
-    "QWEN_API_KEY",
+  const providerKeys = ["GROQ_API_KEY", "QWEN_API_KEY"] as const;
+  const infraKeys = [
     "DATABASE_URL",
     "UPSTASH_REDIS_REST_URL",
     "UPSTASH_REDIS_REST_TOKEN",
-  ];
+  ] as const;
 
-  const missing = criticalEnv.filter((key) => !process.env[key]);
+  const missingInfra = infraKeys.filter((key) => !process.env[key]);
+  const hasProvider = providerKeys.some((key) => Boolean(process.env[key]));
 
-  if (missing.length > 0) {
+  if (missingInfra.length > 0 || !hasProvider) {
+    const missing: string[] = [...missingInfra];
+    if (!hasProvider) {
+      missing.push("GROQ_API_KEY|QWEN_API_KEY");
+    }
     return NextResponse.json(
       {
         status: "not_ready",
         missing,
-        message: "Missing critical environment variables",
+        message:
+          "Missing critical environment variables (at least one provider key is required)",
       },
       { status: 503 }
     );
