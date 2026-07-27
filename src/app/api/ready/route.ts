@@ -12,7 +12,7 @@ export async function GET() {
   const hasProvider = providerKeys.some((key) => Boolean(process.env[key]));
 
   if (missingInfra.length > 0 || !hasProvider) {
-    const missing = [...missingInfra];
+    const missing: string[] = [...missingInfra];
     if (!hasProvider) {
       missing.push("GROQ_API_KEY|QWEN_API_KEY");
     }
