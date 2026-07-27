@@ -249,11 +249,18 @@ const markdownComponents = {
         </code>
         <button
           onClick={() => {
-            if (typeof children === "string") {
-              navigator.clipboard.writeText(children).catch(() => {
-                // Silently fail if clipboard is not available
-              });
-            }
+            const text =
+              typeof children === "string"
+                ? children
+                : Array.isArray(children)
+                  ? children
+                      .map(child => (typeof child === "string" ? child : ""))
+                      .join("")
+                  : "";
+            if (!text) return;
+            navigator.clipboard.writeText(text).catch(() => {
+              // Silently fail if clipboard is not available
+            });
           }}
           className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 md:opacity-100 px-2 py-1 bg-[#B87830]/80 hover:bg-[#B87830] text-white text-[11px] rounded transition-all"
           aria-label="Копіювати код"
@@ -493,8 +500,8 @@ function ChatAreaComponent({
     }
     if (/графік|розклад|години|відкри|зачин/i.test(c))
       return ["Як записатися?", "Контакти бібліотеки"];
-    if (/книг|автор|катал��г|видання|збірник|підручник|поезі|знайд/i.test(c))
-      return ["Знайти ��е книги", "Нові надходження"];
+    if (/книг|автор|каталог|видання|збірник|підручник|поезі|знайд/i.test(c))
+      return ["Знайти ще книги", "Нові надходження"];
     if (/наук|стат|дисертац|scopus|research|репозитар/i.test(c))
       return ["Як отримати Scopus?", "Репозитарій ХДАК"];
     if (/запис|квиток|реєстрац/i.test(c)) return ["Графік роботи", "Контакти"];

@@ -3,7 +3,7 @@ import { checkRateLimit, generateFingerprint } from "@/lib/rate-limit";
 import { searchCatalog, CATALOG_FORM_URL } from "@/lib/catalog-search";
 import { isForbiddenOrigin } from "@/lib/cors";
 
-const UDC_RE = /^[\d.]+$/;
+const UDC_RE = /^\d+(?:\.\d+)*$/;
 
 export async function GET(request: NextRequest) {
   // CORS check
