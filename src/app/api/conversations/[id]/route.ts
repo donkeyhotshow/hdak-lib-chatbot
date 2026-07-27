@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, conversations, messages } from "@/lib/db";
-import { eq, asc, and } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { stripHtml } from "@/lib/sanitize";
 import { checkRateLimit, generateFingerprint } from "@/lib/rate-limit";
 import { isForbiddenOrigin } from "@/lib/cors";
@@ -56,12 +56,13 @@ export async function GET(
         { status: 404 }
       );
 
-    const msgs = await db
+    const msgsNewestFirst = await db
       .select()
       .from(messages)
       .where(eq(messages.conversationId, id))
-      .orderBy(asc(messages.createdAt))
+      .orderBy(desc(messages.createdAt))
       .limit(100);
+    const msgs = [...msgsNewestFirst].reverse();
 
     return NextResponse.json({ ...conversation, messages: msgs });
   } catch (error) {
