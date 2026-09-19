@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit, generateFingerprint } from "@/lib/rate-limit";
 import { searchCatalog, CATALOG_FORM_URL } from "@/lib/catalog-search";
 import { isForbiddenOrigin } from "@/lib/cors";
+import { logger } from "@/lib/logger";
 
 const UDC_RE = /^[\d.]+$/;
 
@@ -49,7 +50,14 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const pageNum = Math.max(1, parseInt(page || "1", 10) || 1);
+  const pageNum = Math.min(10000, Math.max(1, Number.parseInt(page || "1", 10) || 1));
+  const selectedTerm = udc || subject || keyword || author || title || query || "";
+  if (selectedTerm.length > 200 || /[\u0000-\u0008\u000B\u000C\u000E-\u001F]/.test(selectedTerm)) {
+    return NextResponse.json(
+      { error: "Параметр пошуку має некоректний формат", catalogUrl: CATALOG_FORM_URL },
+      { status: 400 }
+    );
+  }
 
   try {
     let searchTerm: string;
@@ -110,7 +118,10 @@ export async function GET(request: NextRequest) {
           : "За вашим запитом нічого не знайдено в каталозі.",
     });
   } catch (error) {
-    console.error("Помилка пошуку в каталозі:", error);
+    logger.error(
+      "Помилка пошуку в каталозі",
+      error instanceof Error ? error : new Error(String(error))
+    );
     return NextResponse.json(
       {
         success: false,

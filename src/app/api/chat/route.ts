@@ -17,7 +17,9 @@ import {
   isValidUuid,
   getSessionIdFromRequest,
   buildSessionCookie,
+  ChatMessageSchema,
 } from "@/lib/validation";
+import { logger } from "@/lib/logger";
 
 const MAX_MESSAGE_LENGTH = 2000;
 const DB_TIMEOUT_MS = 10_000;
@@ -109,9 +111,8 @@ async function streamLLM(
     };
     signal.addEventListener("abort", onClientAbort, { once: true });
 
-    let res: Response;
     try {
-      res = await fetch(url, {
+      const res = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -126,50 +127,48 @@ async function streamLLM(
         }),
         signal: signal.aborted ? signal : tc.signal,
       });
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.body) throw new Error("No response body");
+
+      const reader = res.body.getReader();
+      const dec = new TextDecoder();
+      let full = "";
+      let buf = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          buf += dec.decode();
+          break;
+        }
+        buf += dec.decode(value, { stream: true });
+        const lines = buf.split("\n");
+        buf = lines.pop() ?? "";
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed.startsWith("data:")) continue;
+          const data = trimmed.slice(5).trim();
+          if (data === "[DONE]") continue;
+          if (!data || data === "null") continue;
+          try {
+            const chunk = JSON.parse(data);
+            const delta = chunk.choices?.[0]?.delta?.content;
+            if (delta) {
+              full += delta;
+              sendChunk(delta);
+            }
+          } catch {
+            logger.warn("Skipped malformed LLM stream chunk");
+          }
+        }
+      }
+      return full;
     } finally {
-      // Always clean up timer and listener regardless of outcome
       clearTimeout(timer);
       signal.removeEventListener("abort", onClientAbort);
     }
-
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    if (!res.body) throw new Error("No response body");
-
-    const reader = res.body.getReader();
-    const dec = new TextDecoder();
-    let full = "";
-    let buf = "";
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) {
-        // Finalize TextDecoder to flush any pending multi-byte UTF-8 sequences
-        buf += dec.decode();
-        break;
-      }
-      buf += dec.decode(value, { stream: true });
-      const lines = buf.split("\n");
-      buf = lines.pop() ?? "";
-
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed.startsWith("data:")) continue;
-        const data = trimmed.slice(5).trim();
-        if (data === "[DONE]") continue;
-        if (!data || data === "null") continue;
-        try {
-          const chunk = JSON.parse(data);
-          const delta = chunk.choices?.[0]?.delta?.content;
-          if (delta) {
-            full += delta;
-            sendChunk(delta);
-          }
-        } catch (e) {
-          console.warn("Skipped malformed chunk (len:", data.length, ")");
-        }
-      }
-    }
-    return full;
   };
 
   // Early bail if client already disconnected
@@ -183,7 +182,7 @@ async function streamLLM(
     try {
       return await tryProvider(GROQ_URL, GROQ_API_KEY, GROQ_MODEL);
     } catch (e) {
-      console.error("Groq stream failed:", e);
+      logger.error("Groq stream failed", e instanceof Error ? e : new Error(String(e)));
     }
   }
 
@@ -192,7 +191,7 @@ async function streamLLM(
     try {
       return await tryProvider(QWEN_URL, QWEN_API_KEY, QWEN_MODEL);
     } catch (e) {
-      console.error("Qwen stream failed:", e);
+      logger.error("Qwen stream failed", e instanceof Error ? e : new Error(String(e)));
     }
   }
 
@@ -235,7 +234,15 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { conversationId, message } = body;
+  const parsedBody = ChatMessageSchema.safeParse(body);
+  if (!parsedBody.success) {
+    return NextResponse.json(
+      { error: "Невірні дані запиту", details: parsedBody.error.issues },
+      { status: 400 }
+    );
+  }
+
+  const { conversationId, message } = parsedBody.data;
   const validation = validateMessage(message);
   if (!validation.valid || !validation.sanitized) {
     return NextResponse.json({ error: validation.error }, { status: 400 });
