@@ -83,7 +83,9 @@ export async function validateInput<T>(
   } catch (error) {
     const message =
       error instanceof z.ZodError
-        ? error.errors.map((e) => `${e.path.join(".")}: ${e.message}`).join("; ")
+        ? error.issues
+            .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
+            .join("; ")
         : String(error);
 
     return {
