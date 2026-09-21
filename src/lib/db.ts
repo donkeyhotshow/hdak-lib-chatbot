@@ -16,10 +16,11 @@ let _dbError: Error | null = null;
 function getDb(): ReturnType<typeof drizzle> {
   if (_dbError) throw _dbError;
   if (!_db) {
-    const connectionString = process.env.DATABASE_URL;
+    const connectionString =
+      process.env.DATABASE_URL || process.env.NEON_POSTGRES_URL;
     if (!connectionString) {
       _dbError = new Error(
-        "DATABASE_URL environment variable is required. Set it in .env or .env.local"
+        "DATABASE_URL or NEON_POSTGRES_URL environment variable is required."
       );
       throw _dbError;
     }

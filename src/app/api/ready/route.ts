@@ -1,15 +1,16 @@
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  const criticalEnv = [
-    "GROQ_API_KEY",
-    "QWEN_API_KEY",
-    "DATABASE_URL",
-    "UPSTASH_REDIS_REST_URL",
-    "UPSTASH_REDIS_REST_TOKEN",
+  const hasLlmProvider = Boolean(
+    process.env.GROQ_API_KEY?.trim() || process.env.QWEN_API_KEY?.trim()
+  );
+  const hasDatabase = Boolean(
+    process.env.DATABASE_URL?.trim() || process.env.NEON_POSTGRES_URL?.trim()
+  );
+  const missing = [
+    ...(!hasLlmProvider ? ["GROQ_API_KEY or QWEN_API_KEY"] : []),
+    ...(!hasDatabase ? ["DATABASE_URL or NEON_POSTGRES_URL"] : []),
   ];
-
-  const missing = criticalEnv.filter((key) => !process.env[key]);
 
   if (missing.length > 0) {
     return NextResponse.json(
