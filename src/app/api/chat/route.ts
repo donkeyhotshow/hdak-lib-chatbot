@@ -137,7 +137,17 @@ async function streamLLM(
       let buf = "";
 
       while (true) {
-        const { done, value } = await reader.read();
+        const readTimer = setTimeout(
+          () => tc.abort(new Error("LLM stream stalled")),
+          30_000
+        );
+        let chunk: ReadableStreamReadResult<Uint8Array>;
+        try {
+          chunk = await reader.read();
+        } finally {
+          clearTimeout(readTimer);
+        }
+        const { done, value } = chunk;
         if (done) {
           buf += dec.decode();
           break;
