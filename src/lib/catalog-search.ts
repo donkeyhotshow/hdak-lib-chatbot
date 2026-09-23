@@ -6,18 +6,20 @@
 import { stripHtml } from "@/lib/sanitize";
 import { logger } from "@/lib/logger";
 
-const CATALOG_URL =
-  process.env.CATALOG_URL ||
+const DEFAULT_CATALOG_URL =
   "https://library-service.com.ua:8443/khkhdak/DocumentSearchResult";
-const CATALOG_FORM_URL =
-  process.env.CATALOG_FORM_URL ||
+const DEFAULT_CATALOG_FORM_URL =
   "https://library-service.com.ua:8443/khkhdak/DocumentSearchForm";
 
-if (!process.env.CATALOG_URL || !process.env.CATALOG_FORM_URL) {
-  console.warn(
-    "⚠️ CATALOG_URL or CATALOG_FORM_URL not set — using hardcoded defaults."
-  );
+function getCatalogUrls() {
+  return {
+    search: process.env.CATALOG_URL?.trim() || DEFAULT_CATALOG_URL,
+    form: process.env.CATALOG_FORM_URL?.trim() || DEFAULT_CATALOG_FORM_URL,
+  };
 }
+
+const CATALOG_URL = DEFAULT_CATALOG_URL;
+const CATALOG_FORM_URL = DEFAULT_CATALOG_FORM_URL;
 
 export interface BookResult {
   title: string;
@@ -232,8 +234,9 @@ async function fetchCatalog(
  * Performs a lightweight HEAD or GET request to the form URL.
  */
 export async function checkCatalogAvailability(): Promise<boolean> {
+  const { form: catalogFormUrl } = getCatalogUrls();
   try {
-    const res = await fetch(CATALOG_FORM_URL, {
+    const res = await fetch(catalogFormUrl, {
       method: "HEAD",
       signal: AbortSignal.timeout(3000),
     });
@@ -241,7 +244,7 @@ export async function checkCatalogAvailability(): Promise<boolean> {
   } catch (e) {
     // Fallback to GET if HEAD is not supported
     try {
-      const res = await fetch(CATALOG_FORM_URL, {
+      const res = await fetch(catalogFormUrl, {
         method: "GET",
         signal: AbortSignal.timeout(3000),
       });
@@ -360,5 +363,8 @@ export function buildCatalogContext(
       : "";
   return `\n\n[РЕЗУЛЬТАТИ КАТАЛОГУ: Знайдено за ${label} "${searchTerm}" (${total} результатів):\n${list}${moreNote}\nПосилання для повного пошуку: ${catalogSearchUrl}]`;
 }
+
+export const getCatalogSearchUrl = () => getCatalogUrls().search;
+export const getCatalogFormUrl = () => getCatalogUrls().form;
 
 export { CATALOG_URL, CATALOG_FORM_URL };

@@ -17,7 +17,11 @@ function getDb(): ReturnType<typeof drizzle> {
   if (_dbError) throw _dbError;
   if (!_db) {
     const connectionString =
-      process.env.DATABASE_URL || process.env.NEON_POSTGRES_URL;
+      process.env.DATABASE_URL ||
+      process.env.NEON_DATABASE_URL ||
+      process.env.NEON_POSTGRES_URL ||
+      process.env.NEON_POSTGRES_PRISMA_URL ||
+      process.env.NEON_POSTGRES_URL_NON_POOLING;
     if (!connectionString) {
       _dbError = new Error(
         "DATABASE_URL or NEON_POSTGRES_URL environment variable is required."

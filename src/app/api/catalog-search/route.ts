@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit, generateFingerprint } from "@/lib/rate-limit";
-import { searchCatalog, CATALOG_FORM_URL } from "@/lib/catalog-search";
+import { searchCatalog, getCatalogFormUrl } from "@/lib/catalog-search";
 import { isForbiddenOrigin } from "@/lib/cors";
 import { logger } from "@/lib/logger";
 
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
       {
         error:
           "Вкажіть параметр пошуку: q, author, title, udc, subject або keyword",
-        catalogUrl: CATALOG_FORM_URL,
+        catalogUrl: getCatalogFormUrl(),
       },
       { status: 400 }
     );
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
       {
         error:
           "Невалідний УДК: допустимі лише цифри та крапки (наприклад: 78.01)",
-        catalogUrl: CATALOG_FORM_URL,
+        catalogUrl: getCatalogFormUrl(),
       },
       { status: 400 }
     );
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         error: "Параметр пошуку має некоректний формат",
-        catalogUrl: CATALOG_FORM_URL,
+        catalogUrl: getCatalogFormUrl(),
       },
       { status: 400 }
     );
@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
           success: false,
           error:
             "Каталог тимчасово недоступний. Спробуйте пізніше або скористайтесь прямим посиланням.",
-          catalogUrl: CATALOG_FORM_URL,
+          catalogUrl: getCatalogFormUrl(),
         },
         { status: 503 }
       );
@@ -121,7 +121,7 @@ export async function GET(request: NextRequest) {
       totalResults: total,
       currentPage: pageNum,
       books,
-      catalogUrl: CATALOG_FORM_URL,
+      catalogUrl: getCatalogFormUrl(),
       message:
         books.length > 0
           ? `Знайдено ${total} документів. Показано ${books.length}.`
@@ -136,7 +136,7 @@ export async function GET(request: NextRequest) {
       {
         success: false,
         error: "Помилка пошуку в каталозі",
-        catalogUrl: CATALOG_FORM_URL,
+        catalogUrl: getCatalogFormUrl(),
       },
       { status: 500 }
     );
