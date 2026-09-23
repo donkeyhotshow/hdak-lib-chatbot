@@ -111,7 +111,7 @@ export function sanitizeText(text: string): string {
       "'": "&#039;",
     };
 
-    return text.replace(/[&<>"']/g, (char) => map[char]);
+    return text.replace(/[&<>"']/g, char => map[char]);
   } catch (error) {
     logger.error("Error sanitizing text", error as Error);
     return text;

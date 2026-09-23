@@ -50,11 +50,21 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const pageNum = Math.min(10000, Math.max(1, Number.parseInt(page || "1", 10) || 1));
-  const selectedTerm = udc || subject || keyword || author || title || query || "";
-  if (selectedTerm.length > 200 || /[\u0000-\u0008\u000B\u000C\u000E-\u001F]/.test(selectedTerm)) {
+  const pageNum = Math.min(
+    10000,
+    Math.max(1, Number.parseInt(page || "1", 10) || 1)
+  );
+  const selectedTerm =
+    udc || subject || keyword || author || title || query || "";
+  if (
+    selectedTerm.length > 200 ||
+    /[\u0000-\u0008\u000B\u000C\u000E-\u001F]/.test(selectedTerm)
+  ) {
     return NextResponse.json(
-      { error: "Параметр пошуку має некоректний формат", catalogUrl: CATALOG_FORM_URL },
+      {
+        error: "Параметр пошуку має некоректний формат",
+        catalogUrl: CATALOG_FORM_URL,
+      },
       { status: 400 }
     );
   }

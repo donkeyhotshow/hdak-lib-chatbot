@@ -25,11 +25,7 @@ export type ChatMessage = z.infer<typeof ChatMessageSchema>;
 
 // Conversation operations
 export const ConversationUpdateSchema = z.object({
-  title: z
-    .string()
-    .max(200, "Title too long")
-    .trim()
-    .optional(),
+  title: z.string().max(200, "Title too long").trim().optional(),
 });
 
 export type ConversationUpdate = z.infer<typeof ConversationUpdateSchema>;
@@ -42,14 +38,7 @@ export const CatalogSearchSchema = z.object({
     .max(200, "Query too long (max 200 characters)")
     .trim(),
   type: z
-    .enum([
-      "title",
-      "author",
-      "subject",
-      "udc",
-      "keywords",
-      "general",
-    ])
+    .enum(["title", "author", "subject", "udc", "keywords", "general"])
     .optional()
     .default("general"),
   page: z.number().int().positive().default(1),
@@ -84,7 +73,7 @@ export async function validateInput<T>(
     const message =
       error instanceof z.ZodError
         ? error.issues
-            .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
+            .map(issue => `${issue.path.join(".")}: ${issue.message}`)
             .join("; ")
         : String(error);
 
