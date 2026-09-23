@@ -41,18 +41,26 @@ function withTimeout<T>(
 
 // ─── LLM config ──────────────────────────────────────────────────────────────
 
-const GROQ_API_KEY = process.env.GROQ_API_KEY?.trim();
-const GROQ_URL =
-  process.env.GROQ_URL || "https://api.groq.com/openai/v1/chat/completions";
-const GROQ_MODEL = (
-  process.env.GROQ_MODEL_NAME || "llama-3.3-70b-versatile"
-).trim();
-
-const QWEN_API_KEY = process.env.QWEN_API_KEY?.trim();
-const QWEN_URL =
-  process.env.QWEN_URL ||
+const DEFAULT_GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
+const DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile";
+const DEFAULT_QWEN_URL =
   "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions";
-const QWEN_MODEL = (process.env.QWEN_MODEL_NAME || "qwen-turbo").trim();
+const DEFAULT_QWEN_MODEL = "qwen-turbo";
+
+function getLlmConfig() {
+  return {
+    groq: {
+      apiKey: process.env.GROQ_API_KEY?.trim(),
+      url: process.env.GROQ_URL?.trim() || DEFAULT_GROQ_URL,
+      model: process.env.GROQ_MODEL_NAME?.trim() || DEFAULT_GROQ_MODEL,
+    },
+    qwen: {
+      apiKey: process.env.QWEN_API_KEY?.trim(),
+      url: process.env.QWEN_URL?.trim() || DEFAULT_QWEN_URL,
+      model: process.env.QWEN_MODEL_NAME?.trim() || DEFAULT_QWEN_MODEL,
+    },
+  };
+}
 
 interface ChatMessage {
   role: "system" | "user" | "assistant";
@@ -187,21 +195,18 @@ async function streamLLM(
     return FALLBACK_ERROR;
   }
 
-  // Try Groq first
-  if (GROQ_API_KEY) {
-    try {
-      return await tryProvider(GROQ_URL, GROQ_API_KEY, GROQ_MODEL);
-    } catch (e) {
-      logger.error("Groq stream failed", e instanceof Error ? e : new Error(String(e)));
-    }
-  }
+  const config = getLlmConfig();
 
-  // Fallback: Qwen
-  if (QWEN_API_KEY) {
+  // Try Groq first, then fall back to Qwen if the primary provider fails.
+  for (const provider of [config.groq, config.qwen]) {
+    if (!provider.apiKey) continue;
     try {
-      return await tryProvider(QWEN_URL, QWEN_API_KEY, QWEN_MODEL);
+      return await tryProvider(provider.url, provider.apiKey, provider.model);
     } catch (e) {
-      logger.error("Qwen stream failed", e instanceof Error ? e : new Error(String(e)));
+      logger.error(
+        `LLM provider failed (${provider.model})`,
+        e instanceof Error ? e : new Error(String(e))
+      );
     }
   }
 
@@ -232,7 +237,7 @@ export async function POST(request: NextRequest) {
     const contentLength = request.headers.get("content-length");
     if (contentLength && parseInt(contentLength, 10) > 100_000) {
       return NextResponse.json(
-        { error: "Занадто великий запит" },
+        { error: "Занадто велик��й запит" },
         { status: 413 }
       );
     }
@@ -320,17 +325,25 @@ export async function POST(request: NextRequest) {
 
   // Execute all searches in parallel with timeout
   if (searchPromises.length > 0) {
-    const results = await Promise.all(searchPromises);
+    const settledResults = await Promise.allSettled(searchPromises);
+    const results = settledResults.flatMap(settled => {
+      if (settled.status === "fulfilled") return [settled.value];
+      logger.warn("Catalog auxiliary search failed");
+      return [];
+    });
     let isCatalogAvailable = true;
 
     // First pass: check availability
     for (const res of results) {
-      if (res.type === "availability") isCatalogAvailable = res.result as boolean;
+      if (res.type === "availability")
+        isCatalogAvailable = res.result as boolean;
     }
 
     for (const { type, result, intent: searchIntent, topic } of results) {
       if (type === "catalog" && searchIntent) {
-        const searchResult = result as Awaited<ReturnType<typeof searchCatalog>>;
+        const searchResult = result as Awaited<
+          ReturnType<typeof searchCatalog>
+        >;
         // If availability check failed but search somehow worked, trust search.
         // If search failed with unavailable, or availability check failed, mark as unavailable.
         if (!isCatalogAvailable && searchResult.books.length === 0) {
@@ -351,10 +364,15 @@ export async function POST(request: NextRequest) {
         Array.isArray(result.books) &&
         result.books.length > 0
       ) {
-        const searchResult = result as Awaited<ReturnType<typeof searchCatalog>>;
+        const searchResult = result as Awaited<
+          ReturnType<typeof searchCatalog>
+        >;
         const recList = searchResult.books
           .slice(0, 3)
-          .map((b: any, i: number) => `${i + 1}. ${b.title}${b.year ? ` (${b.year})` : ""}`)
+          .map(
+            (b: any, i: number) =>
+              `${i + 1}. ${b.title}${b.year ? ` (${b.year})` : ""}`
+          )
           .join("\n");
         catalogContext += `\n\n[РЕКОМЕНДАЦІЇ: За темою "${topic}" знайдено схожі матеріали в каталозі:\n${recList}\nПовний пошук: ${ALL_LINKS.catalog_search}]`;
       }
@@ -467,7 +485,10 @@ export async function POST(request: NextRequest) {
                 content: fullResponse,
               });
             } catch (e) {
-              console.error("Не вдалося зберегти відповідь:", e);
+              logger.error(
+                "Не вдалося зберегти відповідь",
+                e instanceof Error ? e : new Error(String(e))
+              );
             }
           }
 
@@ -486,15 +507,21 @@ export async function POST(request: NextRequest) {
                   `data: ${JSON.stringify({ error: "Помилка сервера", done: true })}\n\n`
                 )
               );
-            } catch {
-              /* controller may already be closed */
+            } catch (enqueueError) {
+              logger.warn(
+                "Unable to enqueue stream error event",
+                enqueueError instanceof Error ? enqueueError : undefined
+              );
             }
           }
         } finally {
           try {
             controller.close();
-          } catch {
-            /* already closed */
+          } catch (closeError) {
+            logger.warn(
+              "Stream controller was already closed",
+              closeError instanceof Error ? closeError : undefined
+            );
           }
         }
       })();

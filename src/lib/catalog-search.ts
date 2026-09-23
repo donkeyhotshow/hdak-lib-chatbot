@@ -221,7 +221,7 @@ async function fetchCatalog(
   });
   if (!res.ok && res.status >= 500 && attempt === 0) {
     // Retry once on server-side errors
-    await new Promise(r => setTimeout(r, 600));
+    await new Promise(resolve => setTimeout(resolve, 600));
     return fetchCatalog(url, body, 1);
   }
   return res;
