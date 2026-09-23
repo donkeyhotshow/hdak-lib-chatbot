@@ -18,8 +18,6 @@ function getCatalogUrls() {
   };
 }
 
-const CATALOG_URL = DEFAULT_CATALOG_URL;
-const CATALOG_FORM_URL = DEFAULT_CATALOG_FORM_URL;
 
 export interface BookResult {
   title: string;
@@ -293,16 +291,17 @@ export async function searchCatalog(
     formData.append("sorting_direction1", "asc");
     formData.append("i_lang", "ukr");
 
-    if (!CATALOG_URL) return { books: [], total: 0, unavailable: true };
+    const { search: catalogUrl } = getCatalogUrls();
+    if (!catalogUrl) return { books: [], total: 0, unavailable: true };
 
     let response: Response;
     try {
-      response = await fetchCatalog(CATALOG_URL, formData.toString());
+      response = await fetchCatalog(catalogUrl, formData.toString());
     } catch (networkErr) {
       // Network error on first attempt — retry once
       try {
-        await new Promise(r => setTimeout(r, 600));
-        response = await fetchCatalog(CATALOG_URL, formData.toString(), 1);
+        await new Promise((resolve) => setTimeout(resolve, 600));
+        response = await fetchCatalog(catalogUrl, formData.toString(), 1);
       } catch (retryErr) {
         logger.error("Catalog search retry failed", retryErr as Error);
         throw networkErr;
@@ -366,5 +365,3 @@ export function buildCatalogContext(
 
 export const getCatalogSearchUrl = () => getCatalogUrls().search;
 export const getCatalogFormUrl = () => getCatalogUrls().form;
-
-export { CATALOG_URL, CATALOG_FORM_URL };
