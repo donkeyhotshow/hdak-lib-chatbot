@@ -16,6 +16,16 @@ import { useToast } from "@/hooks/use-toast";
 import { useChat } from "@/hooks/use-chat";
 
 type Language = "uk" | "ru" | "en";
+type ResourceItem = {
+  icon: string;
+  label: string;
+  href: string;
+  vpn?: boolean;
+};
+type ResourceGroup = {
+  title: string;
+  items: ResourceItem[];
+};
 
 const translations = {
   uk: {
@@ -68,7 +78,7 @@ const translations = {
   },
 } as const;
 
-const resources = [
+const resources: ResourceGroup[] = [
   {
     title: "Open access",
     items: [
