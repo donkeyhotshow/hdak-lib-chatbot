@@ -2,9 +2,12 @@ import { NextResponse } from "next/server";
 
 export async function GET() {
   const hasLlmProvider = Boolean(
-    process.env.GROQ_API_KEY?.trim() || process.env.QWEN_API_KEY?.trim()
+    process.env.HDAKLLM?.trim() ||
+      process.env.GROQ_API_KEY?.trim() ||
+      process.env.QWEN_API_KEY?.trim()
   );
   const configuredProviders = [
+    process.env.HDAKLLM?.trim() ? "llm7" : null,
     process.env.GROQ_API_KEY?.trim() ? "groq" : null,
     process.env.QWEN_API_KEY?.trim() ? "qwen" : null,
   ].filter((provider): provider is string => Boolean(provider));
@@ -16,7 +19,7 @@ export async function GET() {
       process.env.NEON_POSTGRES_URL_NON_POOLING?.trim()
   );
   const missing = [
-    ...(!hasLlmProvider ? ["GROQ_API_KEY or QWEN_API_KEY"] : []),
+    ...(!hasLlmProvider ? ["HDAKLLM or GROQ_API_KEY or QWEN_API_KEY"] : []),
     ...(!hasDatabase ? ["DATABASE_URL or NEON_POSTGRES_URL"] : []),
   ];
 

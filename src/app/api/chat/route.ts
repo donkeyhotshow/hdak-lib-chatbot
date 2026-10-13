@@ -41,6 +41,8 @@ function withTimeout<T>(
 
 // ─── LLM config ──────────────────────────────────────────────────────────────
 
+const DEFAULT_LLM7_URL = "https://api.llm7.io/v1/chat/completions";
+const DEFAULT_LLM7_MODEL = "default";
 const DEFAULT_GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 const DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile";
 const DEFAULT_QWEN_URL =
@@ -49,6 +51,11 @@ const DEFAULT_QWEN_MODEL = "qwen-turbo";
 
 function getLlmConfig() {
   return {
+    llm7: {
+      apiKey: process.env.HDAKLLM?.trim(),
+      url: process.env.LLM7_URL?.trim() || DEFAULT_LLM7_URL,
+      model: process.env.LLM7_MODEL_NAME?.trim() || DEFAULT_LLM7_MODEL,
+    },
     groq: {
       apiKey: process.env.GROQ_API_KEY?.trim(),
       url: process.env.GROQ_URL?.trim() || DEFAULT_GROQ_URL,
@@ -109,10 +116,9 @@ async function streamLLM(
     apiKey: string,
     model: string
   ): Promise<string> => {
-    // C6+H11: combine client disconnect signal with 30s timeout
-    // Create combined controller; always clear timer in finally to prevent leak
+    // Combine client disconnect with a bounded upstream timeout.
     const tc = new AbortController();
-    const timer = setTimeout(() => tc.abort(new Error("LLM timeout")), 30_000);
+    const timer = setTimeout(() => tc.abort(new Error("LLM timeout")), 20_000);
     const onClientAbort = () => {
       clearTimeout(timer);
       tc.abort(signal.reason);
@@ -197,16 +203,19 @@ async function streamLLM(
 
   const config = getLlmConfig();
 
-  // Try Groq first, then fall back to Qwen if the primary provider fails.
-  for (const provider of [config.groq, config.qwen]) {
+  // Prefer LLM7, then use configured compatible providers as fallbacks.
+  for (const provider of [config.llm7, config.groq, config.qwen]) {
     if (!provider.apiKey) continue;
-    try {
-      return await tryProvider(provider.url, provider.apiKey, provider.model);
-    } catch (e) {
-      logger.error(
-        `LLM provider failed (${provider.model})`,
-        e instanceof Error ? e : new Error(String(e))
-      );
+    for (let attempt = 1; attempt <= 2; attempt += 1) {
+      try {
+        return await tryProvider(provider.url, provider.apiKey, provider.model);
+      } catch (e) {
+        logger.error(
+          `LLM provider failed (${provider.model}, attempt ${attempt})`,
+          e instanceof Error ? e : new Error(String(e))
+        );
+        if (signal.aborted) break;
+      }
     }
   }
 
