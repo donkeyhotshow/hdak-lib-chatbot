@@ -28,7 +28,9 @@ self.addEventListener("fetch", event => {
   event.respondWith(
     fetch(event.request)
       .then(response => {
-        if (response.ok && (event.request.mode === "navigate" || url.pathname.startsWith("/_next/"))) {
+        // Never cache Next.js chunks. Serving an old client bundle after HMR can
+        // dispatch router actions before the current App Router is initialized.
+        if (response.ok && event.request.mode === "navigate") {
           const copy = response.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
         }
