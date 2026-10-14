@@ -117,6 +117,7 @@ export function useChat(
   const thinkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const typeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const refreshDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const requestIdRef = useRef(0);
   // C1: track mounted state to prevent post-unmount state updates
   const isMountedRef = useRef(true);
 
@@ -170,7 +171,9 @@ export function useChat(
               "hdak_conv_cache",
               JSON.stringify({ items, hasMore, ts: Date.now() })
             );
-          } catch (e) {}
+          } catch (error) {
+            logger.warn("Failed to cache conversations after initial load", { error });
+          }
         }
       })
       .catch(err => {
@@ -235,7 +238,9 @@ export function useChat(
                 "hdak_conv_cache",
                 JSON.stringify({ items, hasMore, ts: Date.now() })
               );
-            } catch (e) {}
+            } catch (error) {
+              logger.warn("Failed to cache refreshed conversations", { error });
+            }
           }
         } catch (err) {
           console.error("Не вдалося оновити список розмов:", err);
@@ -288,7 +293,9 @@ export function useChat(
             `hdak_msg_cache_${id}`,
             JSON.stringify({ messages: msgs, ts: Date.now() })
           );
-        } catch (e) {}
+        } catch (error) {
+          logger.warn("Failed to cache conversation messages", { error });
+        }
       } else {
         // Fallback to cache if server fails
         try {
@@ -297,7 +304,9 @@ export function useChat(
             const { messages: msgs } = JSON.parse(cached);
             setMessages(msgs);
           }
-        } catch (e) {}
+        } catch (error) {
+          logger.warn("Failed to restore cached conversation messages", { error });
+        }
         setError("Не вдалося завантажити розмову. Перевірте з'єднання.");
       }
     } catch (err) {
@@ -422,6 +431,8 @@ export function useChat(
       prevController?.abort();
       const controller = new AbortController();
       abortControllerRef.current = controller;
+      const requestId = ++requestIdRef.current;
+      const isCurrentRequest = () => requestIdRef.current === requestId;
 
       setInputValue("");
       isTypingRef.current = true;
@@ -433,7 +444,7 @@ export function useChat(
         clearTimeout(typingTimeoutRef.current);
       }
       typingTimeoutRef.current = setTimeout(() => {
-        if (isMountedRef.current) {
+        if (isMountedRef.current && isCurrentRequest()) {
           isTypingRef.current = false;
           setIsTyping(false);
           setError(
@@ -544,6 +555,23 @@ export function useChat(
               if (!raw) continue;
               try {
                 const chunk = JSON.parse(raw);
+                if (
+                  isCurrentRequest() &&
+                  typeof chunk.conversationId === "string" &&
+                  !currentConversationRef.current
+                ) {
+                  const newConv = {
+                    id: chunk.conversationId,
+                    title: text.substring(0, 50),
+                    createdAt: new Date().toISOString(),
+                  };
+                  currentConversationRef.current = newConv;
+                  setCurrentConversation(newConv);
+                  setConversations(prev => {
+                    if (prev.some(c => c.id === chunk.conversationId)) return prev;
+                    return [newConv, ...prev];
+                  });
+                }
                 if (chunk.text) {
                   pendingText += chunk.text;
                   if (!flushTimer) {
@@ -554,33 +582,20 @@ export function useChat(
                   }
                 }
                 if (chunk.error) serverError = chunk.error;
-                if (chunk.done || chunk.error) {
-                  if (flushTimer) {
-                    clearTimeout(flushTimer);
-                    flushTimer = null;
-                  }
-                  flushPending();
-                  setStreamingMessageId(null);
-                  setMessages(prev =>
-                    prev.map(m =>
-                      m.id === botId ? { ...m, status: "sent" } : m
-                    )
-                  );
-                  // UX8: update local conversation list immediately on done
-                  if (chunk.conversationId && !currentConversationRef.current) {
-                    const newConv = {
-                      id: chunk.conversationId as string,
-                      title: text.substring(0, 50),
-                      createdAt: new Date().toISOString(),
-                    };
-                    currentConversationRef.current = newConv;
-                    setCurrentConversation(newConv);
-                    setConversations(prev => {
-                      if (prev.some(c => c.id === chunk.conversationId))
-                        return prev;
-                      return [newConv, ...prev];
-                    });
-                  }
+                  if (chunk.done || chunk.error) {
+                    if (flushTimer) {
+                      clearTimeout(flushTimer);
+                      flushTimer = null;
+                    }
+                    flushPending();
+                    if (isCurrentRequest()) {
+                      setStreamingMessageId(null);
+                      setMessages(prev =>
+                        prev.map(m =>
+                          m.id === botId ? { ...m, status: "sent" } : m
+                        )
+                      );
+                    }
                 }
               } catch {
                 /* skip malformed */
@@ -594,7 +609,7 @@ export function useChat(
           }
         }
 
-        if (serverError) {
+        if (serverError && isCurrentRequest()) {
           setError(
             "Сталася помилка під час відповіді. Показано частковий результат."
           );
@@ -604,7 +619,7 @@ export function useChat(
           );
         }
 
-        if (abortControllerRef.current === controller) {
+        if (abortControllerRef.current === controller && isCurrentRequest()) {
           // C5: await so isMountedRef guard inside debounce is respected
           await refreshConversations();
         }
@@ -641,14 +656,18 @@ export function useChat(
               : m
           );
         });
-        setError(
-          "Виникла помилка з'єднання. Спробуйте ще раз або зателефонуйте до бібліотеки: (057) 731-27-83"
-        );
-        setStreamingMessageId(null);
+        if (isCurrentRequest()) {
+          setError(
+            "Виникла помилка з'єднання. Спробуйте ще раз або зателефонуйте до бібліотеки: (057) 731-27-83"
+          );
+          setStreamingMessageId(null);
+        }
       } finally {
-        isTypingRef.current = false;
-        setIsTyping(false);
-        if (abortControllerRef.current === controller) {
+        if (isCurrentRequest()) {
+          isTypingRef.current = false;
+          setIsTyping(false);
+        }
+        if (abortControllerRef.current === controller && isCurrentRequest()) {
           abortControllerRef.current = null;
         }
       }
@@ -801,6 +820,8 @@ export function useChat(
   );
 
   const handleStop = useCallback(() => {
+    // Invalidate all in-flight send handlers so stale callbacks can't mutate latest UI state.
+    ++requestIdRef.current;
     faqStoppedRef.current = true;
     clearTypingTimeout();
     if (thinkTimerRef.current) {
@@ -839,7 +860,13 @@ export function useChat(
       );
       if (res.ok && isMountedRef.current) {
         const data = await res.json();
-        setConversations(prev => [...prev, ...(data.items ?? [])]);
+        setConversations(prev => {
+          const existingIds = new Set(prev.map(c => c.id));
+          const incoming = (data.items ?? []).filter(
+            (item: Conversation) => !existingIds.has(item.id)
+          );
+          return [...prev, ...incoming];
+        });
         setHasMoreConversations(data.hasMore ?? false);
         convOffsetRef.current += data.items?.length ?? 0;
       }

@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 import { Message } from "./types";
 import { useScrollDetection } from "@/hooks/use-intersection-observer";
 import { logger } from "@/lib/logger";
-import { sanitizeHtml, sanitizeUrl } from "@/lib/sanitize";
+import { sanitizeUrl } from "@/lib/sanitize";
 
 const QUICK_MENU_UK = [
   {
@@ -210,15 +210,18 @@ const markdownComponents = {
     <strong className="font-semibold text-[#1A1612]" {...props} />
   ),
   a: (props: React.AnchorHTMLAttributes<HTMLAnchorElement>) => {
-    const href = props.href ? sanitizeUrl(props.href) : "";
+    const { href: rawHref, children, title } = props;
+    const href = rawHref ? sanitizeUrl(rawHref) : "";
     return (
       <a
         target="_blank"
         rel="noopener noreferrer"
         className="text-[#B87830] underline underline-offset-2 hover:text-[#D4A853] transition-colors"
         href={href}
-        {...props}
-      />
+        title={title}
+      >
+        {children}
+      </a>
     );
   },
   code: ({ className, children, ...rest }: React.HTMLAttributes<HTMLElement>) => {
@@ -246,11 +249,18 @@ const markdownComponents = {
         </code>
         <button
           onClick={() => {
-            if (typeof children === "string") {
-              navigator.clipboard.writeText(children).catch(() => {
-                // Silently fail if clipboard is not available
-              });
-            }
+            const text =
+              typeof children === "string"
+                ? children
+                : Array.isArray(children)
+                  ? children
+                      .map(child => (typeof child === "string" ? child : ""))
+                      .join("")
+                  : "";
+            if (!text) return;
+            navigator.clipboard.writeText(text).catch(() => {
+              // Silently fail if clipboard is not available
+            });
           }}
           className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 md:opacity-100 px-2 py-1 bg-[#B87830]/80 hover:bg-[#B87830] text-white text-[11px] rounded transition-all"
           aria-label="Копіювати код"
@@ -339,7 +349,7 @@ const MessageBubble = memo(
               <p className="whitespace-pre-wrap break-words">{msg.content}</p>
             ) : (
               <div className="prose prose-sm max-w-none prose-p:leading-[1.625] prose-strong:text-[#D4A853]">
-                <ReactMarkdown components={markdownComponents}>
+                <ReactMarkdown skipHtml components={markdownComponents}>
                   {msg.content}
                 </ReactMarkdown>
                 {isStreaming && (
@@ -490,8 +500,8 @@ function ChatAreaComponent({
     }
     if (/графік|розклад|години|відкри|зачин/i.test(c))
       return ["Як записатися?", "Контакти бібліотеки"];
-    if (/книг|автор|катал��г|видання|збірник|підручник|поезі|знайд/i.test(c))
-      return ["Знайти ��е книги", "Нові надходження"];
+    if (/книг|автор|каталог|видання|збірник|підручник|поезі|знайд/i.test(c))
+      return ["Знайти ще книги", "Нові надходження"];
     if (/наук|стат|дисертац|scopus|research|репозитар/i.test(c))
       return ["Як отримати Scopus?", "Репозитарій ХДАК"];
     if (/запис|квиток|реєстрац/i.test(c)) return ["Графік роботи", "Контакти"];

@@ -25,10 +25,26 @@ export type ChatMessage = z.infer<typeof ChatMessageSchema>;
 
 // Conversation operations
 export const ConversationUpdateSchema = z.object({
-  title: z.string().max(200, "Title too long").trim().optional(),
+  title: z
+    .string()
+    .min(1, "Title cannot be empty")
+    .max(200, "Title too long")
+    .trim()
+    .optional(),
 });
 
 export type ConversationUpdate = z.infer<typeof ConversationUpdateSchema>;
+
+export const ConversationCreateSchema = z.object({
+  title: z
+    .string()
+    .max(200, "Title too long")
+    .trim()
+    .optional()
+    .nullable(),
+});
+
+export type ConversationCreate = z.infer<typeof ConversationCreateSchema>;
 
 // Catalog search validation
 export const CatalogSearchSchema = z.object({
@@ -55,9 +71,31 @@ export const PushSubscriptionSchema = z.object({
     p256dh: z.string().min(1),
     auth: z.string().min(1),
   }),
+  remindAt: z.string().optional(),
 });
 
 export type PushSubscription = z.infer<typeof PushSubscriptionSchema>;
+
+export const PushUnsubscribeSchema = z.object({
+  endpoint: z.string().url("Invalid endpoint"),
+});
+
+export type PushUnsubscribe = z.infer<typeof PushUnsubscribeSchema>;
+
+export const FaqSaveSchema = z.object({
+  question: z
+    .string()
+    .min(1, "Question cannot be empty")
+    .max(500, "Question too long")
+    .trim(),
+  answer: z
+    .string()
+    .min(1, "Answer cannot be empty")
+    .max(10_000, "Answer too long")
+    .trim(),
+});
+
+export type FaqSave = z.infer<typeof FaqSaveSchema>;
 
 /**
  * Safe validation function that catches and logs errors
@@ -69,13 +107,12 @@ export async function validateInput<T>(
   try {
     const validated = await schema.parseAsync(data);
     return { success: true, data: validated };
-  } catch (error) {
+  } catch (err) {
+    const zodIssues = err instanceof z.ZodError ? err.issues : [];
     const message =
-      error instanceof z.ZodError
-        ? error.issues
-            .map(issue => `${issue.path.join(".")}: ${issue.message}`)
-            .join("; ")
-        : String(error);
+      zodIssues.length > 0
+        ? zodIssues.map(issue => `${issue.path.join(".")}: ${issue.message}`).join("; ")
+        : String(err);
 
     return {
       success: false,

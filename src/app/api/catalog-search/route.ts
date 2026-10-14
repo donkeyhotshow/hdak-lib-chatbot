@@ -4,7 +4,7 @@ import { searchCatalog, getCatalogFormUrl } from "@/lib/catalog-search";
 import { isForbiddenOrigin } from "@/lib/cors";
 import { logger } from "@/lib/logger";
 
-const UDC_RE = /^[\d.]+$/;
+const UDC_RE = /^\d+(?:\.\d+)*$/;
 
 export async function GET(request: NextRequest) {
   // CORS check

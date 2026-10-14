@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, pushSubscriptions } from "@/lib/db";
-import { eq, lte, and, isNotNull } from "drizzle-orm";
+import { eq, lte, gte, and, isNotNull } from "drizzle-orm";
 import webpush from "web-push";
 import { timingSafeEqual } from "crypto";
 
@@ -66,6 +66,7 @@ export async function POST(request: NextRequest) {
     .where(
       and(
         isNotNull(pushSubscriptions.remindAt),
+        gte(pushSubscriptions.remindAt, now),
         lte(pushSubscriptions.remindAt, windowEnd),
         eq(pushSubscriptions.sent, false)
       )
