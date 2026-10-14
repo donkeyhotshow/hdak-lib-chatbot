@@ -117,7 +117,6 @@ export function useChat(
   const thinkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const typeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const refreshDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const requestIdRef = useRef(0);
   // C1: track mounted state to prevent post-unmount state updates
   const isMountedRef = useRef(true);
 
