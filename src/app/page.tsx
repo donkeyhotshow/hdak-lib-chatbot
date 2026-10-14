@@ -8,6 +8,7 @@ import {
   Globe,
   History,
   Loader2,
+  Menu,
   Plus,
   Send,
   Square,
@@ -156,6 +157,7 @@ export default function ChatPage() {
   const [language, setLanguage] = useState<Language>("uk");
   const [historyOpen, setHistoryOpen] = useState(false);
   const [resourcesOpen, setResourcesOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const {
@@ -242,6 +244,55 @@ export default function ChatPage() {
           aria-label="close menus"
           onClick={closeMenus}
         />
+      )}
+
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 hidden w-[260px] border-r border-[#b87830]/20 bg-[#fffdf9]/95 p-4 shadow-[8px_0_30px_rgba(79,48,24,0.08)] backdrop-blur-sm transition-transform duration-200 md:block ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
+        aria-label="История разговоров"
+      >
+        <div className="flex h-9 items-center justify-between">
+          <span className="text-sm font-semibold text-[#2a211b]">История чатов</span>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="rounded-md p-1.5 text-[#8b7766] hover:bg-[#b87830]/10 hover:text-[#2a211b]"
+            aria-label="Скрыть сайдбар"
+          >
+            ×
+          </button>
+        </div>
+        <button
+          onClick={createNewConversation}
+          className="mt-4 flex w-full items-center gap-2 rounded-lg border border-[#b87830]/30 bg-[#b87830]/10 px-3 py-2 text-left text-sm text-[#2a211b] hover:bg-[#b87830]/20"
+        >
+          <Plus size={15} /> {t.newChat}
+        </button>
+        <div className="mt-4 max-h-[calc(100vh-120px)] space-y-1 overflow-y-auto">
+          {isLoadingConversations ? (
+            <div className="py-6 text-center text-xs text-[#8b7766]">Loading...</div>
+          ) : conversations.length === 0 ? (
+            <div className="py-6 text-center text-xs text-[#8b7766]">{t.noConversations}</div>
+          ) : (
+            conversations.map(conv => (
+              <button
+                key={conv.id}
+                onClick={() => void loadConversation(conv.id)}
+                className={`w-full rounded-lg px-3 py-2 text-left text-sm transition ${currentConversation?.id === conv.id ? "bg-[#b87830]/20 text-[#2a211b]" : "text-[#2a211b]/75 hover:bg-[#b87830]/10"}`}
+              >
+                <span className="block truncate">{conv.title}</span>
+                <span className="mt-1 block text-[10px] text-[#8b7766]">{formatTime(conv.createdAt)}</span>
+              </button>
+            ))
+          )}
+        </div>
+      </aside>
+      {!sidebarOpen && (
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="fixed left-3 top-3 z-50 rounded-lg border border-[#b87830]/25 bg-[#fffdf9] p-2 text-[#2a211b] shadow-sm hover:bg-[#b87830]/10"
+          aria-label="Показать сайдбар"
+        >
+          <Menu size={17} />
+        </button>
       )}
 
       <header className="fixed top-0 z-40 h-[52px] w-full border-b border-[#b87830]/20 bg-[#fffdf9]/95 backdrop-blur-sm">
@@ -380,7 +431,7 @@ export default function ChatPage() {
         </div>
       </header>
 
-      <main className="mx-auto flex h-screen w-full max-w-[740px] flex-col px-6 pt-[52px] max-[640px]:px-4">
+      <main className="mx-auto flex h-screen w-full max-w-[740px] flex-col px-6 pt-[52px] transition-[margin] duration-200 max-[640px]:px-4 md:ml-[calc(260px+max(0px,(100vw-1100px)/2))]">
         <section className="flex-1 overflow-y-auto py-6">
           {isLoadingConversation ? (
             <div className="flex h-full items-center justify-center text-[#8b7766]">
