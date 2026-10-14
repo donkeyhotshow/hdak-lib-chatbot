@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit, generateFingerprint } from "@/lib/rate-limit";
-import { searchCatalog, CATALOG_FORM_URL } from "@/lib/catalog-search";
+import { searchCatalog, getCatalogFormUrl } from "@/lib/catalog-search";
 import { isForbiddenOrigin } from "@/lib/cors";
+import { logger } from "@/lib/logger";
 
 const UDC_RE = /^\d+(?:\.\d+)*$/;
 
@@ -31,7 +32,7 @@ export async function GET(request: NextRequest) {
       {
         error:
           "Вкажіть параметр пошуку: q, author, title, udc, subject або keyword",
-        catalogUrl: CATALOG_FORM_URL,
+        catalogUrl: getCatalogFormUrl(),
       },
       { status: 400 }
     );
@@ -43,13 +44,30 @@ export async function GET(request: NextRequest) {
       {
         error:
           "Невалідний УДК: допустимі лише цифри та крапки (наприклад: 78.01)",
-        catalogUrl: CATALOG_FORM_URL,
+        catalogUrl: getCatalogFormUrl(),
       },
       { status: 400 }
     );
   }
 
-  const pageNum = Math.max(1, parseInt(page || "1", 10) || 1);
+  const pageNum = Math.min(
+    10000,
+    Math.max(1, Number.parseInt(page || "1", 10) || 1)
+  );
+  const selectedTerm =
+    udc || subject || keyword || author || title || query || "";
+  if (
+    selectedTerm.length > 200 ||
+    /[\u0000-\u0008\u000B\u000C\u000E-\u001F]/.test(selectedTerm)
+  ) {
+    return NextResponse.json(
+      {
+        error: "Параметр пошуку має некоректний формат",
+        catalogUrl: getCatalogFormUrl(),
+      },
+      { status: 400 }
+    );
+  }
 
   try {
     let searchTerm: string;
@@ -90,7 +108,7 @@ export async function GET(request: NextRequest) {
           success: false,
           error:
             "Каталог тимчасово недоступний. Спробуйте пізніше або скористайтесь прямим посиланням.",
-          catalogUrl: CATALOG_FORM_URL,
+          catalogUrl: getCatalogFormUrl(),
         },
         { status: 503 }
       );
@@ -103,19 +121,22 @@ export async function GET(request: NextRequest) {
       totalResults: total,
       currentPage: pageNum,
       books,
-      catalogUrl: CATALOG_FORM_URL,
+      catalogUrl: getCatalogFormUrl(),
       message:
         books.length > 0
           ? `Знайдено ${total} документів. Показано ${books.length}.`
           : "За вашим запитом нічого не знайдено в каталозі.",
     });
   } catch (error) {
-    console.error("Помилка пошуку в каталозі:", error);
+    logger.error(
+      "Помилка пошуку в каталозі",
+      error instanceof Error ? error : new Error(String(error))
+    );
     return NextResponse.json(
       {
         success: false,
         error: "Помилка пошуку в каталозі",
-        catalogUrl: CATALOG_FORM_URL,
+        catalogUrl: getCatalogFormUrl(),
       },
       { status: 500 }
     );

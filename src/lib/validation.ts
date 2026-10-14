@@ -54,14 +54,7 @@ export const CatalogSearchSchema = z.object({
     .max(200, "Query too long (max 200 characters)")
     .trim(),
   type: z
-    .enum([
-      "title",
-      "author",
-      "subject",
-      "udc",
-      "keywords",
-      "general",
-    ])
+    .enum(["title", "author", "subject", "udc", "keywords", "general"])
     .optional()
     .default("general"),
   page: z.number().int().positive().default(1),

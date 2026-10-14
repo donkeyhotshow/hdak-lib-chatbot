@@ -111,15 +111,17 @@ export default function RootLayout({
       >
         <ErrorBoundary>{children}</ErrorBoundary>
         <Toaster />
-        <Script id="sw-register" strategy="afterInteractive">{`
-          if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-              navigator.serviceWorker.register('/sw.js').catch(function(err) {
-                console.warn('SW registration failed:', err);
+        {process.env.NODE_ENV === "production" && (
+          <Script id="sw-register" strategy="afterInteractive">{`
+            if ('serviceWorker' in navigator) {
+              window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js').catch(function(err) {
+                  console.warn('SW registration failed:', err);
+                });
               });
-            });
-          }
-        `}</Script>
+            }
+          `}</Script>
+        )}
       </body>
     </html>
   );

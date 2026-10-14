@@ -112,6 +112,7 @@ export function useChat(
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const requestIdRef = useRef(0);
   const faqStoppedRef = useRef(false);
   const thinkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const typeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -446,7 +447,9 @@ export function useChat(
         if (isMountedRef.current && isCurrentRequest()) {
           isTypingRef.current = false;
           setIsTyping(false);
-          setError("Часова межа відповіді перевищена (120сек). Натисніть 'Зупинити' або спробуйте знову.");
+          setError(
+            "Часова межа відповіді перевищена (120сек). Нат��сніть 'Зупинити' або спробуйте знову."
+          );
         }
       }, 120000); // 120 seconds
 
@@ -472,7 +475,10 @@ export function useChat(
           () =>
             fetch("/api/chat", {
               method: "POST",
-              headers: { "Content-Type": "application/json", ...sessionHeaders() },
+              headers: {
+                "Content-Type": "application/json",
+                ...sessionHeaders(),
+              },
               body: JSON.stringify({
                 conversationId: currentConversationRef.current?.id || null,
                 message: text,
@@ -483,7 +489,9 @@ export function useChat(
             maxRetries: 2,
             initialDelay: 1000,
             onRetry: (attempt, delay) => {
-              logger.warn(`API retry attempt ${attempt}, waiting ${Math.round(delay)}ms`);
+              logger.warn(
+                `API retry attempt ${attempt}, waiting ${Math.round(delay)}ms`
+              );
             },
           }
         );
@@ -618,9 +626,12 @@ export function useChat(
       } catch (err) {
         if (err instanceof Error && err.name === "AbortError") return;
 
+        const isOffline =
+          typeof navigator !== "undefined" && navigator.onLine === false;
         toast({
-          description:
-            "Помилка з'єднання. Перевірте інтернет та спробуйте ще раз.",
+          description: isOffline
+            ? "Немає підключення до інтернету. Перевірте мережу та спробуйте ще раз."
+            : "Сервіс тимчасово недоступний. Спробуйте ще раз за кілька секунд.",
         });
 
         // H1+H7: use functional update with captured IDs — safe against concurrent state

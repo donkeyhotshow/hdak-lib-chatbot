@@ -16,7 +16,8 @@ interface LogContext {
 }
 
 class Logger {
-  private isDevelopment = typeof process !== "undefined" && process.env.NODE_ENV === "development";
+  private isDevelopment =
+    typeof process !== "undefined" && process.env.NODE_ENV === "development";
   private logs: LogContext[] = [];
   private maxLogs = 100;
 
@@ -26,7 +27,8 @@ class Logger {
 
   private getContext(): Partial<LogContext> {
     return {
-      userAgent: typeof navigator !== "undefined" ? navigator.userAgent : undefined,
+      userAgent:
+        typeof navigator !== "undefined" ? navigator.userAgent : undefined,
       url: typeof window !== "undefined" ? window.location.href : undefined,
     };
   }

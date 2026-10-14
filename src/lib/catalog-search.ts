@@ -6,18 +6,18 @@
 import { stripHtml } from "@/lib/sanitize";
 import { logger } from "@/lib/logger";
 
-const CATALOG_URL =
-  process.env.CATALOG_URL ||
+const DEFAULT_CATALOG_URL =
   "https://library-service.com.ua:8443/khkhdak/DocumentSearchResult";
-const CATALOG_FORM_URL =
-  process.env.CATALOG_FORM_URL ||
+const DEFAULT_CATALOG_FORM_URL =
   "https://library-service.com.ua:8443/khkhdak/DocumentSearchForm";
 
-if (!process.env.CATALOG_URL || !process.env.CATALOG_FORM_URL) {
-  console.warn(
-    "⚠️ CATALOG_URL or CATALOG_FORM_URL not set — using hardcoded defaults."
-  );
+function getCatalogUrls() {
+  return {
+    search: process.env.CATALOG_URL?.trim() || DEFAULT_CATALOG_URL,
+    form: process.env.CATALOG_FORM_URL?.trim() || DEFAULT_CATALOG_FORM_URL,
+  };
 }
+
 
 export interface BookResult {
   title: string;
@@ -221,7 +221,7 @@ async function fetchCatalog(
   });
   if (!res.ok && res.status >= 500 && attempt === 0) {
     // Retry once on server-side errors
-    await new Promise(r => setTimeout(r, 600));
+    await new Promise(resolve => setTimeout(resolve, 600));
     return fetchCatalog(url, body, 1);
   }
   return res;
@@ -232,8 +232,9 @@ async function fetchCatalog(
  * Performs a lightweight HEAD or GET request to the form URL.
  */
 export async function checkCatalogAvailability(): Promise<boolean> {
+  const { form: catalogFormUrl } = getCatalogUrls();
   try {
-    const res = await fetch(CATALOG_FORM_URL, {
+    const res = await fetch(catalogFormUrl, {
       method: "HEAD",
       signal: AbortSignal.timeout(3000),
     });
@@ -241,7 +242,7 @@ export async function checkCatalogAvailability(): Promise<boolean> {
   } catch (e) {
     // Fallback to GET if HEAD is not supported
     try {
-      const res = await fetch(CATALOG_FORM_URL, {
+      const res = await fetch(catalogFormUrl, {
         method: "GET",
         signal: AbortSignal.timeout(3000),
       });
@@ -290,16 +291,17 @@ export async function searchCatalog(
     formData.append("sorting_direction1", "asc");
     formData.append("i_lang", "ukr");
 
-    if (!CATALOG_URL) return { books: [], total: 0, unavailable: true };
+    const { search: catalogUrl } = getCatalogUrls();
+    if (!catalogUrl) return { books: [], total: 0, unavailable: true };
 
     let response: Response;
     try {
-      response = await fetchCatalog(CATALOG_URL, formData.toString());
+      response = await fetchCatalog(catalogUrl, formData.toString());
     } catch (networkErr) {
       // Network error on first attempt — retry once
       try {
-        await new Promise(r => setTimeout(r, 600));
-        response = await fetchCatalog(CATALOG_URL, formData.toString(), 1);
+        await new Promise((resolve) => setTimeout(resolve, 600));
+        response = await fetchCatalog(catalogUrl, formData.toString(), 1);
       } catch (retryErr) {
         logger.error("Catalog search retry failed", retryErr as Error);
         throw networkErr;
@@ -361,4 +363,5 @@ export function buildCatalogContext(
   return `\n\n[РЕЗУЛЬТАТИ КАТАЛОГУ: Знайдено за ${label} "${searchTerm}" (${total} результатів):\n${list}${moreNote}\nПосилання для повного пошуку: ${catalogSearchUrl}]`;
 }
 
-export { CATALOG_URL, CATALOG_FORM_URL };
+export const getCatalogSearchUrl = () => getCatalogUrls().search;
+export const getCatalogFormUrl = () => getCatalogUrls().form;

@@ -29,6 +29,7 @@ export async function GET() {
 
   return NextResponse.json({
     status: "ready",
+    configuredProviders,
     message: "All critical systems are configured",
   });
 }
