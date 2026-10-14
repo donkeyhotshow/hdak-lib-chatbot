@@ -1,29 +1,41 @@
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  const providerKeys = ["GROQ_API_KEY", "QWEN_API_KEY"] as const;
-  const infraKeys = [
-    "DATABASE_URL",
-    "UPSTASH_REDIS_REST_URL",
-    "UPSTASH_REDIS_REST_TOKEN",
-  ] as const;
+  const hasLlmProvider = Boolean(
+    process.env.HDAKLLM?.trim() ||
+      process.env.GROQ_API_KEY?.trim() ||
+      process.env.QWEN_API_KEY?.trim()
+  );
+  const configuredProviders = [
+    process.env.HDAKLLM?.trim() ? "llm7" : null,
+    process.env.GROQ_API_KEY?.trim() ? "groq" : null,
+    process.env.QWEN_API_KEY?.trim() ? "qwen" : null,
+  ].filter((provider): provider is string => Boolean(provider));
+  const hasDatabase = Boolean(
+    process.env.DATABASE_URL?.trim() ||
+      process.env.NEON_DATABASE_URL?.trim() ||
+      process.env.NEON_POSTGRES_URL?.trim() ||
+      process.env.NEON_POSTGRES_PRISMA_URL?.trim() ||
+      process.env.NEON_POSTGRES_URL_NON_POOLING?.trim()
+  );
+  const missing = [
+    ...(!hasLlmProvider ? ["HDAKLLM or GROQ_API_KEY or QWEN_API_KEY"] : []),
+    ...(!hasDatabase ? ["DATABASE_URL or NEON_POSTGRES_URL"] : []),
+  ];
 
-  const missingInfra = infraKeys.filter((key) => !process.env[key]);
-  const hasProvider = providerKeys.some((key) => Boolean(process.env[key]));
+  if (missing.length > 0) {
+    const strictRuntime = process.env.NODE_ENV === "production";
 
-  if (missingInfra.length > 0 || !hasProvider) {
-    const missing: string[] = [...missingInfra];
-    if (!hasProvider) {
-      missing.push("GROQ_API_KEY|QWEN_API_KEY");
-    }
     return NextResponse.json(
       {
-        status: "not_ready",
+        status: strictRuntime ? "not_ready" : "degraded",
         missing,
-        message:
-          "Missing critical environment variables (at least one provider key is required)",
+        configuredProviders,
+        message: strictRuntime
+          ? "Missing critical environment variables"
+          : "Preview runtime is missing optional provider configuration",
       },
-      { status: 503 }
+      { status: strictRuntime ? 503 : 200 }
     );
   }
 
