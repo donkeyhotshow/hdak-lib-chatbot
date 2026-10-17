@@ -289,7 +289,6 @@ export default function ChatPage() {
                       className="flex min-h-10 items-center justify-between rounded-lg px-3 py-2 text-sm text-[#ead5bc] transition hover:bg-[#8f5b35]/35 hover:text-[#fff6e9]"
                     >
                       <span className="mr-2 truncate">{item.icon} {item.label}</span>
-                      {item.vpn && <span className="shrink-0 text-[9px] text-[#d4a853]">VPN</span>}
                     </a>
                   ))}
                 </div>
