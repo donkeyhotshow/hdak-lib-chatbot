@@ -21,8 +21,7 @@ type ResourceItem = {
   icon: string;
   label: string;
   href: string;
-  vpn?: boolean;
-};
+  };
 type ResourceGroup = {
   title: string;
   items: ResourceItem[];
@@ -97,36 +96,6 @@ const resources: ResourceGroup[] = [
         icon: "🎭",
         label: "Культура України",
         href: "http://elib.nplu.org/",
-      },
-    ],
-  },
-  {
-    title: "VPN",
-    items: [
-      { icon: "🔬", label: "Scopus", href: "https://www.scopus.com/", vpn: true },
-      {
-        icon: "🔭",
-        label: "Web of Science",
-        href: "https://www.webofscience.com/",
-        vpn: true,
-      },
-      {
-        icon: "📰",
-        label: "ScienceDirect",
-        href: "https://www.sciencedirect.com/",
-        vpn: true,
-      },
-      {
-        icon: "🔗",
-        label: "Springer Link",
-        href: "https://link.springer.com/",
-        vpn: true,
-      },
-      {
-        icon: "🌍",
-        label: "Research 4 Life",
-        href: "https://login.research4life.org/",
-        vpn: true,
       },
     ],
   },
@@ -417,7 +386,7 @@ export default function ChatPage() {
                       : "text-[#2a211b]/80 hover:bg-[#b87830]/15"
                   }`}
                 >
-                  {code === "uk" ? "УКР" : code === "ru" ? "РУС" : "ENG"}
+                  {code === "uk" ? "��КР" : code === "ru" ? "РУС" : "ENG"}
                 </button>
               ))}
             </div>
@@ -438,11 +407,7 @@ export default function ChatPage() {
                           <span className="mr-3 truncate">
                             {item.icon} {item.label}
                           </span>
-                          {item.vpn && (
-                            <span className="rounded-full border border-[#b87830]/50 bg-[#b87830]/20 px-2 py-0.5 text-[10px] font-medium text-[#b87830]">
-                              🔒 VPN
-                            </span>
-                          )}
+
                         </a>
                       ))}
                     </div>

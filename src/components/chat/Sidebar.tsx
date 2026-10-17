@@ -5,7 +5,6 @@ import {
   BookMarked,
   BookOpen,
   Phone,
-  FlaskConical,
   Star,
   X,
   Trash2,
@@ -27,13 +26,6 @@ const MAIN_LINKS = [
   { icon: BookMarked, title: "Репозитарій ХДАК", url: ALL_LINKS.repository },
   { icon: Star, title: "Нові надходження", url: ALL_LINKS.new_books },
   { icon: BookOpen, title: "Правила бібліотеки", url: ALL_LINKS.rules },
-] as const;
-
-const SCIENCE_LINKS = [
-  { icon: FlaskConical, title: "Scopus", url: ALL_LINKS.scopus },
-  { icon: FlaskConical, title: "Web of Science", url: ALL_LINKS.wos },
-  { icon: Globe, title: "Springer Link", url: ALL_LINKS.springer },
-  { icon: Search, title: "Пошук наук. інфо", url: ALL_LINKS.sci_search },
 ] as const;
 
 const CONTACT_ITEMS = [
@@ -495,7 +487,7 @@ export const Sidebar = memo(function Sidebar({
                       open ? "bg-emerald-400" : "bg-red-400/80"
                     )}
                   />
-                  <span>{open ? "Зараз відкрито" : "Зараз зачинено"}</span>
+                  <span>{open ? "Зараз відкрито" : "Зараз зачин��но"}</span>
                   <span className="sidebar-status-hours">
                     {open
                       ? (() => {
@@ -526,17 +518,6 @@ export const Sidebar = memo(function Sidebar({
                 </div>
               </SidebarSection>
 
-              <SidebarSection label="Наукові бази" defaultOpen={false}>
-                <div className="space-y-0.5">
-                  {SCIENCE_LINKS.map(item => (
-                    <SidebarLink
-                      key={item.title}
-                      {...item}
-                      onClick={handleNavClick}
-                    />
-                  ))}
-                </div>
-              </SidebarSection>
 
               <SidebarSection label="Контакти" defaultOpen={true}>
                 <div className="space-y-1 px-1 pb-1">
