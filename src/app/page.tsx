@@ -250,8 +250,13 @@ export default function ChatPage() {
         className={`fixed inset-y-0 left-0 z-50 hidden w-[276px] border-r border-[#7b4b2a] bg-[#2b1a12] p-4 text-[#f3e4cf] shadow-[10px_0_35px_rgba(43,26,18,0.28)] backdrop-blur-sm transition-transform duration-200 md:block ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
         aria-label="История разговоров и ресурсы"
       >
-        <div className="flex h-9 items-center justify-between">
-          <span className="text-sm font-semibold tracking-wide text-[#f3e4cf]">Бібліотека</span>
+        <div className="flex min-h-12 items-center justify-between border-b border-[#8f5b35]/35 pb-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">📚</span>
+            <span className="text-[17px] font-semibold tracking-wide text-[#f3e4cf]" style={{ fontFamily: "'Playfair Display', serif" }}>
+              Бібліотека ХДАК
+            </span>
+          </div>
           <button
             onClick={() => setSidebarOpen(false)}
             className="rounded-md p-1.5 text-[#c69a6b] hover:bg-[#8f5b35]/30 hover:text-[#fff6e9]"
@@ -262,7 +267,7 @@ export default function ChatPage() {
         </div>
         <button
           onClick={createNewConversation}
-          className="mt-4 flex w-full items-center gap-2 rounded-lg border border-[#b87830]/60 bg-[#8f5b35]/35 px-3 py-2 text-left text-sm text-[#fff6e9] hover:bg-[#a96e43]/45"
+          className="mt-4 flex min-h-11 w-full items-center gap-2 rounded-lg border border-[#b87830]/60 bg-[#8f5b35]/35 px-3 py-2.5 text-left text-sm text-[#fff6e9] hover:bg-[#a96e43]/45"
         >
           <Plus size={15} /> {t.newChat}
         </button>
@@ -281,7 +286,7 @@ export default function ChatPage() {
                       href={item.href}
                       target="_blank"
                       rel="noreferrer"
-                      className="flex items-center justify-between rounded-md px-2 py-1.5 text-xs text-[#ead5bc] transition hover:bg-[#8f5b35]/35 hover:text-[#fff6e9]"
+                      className="flex min-h-10 items-center justify-between rounded-lg px-3 py-2 text-sm text-[#ead5bc] transition hover:bg-[#8f5b35]/35 hover:text-[#fff6e9]"
                     >
                       <span className="mr-2 truncate">{item.icon} {item.label}</span>
                       {item.vpn && <span className="shrink-0 text-[9px] text-[#d4a853]">VPN</span>}
@@ -305,7 +310,7 @@ export default function ChatPage() {
               <button
                 key={conv.id}
                 onClick={() => void loadConversation(conv.id)}
-                className={`w-full rounded-lg px-3 py-2 text-left text-sm transition ${currentConversation?.id === conv.id ? "bg-[#8f5b35]/55 text-[#fff6e9]" : "text-[#ead5bc]/75 hover:bg-[#8f5b35]/30"}`}
+                className={`w-full rounded-lg px-3 py-2.5 text-left text-sm transition ${currentConversation?.id === conv.id ? "bg-[#8f5b35]/55 text-[#fff6e9]" : "text-[#ead5bc]/75 hover:bg-[#8f5b35]/30"}`}
               >
                 <span className="block truncate">{conv.title}</span>
                 <span className="mt-1 block text-[10px] text-[#8b7766]">{formatTime(conv.createdAt)}</span>
@@ -387,16 +392,6 @@ export default function ChatPage() {
                 )}
               </div>
             )}
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-lg">📚</span>
-            <span
-              className="text-[18px] font-semibold text-[#2a211b]"
-              style={{ fontFamily: "'Playfair Display', serif" }}
-            >
-              Бібліотека ХДАК
-            </span>
           </div>
 
           <div className="relative flex items-center gap-2">
