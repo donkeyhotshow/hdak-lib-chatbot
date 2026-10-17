@@ -16,7 +16,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useChat } from "@/hooks/use-chat";
 
-type Language = "uk" | "ru" | "en";
+type Language = "uk" | "en";
 type ResourceItem = {
   icon: string;
   label: string;
@@ -42,22 +42,6 @@ const translations = {
       "Де перевірити наукові статті?",
       "Підбери джерела для курсової",
       "Що є в електронному каталозі?",
-    ],
-  },
-  ru: {
-    history: "История",
-    resources: "Ресурсы",
-    newChat: "Новый чат",
-    ask: "Чем могу помочь?",
-    subtitle: "Задайте вопрос о каталоге, ресурсах или библиотечных сервисах.",
-    hint: "Enter — отправить · Shift+Enter — новая строка",
-    placeholder: "Введите сообщение...",
-    noConversations: "Пока нет диалогов",
-    examples: [
-      "Как найти книги по режиссуре?",
-      "Где искать научные статьи?",
-      "Подбери источники для курсовой",
-      "Что есть в электронном каталоге?",
     ],
   },
   en: {
@@ -217,7 +201,7 @@ export default function ChatPage() {
 
       <aside
         className={`fixed inset-y-0 left-0 z-50 hidden w-[276px] border-r border-[#7b4b2a] bg-[#2b1a12] p-4 text-[#f3e4cf] shadow-[10px_0_35px_rgba(43,26,18,0.28)] backdrop-blur-sm transition-transform duration-200 md:block ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
-        aria-label="История разговоров и ресурсы"
+        aria-label="Історія розмов і ресурси"
       >
         <div className="flex min-h-12 items-center justify-between border-b border-[#8f5b35]/35 pb-3">
           <div className="flex items-center gap-2">
@@ -376,7 +360,7 @@ export default function ChatPage() {
             </button>
             <div className="flex items-center gap-1 rounded-md border border-[#b87830]/20 bg-[#f8f5ee]/60 p-1">
               <Globe size={13} className="text-[#8b7766]" />
-              {(["uk", "ru", "en"] as Language[]).map(code => (
+              {(["uk", "en"] as Language[]).map(code => (
                 <button
                   key={code}
                   onClick={() => setLanguage(code)}
@@ -386,7 +370,7 @@ export default function ChatPage() {
                       : "text-[#2a211b]/80 hover:bg-[#b87830]/15"
                   }`}
                 >
-                  {code === "uk" ? "��КР" : code === "ru" ? "РУС" : "ENG"}
+                  {code === "uk" ? "УКР" : "ENG"}
                 </button>
               ))}
             </div>
