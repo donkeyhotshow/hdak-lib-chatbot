@@ -111,7 +111,7 @@ export default function ChatPage() {
   const [language, setLanguage] = useState<Language>("uk");
   const [historyOpen, setHistoryOpen] = useState(false);
   const [resourcesOpen, setResourcesOpen] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const {
@@ -201,7 +201,7 @@ export default function ChatPage() {
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 hidden w-[276px] xl:block border-r border-[#7b4b2a] bg-[#2b1a12] p-4 text-[#f3e4cf] shadow-[10px_0_35px_rgba(43,26,18,0.28)] backdrop-blur-sm transition-transform duration-200 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed inset-y-0 left-0 z-50 w-[276px] border-r border-[#7b4b2a] bg-[#2b1a12] p-4 text-[#f3e4cf] shadow-[10px_0_35px_rgba(43,26,18,0.28)] backdrop-blur-sm transition-transform duration-200 xl:block xl:translate-x-0 ${sidebarOpen ? "translate-x-0 block" : "-translate-x-full"}`}
         aria-label="Історія розмов і ресурси"
       >
         <div className="flex min-h-12 items-center justify-between border-b border-[#8f5b35]/35 pb-3">
@@ -290,7 +290,7 @@ export default function ChatPage() {
       {!sidebarOpen && (
         <button
           onClick={() => setSidebarOpen(true)}
-          className="fixed left-3 top-3 z-50 rounded-lg border border-[#7b4b2a] bg-[#2b1a12] p-2 text-[#f3e4cf] shadow-sm hover:bg-[#8f5b35]"
+          className="fixed left-3 top-3 z-50 rounded-lg border border-[#7b4b2a] bg-[#2b1a12] p-2 text-[#f3e4cf] shadow-sm hover:bg-[#8f5b35] xl:hidden"
           aria-label="Показать сайдбар"
         >
           <Menu size={17} />
