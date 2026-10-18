@@ -21,7 +21,7 @@ type ResourceItem = {
   icon: string;
   label: string;
   href: string;
-  };
+};
 type ResourceGroup = {
   title: string;
   items: ResourceItem[];
@@ -33,7 +33,8 @@ const translations = {
     resources: "Ресурси",
     newChat: "Новий чат",
     ask: "Чим можу допомогти?",
-    subtitle: "Поставте запитання про каталог, ресурси або бібліотечні сервіси.",
+    subtitle:
+      "Поставте запитання про каталог, ресурси або бібліотечні сервіси.",
     hint: "Enter — надіслати · Shift+Enter — новий рядок",
     placeholder: "Напишіть запитання...",
     noConversations: "Поки що немає розмов",
@@ -200,13 +201,16 @@ export default function ChatPage() {
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 hidden w-[276px] border-r border-[#7b4b2a] bg-[#2b1a12] p-4 text-[#f3e4cf] shadow-[10px_0_35px_rgba(43,26,18,0.28)] backdrop-blur-sm transition-transform duration-200 md:block ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed inset-y-0 left-0 z-50 hidden w-[276px] xl:block border-r border-[#7b4b2a] bg-[#2b1a12] p-4 text-[#f3e4cf] shadow-[10px_0_35px_rgba(43,26,18,0.28)] backdrop-blur-sm transition-transform duration-200 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
         aria-label="Історія розмов і ресурси"
       >
         <div className="flex min-h-12 items-center justify-between border-b border-[#8f5b35]/35 pb-3">
           <div className="flex items-center gap-2">
             <span className="text-xl">📚</span>
-            <span className="text-[17px] font-semibold tracking-wide text-[#f3e4cf]" style={{ fontFamily: "'Playfair Display', serif" }}>
+            <span
+              className="text-[17px] font-semibold tracking-wide text-[#f3e4cf]"
+              style={{ fontFamily: "'Playfair Display', serif" }}
+            >
               Бібліотека ХДАК
             </span>
           </div>
@@ -231,7 +235,9 @@ export default function ChatPage() {
           <div className="space-y-3">
             {resources.map((group, index) => (
               <div key={`${group.title}-${index}`}>
-                <div className="mb-1 px-2 text-[10px] font-medium uppercase tracking-wider text-[#9f7654]">{group.title}</div>
+                <div className="mb-1 px-2 text-[10px] font-medium uppercase tracking-wider text-[#9f7654]">
+                  {group.title}
+                </div>
                 <div className="space-y-0.5">
                   {group.items.map(item => (
                     <a
@@ -241,7 +247,9 @@ export default function ChatPage() {
                       rel="noreferrer"
                       className="flex min-h-10 items-center justify-between rounded-lg px-3 py-2 text-sm text-[#ead5bc] transition hover:bg-[#8f5b35]/35 hover:text-[#fff6e9]"
                     >
-                      <span className="mr-2 truncate">{item.icon} {item.label}</span>
+                      <span className="mr-2 truncate">
+                        {item.icon} {item.label}
+                      </span>
                     </a>
                   ))}
                 </div>
@@ -250,13 +258,19 @@ export default function ChatPage() {
           </div>
         </div>
         <div className="mt-5 border-t border-[#8f5b35]/35 pt-4">
-          <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#c69a6b]">{t.history}</div>
+          <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#c69a6b]">
+            {t.history}
+          </div>
         </div>
         <div className="max-h-[calc(100vh-470px)] min-h-[100px] space-y-1 overflow-y-auto">
           {isLoadingConversations ? (
-            <div className="py-6 text-center text-xs text-[#9f7654]">Loading...</div>
+            <div className="py-6 text-center text-xs text-[#9f7654]">
+              Loading...
+            </div>
           ) : conversations.length === 0 ? (
-            <div className="py-6 text-center text-xs text-[#9f7654]">{t.noConversations}</div>
+            <div className="py-6 text-center text-xs text-[#9f7654]">
+              {t.noConversations}
+            </div>
           ) : (
             conversations.map(conv => (
               <button
@@ -265,7 +279,9 @@ export default function ChatPage() {
                 className={`w-full rounded-lg px-3 py-2.5 text-left text-sm transition ${currentConversation?.id === conv.id ? "bg-[#8f5b35]/55 text-[#fff6e9]" : "text-[#ead5bc]/75 hover:bg-[#8f5b35]/30"}`}
               >
                 <span className="block truncate">{conv.title}</span>
-                <span className="mt-1 block text-[10px] text-[#8b7766]">{formatTime(conv.createdAt)}</span>
+                <span className="mt-1 block text-[10px] text-[#8b7766]">
+                  {formatTime(conv.createdAt)}
+                </span>
               </button>
             ))
           )}
@@ -309,11 +325,16 @@ export default function ChatPage() {
                 <div className="max-h-[320px] overflow-y-auto pr-1">
                   {isLoadingConversations ? (
                     <div className="px-3 py-6 text-center text-sm text-[#8b7766]">
-                      <Loader2 className="mx-auto mb-2 animate-spin" size={16} />
+                      <Loader2
+                        className="mx-auto mb-2 animate-spin"
+                        size={16}
+                      />
                       Loading...
                     </div>
                   ) : conversations.length === 0 ? (
-                    <div className="px-3 py-6 text-center text-sm text-[#8b7766]">{t.noConversations}</div>
+                    <div className="px-3 py-6 text-center text-sm text-[#8b7766]">
+                      {t.noConversations}
+                    </div>
                   ) : (
                     conversations.map(conv => (
                       <button
@@ -329,7 +350,9 @@ export default function ChatPage() {
                         }`}
                       >
                         <div className="truncate text-sm">{conv.title}</div>
-                        <div className="mt-1 text-xs text-[#8b7766]">{formatTime(conv.createdAt)}</div>
+                        <div className="mt-1 text-xs text-[#8b7766]">
+                          {formatTime(conv.createdAt)}
+                        </div>
                       </button>
                     ))
                   )}
@@ -391,7 +414,6 @@ export default function ChatPage() {
                           <span className="mr-3 truncate">
                             {item.icon} {item.label}
                           </span>
-
                         </a>
                       ))}
                     </div>
@@ -403,7 +425,7 @@ export default function ChatPage() {
         </div>
       </header>
 
-      <main className="mx-auto flex h-screen w-full max-w-[740px] flex-col px-6 pt-[52px] transition-[margin] duration-200 max-[640px]:px-4 md:ml-[calc(276px+max(0px,(100vw-1100px)/2))]">
+      <main className="mx-auto flex h-screen w-full max-w-[740px] flex-col px-6 pt-[52px] transition-[margin] duration-200 max-[640px]:px-4 xl:ml-[calc(276px+max(0px,(100vw-1100px)/2))]">
         <section className="flex-1 overflow-y-auto py-6">
           {isLoadingConversation ? (
             <div className="flex h-full items-center justify-center text-[#8b7766]">
@@ -423,7 +445,9 @@ export default function ChatPage() {
               >
                 {t.ask}
               </h2>
-              <p className="mt-2 max-w-[520px] text-sm text-[#8b7766]">{t.subtitle}</p>
+              <p className="mt-2 max-w-[520px] text-sm text-[#8b7766]">
+                {t.subtitle}
+              </p>
               <div className="my-4 flex items-center gap-3 text-[#b87830]/70">
                 <div className="h-px w-14 bg-[#b87830]/25" />
                 <span>✦</span>
@@ -463,8 +487,12 @@ export default function ChatPage() {
                           : "rounded-tl-[3px] border-[#8b7766]/35 bg-[#fffdf9] text-[#2a211b]"
                       }`}
                     >
-                      <div className="whitespace-pre-wrap break-words">{message.content}</div>
-                      <div className="mt-1 text-[10px] text-[#8b7766]">{formatTime(message.createdAt)}</div>
+                      <div className="whitespace-pre-wrap break-words">
+                        {message.content}
+                      </div>
+                      <div className="mt-1 text-[10px] text-[#8b7766]">
+                        {formatTime(message.createdAt)}
+                      </div>
                     </div>
                     {isUser && (
                       <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full bg-[#fffdf9] text-sm">
@@ -486,7 +514,9 @@ export default function ChatPage() {
                         <span
                           key={index}
                           className="block h-2 w-2 rounded-full bg-[#b87830]"
-                          style={{ animation: `dotPulse .9s ease-in-out ${index * 0.18}s infinite` }}
+                          style={{
+                            animation: `dotPulse .9s ease-in-out ${index * 0.18}s infinite`,
+                          }}
                         />
                       ))}
                     </div>
@@ -527,7 +557,11 @@ export default function ChatPage() {
                 disabled={!isTyping && inputValue.trim().length === 0}
                 aria-label={isTyping ? "Stop" : "Send"}
               >
-                {isTyping ? <Square size={14} fill="currentColor" /> : <Send size={14} />}
+                {isTyping ? (
+                  <Square size={14} fill="currentColor" />
+                ) : (
+                  <Send size={14} />
+                )}
               </button>
             </div>
             <div className="mt-2 px-2 text-[11px] text-[#8b7766]">{t.hint}</div>
