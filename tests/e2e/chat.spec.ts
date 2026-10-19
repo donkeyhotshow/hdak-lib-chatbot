@@ -60,7 +60,7 @@ test.describe("Library chat smoke", () => {
     await expect(
       page
         .locator("main")
-        .getByText(/Вибачте|каталог|запит|технічна помилка/i)
+        .getByText(/тимчасово не може|каталог|запит|технічна помилка/i)
         .last()
     ).toBeVisible({
       timeout: 45_000,
@@ -78,6 +78,26 @@ test.describe("Library chat smoke", () => {
     await expect(
       page.getByText(/помилка|спробуйте|технічна/i).last()
     ).toBeVisible({ timeout: 10_000 });
+  });
+
+  test("shows provider unavailability as an error and unlocks retry", async ({
+    page,
+  }) => {
+    await page.route("**/api/chat", route =>
+      route.fulfill({
+        status: 200,
+        contentType: "text/event-stream",
+        body: `data: {"conversationId":"00000000-0000-0000-0000-000000000000"}\\n\\ndata: {"error":"Асистент тимчасово не може сформувати відповідь. Спробуйте ще раз пізніше.","done":true}\\n\\n`,
+      })
+    );
+    await openApp(page);
+    await input(page).fill("перевірка недоступної моделі");
+    await page.getByRole("button", { name: "Надіслати" }).click();
+
+    await expect(
+      page.getByText(/тимчасово не може сформувати відповідь/i).last()
+    ).toBeVisible({ timeout: 10_000 });
+    await expect(input(page)).toBeEnabled();
   });
 
   test("opens resources and exposes safe external links", async ({ page }) => {
