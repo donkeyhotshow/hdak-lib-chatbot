@@ -76,8 +76,15 @@ interface ChatMessage {
   content: string;
 }
 
-// Fallback error message — not persisted to DB to avoid polluting conversation history
-const FALLBACK_ERROR = "Вибачте, сталася технічна помилка. Спробуйте пізніше.";
+const LLM_UNAVAILABLE_MESSAGE =
+  "Асистент тимчасово не може сформувати відповідь. Спробуйте ще раз пізніше.";
+
+class LlmUnavailableError extends Error {
+  constructor() {
+    super(LLM_UNAVAILABLE_MESSAGE);
+    this.name = "LlmUnavailableError";
+  }
+}
 
 // ─── Streaming LLM call ───────────────────────────────────────────────────────
 
@@ -184,8 +191,9 @@ async function streamLLM(
 
   // Early bail if client already disconnected
   if (signal.aborted) {
-    sendChunk(FALLBACK_ERROR);
-    return FALLBACK_ERROR;
+    throw signal.reason instanceof Error
+      ? signal.reason
+      : new DOMException("Aborted", "AbortError");
   }
 
   const config = getLlmConfig();
@@ -206,8 +214,7 @@ async function streamLLM(
     }
   }
 
-  sendChunk(FALLBACK_ERROR);
-  return FALLBACK_ERROR;
+  throw new LlmUnavailableError();
 }
 
 // ─── POST handler ─────────────────────────────────────────────────────────────
@@ -256,7 +263,10 @@ export async function POST(request: NextRequest) {
   const { conversationId, message } = parsed.data;
   const safeMessage = stripHtml(message).trim();
   if (!safeMessage) {
-    return NextResponse.json({ error: "Недійсний вміст повідомлення" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Недійсний вміст повідомлення" },
+      { status: 400 }
+    );
   }
 
   // Extract and validate sessionId
@@ -470,20 +480,17 @@ export async function POST(request: NextRequest) {
             request.signal
           );
 
-          // Don't persist LLM fallback errors — they pollute conversation history
-          if (fullResponse !== FALLBACK_ERROR) {
-            try {
-              await db.insert(messagesTable).values({
-                conversationId: convId,
-                role: "ASSISTANT",
-                content: fullResponse,
-              });
-            } catch (e) {
-              logger.error(
-                "Не вдалося зберегти відповідь",
-                e instanceof Error ? e : new Error(String(e))
-              );
-            }
+          try {
+            await db.insert(messagesTable).values({
+              conversationId: convId,
+              role: "ASSISTANT",
+              content: fullResponse,
+            });
+          } catch (e) {
+            logger.error(
+              "Не вдалося зберегти відповідь",
+              e instanceof Error ? e : new Error(String(e))
+            );
           }
 
           controller.enqueue(
@@ -494,11 +501,14 @@ export async function POST(request: NextRequest) {
         } catch (e) {
           // Send error event to client before closing so it doesn't hang
           if (!(e instanceof Error && e.name === "AbortError")) {
-            console.error("Stream error:", e);
+            logger.error(
+              "Chat stream failed",
+              e instanceof Error ? e : new Error(String(e))
+            );
             try {
               controller.enqueue(
                 encoder.encode(
-                  `data: ${JSON.stringify({ error: "Помилка сервера", done: true })}\n\n`
+                  `data: ${JSON.stringify({ error: e instanceof LlmUnavailableError ? LLM_UNAVAILABLE_MESSAGE : "Не вдалося сформувати відповідь. Спробуйте ще раз.", done: true })}\\n\\n`
                 )
               );
             } catch (enqueueError) {
