@@ -149,7 +149,7 @@ export default function ChatPage() {
   useEffect(() => {
     const link = document.createElement("link");
     link.href =
-      "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap";
+      "https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&family=Source+Sans+3:wght@400;500;600&display=swap";
     link.rel = "stylesheet";
     document.head.appendChild(link);
     return () => {
@@ -166,7 +166,7 @@ export default function ChatPage() {
       ({
         backgroundColor: "var(--background)",
         color: "var(--foreground)",
-        fontFamily: "'DM Sans', sans-serif",
+        fontFamily: "'Source Sans 3', sans-serif",
         backgroundImage:
           "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='f'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23f)' opacity='0.035'/%3E%3C/svg%3E\")",
       }) as React.CSSProperties,
@@ -198,7 +198,7 @@ export default function ChatPage() {
         />
       )}
 
-      <header className="fixed top-0 z-40 h-[52px] w-full border-b border-[#c8a84b]/20 bg-[#131929]/95 backdrop-blur-sm">
+      <header className="fixed top-0 z-40 h-[52px] w-full border-b border-[#8b5e3c]/20 backdrop-blur-sm" style={{ backgroundColor: "rgba(255, 250, 242, 0.96)" }}>
         <div className="mx-auto flex h-full max-w-[1100px] items-center justify-between px-4">
           <div className="relative">
             <button
@@ -206,26 +206,26 @@ export default function ChatPage() {
                 setHistoryOpen(v => !v);
                 setResourcesOpen(false);
               }}
-              className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-[#ede3d0] hover:bg-[#c8a84b]/10"
+              className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-[#3b2a1f] hover:bg-[#8b5e3c]/10"
             >
               <History size={16} />
               <span className="max-[480px]:hidden">{t.history}</span>
               <ChevronDown size={14} />
             </button>
             {historyOpen && (
-              <div className="absolute left-0 top-[44px] z-50 w-[320px] rounded-xl border border-[#c8a84b]/25 bg-[#131929] p-2 shadow-2xl max-w-[90vw]">
+              <div className="absolute left-0 top-[44px] z-50 w-[320px] rounded-xl border border-[#8b5e3c]/25 bg-[#fffaf2] p-2 shadow-2xl max-w-[90vw]">
                 <button
                   onClick={() => {
                     createNewConversation();
                     closeMenus();
                   }}
-                  className="mb-2 flex w-full items-center gap-2 rounded-lg border border-[#c8a84b]/30 bg-[#c8a84b]/10 px-3 py-2 text-left text-sm text-[#ede3d0] hover:bg-[#c8a84b]/20"
+                  className="mb-2 flex w-full items-center gap-2 rounded-lg border border-[#8b5e3c]/30 bg-[#8b5e3c]/10 px-3 py-2 text-left text-sm text-[#3b2a1f] hover:bg-[#8b5e3c]/20"
                 >
                   <Plus size={15} /> {t.newChat}
                 </button>
                 <div className="max-h-[320px] overflow-y-auto pr-1">
                   {isLoadingConversations ? (
-                    <div className="px-3 py-6 text-center text-sm text-[#566070]">
+                    <div className="px-3 py-6 text-center text-sm text-[#7a6350]">
                       <Loader2
                         className="mx-auto mb-2 animate-spin"
                         size={16}
@@ -233,7 +233,7 @@ export default function ChatPage() {
                       Loading...
                     </div>
                   ) : conversations.length === 0 ? (
-                    <div className="px-3 py-6 text-center text-sm text-[#566070]">
+                    <div className="px-3 py-6 text-center text-sm text-[#7a6350]">
                       {t.noConversations}
                     </div>
                   ) : (
@@ -246,12 +246,12 @@ export default function ChatPage() {
                         }}
                         className={`mb-1 w-full rounded-lg px-3 py-2 text-left transition ${
                           currentConversation?.id === conv.id
-                            ? "bg-[#c8a84b]/20 text-[#ede3d0]"
-                            : "text-[#ede3d0] hover:bg-[#c8a84b]/10"
+                            ? "bg-[#8b5e3c]/20 text-[#3b2a1f]"
+                            : "text-[#3b2a1f] hover:bg-[#8b5e3c]/10"
                         }`}
                       >
                         <div className="truncate text-sm">{conv.title}</div>
-                        <div className="mt-1 text-xs text-[#566070]">
+                        <div className="mt-1 text-xs text-[#7a6350]">
                           {formatTime(conv.createdAt)}
                         </div>
                       </button>
@@ -261,7 +261,7 @@ export default function ChatPage() {
                 {hasMoreConversations && (
                   <button
                     onClick={() => void loadMoreConversations()}
-                    className="mt-2 w-full rounded-lg border border-[#c8a84b]/20 px-3 py-2 text-xs text-[#ede3d0] hover:bg-[#c8a84b]/10"
+                    className="mt-2 w-full rounded-lg border border-[#8b5e3c]/20 px-3 py-2 text-xs text-[#3b2a1f] hover:bg-[#8b5e3c]/10"
                   >
                     Load more
                   </button>
@@ -273,8 +273,8 @@ export default function ChatPage() {
           <div className="flex items-center gap-2">
             <span className="text-lg">📚</span>
             <span
-              className="text-[18px] font-semibold text-[#ede3d0]"
-              style={{ fontFamily: "'Playfair Display', serif" }}
+              className="text-[18px] font-semibold text-[#3b2a1f]"
+              style={{ fontFamily: "'Lora', serif" }}
             >
               Бібліотека ХДАК
             </span>
@@ -286,22 +286,22 @@ export default function ChatPage() {
                 setResourcesOpen(v => !v);
                 setHistoryOpen(false);
               }}
-              className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-[#ede3d0] hover:bg-[#c8a84b]/10"
+              className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-[#3b2a1f] hover:bg-[#8b5e3c]/10"
             >
               <BookOpen size={16} />
               <span className="max-[480px]:hidden">{t.resources}</span>
               <ChevronDown size={14} />
             </button>
-            <div className="flex items-center gap-1 rounded-md border border-[#c8a84b]/20 bg-[#0b0f18]/60 p-1">
-              <Globe size={13} className="text-[#566070]" />
+            <div className="flex items-center gap-1 rounded-md border border-[#8b5e3c]/20 bg-[#f5efe6]/60 p-1">
+              <Globe size={13} className="text-[#7a6350]" />
               {(["uk", "en"] as Language[]).map(code => (
                 <button
                   key={code}
                   onClick={() => setLanguage(code)}
                   className={`rounded px-1.5 py-0.5 text-[11px] ${
                     language === code
-                      ? "bg-[#c8a84b] text-[#1b1404]"
-                      : "text-[#ede3d0]/80 hover:bg-[#c8a84b]/15"
+                      ? "bg-[#8b5e3c] text-[#1b1404]"
+                      : "text-[#3b2a1f]/80 hover:bg-[#8b5e3c]/15"
                   }`}
                 >
                   {code === "uk" ? "УКР" : "ENG"}
@@ -309,10 +309,10 @@ export default function ChatPage() {
               ))}
             </div>
             {resourcesOpen && (
-              <div className="absolute right-0 top-[44px] z-50 w-[360px] max-w-[94vw] rounded-xl border border-[#c8a84b]/25 bg-[#131929] p-3 shadow-2xl">
+              <div className="absolute right-0 top-[44px] z-50 w-[360px] max-w-[94vw] rounded-xl border border-[#8b5e3c]/25 bg-[#fffaf2] p-3 shadow-2xl">
                 {resources.map((group, index) => (
                   <div key={`${group.title}-${index}`}>
-                    {index > 0 && <div className="my-2 h-px bg-[#c8a84b]/15" />}
+                    {index > 0 && <div className="my-2 h-px bg-[#8b5e3c]/15" />}
                     <div className="space-y-1">
                       {group.items.map(item => (
                         <a
@@ -320,7 +320,7 @@ export default function ChatPage() {
                           href={item.href}
                           target="_blank"
                           rel="noreferrer"
-                          className="flex items-center justify-between rounded-lg px-2.5 py-2 text-sm text-[#ede3d0] hover:bg-[#c8a84b]/12"
+                          className="flex items-center justify-between rounded-lg px-2.5 py-2 text-sm text-[#3b2a1f] hover:bg-[#8b5e3c]/12"
                         >
                           <span className="mr-3 truncate">
                             {item.icon} {item.label}
@@ -339,37 +339,37 @@ export default function ChatPage() {
       <main className="mx-auto flex h-screen w-full max-w-[740px] flex-col px-6 pt-[52px] max-[640px]:px-4">
         <section className="flex-1 overflow-y-auto py-6">
           {isLoadingConversation ? (
-            <div className="flex h-full items-center justify-center text-[#566070]">
+            <div className="flex h-full items-center justify-center text-[#7a6350]">
               <Loader2 className="animate-spin" />
             </div>
           ) : isEmptyState ? (
             <div className="flex h-full flex-col items-center justify-center text-center">
               <div
-                className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-[#131929] text-3xl"
+                className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-[#fffaf2] text-3xl"
                 style={{ animation: "breathe 2.6s ease-in-out infinite" }}
               >
                 📚
               </div>
               <h2
-                className="text-[26px] font-semibold text-[#ede3d0]"
-                style={{ fontFamily: "'Playfair Display', serif" }}
+                className="text-[26px] font-semibold text-[#3b2a1f]"
+                style={{ fontFamily: "'Lora', serif" }}
               >
                 {t.ask}
               </h2>
-              <p className="mt-2 max-w-[520px] text-sm text-[#566070]">
+              <p className="mt-2 max-w-[520px] text-sm text-[#7a6350]">
                 {t.subtitle}
               </p>
-              <div className="my-4 flex items-center gap-3 text-[#c8a84b]/70">
-                <div className="h-px w-14 bg-[#c8a84b]/25" />
+              <div className="my-4 flex items-center gap-3 text-[#8b5e3c]/70">
+                <div className="h-px w-14 bg-[#8b5e3c]/25" />
                 <span>✦</span>
-                <div className="h-px w-14 bg-[#c8a84b]/25" />
+                <div className="h-px w-14 bg-[#8b5e3c]/25" />
               </div>
               <div className="grid max-w-[620px] grid-cols-1 gap-2 sm:grid-cols-2">
                 {t.examples.map(example => (
                   <button
                     key={example}
                     onClick={() => handleFaqSend(example)}
-                    className="rounded-full border border-[#566070]/40 bg-[#131929]/70 px-4 py-2 text-sm text-[#ede3d0] transition hover:border-[#c8a84b]"
+                    className="rounded-full border border-[#7a6350]/40 bg-[#fffaf2]/70 px-4 py-2 text-sm text-[#3b2a1f] transition hover:border-[#8b5e3c]"
                   >
                     {example}
                   </button>
@@ -387,26 +387,26 @@ export default function ChatPage() {
                     style={{ animation: "msgIn .22s ease-out" }}
                   >
                     {!isUser && (
-                      <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full bg-[#131929] text-sm">
+                      <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full bg-[#fffaf2] text-sm">
                         📚
                       </div>
                     )}
                     <div
                       className={`max-w-[82%] rounded-2xl border px-3 py-2 text-sm leading-relaxed ${
                         isUser
-                          ? "rounded-tr-[3px] border-[#c8a84b]/30 bg-[#1c1505] text-[#ede3d0]"
-                          : "rounded-tl-[3px] border-[#566070]/35 bg-[#131929] text-[#ede3d0]"
+                          ? "rounded-tr-[3px] border-[#8b5e3c]/30 bg-[#8b5e3c] text-[#3b2a1f]"
+                          : "rounded-tl-[3px] border-[#7a6350]/35 bg-[#fffaf2] text-[#3b2a1f]"
                       }`}
                     >
                       <div className="whitespace-pre-wrap break-words">
                         {message.content}
                       </div>
-                      <div className="mt-1 text-[10px] text-[#566070]">
+                      <div className="mt-1 text-[10px] text-[#7a6350]">
                         {formatTime(message.createdAt)}
                       </div>
                     </div>
                     {isUser && (
-                      <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full bg-[#131929] text-sm">
+                      <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full bg-[#fffaf2] text-sm">
                         👤
                       </div>
                     )}
@@ -416,15 +416,15 @@ export default function ChatPage() {
 
               {isTyping && (
                 <div className="flex items-end gap-2">
-                  <div className="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-[#131929] text-sm">
+                  <div className="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-[#fffaf2] text-sm">
                     📚
                   </div>
-                  <div className="rounded-2xl rounded-tl-[3px] border border-[#566070]/35 bg-[#131929] px-3 py-2">
+                  <div className="rounded-2xl rounded-tl-[3px] border border-[#7a6350]/35 bg-[#fffaf2] px-3 py-2">
                     <div className="flex items-center gap-1.5">
                       {[0, 1, 2].map(index => (
                         <span
                           key={index}
-                          className="block h-2 w-2 rounded-full bg-[#c8a84b]"
+                          className="block h-2 w-2 rounded-full bg-[#8b5e3c]"
                           style={{
                             animation: `dotPulse .9s ease-in-out ${index * 0.18}s infinite`,
                           }}
@@ -441,7 +441,7 @@ export default function ChatPage() {
         </section>
 
         <section className="sticky bottom-0 pb-[22px] pt-3">
-          <div className="rounded-2xl border border-[#566070]/35 bg-[#131929]/90 p-3 shadow-[0_10px_24px_rgba(0,0,0,0.35)] backdrop-blur-sm focus-within:border-[#c8a84b]/60 focus-within:shadow-[0_0_0_1px_rgba(200,168,75,.35),0_12px_30px_rgba(0,0,0,.45)]">
+          <div className="rounded-2xl border border-[#d9c9b0] p-3 shadow-[0_10px_24px_rgba(59,42,31,0.12)] backdrop-blur-sm focus-within:border-[#8b5e3c]/60 focus-within:shadow-[0_0_0_1px_rgba(139,94,60,.25),0_12px_30px_rgba(59,42,31,.12)]" style={{ backgroundColor: "rgba(255, 250, 242, 0.96)" }}>
             <div className="flex items-end gap-2">
               <textarea
                 ref={textareaRef}
@@ -460,11 +460,11 @@ export default function ChatPage() {
                   }
                 }}
                 placeholder={t.placeholder}
-                className="max-h-[100px] min-h-[42px] flex-1 resize-none bg-transparent px-2 py-2 text-sm text-[#ede3d0] outline-none placeholder:text-[#566070]"
+                className="max-h-[100px] min-h-[42px] flex-1 resize-none bg-transparent px-2 py-2 text-sm text-[#3b2a1f] outline-none placeholder:text-[#7a6350]"
               />
               <button
                 onClick={() => (isTyping ? handleStop() : handleSend())}
-                className="mb-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#c8a84b] text-[#1b1404] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                className="mb-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#8b5e3c] text-[#1b1404] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
                 disabled={!isTyping && inputValue.trim().length === 0}
                 aria-label={isTyping ? "Stop" : "Send"}
               >
@@ -475,7 +475,7 @@ export default function ChatPage() {
                 )}
               </button>
             </div>
-            <div className="mt-2 px-2 text-[11px] text-[#566070]">{t.hint}</div>
+            <div className="mt-2 px-2 text-[11px] text-[#7a6350]">{t.hint}</div>
           </div>
         </section>
       </main>
