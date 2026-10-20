@@ -47,35 +47,34 @@
   color-scheme: light;
   --radius: 0.75rem;
 
-  /* Premium Glassmorphism Palette v14.0 */
-  --background: #fdfbf7;
-  --foreground: #1a1612;
-  --card: rgba(255, 255, 255, 0.8);
-  --card-foreground: #1a1612;
-  --popover: rgba(255, 255, 255, 0.95);
-  --popover-foreground: #1a1612;
-  --primary: #b87830;
-  --primary-foreground: #ffffff;
-  --secondary: #f5f3ef;
-  --secondary-foreground: #1a1612;
-  --muted: #f0ede8;
-  --muted-foreground: #7a756f;
-  --accent: #d4a853;
-  --accent-foreground: #0d0b09;
-  --destructive: #dc2626;
-  --border: rgba(26, 22, 18, 0.1);
-  --input: rgba(26, 22, 18, 0.08);
-  --ring: #d4a853;
+  /* HDAK warm library palette */
+  --background: #f5efe6;
+  --foreground: #3b2a1f;
+  --card: #fffaf2;
+  --card-foreground: #3b2a1f;
+  --popover: #fffaf2;
+  --popover-foreground: #3b2a1f;
+  --primary: #8b5e3c;
+  --primary-foreground: #fffaf2;
+  --secondary: #eadfcf;
+  --secondary-foreground: #3b2a1f;
+  --muted: #eadfcf;
+  --muted-foreground: #7a6350;
+  --accent: #8b5e3c;
+  --accent-foreground: #fffaf2;
+  --destructive: #a63d2f;
+  --border: #d9c9b0;
+  --input: #d9c9b0;
+  --ring: #8b5e3c;
 
-  /* Sidebar - Premium Dark Glass */
-  --sidebar: rgba(13, 11, 9, 0.92);
-  --sidebar-foreground: #f5f3ef;
-  --sidebar-primary: #d4a853;
-  --sidebar-primary-foreground: #0d0b09;
-  --sidebar-accent: rgba(212, 168, 83, 0.15);
-  --sidebar-accent-foreground: #f5f3ef;
-  --sidebar-border: rgba(212, 168, 83, 0.1);
-  --sidebar-ring: #d4a853;
+  --sidebar: #eadfcf;
+  --sidebar-foreground: #3b2a1f;
+  --sidebar-primary: #8b5e3c;
+  --sidebar-primary-foreground: #fffaf2;
+  --sidebar-accent: #d9c9b0;
+  --sidebar-accent-foreground: #3b2a1f;
+  --sidebar-border: #d9c9b0;
+  --sidebar-ring: #8b5e3c;
 }
 
 @layer base {
@@ -132,7 +131,9 @@
   backdrop-filter: blur(12px) saturate(180%);
   -webkit-backdrop-filter: blur(12px) saturate(180%);
   border-right: 1px solid rgba(212, 168, 83, 0.12);
-  box-shadow: 8px 0 60px rgba(80, 48, 29, 0.18), 0 0 1px rgba(212, 168, 83, 0.2);
+  box-shadow:
+    8px 0 60px rgba(80, 48, 29, 0.18),
+    0 0 1px rgba(212, 168, 83, 0.2);
 }
 
 .sidebar-header {
@@ -197,8 +198,7 @@
   gap: 8px;
   padding: 8px 10px;
   border-radius: 10px;
-  transition:
-    all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   text-decoration: none;
   border: 1px solid rgba(212, 168, 83, 0.08);
   font-weight: 500;
@@ -385,7 +385,9 @@
   background: rgba(255, 255, 255, 0.7);
   border: 1px solid rgba(212, 168, 83, 0.15);
   border-radius: 16px;
-  box-shadow: 0 4px 24px rgba(26, 22, 18, 0.08), 0 0 1px rgba(212, 168, 83, 0.2);
+  box-shadow:
+    0 4px 24px rgba(26, 22, 18, 0.08),
+    0 0 1px rgba(212, 168, 83, 0.2);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
@@ -473,7 +475,8 @@
 }
 
 @keyframes softBounce {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0);
   }
   50% {
@@ -562,11 +565,15 @@
   background: linear-gradient(135deg, #d4a853 0%, #b87830 100%);
   color: #fff;
   border: 1px solid rgba(212, 168, 83, 0.4);
-  box-shadow: 0 6px 20px rgba(184, 120, 48, 0.35), 0 0 1px rgba(255, 255, 255, 0.5);
+  box-shadow:
+    0 6px 20px rgba(184, 120, 48, 0.35),
+    0 0 1px rgba(255, 255, 255, 0.5);
 }
 
 .send-btn.active:hover {
-  box-shadow: 0 8px 28px rgba(184, 120, 48, 0.45), 0 0 1px rgba(255, 255, 255, 0.6);
+  box-shadow:
+    0 8px 28px rgba(184, 120, 48, 0.45),
+    0 0 1px rgba(255, 255, 255, 0.6);
   transform: scale(1.05);
 }
 
@@ -624,7 +631,9 @@
   background: linear-gradient(135deg, #1a1612 0%, #2a2520 100%);
   color: #f5f3ef;
   border-radius: 18px 18px 4px 18px;
-  box-shadow: 0 8px 32px rgba(26, 22, 18, 0.2), 0 0 1px rgba(212, 168, 83, 0.5);
+  box-shadow:
+    0 8px 32px rgba(26, 22, 18, 0.2),
+    0 0 1px rgba(212, 168, 83, 0.5);
   word-break: break-word;
   backdrop-filter: blur(2px);
   animation: fadeInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -639,7 +648,9 @@
   border: 1px solid rgba(212, 168, 83, 0.15);
   color: #1a1612;
   border-radius: 18px 18px 18px 4px;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(212, 168, 83, 0.12);
+  box-shadow:
+    0 6px 24px rgba(0, 0, 0, 0.08),
+    0 0 0 1px rgba(212, 168, 83, 0.12);
   word-break: break-word;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
