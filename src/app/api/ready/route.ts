@@ -7,11 +7,7 @@ export async function GET() {
     process.env.QWEN_API_KEY?.trim() ? "qwen" : null,
   ].filter((provider): provider is string => Boolean(provider));
   const providerKeys = ["HDAKLLM", "GROQ_API_KEY", "QWEN_API_KEY"] as const;
-  const infraKeys = [
-    "DATABASE_URL",
-    "UPSTASH_REDIS_REST_URL",
-    "UPSTASH_REDIS_REST_TOKEN",
-  ] as const;
+  const infraKeys = ["DATABASE_URL"] as const;
 
   const missingInfra = infraKeys.filter(key => !process.env[key]);
   const hasProvider = providerKeys.some(key => Boolean(process.env[key]));

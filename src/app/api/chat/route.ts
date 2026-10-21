@@ -508,7 +508,7 @@ export async function POST(request: NextRequest) {
             try {
               controller.enqueue(
                 encoder.encode(
-                  `data: ${JSON.stringify({ error: e instanceof LlmUnavailableError ? LLM_UNAVAILABLE_MESSAGE : "Не вдалося сформувати відповідь. Спробуйте ще раз.", done: true })}\\n\\n`
+                  `data: ${JSON.stringify({ error: e instanceof LlmUnavailableError ? LLM_UNAVAILABLE_MESSAGE : "Не вдалося сформувати відповідь. Спробуйте ще раз.", done: true })}\n\n`
                 )
               );
             } catch (enqueueError) {
