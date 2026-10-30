@@ -7,9 +7,15 @@ export async function GET() {
     process.env.QWEN_API_KEY?.trim() ? "qwen" : null,
   ].filter((provider): provider is string => Boolean(provider));
   const providerKeys = ["HDAKLLM", "GROQ_API_KEY", "QWEN_API_KEY"] as const;
-  const infraKeys = ["DATABASE_URL"] as const;
+  const hasDatabaseUrl = Boolean(
+    process.env.DATABASE_URL ||
+      process.env.NEON_DATABASE_URL ||
+      process.env.NEON_POSTGRES_URL ||
+      process.env.NEON_POSTGRES_PRISMA_URL ||
+      process.env.NEON_POSTGRES_URL_NON_POOLING
+  );
 
-  const missingInfra = infraKeys.filter(key => !process.env[key]);
+  const missingInfra = hasDatabaseUrl ? [] : ["DATABASE_URL"];
   const hasProvider = providerKeys.some(key => Boolean(process.env[key]));
 
   if (missingInfra.length > 0 || !hasProvider) {

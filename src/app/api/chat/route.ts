@@ -491,6 +491,15 @@ export async function POST(request: NextRequest) {
               "Не вдалося зберегти відповідь",
               e instanceof Error ? e : new Error(String(e))
             );
+            try {
+              controller.enqueue(
+                encoder.encode(
+                  `data: ${JSON.stringify({ error: "Відповідь сформовано, але не вдалося зберегти історію.", done: true, conversationId: convId })}\n\n`
+                )
+              );
+            } catch {
+              // The client may have disconnected before the persistence error was reported.
+            }
           }
 
           controller.enqueue(
