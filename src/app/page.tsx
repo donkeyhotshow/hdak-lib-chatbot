@@ -3,16 +3,12 @@
 // REDESIGNED
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-  BookOpen,
-  ChevronDown,
-  Globe,
-  History,
   Loader2,
-  Plus,
+  Menu,
   Send,
   Square,
-  X,
 } from "lucide-react";
+import { Sidebar } from "@/components/chat/Sidebar";
 import ReactMarkdown from "react-markdown";
 import { useToast } from "@/hooks/use-toast";
 import { useChat } from "@/hooks/use-chat";
@@ -110,8 +106,9 @@ const resources: ResourceGroup[] = [
 export default function ChatPage() {
   const { toast } = useToast();
   const [language, setLanguage] = useState<Language>("uk");
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const [resourcesOpen, setResourcesOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const sidebarRef = useRef<HTMLElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const {
@@ -132,6 +129,9 @@ export default function ChatPage() {
     createNewConversation,
     loadMoreConversations,
     formatTime,
+    deleteConversation,
+    renameConversation,
+    newConversationId,
   } = useChat(toast);
 
   const t = translations[language];
@@ -158,11 +158,6 @@ export default function ChatPage() {
       : ["How to find a book in the catalog?", "What are the library hours?"];
   }, [isTyping, language, lastMessage]);
 
-  const closeMenus = () => {
-    setHistoryOpen(false);
-    setResourcesOpen(false);
-  };
-
   const adjustTextarea = () => {
     if (!textareaRef.current) return;
     textareaRef.current.style.height = "auto";
@@ -185,18 +180,40 @@ export default function ChatPage() {
   }, [inputValue]);
 
   useEffect(() => {
-    if (!historyOpen && !resourcesOpen) return;
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") closeMenus();
+    const media = window.matchMedia("(max-width: 767px)");
+    const sync = () => {
+      setIsMobile(media.matches);
+      setSidebarOpen(!media.matches);
+    };
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem("hdak-language");
+    if (saved === "uk" || saved === "en") setLanguage(saved);
+    else if (saved === "ru") window.localStorage.setItem("hdak-language", "uk");
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem("hdak-language", language);
+    document.documentElement.lang = language;
+  }, [language]);
+
+  useEffect(() => {
+    if (!sidebarOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSidebarOpen(false);
     };
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keydown", onKeyDown);
     return () => {
       document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keydown", onKeyDown);
     };
-  }, [historyOpen, resourcesOpen]);
+  }, [sidebarOpen]);
 
   const containerStyle = useMemo(
     () =>
@@ -235,162 +252,27 @@ export default function ChatPage() {
         }
       `}</style>
 
-      {(historyOpen || resourcesOpen) && (
-        <button
-          className="fixed inset-0 z-30 cursor-default bg-[#3b2a1f]/10"
-          aria-label="Закрити меню"
-          onClick={closeMenus}
+      <div className="flex min-h-[100dvh] min-w-0">
+        <Sidebar
+          isOpen={sidebarOpen}
+          setIsOpen={setSidebarOpen}
+          isMobile={isMobile}
+          sidebarRef={sidebarRef}
+          conversations={conversations}
+          currentConversation={currentConversation}
+          newConversationId={newConversationId}
+          loadConversation={id => void loadConversation(id)}
+          deleteConversation={deleteConversation}
+          renameConversation={renameConversation}
+          createNewConversation={createNewConversation}
+          hasMore={hasMoreConversations}
+          loadMore={() => void loadMoreConversations()}
+          isLoadingConversations={isLoadingConversations}
+          language={language}
+          onLanguageChange={setLanguage}
         />
-      )}
-
-      <header
-        className="fixed inset-x-0 top-0 z-40 min-h-[52px] border-b border-[#8b5e3c]/20 pt-[env(safe-area-inset-top)] backdrop-blur-sm"
-        style={{ backgroundColor: "rgba(255, 250, 242, 0.96)" }}
-      >
-        <div className="mx-auto flex h-[52px] max-w-[1100px] items-center justify-between gap-2 px-3 sm:px-4">
-          <div className="relative">
-            <button
-              onClick={() => {
-                setHistoryOpen(v => !v);
-                setResourcesOpen(false);
-              }}
-              aria-label={historyOpen ? "Закрити історію" : t.history}
-              aria-expanded={historyOpen}
-              aria-haspopup="dialog"
-              className="flex min-h-10 items-center gap-2 rounded-md px-2 py-1.5 text-sm text-[#3b2a1f] hover:bg-[#8b5e3c]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5e3c]/50"
-            >
-              {historyOpen ? <X size={16} /> : <History size={16} />}
-              <span className="max-[480px]:hidden">{t.history}</span>
-              <ChevronDown size={14} />
-            </button>
-            {historyOpen && (
-              <div className="absolute left-0 top-[44px] z-50 w-[320px] rounded-xl border border-[#8b5e3c]/25 bg-[#fffaf2] p-2 shadow-2xl max-w-[90vw]">
-                <button
-                  onClick={() => {
-                    createNewConversation();
-                    closeMenus();
-                  }}
-                  className="mb-2 flex w-full items-center gap-2 rounded-lg border border-[#8b5e3c]/30 bg-[#8b5e3c]/10 px-3 py-2 text-left text-sm text-[#3b2a1f] hover:bg-[#8b5e3c]/20"
-                >
-                  <Plus size={15} /> {t.newChat}
-                </button>
-                <div className="max-h-[min(60vh,320px)] overflow-y-auto overscroll-contain pr-1">
-                  {isLoadingConversations ? (
-                    <div className="px-3 py-6 text-center text-sm text-[#7a6350]">
-                      <Loader2
-                        className="mx-auto mb-2 animate-spin"
-                        size={16}
-                      />
-                      Loading...
-                    </div>
-                  ) : conversations.length === 0 ? (
-                    <div className="px-3 py-6 text-center text-sm text-[#7a6350]">
-                      {t.noConversations}
-                    </div>
-                  ) : (
-                    conversations.map(conv => (
-                      <button
-                        key={conv.id}
-                        onClick={() => {
-                          void loadConversation(conv.id);
-                          closeMenus();
-                        }}
-                        className={`mb-1 w-full rounded-lg px-3 py-2 text-left transition ${
-                          currentConversation?.id === conv.id
-                            ? "bg-[#8b5e3c]/20 text-[#3b2a1f]"
-                            : "text-[#3b2a1f] hover:bg-[#8b5e3c]/10"
-                        }`}
-                      >
-                        <div className="truncate text-sm">{conv.title}</div>
-                        <div className="mt-1 text-xs text-[#7a6350]">
-                          {formatTime(conv.createdAt)}
-                        </div>
-                      </button>
-                    ))
-                  )}
-                </div>
-                {hasMoreConversations && (
-                  <button
-                    onClick={() => void loadMoreConversations()}
-                    className="mt-2 w-full rounded-lg border border-[#8b5e3c]/20 px-3 py-2 text-xs text-[#3b2a1f] hover:bg-[#8b5e3c]/10"
-                  >
-                    Load more
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-lg">📚</span>
-            <span
-              className="text-[18px] font-semibold text-[#3b2a1f]"
-              style={{ fontFamily: "'Lora', serif" }}
-            >
-              Бібліотека ХДАК
-            </span>
-          </div>
-
-          <div className="relative flex items-center gap-2">
-            <button
-              onClick={() => {
-                setResourcesOpen(v => !v);
-                setHistoryOpen(false);
-              }}
-              aria-label={resourcesOpen ? "Закрити ресурси" : t.resources}
-              aria-expanded={resourcesOpen}
-              aria-haspopup="dialog"
-              className="flex min-h-10 items-center gap-2 rounded-md px-2 py-1.5 text-sm text-[#3b2a1f] hover:bg-[#8b5e3c]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5e3c]/50"
-            >
-              <BookOpen size={16} />
-              <span className="max-[480px]:hidden">{t.resources}</span>
-              <ChevronDown size={14} />
-            </button>
-            <div className="flex shrink-0 items-center gap-1 rounded-md border border-[#8b5e3c]/20 bg-[#f5efe6]/60 p-1">
-              <Globe size={13} className="text-[#7a6350]" />
-              {(["uk", "en"] as Language[]).map(code => (
-                <button
-                  key={code}
-                  onClick={() => setLanguage(code)}
-                  className={`rounded px-1.5 py-0.5 text-[11px] ${
-                    language === code
-                      ? "bg-[#8b5e3c] text-[#1b1404]"
-                      : "text-[#3b2a1f]/80 hover:bg-[#8b5e3c]/15"
-                  }`}
-                >
-                  {code === "uk" ? "УКР" : "ENG"}
-                </button>
-              ))}
-            </div>
-            {resourcesOpen && (
-              <div className="absolute right-0 top-[44px] z-50 w-[360px] max-w-[calc(100vw-24px)] rounded-xl border border-[#8b5e3c]/25 bg-[#fffaf2] p-3 shadow-2xl">
-                {resources.map((group, index) => (
-                  <div key={`${group.title}-${index}`}>
-                    {index > 0 && <div className="my-2 h-px bg-[#8b5e3c]/15" />}
-                    <div className="space-y-1">
-                      {group.items.map(item => (
-                        <a
-                          key={item.label}
-                          href={item.href}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="flex items-center justify-between rounded-lg px-2.5 py-2 text-sm text-[#3b2a1f] hover:bg-[#8b5e3c]/12"
-                        >
-                          <span className="mr-3 truncate">
-                            {item.icon} {item.label}
-                          </span>
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto flex h-[100dvh] min-h-0 w-full max-w-[740px] flex-col px-6 pt-[calc(52px+env(safe-area-inset-top))] max-[640px]:px-3 sm:px-4">
+        <button className="fixed left-3 top-3 z-30 rounded-lg border border-[#d9c9b0] bg-white p-2 text-[#3b2a1f] shadow-sm md:hidden" onClick={() => setSidebarOpen(true)} aria-label="Відкрити меню"><Menu size={20} /></button>
+        <main className="mx-auto flex h-[100dvh] min-h-0 min-w-0 w-full max-w-[860px] flex-1 flex-col px-3 pt-[env(safe-area-inset-top)] sm:px-6">
         <section
           className={`min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 pt-4 sm:px-0 sm:py-6 sm:pb-6 ${
             isEmptyState ? "pb-4" : "pb-[160px]"
@@ -585,6 +467,7 @@ export default function ChatPage() {
           </div>
         </section>
       </main>
+      </div>
     </div>
   );
 }

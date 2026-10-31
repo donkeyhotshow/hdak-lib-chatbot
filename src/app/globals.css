@@ -1364,6 +1364,18 @@ textarea {
 }
 
 /* Swipe back detection zone */
+/* Light navigation surface */
+.sidebar-premium { background: #fbf8f3 !important; color: #3b2a1f; border-right: 1px solid #e8ded2; box-shadow: 8px 0 24px rgba(59,42,31,.05); }
+.sidebar-header, .sidebar-header-glow { background: transparent !important; }
+.sidebar-header-divider { background: #e8ded2 !important; }
+.sidebar-premium .logo-text, .sidebar-premium .sidebar-label { color: #3b2a1f !important; }
+.sidebar-premium .sidebar-subtitle, .sidebar-premium .sidebar-text, .sidebar-premium .sidebar-subtext, .sidebar-premium .sidebar-contact-label, .sidebar-premium .sidebar-contact-value { color: #806b58 !important; }
+.sidebar-premium .sidebar-link:hover, .sidebar-premium .sidebar-contact-row:hover, .sidebar-premium .sidebar-social-btn:hover { background: #f1e9df !important; }
+.sidebar-premium .sidebar-link, .sidebar-premium .sidebar-contact-row { color: #5f4938 !important; }
+.sidebar-premium .sidebar-close-btn { color: #806b58 !important; }
+.sidebar-premium .btn-new-chat { background: #8b5e3c !important; color: #fffaf2 !important; }
+.sidebar-premium input { background: #fff !important; color: #3b2a1f !important; border-color: #e8ded2 !important; }
+
 .swipe-back-zone {
   position: absolute;
   left: 0;

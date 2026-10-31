@@ -321,6 +321,8 @@ export interface SidebarProps {
   hasMore?: boolean;
   loadMore?: () => void;
   isLoadingConversations?: boolean;
+  language?: "uk" | "en";
+  onLanguageChange?: (language: "uk" | "en") => void;
 }
 
 // Fix #15: memo on entire Sidebar
@@ -339,6 +341,8 @@ export const Sidebar = memo(function Sidebar({
   hasMore = false,
   loadMore,
   isLoadingConversations = false,
+  language = "uk",
+  onLanguageChange,
 }: SidebarProps) {
   // H1: avoid hydration mismatch — evaluate library status only on client after mount
   const [open, setOpen] = useState(false);
@@ -681,7 +685,12 @@ export const Sidebar = memo(function Sidebar({
             </div>
 
             {/* FOOTER */}
-            <div className="px-3 pb-3 pt-2 shrink-0 border-t border-white/[0.04]">
+            <div className="px-3 pb-2 pt-3 shrink-0 border-t border-[#e8ded2]">
+              <div className="mb-2 flex items-center justify-between rounded-lg border border-[#e8ded2] bg-white p-1 text-xs">
+                {(["uk", "en"] as const).map(code => (
+                  <button key={code} onClick={() => onLanguageChange?.(code)} className={cn("flex-1 rounded-md px-2 py-1.5", language === code ? "bg-[#8b5e3c] text-white" : "text-[#806b58]")}>{code === "uk" ? "Українська" : "English"}</button>
+                ))}
+              </div>
               <button
                 onClick={() => {
                   createNewConversation();
