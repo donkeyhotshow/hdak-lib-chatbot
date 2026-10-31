@@ -46,6 +46,9 @@
 :root {
   color-scheme: light;
   --radius: 0.75rem;
+  --font-sans: "Poppins", system-ui, -apple-system, sans-serif;
+  --font-serif: "Literata", Georgia, "Times New Roman", serif;
+  --font-logo: "Outfit", "Literata", Georgia, serif;
 
   /* HDAK warm library palette */
   --background: #f5efe6;

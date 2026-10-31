@@ -614,12 +614,18 @@ export function useChat(
         }
 
         if (serverError && isCurrentRequest()) {
-          setError(
-            "Сталася помилка під час відповіді. Показано частковий результат."
-          );
+          setError(serverError);
           setStreamingMessageId(null);
           setMessages(prev =>
-            prev.map(m => (m.id === botId ? { ...m, status: "error" } : m))
+            prev.map(m =>
+              m.id === botId
+                ? {
+                    ...m,
+                    content: m.content || serverError,
+                    status: "error",
+                  }
+                : m
+            )
           );
         }
 
@@ -635,7 +641,9 @@ export function useChat(
         toast({
           description: isOffline
             ? "Немає підключення до інтернету. Перевірте мережу та спробуйте ще раз."
-            : "Сервіс тимчасово недоступний. Спробуйте ще раз за кілька секунд.",
+            : err instanceof Error && err.message
+              ? err.message
+              : "Сервіс тимчасово недоступний. Спробуйте ще раз за кілька секунд.",
         });
 
         // H1+H7: use functional update with captured IDs — safe against concurrent state

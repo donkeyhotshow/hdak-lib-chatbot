@@ -5,6 +5,7 @@ import { stripHtml } from "@/lib/sanitize";
 import { checkRateLimit, generateFingerprint } from "@/lib/rate-limit";
 import { ALL_LINKS } from "@/lib/constants";
 import { buildSystemPrompt } from "@/lib/prompts";
+import { getFaqResponse } from "@/lib/faq-responses";
 import {
   detectSearchIntent,
   searchCatalog,
@@ -21,6 +22,9 @@ import {
   validateInput,
 } from "@/lib/validation";
 import { logger } from "@/lib/logger";
+
+export const runtime = "nodejs";
+export const maxDuration = 60;
 
 const MAX_MESSAGE_LENGTH = 2000;
 const DB_TIMEOUT_MS = 10_000;
@@ -45,6 +49,8 @@ function withTimeout<T>(
 
 const DEFAULT_LLM7_URL = "https://api.llm7.io/v1/chat/completions";
 const DEFAULT_LLM7_MODEL = "default";
+const DEFAULT_GROK_URL = "https://api.x.ai/v1/chat/completions";
+const DEFAULT_GROK_MODEL = "grok-3-mini";
 const DEFAULT_GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 const DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile";
 const DEFAULT_QWEN_URL =
@@ -58,8 +64,13 @@ function getLlmConfig() {
       url: process.env.LLM7_URL?.trim() || DEFAULT_LLM7_URL,
       model: process.env.LLM7_MODEL_NAME?.trim() || DEFAULT_LLM7_MODEL,
     },
+    grok: {
+      apiKey: process.env.GROK_API_KEY?.trim(),
+      url: process.env.GROK_URL?.trim() || DEFAULT_GROK_URL,
+      model: process.env.GROK_MODEL_NAME?.trim() || DEFAULT_GROK_MODEL,
+    },
     groq: {
-      apiKey: process.env.GROQ_API_KEY?.trim(),
+      apiKey: process.env.GROQ_API_KEY?.trim() || process.env.GROQ_API?.trim(),
       url: process.env.GROQ_URL?.trim() || DEFAULT_GROQ_URL,
       model: process.env.GROQ_MODEL_NAME?.trim() || DEFAULT_GROQ_MODEL,
     },
@@ -198,8 +209,8 @@ async function streamLLM(
 
   const config = getLlmConfig();
 
-  // Prefer LLM7, then use configured compatible providers as fallbacks.
-  for (const provider of [config.llm7, config.groq, config.qwen]) {
+  // Prefer explicitly configured providers, then fall back without exposing keys.
+  for (const provider of [config.llm7, config.grok, config.groq, config.qwen]) {
     if (!provider.apiKey) continue;
     for (let attempt = 1; attempt <= 2; attempt += 1) {
       try {
@@ -472,6 +483,27 @@ export async function POST(request: NextRequest) {
               `data: ${JSON.stringify({ conversationId: convId })}\n\n`
             )
           );
+
+          const curatedFaq = getFaqResponse(safeMessage);
+          if (curatedFaq) {
+            const curatedText = curatedFaq.content;
+            controller.enqueue(
+              encoder.encode(
+                `data: ${JSON.stringify({ text: curatedText, source: "knowledge_base" })}\n\n`
+              )
+            );
+            await db.insert(messagesTable).values({
+              conversationId: convId,
+              role: "ASSISTANT",
+              content: curatedText,
+            });
+            controller.enqueue(
+              encoder.encode(
+                `data: ${JSON.stringify({ done: true, source: "knowledge_base", conversationId: convId })}\n\n`
+              )
+            );
+            return;
+          }
 
           const fullResponse = await streamLLM(
             apiMessages,

@@ -1,33 +1,8 @@
 import type { Metadata, Viewport } from "next";
-import { Poppins, Literata, Outfit } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Script from "next/script";
-
-const poppins = Poppins({
-  variable: "--font-sans",
-  subsets: ["latin", "latin-ext"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-  adjustFontFallback: true,
-});
-
-const literata = Literata({
-  variable: "--font-serif",
-  subsets: ["latin", "latin-ext"],
-  weight: ["400", "600"],
-  display: "swap",
-  adjustFontFallback: true,
-});
-
-const outfit = Outfit({
-  variable: "--font-logo",
-  subsets: ["latin", "latin-ext"],
-  weight: ["600", "700"],
-  display: "swap",
-  adjustFontFallback: true,
-});
 
 export const viewport: Viewport = {
   viewportFit: "cover",
@@ -106,9 +81,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="ХДАК" />
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
       </head>
-      <body
-        className={`${poppins.variable} ${literata.variable} ${outfit.variable} antialiased`}
-      >
+      <body className="antialiased">
         <ErrorBoundary>{children}</ErrorBoundary>
         <Toaster />
         {process.env.NODE_ENV === "production" && (
