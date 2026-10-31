@@ -11,7 +11,9 @@ import {
   Plus,
   Send,
   Square,
+  X,
 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 import { useToast } from "@/hooks/use-toast";
 import { useChat } from "@/hooks/use-chat";
 
@@ -134,6 +136,27 @@ export default function ChatPage() {
 
   const t = translations[language];
   const isEmptyState = messages.length === 0;
+  const lastMessage = messages[messages.length - 1];
+  const followUpSuggestions = useMemo(() => {
+    if (isTyping || !lastMessage || lastMessage.role !== "ASSISTANT") return [];
+    const text = lastMessage.content.toLowerCase();
+    if (/графік|розклад|годин|hours|schedule|open/i.test(text)) {
+      return language === "uk"
+        ? ["Як записатися до бібліотеки?", "Які контакти бібліотеки?"]
+        : ["How to register at the library?", "What are the library contacts?"];
+    }
+    if (/книг|каталог|автор|book|catalog|author/i.test(text)) {
+      return language === "uk"
+        ? ["Як знайти книгу в каталозі?", "Які електронні ресурси доступні?"]
+        : [
+            "How to find a book in the catalog?",
+            "What electronic resources are available?",
+          ];
+    }
+    return language === "uk"
+      ? ["Як знайти книгу в каталозі?", "Який графік роботи бібліотеки?"]
+      : ["How to find a book in the catalog?", "What are the library hours?"];
+  }, [isTyping, language, lastMessage]);
 
   const closeMenus = () => {
     setHistoryOpen(false);
@@ -161,6 +184,20 @@ export default function ChatPage() {
     adjustTextarea();
   }, [inputValue]);
 
+  useEffect(() => {
+    if (!historyOpen && !resourcesOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeMenus();
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [historyOpen, resourcesOpen]);
+
   const containerStyle = useMemo(
     () =>
       ({
@@ -174,7 +211,7 @@ export default function ChatPage() {
   );
 
   return (
-    <div className="min-h-screen" style={containerStyle}>
+    <div className="min-h-[100dvh] overflow-x-hidden" style={containerStyle}>
       <style>{` 
         @keyframes breathe {
           0%,100% { box-shadow: 0 0 32px rgba(200,168,75,0.22); }
@@ -188,27 +225,41 @@ export default function ChatPage() {
           0%,100% { transform:scale(.75); opacity:.3; }
           50% { transform:scale(1.2); opacity:.9; }
         }
+        @media (prefers-reduced-motion: reduce) {
+          *, *::before, *::after {
+            animation-duration: .01ms !important;
+            animation-iteration-count: 1 !important;
+            scroll-behavior: auto !important;
+            transition-duration: .01ms !important;
+          }
+        }
       `}</style>
 
       {(historyOpen || resourcesOpen) && (
         <button
-          className="fixed inset-0 z-30 cursor-default"
-          aria-label="close menus"
+          className="fixed inset-0 z-30 cursor-default bg-[#3b2a1f]/10"
+          aria-label="Закрити меню"
           onClick={closeMenus}
         />
       )}
 
-      <header className="fixed top-0 z-40 h-[52px] w-full border-b border-[#8b5e3c]/20 backdrop-blur-sm" style={{ backgroundColor: "rgba(255, 250, 242, 0.96)" }}>
-        <div className="mx-auto flex h-full max-w-[1100px] items-center justify-between px-4">
+      <header
+        className="fixed inset-x-0 top-0 z-40 min-h-[52px] border-b border-[#8b5e3c]/20 pt-[env(safe-area-inset-top)] backdrop-blur-sm"
+        style={{ backgroundColor: "rgba(255, 250, 242, 0.96)" }}
+      >
+        <div className="mx-auto flex h-[52px] max-w-[1100px] items-center justify-between gap-2 px-3 sm:px-4">
           <div className="relative">
             <button
               onClick={() => {
                 setHistoryOpen(v => !v);
                 setResourcesOpen(false);
               }}
-              className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-[#3b2a1f] hover:bg-[#8b5e3c]/10"
+              aria-label={historyOpen ? "Закрити історію" : t.history}
+              aria-expanded={historyOpen}
+              aria-haspopup="dialog"
+              className="flex min-h-10 items-center gap-2 rounded-md px-2 py-1.5 text-sm text-[#3b2a1f] hover:bg-[#8b5e3c]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5e3c]/50"
             >
-              <History size={16} />
+              {historyOpen ? <X size={16} /> : <History size={16} />}
               <span className="max-[480px]:hidden">{t.history}</span>
               <ChevronDown size={14} />
             </button>
@@ -223,7 +274,7 @@ export default function ChatPage() {
                 >
                   <Plus size={15} /> {t.newChat}
                 </button>
-                <div className="max-h-[320px] overflow-y-auto pr-1">
+                <div className="max-h-[min(60vh,320px)] overflow-y-auto overscroll-contain pr-1">
                   {isLoadingConversations ? (
                     <div className="px-3 py-6 text-center text-sm text-[#7a6350]">
                       <Loader2
@@ -286,13 +337,16 @@ export default function ChatPage() {
                 setResourcesOpen(v => !v);
                 setHistoryOpen(false);
               }}
-              className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-[#3b2a1f] hover:bg-[#8b5e3c]/10"
+              aria-label={resourcesOpen ? "Закрити ресурси" : t.resources}
+              aria-expanded={resourcesOpen}
+              aria-haspopup="dialog"
+              className="flex min-h-10 items-center gap-2 rounded-md px-2 py-1.5 text-sm text-[#3b2a1f] hover:bg-[#8b5e3c]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5e3c]/50"
             >
               <BookOpen size={16} />
               <span className="max-[480px]:hidden">{t.resources}</span>
               <ChevronDown size={14} />
             </button>
-            <div className="flex items-center gap-1 rounded-md border border-[#8b5e3c]/20 bg-[#f5efe6]/60 p-1">
+            <div className="flex shrink-0 items-center gap-1 rounded-md border border-[#8b5e3c]/20 bg-[#f5efe6]/60 p-1">
               <Globe size={13} className="text-[#7a6350]" />
               {(["uk", "en"] as Language[]).map(code => (
                 <button
@@ -309,7 +363,7 @@ export default function ChatPage() {
               ))}
             </div>
             {resourcesOpen && (
-              <div className="absolute right-0 top-[44px] z-50 w-[360px] max-w-[94vw] rounded-xl border border-[#8b5e3c]/25 bg-[#fffaf2] p-3 shadow-2xl">
+              <div className="absolute right-0 top-[44px] z-50 w-[360px] max-w-[calc(100vw-24px)] rounded-xl border border-[#8b5e3c]/25 bg-[#fffaf2] p-3 shadow-2xl">
                 {resources.map((group, index) => (
                   <div key={`${group.title}-${index}`}>
                     {index > 0 && <div className="my-2 h-px bg-[#8b5e3c]/15" />}
@@ -336,14 +390,18 @@ export default function ChatPage() {
         </div>
       </header>
 
-      <main className="mx-auto flex h-screen w-full max-w-[740px] flex-col px-6 pt-[52px] max-[640px]:px-4">
-        <section className="flex-1 overflow-y-auto py-6">
+      <main className="mx-auto flex h-[100dvh] min-h-0 w-full max-w-[740px] flex-col px-6 pt-[calc(52px+env(safe-area-inset-top))] max-[640px]:px-3 sm:px-4">
+        <section
+          className={`min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 pt-4 sm:px-0 sm:py-6 sm:pb-6 ${
+            isEmptyState ? "pb-4" : "pb-[160px]"
+          }`}
+        >
           {isLoadingConversation ? (
             <div className="flex h-full items-center justify-center text-[#7a6350]">
               <Loader2 className="animate-spin" />
             </div>
           ) : isEmptyState ? (
-            <div className="flex h-full flex-col items-center justify-center text-center">
+            <div className="flex min-h-full flex-col items-center justify-start pt-8 text-center sm:justify-center sm:pt-0">
               <div
                 className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-[#fffaf2] text-3xl"
                 style={{ animation: "breathe 2.6s ease-in-out infinite" }}
@@ -392,14 +450,42 @@ export default function ChatPage() {
                       </div>
                     )}
                     <div
-                      className={`max-w-[82%] rounded-2xl border px-3 py-2 text-sm leading-relaxed ${
+                      className={`max-w-[min(82%,620px)] rounded-2xl border px-3 py-2 text-sm leading-relaxed sm:px-4 ${
                         isUser
                           ? "rounded-tr-[3px] border-[#8b5e3c]/30 bg-[#8b5e3c] text-[#3b2a1f]"
                           : "rounded-tl-[3px] border-[#7a6350]/35 bg-[#fffaf2] text-[#3b2a1f]"
                       }`}
                     >
-                      <div className="whitespace-pre-wrap break-words">
-                        {message.content}
+                      <div className="break-words [overflow-wrap:anywhere]">
+                        <ReactMarkdown
+                          components={{
+                            p: ({ children }) => (
+                              <p className="mb-2 last:mb-0">{children}</p>
+                            ),
+                            a: ({ children, href }) => (
+                              <a
+                                href={href}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="break-all underline underline-offset-2"
+                              >
+                                {children}
+                              </a>
+                            ),
+                            ul: ({ children }) => (
+                              <ul className="mb-2 list-disc pl-5">
+                                {children}
+                              </ul>
+                            ),
+                            ol: ({ children }) => (
+                              <ol className="mb-2 list-decimal pl-5">
+                                {children}
+                              </ol>
+                            ),
+                          }}
+                        >
+                          {message.content}
+                        </ReactMarkdown>
                       </div>
                       <div className="mt-1 text-[10px] text-[#7a6350]">
                         {formatTime(message.createdAt)}
@@ -435,13 +521,33 @@ export default function ChatPage() {
                 </div>
               )}
 
+              {!isTyping && followUpSuggestions.length > 0 && (
+                <div
+                  className="ml-8 flex flex-wrap gap-2 pt-1"
+                  aria-label="Запропоновані запитання"
+                >
+                  {followUpSuggestions.map(question => (
+                    <button
+                      key={question}
+                      type="button"
+                      onClick={() => handleFaqSend(question)}
+                      className="max-w-full rounded-xl border border-[#8b5e3c]/25 bg-[#fffaf2]/80 px-3 py-2 text-left text-xs leading-5 text-[#5d4637] transition hover:border-[#8b5e3c]/60 hover:bg-[#fffaf2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5e3c]/50"
+                    >
+                      {question}
+                    </button>
+                  ))}
+                </div>
+              )}
               <div ref={messagesEndRef} />
             </div>
           )}
         </section>
 
-        <section className="sticky bottom-0 pb-[22px] pt-3">
-          <div className="rounded-2xl border border-[#d9c9b0] p-3 shadow-[0_10px_24px_rgba(59,42,31,0.12)] backdrop-blur-sm focus-within:border-[#8b5e3c]/60 focus-within:shadow-[0_0_0_1px_rgba(139,94,60,.25),0_12px_30px_rgba(59,42,31,.12)]" style={{ backgroundColor: "rgba(255, 250, 242, 0.96)" }}>
+        <section className="sticky bottom-0 shrink-0 pb-[calc(12px+env(safe-area-inset-bottom))] pt-2 sm:pb-[22px] sm:pt-3">
+          <div
+            className="rounded-2xl border border-[#d9c9b0] p-3 shadow-[0_10px_24px_rgba(59,42,31,0.12)] backdrop-blur-sm focus-within:border-[#8b5e3c]/60 focus-within:shadow-[0_0_0_1px_rgba(139,94,60,.25),0_12px_30px_rgba(59,42,31,.12)]"
+            style={{ backgroundColor: "rgba(255, 250, 242, 0.96)" }}
+          >
             <div className="flex items-end gap-2">
               <textarea
                 ref={textareaRef}
@@ -460,11 +566,11 @@ export default function ChatPage() {
                   }
                 }}
                 placeholder={t.placeholder}
-                className="max-h-[100px] min-h-[42px] flex-1 resize-none bg-transparent px-2 py-2 text-sm text-[#3b2a1f] outline-none placeholder:text-[#7a6350]"
+                className="max-h-[120px] min-h-[42px] flex-1 resize-none overflow-y-auto bg-transparent px-2 py-2 text-sm leading-6 text-[#3b2a1f] outline-none placeholder:text-[#7a6350] focus-visible:ring-0"
               />
               <button
                 onClick={() => (isTyping ? handleStop() : handleSend())}
-                className="mb-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#8b5e3c] text-[#1b1404] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                className="mb-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#8b5e3c] text-[#1b1404] transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5e3c]/50 disabled:cursor-not-allowed disabled:opacity-60"
                 disabled={!isTyping && inputValue.trim().length === 0}
                 aria-label={isTyping ? "Stop" : "Send"}
               >
