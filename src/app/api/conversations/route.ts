@@ -62,10 +62,10 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ items, hasMore, offset, limit });
   } catch (error) {
-    console.error(error);
+    console.error("Conversations list failed", error);
     return NextResponse.json(
       { error: "Помилка завантаження розмов" },
-      { status: 500 }
+      { status: 503 }
     );
   }
 }
@@ -118,10 +118,10 @@ export async function POST(request: NextRequest) {
       .returning();
     return NextResponse.json(newConv);
   } catch (error) {
-    console.error(error);
+    console.error("Conversation creation failed", error);
     return NextResponse.json(
-      { error: "Помилка створення розмови" },
-      { status: 500 }
+      { error: "Не вдалося зберегти розмову. Спробуйте ще раз." },
+      { status: 503 }
     );
   }
 }

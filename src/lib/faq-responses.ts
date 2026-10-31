@@ -229,7 +229,6 @@ function detectLang(query: string): "uk" | "en" {
   return /[а-яёіїєґА-ЯЁІЇЄҐ]/u.test(query) ? "uk" : "en";
 }
 
-// Pre-build normalized lookup maps once at module load
 const FAQ_UK_NORMALIZED = new Map<string, FaqResponse>(
   Object.entries(FAQ_RESPONSES).map(([k, v]) => [normalize(k), v])
 );
@@ -238,22 +237,143 @@ const FAQ_EN_NORMALIZED = new Map<string, FaqResponse>(
   Object.entries(FAQ_RESPONSES_EN).map(([k, v]) => [normalize(k), v])
 );
 
+const FAQ_UK_ALIASES: Record<string, string[]> = {
+  "Який графік роботи бібліотеки?": [
+    "коли працює бібліотека",
+    "до котрої бібліотека",
+    "бібліотека відкрита",
+    "розклад бібліотеки",
+    "години роботи",
+  ],
+  "Як записатися до бібліотеки?": [
+    "як стати читачем",
+    "як отримати читацький квиток",
+    "що потрібно для запису",
+    "реєстрація в бібліотеці",
+  ],
+  "Як знайти книгу в каталозі?": [
+    "де знайти книгу",
+    "пошук книги",
+    "знайти книжку",
+    "каталог книг",
+    "пошук за автором",
+  ],
+  "Які контакти бібліотеки?": [
+    "номер телефону бібліотеки",
+    "як зв'язатися",
+    "адреса бібліотеки",
+    "електронна пошта бібліотеки",
+  ],
+  "Які правила користування бібліотекою?": [
+    "правила бібліотеки",
+    "як користуватися книгами",
+    "чи можна їсти в читальній залі",
+    "термін повернення книги",
+  ],
+  "Які електронні ресурси доступні?": [
+    "наукові бази даних",
+    "де знайти статті",
+    "електронні ресурси",
+    "доступ до scopus",
+    "репозитарій",
+  ],
+};
+
+const FAQ_EN_ALIASES: Record<string, string[]> = {
+  "What are the library hours?": [
+    "when is the library open",
+    "library schedule",
+    "what time does the library close",
+  ],
+  "How to register at the library?": [
+    "how to become a reader",
+    "library card",
+    "what do i need to register",
+  ],
+  "How to find a book in the catalog?": [
+    "where can i find a book",
+    "book search",
+    "search by author",
+  ],
+  "What are the library contacts?": [
+    "library phone number",
+    "how can i contact the library",
+    "library address",
+  ],
+  "What are the library rules?": [
+    "library policy",
+    "borrowing rules",
+    "how long can i keep a book",
+  ],
+  "What electronic resources are available?": [
+    "research databases",
+    "where can i find papers",
+    "scopus access",
+    "online resources",
+  ],
+};
+
+const STOP_WORDS = new Set(
+  "а і й та це як що де до для з у на про чи не можна який яка які бібліотека library the are what how can i find to a an of is in do you the".split(
+    " "
+  )
+);
+
+function queryTokens(value: string): string[] {
+  return normalize(value)
+    .split(" ")
+    .filter(token => token.length > 2 && !STOP_WORDS.has(token));
+}
+
+function findSimilarFaq(
+  query: string,
+  entries: Record<string, FaqResponse>,
+  aliases: Record<string, string[]>
+): FaqResponse | null {
+  const normalizedQuery = normalize(query);
+  let best: { score: number; entry: FaqResponse } | null = null;
+  const queryWords = new Set(queryTokens(query));
+
+  for (const [question, entry] of Object.entries(entries)) {
+    const normalizedQuestion = normalize(question);
+    const questionWords = queryTokens(question);
+    const sharedWords = questionWords.filter(word =>
+      queryWords.has(word)
+    ).length;
+    const matchingAlias = aliases[question]?.find(alias =>
+      normalizedQuery.includes(normalize(alias))
+    );
+    const score = matchingAlias
+      ? 100
+      : sharedWords / Math.max(questionWords.length, 1);
+
+    if (score >= 0.34 && (!best || score > best.score)) {
+      best = { score, entry };
+    }
+  }
+
+  return best?.entry ?? null;
+}
+
 /**
- * Перевіряє, чи є текст запитом із готовою відповіддю.
- * Автоматично визначає мову: кирилиця → uk, інакше → en.
- * Якщо не знайдено в en — fallback на uk.
+ * Finds a curated answer by exact phrase, aliases, or meaningful keyword overlap.
+ * Unknown questions return null and continue through the live AI fallback.
  */
 export function getFaqResponse(
   query: string
 ): (Omit<FaqResponse, "content"> & { content: string }) | null {
   const key = normalize(query);
   const lang = detectLang(query);
+  const primary = lang === "en" ? FAQ_EN_NORMALIZED : FAQ_UK_NORMALIZED;
+  const fallback = lang === "en" ? FAQ_UK_NORMALIZED : null;
+  const primaryEntries = lang === "en" ? FAQ_RESPONSES_EN : FAQ_RESPONSES;
+  const primaryAliases = lang === "en" ? FAQ_EN_ALIASES : FAQ_UK_ALIASES;
 
-  // Try language-specific map first
-  const primaryMap = lang === "en" ? FAQ_EN_NORMALIZED : FAQ_UK_NORMALIZED;
-  const fallbackMap = lang === "en" ? FAQ_UK_NORMALIZED : null;
+  const entry =
+    primary.get(key) ??
+    findSimilarFaq(query, primaryEntries, primaryAliases) ??
+    (fallback ? findSimilarFaq(query, FAQ_RESPONSES, FAQ_UK_ALIASES) : null);
 
-  const entry = primaryMap.get(key) ?? fallbackMap?.get(key) ?? null;
   if (!entry) return null;
 
   return {

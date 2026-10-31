@@ -8,6 +8,7 @@ import {
   FaqSaveSchema,
   validateInput,
 } from "@/lib/validation";
+import { and, eq } from "drizzle-orm";
 
 const MAX_QUESTION_LENGTH = 500;
 const MAX_ANSWER_LENGTH = 10_000;
@@ -82,22 +83,39 @@ export async function POST(request: NextRequest) {
 
   try {
     const sessionId = getSessionIdFromRequest(request);
+    let conversationId = parsed.data.conversationId ?? null;
 
-    // neon-http driver does not support transactions — use sequential inserts
-    const [conv] = await db
-      .insert(conversations)
-      .values({
-        title: question.substring(0, 50),
-        sessionId,
-      })
-      .returning();
+    if (conversationId) {
+      const [ownedConversation] = await db
+        .select({ id: conversations.id })
+        .from(conversations)
+        .where(
+          and(
+            eq(conversations.id, conversationId),
+            eq(conversations.sessionId, sessionId)
+          )
+        )
+        .limit(1);
+      if (!ownedConversation) conversationId = null;
+    }
+
+    if (!conversationId) {
+      const [conv] = await db
+        .insert(conversations)
+        .values({
+          title: question.substring(0, 50),
+          sessionId,
+        })
+        .returning({ id: conversations.id });
+      conversationId = conv.id;
+    }
 
     await db.insert(messagesTable).values([
-      { conversationId: conv.id, role: "USER", content: question },
-      { conversationId: conv.id, role: "ASSISTANT", content: answer },
+      { conversationId, role: "USER", content: question },
+      { conversationId, role: "ASSISTANT", content: answer },
     ]);
 
-    return NextResponse.json({ conversationId: conv.id });
+    return NextResponse.json({ conversationId, source: "knowledge_base" });
   } catch (error) {
     console.error("faq-save DB error:", error);
     return NextResponse.json({ error: "Помилка збереження" }, { status: 500 });
