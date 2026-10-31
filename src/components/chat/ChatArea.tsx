@@ -224,7 +224,11 @@ const markdownComponents = {
       </a>
     );
   },
-  code: ({ className, children, ...rest }: React.HTMLAttributes<HTMLElement>) => {
+  code: ({
+    className,
+    children,
+    ...rest
+  }: React.HTMLAttributes<HTMLElement>) => {
     const isInline = !className?.startsWith("language-");
     if (isInline) {
       return (
@@ -489,25 +493,52 @@ function ChatAreaComponent({
     const c = content.toLowerCase();
     if (locale === "en") {
       if (/schedule|hours|working|open/i.test(c))
-        return ["How to register?", "Library contacts"];
+        return [
+          "How to register at the library?",
+          "What are the library contacts?",
+        ];
       if (/book|author|catalog|title|find/i.test(c))
-        return ["Search more books", "New arrivals"];
+        return [
+          "How to find a book in the catalog?",
+          "What electronic resources are available?",
+        ];
       if (/research|thesis|scopus|repository|science/i.test(c))
-        return ["Access Scopus?", "HDAK Repository"];
+        return [
+          "What electronic resources are available?",
+          "How to find a book in the catalog?",
+        ];
       if (/register|membership|card/i.test(c))
-        return ["Library hours", "Contacts"];
-      return ["Find a book", "Library hours", "Contacts"];
+        return [
+          "What are the library hours?",
+          "What are the library contacts?",
+        ];
+      return [
+        "How to find a book in the catalog?",
+        "What are the library hours?",
+        "What are the library contacts?",
+      ];
     }
     if (/графік|розклад|години|відкри|зачин/i.test(c))
-      return ["Як записатися?", "Контакти бібліотеки"];
+      return ["Як записатися до бібліотеки?", "Які контакти бібліотеки?"];
     if (/книг|автор|каталог|видання|збірник|підручник|поезі|знайд/i.test(c))
-      return ["Знайти ще книги", "Нові надходження"];
+      return [
+        "Як знайти книгу в каталозі?",
+        "Які електронні ресурси доступні?",
+      ];
     if (/наук|стат|дисертац|scopus|research|репозитар/i.test(c))
-      return ["Як отримати Scopus?", "Репозитарій ХДАК"];
-    if (/запис|квиток|реєстрац/i.test(c)) return ["Графік роботи", "Контакти"];
+      return [
+        "Які електронні ресурси доступні?",
+        "Як знайти книгу в каталозі?",
+      ];
+    if (/запис|квиток|реєстрац/i.test(c))
+      return ["Який графік роботи бібліотеки?", "Які контакти бібліотеки?"];
     if (/контакт|телефон|email|адрес/i.test(c))
-      return ["Графік роботи", "Як записатися?"];
-    return ["Знайти книгу", "Графік роботи", "Контакти"];
+      return ["Який графік роботи бібліотеки?", "Як записатися до бібліотеки?"];
+    return [
+      "Як знайти книгу в каталозі?",
+      "Який графік роботи бібліотеки?",
+      "Які контакти бібліотеки?",
+    ];
   };
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
@@ -699,7 +730,9 @@ function ChatAreaComponent({
               onRetry={onRetry}
             />
           ))}
-          <AnimatePresence>{isTyping && !streamingMessageId && <TypingIndicator />}</AnimatePresence>
+          <AnimatePresence>
+            {isTyping && !streamingMessageId && <TypingIndicator />}
+          </AnimatePresence>
 
           <AnimatePresence>
             {showChips && dynamicChips.length > 0 && (

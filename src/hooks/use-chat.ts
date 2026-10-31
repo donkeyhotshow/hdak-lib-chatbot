@@ -171,7 +171,9 @@ export function useChat(
               JSON.stringify({ items, hasMore, ts: Date.now() })
             );
           } catch (error) {
-            logger.warn("Failed to cache conversations after initial load", { error });
+            logger.warn("Failed to cache conversations after initial load", {
+              error,
+            });
           }
         }
       })
@@ -304,7 +306,9 @@ export function useChat(
             setMessages(msgs);
           }
         } catch (error) {
-          logger.warn("Failed to restore cached conversation messages", { error });
+          logger.warn("Failed to restore cached conversation messages", {
+            error,
+          });
         }
         setError("Не вдалося завантажити розмову. Перевірте з'єднання.");
       }
@@ -567,7 +571,8 @@ export function useChat(
                   currentConversationRef.current = newConv;
                   setCurrentConversation(newConv);
                   setConversations(prev => {
-                    if (prev.some(c => c.id === chunk.conversationId)) return prev;
+                    if (prev.some(c => c.id === chunk.conversationId))
+                      return prev;
                     return [newConv, ...prev];
                   });
                 }
@@ -581,20 +586,20 @@ export function useChat(
                   }
                 }
                 if (chunk.error) serverError = chunk.error;
-                  if (chunk.done || chunk.error) {
-                    if (flushTimer) {
-                      clearTimeout(flushTimer);
-                      flushTimer = null;
-                    }
-                    flushPending();
-                    if (isCurrentRequest()) {
-                      setStreamingMessageId(null);
-                      setMessages(prev =>
-                        prev.map(m =>
-                          m.id === botId ? { ...m, status: "sent" } : m
-                        )
-                      );
-                    }
+                if (chunk.done || chunk.error) {
+                  if (flushTimer) {
+                    clearTimeout(flushTimer);
+                    flushTimer = null;
+                  }
+                  flushPending();
+                  if (isCurrentRequest()) {
+                    setStreamingMessageId(null);
+                    setMessages(prev =>
+                      prev.map(m =>
+                        m.id === botId ? { ...m, status: "sent" } : m
+                      )
+                    );
+                  }
                 }
               } catch {
                 /* skip malformed */
@@ -778,7 +783,11 @@ export function useChat(
                   "Content-Type": "application/json",
                   ...sessionHeaders(),
                 },
-                body: JSON.stringify({ question: query, answer: fullContent }),
+                body: JSON.stringify({
+                  question: query,
+                  answer: fullContent,
+                  conversationId: currentConversationRef.current?.id ?? null,
+                }),
               })
                 .then(async res => {
                   if (!isMountedRef.current) return; // C1: guard post-unmount state updates

@@ -36,12 +36,7 @@ export const ConversationUpdateSchema = z.object({
 export type ConversationUpdate = z.infer<typeof ConversationUpdateSchema>;
 
 export const ConversationCreateSchema = z.object({
-  title: z
-    .string()
-    .max(200, "Title too long")
-    .trim()
-    .optional()
-    .nullable(),
+  title: z.string().max(200, "Title too long").trim().optional().nullable(),
 });
 
 export type ConversationCreate = z.infer<typeof ConversationCreateSchema>;
@@ -93,6 +88,7 @@ export const FaqSaveSchema = z.object({
     .min(1, "Answer cannot be empty")
     .max(10_000, "Answer too long")
     .trim(),
+  conversationId: z.string().uuid().nullable().optional(),
 });
 
 export type FaqSave = z.infer<typeof FaqSaveSchema>;
@@ -111,7 +107,9 @@ export async function validateInput<T>(
     const zodIssues = err instanceof z.ZodError ? err.issues : [];
     const message =
       zodIssues.length > 0
-        ? zodIssues.map(issue => `${issue.path.join(".")}: ${issue.message}`).join("; ")
+        ? zodIssues
+            .map(issue => `${issue.path.join(".")}: ${issue.message}`)
+            .join("; ")
         : String(err);
 
     return {
