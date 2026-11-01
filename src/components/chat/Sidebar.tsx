@@ -688,7 +688,18 @@ export const Sidebar = memo(function Sidebar({
             <div className="px-3 pb-2 pt-3 shrink-0 border-t border-[#e8ded2]">
               <div className="mb-2 flex items-center justify-between rounded-lg border border-[#e8ded2] bg-white p-1 text-xs">
                 {(["uk", "en"] as const).map(code => (
-                  <button key={code} onClick={() => onLanguageChange?.(code)} className={cn("flex-1 rounded-md px-2 py-1.5", language === code ? "bg-[#8b5e3c] text-white" : "text-[#806b58]")}>{code === "uk" ? "Українська" : "English"}</button>
+                  <button
+                    key={code}
+                    onClick={() => onLanguageChange?.(code)}
+                    className={cn(
+                      "flex-1 rounded-md px-2 py-1.5",
+                      language === code
+                        ? "bg-[#8b5e3c] text-white"
+                        : "text-[#806b58]"
+                    )}
+                  >
+                    {code === "uk" ? "Українська" : "English"}
+                  </button>
                 ))}
               </div>
               <button

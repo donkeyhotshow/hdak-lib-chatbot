@@ -167,7 +167,10 @@ export function useSpeech({
       }
 
       setState("error");
-      logger.error("Speech recognition error", new Error(`Speech error: ${event.error}`));
+      logger.error(
+        "Speech recognition error",
+        new Error(`Speech error: ${event.error}`)
+      );
 
       const messages: Record<string, string> = {
         "not-allowed":

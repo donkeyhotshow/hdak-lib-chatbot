@@ -29,7 +29,7 @@ export function useIntersectionObserver(
 
   const handleIntersection = useCallback(
     (entries: IntersectionObserverEntry[]) => {
-      entries.forEach((entry) => {
+      entries.forEach(entry => {
         if (entry.isIntersecting) {
           onIntersect?.();
         } else {
@@ -128,8 +128,8 @@ export function scrollToElement(
 
   // Use IntersectionObserver for smoother scroll
   const observer = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
+    entries => {
+      entries.forEach(entry => {
         if (entry.isIntersecting) {
           observer.disconnect();
         } else {

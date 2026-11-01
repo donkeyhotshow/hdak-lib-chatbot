@@ -169,7 +169,10 @@ export async function PATCH(
       );
     }
 
-    const title = stripHtml(parsed.data.title.trim()).substring(0, MAX_TITLE_LENGTH);
+    const title = stripHtml(parsed.data.title.trim()).substring(
+      0,
+      MAX_TITLE_LENGTH
+    );
     if (!title) {
       return NextResponse.json(
         { error: "Назва не може бути порожньою" },

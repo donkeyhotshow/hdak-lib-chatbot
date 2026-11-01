@@ -24,6 +24,7 @@ npx playwright install
 #### Core Functionality Tests
 
 **Chat Messaging:**
+
 - [ ] Type message and send successfully
 - [ ] Long messages don't overflow (break properly)
 - [ ] Special characters (emoji, Ukrainian chars) display correctly
@@ -32,6 +33,7 @@ npx playwright install
 - [ ] Code blocks have syntax highlighting
 
 **Speech Input:**
+
 - [ ] Mic button works and shows listening state
 - [ ] Speech is transcribed correctly
 - [ ] Error messages appear for permission denial
@@ -39,6 +41,7 @@ npx playwright install
 - [ ] Network speech errors show helpful message
 
 **Navigation:**
+
 - [ ] Sidebar opens/closes on hamburger click
 - [ ] Swipe right opens sidebar (mobile)
 - [ ] Swipe left closes sidebar (mobile)
@@ -47,6 +50,7 @@ npx playwright install
 - [ ] Conversation list loads and displays
 
 **UI/UX:**
+
 - [ ] All buttons are min 44x44px and tappable
 - [ ] No horizontal scroll needed (except tables)
 - [ ] Header doesn't overlap content
@@ -57,6 +61,7 @@ npx playwright install
 - [ ] Scroll-to-bottom button appears when needed
 
 **Performance:**
+
 - [ ] App loads in < 3 seconds
 - [ ] Typing response starts within 1 second
 - [ ] No jank during scrolling
@@ -83,125 +88,127 @@ npx playwright install
 Create `tests/e2e.spec.ts`:
 
 ```typescript
-import { test, expect, devices } from '@playwright/test';
+import { test, expect, devices } from "@playwright/test";
 
 // Test on iPhone 12
-test.use({ ...devices['iPhone 12'] });
+test.use({ ...devices["iPhone 12"] });
 
-test.describe('HDAK Chat - Mobile E2E', () => {
+test.describe("HDAK Chat - Mobile E2E", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('http://localhost:3000');
-    await page.waitForLoadState('networkidle');
+    await page.goto("http://localhost:3000");
+    await page.waitForLoadState("networkidle");
   });
 
-  test('should send and receive message', async ({ page }) => {
+  test("should send and receive message", async ({ page }) => {
     // Find input and send message
-    const input = page.locator('textarea');
-    await input.fill('Привіт');
-    
-    const sendBtn = page.locator('.send-btn.active');
+    const input = page.locator("textarea");
+    await input.fill("Привіт");
+
+    const sendBtn = page.locator(".send-btn.active");
     await sendBtn.click();
-    
+
     // Wait for bot response
     await page.waitForSelector('[role="status"]');
-    const response = page.locator('.message-assistant');
+    const response = page.locator(".message-assistant");
     await expect(response).toBeVisible();
   });
 
-  test('should open/close sidebar with swipe', async ({ page }) => {
+  test("should open/close sidebar with swipe", async ({ page }) => {
     // Swipe from left edge to right (50px)
     await page.touchscreen.swipe(
       { x: 10, y: 300 },
       { x: 100, y: 300 },
       { steps: 10, duration: 500 }
     );
-    
-    const sidebar = page.locator('.sidebar-premium');
+
+    const sidebar = page.locator(".sidebar-premium");
     await expect(sidebar).toBeVisible();
   });
 
-  test('speech input error handling', async ({ page }) => {
+  test("speech input error handling", async ({ page }) => {
     await page.context().setPermissions([]);
-    
+
     const micBtn = page.locator('[aria-label="Голосовий ввід"]');
     await micBtn.click();
-    
+
     // Should show error about permissions
-    const errorMsg = page.locator('text=Доступ до мікрофона');
+    const errorMsg = page.locator("text=Доступ до мікрофона");
     await expect(errorMsg).toBeVisible();
   });
 
-  test('code block copy button', async ({ page }) => {
-    const input = page.locator('textarea');
-    await input.fill('покажи код на JavaScript');
-    await page.locator('.send-btn.active').click();
-    
+  test("code block copy button", async ({ page }) => {
+    const input = page.locator("textarea");
+    await input.fill("покажи код на JavaScript");
+    await page.locator(".send-btn.active").click();
+
     // Wait for code block and hover
-    const codeBlock = page.locator('code').first();
+    const codeBlock = page.locator("code").first();
     await codeBlock.hover();
-    
+
     // Copy button should appear
     const copyBtn = page.locator('button:has-text("Копіювати")').first();
     await expect(copyBtn).toBeVisible();
-    
+
     // Click copy
     await copyBtn.click();
-    
+
     // Verify clipboard (in Playwright)
     const clipboard = await page.evaluate(() => navigator.clipboard.readText());
     expect(clipboard.length).toBeGreaterThan(0);
   });
 
-  test('table is horizontally scrollable', async ({ page }) => {
-    const input = page.locator('textarea');
-    await input.fill('покажи таблицю з даними');
-    await page.locator('.send-btn.active').click();
-    
+  test("table is horizontally scrollable", async ({ page }) => {
+    const input = page.locator("textarea");
+    await input.fill("покажи таблицю з даними");
+    await page.locator(".send-btn.active").click();
+
     // Wait for table
-    const table = page.locator('table').first();
+    const table = page.locator("table").first();
     await expect(table).toBeVisible();
-    
+
     // Scroll table
-    const tableContainer = page.locator('.overflow-x-auto').first();
+    const tableContainer = page.locator(".overflow-x-auto").first();
     const scrollWidth = await tableContainer.evaluate(el => el.scrollWidth);
     const clientWidth = await tableContainer.evaluate(el => el.clientWidth);
-    
+
     expect(scrollWidth).toBeGreaterThan(clientWidth);
   });
 
-  test('timeout handling (120s)', async ({ page }) => {
+  test("timeout handling (120s)", async ({ page }) => {
     // This test simulates a slow response
-    const input = page.locator('textarea');
-    await input.fill('тест');
-    await page.locator('.send-btn.active').click();
-    
+    const input = page.locator("textarea");
+    await input.fill("тест");
+    await page.locator(".send-btn.active").click();
+
     // Wait longer than 120s timeout
     await page.waitForTimeout(5000);
-    
+
     // UI should handle gracefully (in reality this would need backend mock)
-    const errorState = page.locator('text=Помилка');
+    const errorState = page.locator("text=Помилка");
     // Error might appear after 120s, but app should be responsive
   });
 });
 
 // Desktop tests
-test.use({ ...devices['Desktop Chrome'] });
+test.use({ ...devices["Desktop Chrome"] });
 
-test.describe('HDAK Chat - Desktop E2E', () => {
-  test('sidebar toggle works', async ({ page }) => {
-    await page.goto('http://localhost:3000');
-    
-    const menuBtn = page.locator('[aria-label*="Закрити меню"], [aria-label*="Відкрити меню"]').first();
+test.describe("HDAK Chat - Desktop E2E", () => {
+  test("sidebar toggle works", async ({ page }) => {
+    await page.goto("http://localhost:3000");
+
+    const menuBtn = page
+      .locator('[aria-label*="Закрити меню"], [aria-label*="Відкрити меню"]')
+      .first();
     await menuBtn.click();
-    
-    const sidebar = page.locator('.sidebar-premium');
+
+    const sidebar = page.locator(".sidebar-premium");
     await expect(sidebar).toBeVisible();
   });
 
-  test('conversation history loads', async ({ page }) => {
-    await page.goto('http://localhost:3000');
-    
-    const convList = page.locator('.sidebar-premium');
+  test("conversation history loads", async ({ page }) => {
+    await page.goto("http://localhost:3000");
+
+    const convList = page.locator(".sidebar-premium");
     await expect(convList).toBeVisible();
   });
 });
@@ -243,10 +250,10 @@ npx playwright test --grep @real-device
 Use Chrome DevTools on mobile:
 
 ```typescript
-test('measure performance metrics', async ({ page }) => {
+test("measure performance metrics", async ({ page }) => {
   const metrics = await page.metrics();
-  console.log('Metrics:', metrics);
-  
+  console.log("Metrics:", metrics);
+
   // Check specific metrics
   expect(metrics.JSHeapUsedSize).toBeLessThan(50000000); // 50MB
   expect(metrics.JSHeapTotalSize).toBeLessThan(100000000); // 100MB
@@ -256,14 +263,14 @@ test('measure performance metrics', async ({ page }) => {
 ### 7. Network Throttling Tests
 
 ```typescript
-test('works on slow network', async ({ page, context }) => {
+test("works on slow network", async ({ page, context }) => {
   // Simulate 3G
-  await context.route('**/*', route => {
+  await context.route("**/*", route => {
     setTimeout(() => route.continue(), 2000); // 2s delay
   });
-  
-  await page.goto('http://localhost:3000');
-  const input = page.locator('textarea');
+
+  await page.goto("http://localhost:3000");
+  const input = page.locator("textarea");
   await expect(input).toBeVisible({ timeout: 10000 });
 });
 ```
@@ -308,7 +315,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: "18"
       - run: npm ci
       - run: npx playwright install
       - run: npm run build

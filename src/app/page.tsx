@@ -2,12 +2,7 @@
 
 // REDESIGNED
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import {
-  Loader2,
-  Menu,
-  Send,
-  Square,
-} from "lucide-react";
+import { Loader2, Menu, Send, Square } from "lucide-react";
 import { Sidebar } from "@/components/chat/Sidebar";
 import ReactMarkdown from "react-markdown";
 import { useToast } from "@/hooks/use-toast";
@@ -271,202 +266,210 @@ export default function ChatPage() {
           language={language}
           onLanguageChange={setLanguage}
         />
-        <button className="fixed left-3 top-3 z-30 rounded-lg border border-[#d9c9b0] bg-white p-2 text-[#3b2a1f] shadow-sm md:hidden" onClick={() => setSidebarOpen(true)} aria-label="Відкрити меню"><Menu size={20} /></button>
-        <main className="mx-auto flex h-[100dvh] min-h-0 min-w-0 w-full max-w-[860px] flex-1 flex-col px-3 pt-[env(safe-area-inset-top)] sm:px-6">
-        <section
-          className={`min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 pt-4 sm:px-0 sm:py-6 sm:pb-6 ${
-            isEmptyState ? "pb-4" : "pb-[160px]"
-          }`}
+        <button
+          className="fixed left-3 top-3 z-30 rounded-lg border border-[#d9c9b0] bg-white p-2 text-[#3b2a1f] shadow-sm md:hidden"
+          onClick={() => setSidebarOpen(true)}
+          aria-label="Відкрити меню"
         >
-          {isLoadingConversation ? (
-            <div className="flex h-full items-center justify-center text-[#7a6350]">
-              <Loader2 className="animate-spin" />
-            </div>
-          ) : isEmptyState ? (
-            <div className="flex min-h-full flex-col items-center justify-start pt-8 text-center sm:justify-center sm:pt-0">
-              <div
-                className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-[#fffaf2] text-3xl"
-                style={{ animation: "breathe 2.6s ease-in-out infinite" }}
-              >
-                📚
+          <Menu size={20} />
+        </button>
+        <main className="mx-auto flex h-[100dvh] min-h-0 min-w-0 w-full max-w-[860px] flex-1 flex-col px-3 pt-[env(safe-area-inset-top)] sm:px-6">
+          <section
+            className={`min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 pt-4 sm:px-0 sm:py-6 sm:pb-6 ${
+              isEmptyState ? "pb-4" : "pb-[160px]"
+            }`}
+          >
+            {isLoadingConversation ? (
+              <div className="flex h-full items-center justify-center text-[#7a6350]">
+                <Loader2 className="animate-spin" />
               </div>
-              <h2
-                className="text-[26px] font-semibold text-[#3b2a1f]"
-                style={{ fontFamily: "'Lora', serif" }}
-              >
-                {t.ask}
-              </h2>
-              <p className="mt-2 max-w-[520px] text-sm text-[#7a6350]">
-                {t.subtitle}
-              </p>
-              <div className="my-4 flex items-center gap-3 text-[#8b5e3c]/70">
-                <div className="h-px w-14 bg-[#8b5e3c]/25" />
-                <span>✦</span>
-                <div className="h-px w-14 bg-[#8b5e3c]/25" />
-              </div>
-              <div className="grid max-w-[620px] grid-cols-1 gap-2 sm:grid-cols-2">
-                {t.examples.map(example => (
-                  <button
-                    key={example}
-                    onClick={() => handleFaqSend(example)}
-                    className="rounded-full border border-[#7a6350]/40 bg-[#fffaf2]/70 px-4 py-2 text-sm text-[#3b2a1f] transition hover:border-[#8b5e3c]"
-                  >
-                    {example}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-[14px]">
-              {messages.map(message => {
-                const isUser = message.role === "USER";
-                return (
-                  <div
-                    key={message.id}
-                    className={`flex items-end gap-2 ${isUser ? "justify-end" : "justify-start"}`}
-                    style={{ animation: "msgIn .22s ease-out" }}
-                  >
-                    {!isUser && (
-                      <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full bg-[#fffaf2] text-sm">
-                        📚
-                      </div>
-                    )}
-                    <div
-                      className={`max-w-[min(82%,620px)] rounded-2xl border px-3 py-2 text-sm leading-relaxed sm:px-4 ${
-                        isUser
-                          ? "rounded-tr-[3px] border-[#8b5e3c]/30 bg-[#8b5e3c] text-[#3b2a1f]"
-                          : "rounded-tl-[3px] border-[#7a6350]/35 bg-[#fffaf2] text-[#3b2a1f]"
-                      }`}
-                    >
-                      <div className="break-words [overflow-wrap:anywhere]">
-                        <ReactMarkdown
-                          components={{
-                            p: ({ children }) => (
-                              <p className="mb-2 last:mb-0">{children}</p>
-                            ),
-                            a: ({ children, href }) => (
-                              <a
-                                href={href}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="break-all underline underline-offset-2"
-                              >
-                                {children}
-                              </a>
-                            ),
-                            ul: ({ children }) => (
-                              <ul className="mb-2 list-disc pl-5">
-                                {children}
-                              </ul>
-                            ),
-                            ol: ({ children }) => (
-                              <ol className="mb-2 list-decimal pl-5">
-                                {children}
-                              </ol>
-                            ),
-                          }}
-                        >
-                          {message.content}
-                        </ReactMarkdown>
-                      </div>
-                      <div className="mt-1 text-[10px] text-[#7a6350]">
-                        {formatTime(message.createdAt)}
-                      </div>
-                    </div>
-                    {isUser && (
-                      <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full bg-[#fffaf2] text-sm">
-                        👤
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-
-              {isTyping && (
-                <div className="flex items-end gap-2">
-                  <div className="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-[#fffaf2] text-sm">
-                    📚
-                  </div>
-                  <div className="rounded-2xl rounded-tl-[3px] border border-[#7a6350]/35 bg-[#fffaf2] px-3 py-2">
-                    <div className="flex items-center gap-1.5">
-                      {[0, 1, 2].map(index => (
-                        <span
-                          key={index}
-                          className="block h-2 w-2 rounded-full bg-[#8b5e3c]"
-                          style={{
-                            animation: `dotPulse .9s ease-in-out ${index * 0.18}s infinite`,
-                          }}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {!isTyping && followUpSuggestions.length > 0 && (
+            ) : isEmptyState ? (
+              <div className="flex min-h-full flex-col items-center justify-start pt-8 text-center sm:justify-center sm:pt-0">
                 <div
-                  className="ml-8 flex flex-wrap gap-2 pt-1"
-                  aria-label="Запропоновані запитання"
+                  className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-[#fffaf2] text-3xl"
+                  style={{ animation: "breathe 2.6s ease-in-out infinite" }}
                 >
-                  {followUpSuggestions.map(question => (
+                  📚
+                </div>
+                <h2
+                  className="text-[26px] font-semibold text-[#3b2a1f]"
+                  style={{ fontFamily: "'Lora', serif" }}
+                >
+                  {t.ask}
+                </h2>
+                <p className="mt-2 max-w-[520px] text-sm text-[#7a6350]">
+                  {t.subtitle}
+                </p>
+                <div className="my-4 flex items-center gap-3 text-[#8b5e3c]/70">
+                  <div className="h-px w-14 bg-[#8b5e3c]/25" />
+                  <span>✦</span>
+                  <div className="h-px w-14 bg-[#8b5e3c]/25" />
+                </div>
+                <div className="grid max-w-[620px] grid-cols-1 gap-2 sm:grid-cols-2">
+                  {t.examples.map(example => (
                     <button
-                      key={question}
-                      type="button"
-                      onClick={() => handleFaqSend(question)}
-                      className="max-w-full rounded-xl border border-[#8b5e3c]/25 bg-[#fffaf2]/80 px-3 py-2 text-left text-xs leading-5 text-[#5d4637] transition hover:border-[#8b5e3c]/60 hover:bg-[#fffaf2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5e3c]/50"
+                      key={example}
+                      onClick={() => handleFaqSend(example)}
+                      className="rounded-full border border-[#7a6350]/40 bg-[#fffaf2]/70 px-4 py-2 text-sm text-[#3b2a1f] transition hover:border-[#8b5e3c]"
                     >
-                      {question}
+                      {example}
                     </button>
                   ))}
                 </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-          )}
-        </section>
+              </div>
+            ) : (
+              <div className="space-y-[14px]">
+                {messages.map(message => {
+                  const isUser = message.role === "USER";
+                  return (
+                    <div
+                      key={message.id}
+                      className={`flex items-end gap-2 ${isUser ? "justify-end" : "justify-start"}`}
+                      style={{ animation: "msgIn .22s ease-out" }}
+                    >
+                      {!isUser && (
+                        <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full bg-[#fffaf2] text-sm">
+                          📚
+                        </div>
+                      )}
+                      <div
+                        className={`max-w-[min(82%,620px)] rounded-2xl border px-3 py-2 text-sm leading-relaxed sm:px-4 ${
+                          isUser
+                            ? "rounded-tr-[3px] border-[#8b5e3c]/30 bg-[#8b5e3c] text-[#3b2a1f]"
+                            : "rounded-tl-[3px] border-[#7a6350]/35 bg-[#fffaf2] text-[#3b2a1f]"
+                        }`}
+                      >
+                        <div className="break-words [overflow-wrap:anywhere]">
+                          <ReactMarkdown
+                            components={{
+                              p: ({ children }) => (
+                                <p className="mb-2 last:mb-0">{children}</p>
+                              ),
+                              a: ({ children, href }) => (
+                                <a
+                                  href={href}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="break-all underline underline-offset-2"
+                                >
+                                  {children}
+                                </a>
+                              ),
+                              ul: ({ children }) => (
+                                <ul className="mb-2 list-disc pl-5">
+                                  {children}
+                                </ul>
+                              ),
+                              ol: ({ children }) => (
+                                <ol className="mb-2 list-decimal pl-5">
+                                  {children}
+                                </ol>
+                              ),
+                            }}
+                          >
+                            {message.content}
+                          </ReactMarkdown>
+                        </div>
+                        <div className="mt-1 text-[10px] text-[#7a6350]">
+                          {formatTime(message.createdAt)}
+                        </div>
+                      </div>
+                      {isUser && (
+                        <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full bg-[#fffaf2] text-sm">
+                          👤
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
 
-        <section className="sticky bottom-0 shrink-0 pb-[calc(12px+env(safe-area-inset-bottom))] pt-2 sm:pb-[22px] sm:pt-3">
-          <div
-            className="rounded-2xl border border-[#d9c9b0] p-3 shadow-[0_10px_24px_rgba(59,42,31,0.12)] backdrop-blur-sm focus-within:border-[#8b5e3c]/60 focus-within:shadow-[0_0_0_1px_rgba(139,94,60,.25),0_12px_30px_rgba(59,42,31,.12)]"
-            style={{ backgroundColor: "rgba(255, 250, 242, 0.96)" }}
-          >
-            <div className="flex items-end gap-2">
-              <textarea
-                ref={textareaRef}
-                rows={1}
-                value={inputValue}
-                onChange={e => setInputValue(e.target.value)}
-                onKeyDown={e => {
-                  if ((e.nativeEvent as KeyboardEvent).isComposing) return;
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    if (isTyping) {
-                      handleStop();
-                    } else {
-                      handleSend();
-                    }
-                  }
-                }}
-                placeholder={t.placeholder}
-                className="max-h-[120px] min-h-[42px] flex-1 resize-none overflow-y-auto bg-transparent px-2 py-2 text-sm leading-6 text-[#3b2a1f] outline-none placeholder:text-[#7a6350] focus-visible:ring-0"
-              />
-              <button
-                onClick={() => (isTyping ? handleStop() : handleSend())}
-                className="mb-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#8b5e3c] text-[#1b1404] transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5e3c]/50 disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={!isTyping && inputValue.trim().length === 0}
-                aria-label={isTyping ? "Stop" : "Send"}
-              >
-                {isTyping ? (
-                  <Square size={14} fill="currentColor" />
-                ) : (
-                  <Send size={14} />
+                {isTyping && (
+                  <div className="flex items-end gap-2">
+                    <div className="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-[#fffaf2] text-sm">
+                      📚
+                    </div>
+                    <div className="rounded-2xl rounded-tl-[3px] border border-[#7a6350]/35 bg-[#fffaf2] px-3 py-2">
+                      <div className="flex items-center gap-1.5">
+                        {[0, 1, 2].map(index => (
+                          <span
+                            key={index}
+                            className="block h-2 w-2 rounded-full bg-[#8b5e3c]"
+                            style={{
+                              animation: `dotPulse .9s ease-in-out ${index * 0.18}s infinite`,
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 )}
-              </button>
+
+                {!isTyping && followUpSuggestions.length > 0 && (
+                  <div
+                    className="ml-8 flex flex-wrap gap-2 pt-1"
+                    aria-label="Запропоновані запитання"
+                  >
+                    {followUpSuggestions.map(question => (
+                      <button
+                        key={question}
+                        type="button"
+                        onClick={() => handleFaqSend(question)}
+                        className="max-w-full rounded-xl border border-[#8b5e3c]/25 bg-[#fffaf2]/80 px-3 py-2 text-left text-xs leading-5 text-[#5d4637] transition hover:border-[#8b5e3c]/60 hover:bg-[#fffaf2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5e3c]/50"
+                      >
+                        {question}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+            )}
+          </section>
+
+          <section className="sticky bottom-0 shrink-0 pb-[calc(12px+env(safe-area-inset-bottom))] pt-2 sm:pb-[22px] sm:pt-3">
+            <div
+              className="rounded-2xl border border-[#d9c9b0] p-3 shadow-[0_10px_24px_rgba(59,42,31,0.12)] backdrop-blur-sm focus-within:border-[#8b5e3c]/60 focus-within:shadow-[0_0_0_1px_rgba(139,94,60,.25),0_12px_30px_rgba(59,42,31,.12)]"
+              style={{ backgroundColor: "rgba(255, 250, 242, 0.96)" }}
+            >
+              <div className="flex items-end gap-2">
+                <textarea
+                  ref={textareaRef}
+                  rows={1}
+                  value={inputValue}
+                  onChange={e => setInputValue(e.target.value)}
+                  onKeyDown={e => {
+                    if ((e.nativeEvent as KeyboardEvent).isComposing) return;
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      if (isTyping) {
+                        handleStop();
+                      } else {
+                        handleSend();
+                      }
+                    }
+                  }}
+                  placeholder={t.placeholder}
+                  className="max-h-[120px] min-h-[42px] flex-1 resize-none overflow-y-auto bg-transparent px-2 py-2 text-sm leading-6 text-[#3b2a1f] outline-none placeholder:text-[#7a6350] focus-visible:ring-0"
+                />
+                <button
+                  onClick={() => (isTyping ? handleStop() : handleSend())}
+                  className="mb-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#8b5e3c] text-[#1b1404] transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5e3c]/50 disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={!isTyping && inputValue.trim().length === 0}
+                  aria-label={isTyping ? "Stop" : "Send"}
+                >
+                  {isTyping ? (
+                    <Square size={14} fill="currentColor" />
+                  ) : (
+                    <Send size={14} />
+                  )}
+                </button>
+              </div>
+              <div className="mt-2 px-2 text-[11px] text-[#7a6350]">
+                {t.hint}
+              </div>
             </div>
-            <div className="mt-2 px-2 text-[11px] text-[#7a6350]">{t.hint}</div>
-          </div>
-        </section>
-      </main>
+          </section>
+        </main>
       </div>
     </div>
   );
