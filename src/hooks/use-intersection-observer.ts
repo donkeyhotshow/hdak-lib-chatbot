@@ -74,40 +74,6 @@ export function useIntersectionObserver(
  * Hook for detecting if user has manually scrolled
  * Useful for hiding "scroll to bottom" button when user scrolls up
  */
-export function useScrollDetection(
-  containerRef: React.RefObject<HTMLElement>,
-  threshold: number = 100
-) {
-  const scrolledUpRef = useRef(false);
-  const lastScrollPositionRef = useRef(0);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const handleScroll = () => {
-      const scrollTop = container.scrollTop;
-      const scrollHeight = container.scrollHeight;
-      const clientHeight = container.clientHeight;
-      const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
-
-      // If user is more than threshold pixels from bottom, consider it "scrolled up"
-      scrolledUpRef.current = distanceFromBottom > threshold;
-      lastScrollPositionRef.current = scrollTop;
-    };
-
-    container.addEventListener("scroll", handleScroll, { passive: true });
-    return () => {
-      container.removeEventListener("scroll", handleScroll);
-    };
-  }, [threshold]);
-
-  return {
-    isScrolledUp: scrolledUpRef.current,
-    lastScrollPosition: lastScrollPositionRef.current,
-  };
-}
-
 /**
  * Helper to smoothly scroll to element using IntersectionObserver
  * More reliable than scrollIntoView on some devices

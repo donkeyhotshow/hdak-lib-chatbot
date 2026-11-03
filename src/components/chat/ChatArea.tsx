@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Message } from "./types";
-import { useScrollDetection } from "@/hooks/use-intersection-observer";
 import { logger } from "@/lib/logger";
 import { sanitizeUrl } from "@/lib/sanitize";
 
@@ -478,11 +477,11 @@ function ChatAreaComponent({
   copyToClipboard,
   onRetry,
 }: ChatAreaProps) {
-  const [locale, setLocale] = useState<"uk" | "en">("uk");
-  useEffect(() => {
+  const [locale] = useState<"uk" | "en">(() => {
+    if (typeof navigator === "undefined") return "uk";
     const lang = navigator.language || navigator.languages?.[0] || "uk";
-    setLocale(lang.startsWith("en") ? "en" : "uk");
-  }, []);
+    return lang.startsWith("en") ? "en" : "uk";
+  });
 
   const [showScrollButton, setShowScrollButton] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);

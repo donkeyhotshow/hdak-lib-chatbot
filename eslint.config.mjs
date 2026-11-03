@@ -13,6 +13,7 @@ export default [
       "next-env.d.ts",
       "examples/**",
       "skills/**",
+      "public/__manus__/**",
     ],
   },
 ];
