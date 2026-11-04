@@ -105,7 +105,11 @@ const resources: ResourceGroup[] = [
 
 export default function ChatPage() {
   const { toast } = useToast();
-  const [language, setLanguage] = useState<Language>("uk");
+  const [language, setLanguage] = useState<Language>(() => {
+    if (typeof window === "undefined") return "uk";
+    const saved = window.localStorage.getItem("hdak-language");
+    return saved === "en" ? "en" : "uk";
+  });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const sidebarRef = useRef<HTMLElement>(null);
@@ -191,9 +195,9 @@ export default function ChatPage() {
   }, []);
 
   useEffect(() => {
-    const saved = window.localStorage.getItem("hdak-language");
-    if (saved === "uk" || saved === "en") setLanguage(saved);
-    else if (saved === "ru") window.localStorage.setItem("hdak-language", "uk");
+    if (window.localStorage.getItem("hdak-language") === "ru") {
+      window.localStorage.setItem("hdak-language", "uk");
+    }
   }, []);
 
   useEffect(() => {

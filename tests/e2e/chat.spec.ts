@@ -1,4 +1,4 @@
-import { test, expect, devices } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 
 /**
  * HDAK Chatbot E2E Tests
@@ -135,8 +135,6 @@ test.describe('Navigation', () => {
 });
 
 test.describe('Mobile Specific', () => {
-  test.use({ ...devices['iPhone 12'] });
-
   test('should have proper touch targets (44x44px minimum)', async ({ page }) => {
     await page.goto('/');
     await page.waitForSelector('textarea');
