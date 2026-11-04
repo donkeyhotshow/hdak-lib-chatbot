@@ -23,6 +23,7 @@ import {
   validateInput,
 } from "@/lib/validation";
 import { logger } from "@/lib/logger";
+import { buildDspaceAnswer, buildDspaceContext } from "@/lib/dspace";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -393,6 +394,30 @@ export async function POST(request: NextRequest) {
         catalogContext += `\n\n[РЕКОМЕНДАЦІЇ: За темою "${topic}" знайдено схожі матеріали в каталозі:\n${recList}\nПовний пошук: ${ALL_LINKS.catalog_search}]`;
       }
     }
+  }
+
+  // Repository results are available after the explicit mock/live sync.
+  // A failed or not-yet-configured repository never blocks catalog or chat.
+  const dspaceContext = buildDspaceContext(safeMessage);
+  if (dspaceContext) catalogContext += dspaceContext;
+
+  // Keep the documented mock/demo flow usable before production DB and LLM
+  // credentials are connected. Production requests continue through the full
+  // persistence + provider pipeline below.
+  const demoAnswer = !process.env.DATABASE_URL
+    ? buildDspaceAnswer(safeMessage)
+    : null;
+  if (demoAnswer) {
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: demoAnswer, source: "dspace", done: true })}\n\n`));
+        controller.close();
+      },
+    });
+    return new Response(stream, {
+      headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" },
+    });
   }
 
   // Persist user message & get/create conversation

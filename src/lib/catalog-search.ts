@@ -5,6 +5,7 @@
 
 import { stripHtml } from "@/lib/sanitize";
 import { logger } from "@/lib/logger";
+import { searchCatalogWithPuppeteer } from "@/lib/catalog-puppeteer";
 
 const DEFAULT_CATALOG_URL =
   "https://library-service.com.ua:8443/khkhdak/DocumentSearchResult";
@@ -363,6 +364,15 @@ export async function searchCatalog(
       "Catalog search failed",
       err instanceof Error ? err : new Error(String(err))
     );
+    if (process.env.CATALOG_PUPPETEER_FALLBACK === "true") {
+      return searchCatalogWithPuppeteer(
+        getCatalogUrls().form,
+        getCatalogUrls().search,
+        searchTerm,
+        searchType,
+        Math.min(Math.max(1, pageSize), 50)
+      );
+    }
     return { books: [], total: 0, unavailable: true };
   }
 }
