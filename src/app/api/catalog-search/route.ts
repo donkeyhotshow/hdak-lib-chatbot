@@ -106,8 +106,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error:
-            "Каталог тимчасово недоступний. Спробуйте пізніше або скористайтесь прямим посиланням.",
+          error: "Каталог тимчасово недоступний, спробуйте пізніше",
           catalogUrl: getCatalogFormUrl(),
         },
         { status: 503 }

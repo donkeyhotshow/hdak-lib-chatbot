@@ -6,18 +6,12 @@
 import { stripHtml } from "@/lib/sanitize";
 import { logger } from "@/lib/logger";
 
-const DEFAULT_CATALOG_URL =
-  "https://library-service.com.ua:8443/khkhdak/DocumentSearchResult";
-const DEFAULT_CATALOG_FORM_URL =
-  "https://library-service.com.ua:8443/khkhdak/DocumentSearchForm";
-
 function getCatalogUrls() {
   return {
-    search: process.env.CATALOG_URL?.trim() || DEFAULT_CATALOG_URL,
-    form: process.env.CATALOG_FORM_URL?.trim() || DEFAULT_CATALOG_FORM_URL,
+    search: process.env.CATALOG_URL?.trim() || "",
+    form: process.env.CATALOG_FORM_URL?.trim() || "",
   };
 }
-
 
 export interface BookResult {
   title: string;
@@ -233,6 +227,7 @@ async function fetchCatalog(
  */
 export async function checkCatalogAvailability(): Promise<boolean> {
   const { form: catalogFormUrl } = getCatalogUrls();
+  if (!catalogFormUrl) return false;
   try {
     const res = await fetch(catalogFormUrl, {
       method: "HEAD",
@@ -300,7 +295,7 @@ export async function searchCatalog(
     } catch (networkErr) {
       // Network error on first attempt — retry once
       try {
-        await new Promise((resolve) => setTimeout(resolve, 600));
+        await new Promise(resolve => setTimeout(resolve, 600));
         response = await fetchCatalog(catalogUrl, formData.toString(), 1);
       } catch (retryErr) {
         logger.error("Catalog search retry failed", retryErr as Error);

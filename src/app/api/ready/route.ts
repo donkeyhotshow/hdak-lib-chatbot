@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
+import { checkCatalogAvailability } from "@/lib/catalog-search";
 
 export async function GET() {
   const configuredProviders = [
     process.env.HDAKLLM?.trim() ? "llm7" : null,
-    process.env.GROK_API_KEY?.trim() ? "grok" : null,
+    process.env.GROK_API_KEY?.trim() ? "xai" : null,
     process.env.GROQ_API_KEY?.trim() || process.env.GROQ_API?.trim()
       ? "groq"
       : null,
@@ -43,9 +44,12 @@ export async function GET() {
     );
   }
 
+  const catalog = (await checkCatalogAvailability()) ? "ok" : "unreachable";
+
   return NextResponse.json({
     status: "ready",
     configuredProviders,
+    catalog,
     message: "All critical systems are configured",
   });
 }

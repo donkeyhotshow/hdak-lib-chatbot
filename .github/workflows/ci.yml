@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main, v0/**]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+      CATALOG_URL: https://catalog.invalid.test/search
+      CATALOG_FORM_URL: https://catalog.invalid.test/form
+      GROQ_API_KEY: ci-mock-key
+      GROQ_MODEL_NAME: llama-3.3-70b-versatile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.4.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm check
+      - run: pnpm test
+      - run: pnpm run build
+
+  browser:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+      CATALOG_URL: https://catalog.invalid.test/search
+      CATALOG_FORM_URL: https://catalog.invalid.test/form
+      GROQ_API_KEY: ci-mock-key
+      GROQ_MODEL_NAME: llama-3.3-70b-versatile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.4.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium webkit
+      - run: pnpm start > /tmp/hdak-next.log 2>&1 &
+      - run: pnpm exec playwright test --project="Desktop Chrome" --project="Desktop Safari" --project="iPhone 12 Safari"
+      - name: Upload browser artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+            /tmp/hdak-next.log
+          if-no-files-found: ignore

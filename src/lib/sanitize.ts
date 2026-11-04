@@ -1,11 +1,12 @@
+import sanitizeHtmlLibrary from "sanitize-html";
 import { logger } from "./logger";
 
 /**
- * Configuration for DOMPurify to prevent XSS attacks
- * while allowing safe markdown rendering
+ * Server-side allowlist for trusted markdown-like output.
+ * sanitize-html handles malformed markup, URL protocols, and event attributes.
  */
-const PURIFY_CONFIG = {
-  ALLOWED_TAGS: [
+const SANITIZE_CONFIG: sanitizeHtmlLibrary.IOptions = {
+  allowedTags: [
     "h1",
     "h2",
     "h3",
@@ -34,18 +35,13 @@ const PURIFY_CONFIG = {
     "a",
     "img",
   ],
-  ALLOWED_ATTR: [
-    "href",
-    "title",
-    "target",
-    "rel",
-    "src",
-    "alt",
-    "width",
-    "height",
-  ],
-  ALLOW_DATA_ATTR: false,
-  KEEP_CONTENT: true,
+  allowedAttributes: {
+    a: ["href", "title", "target", "rel"],
+    img: ["src", "alt", "width", "height"],
+    "*": [],
+  },
+  allowedSchemes: ["http", "https", "mailto"],
+  allowProtocolRelative: false,
 };
 
 /**
@@ -58,20 +54,7 @@ export function sanitizeHtml(html: string): string {
       return "";
     }
 
-    const allowedTags = new Set(PURIFY_CONFIG.ALLOWED_TAGS);
-    const withoutExecutableBlocks = html.replace(/<(script|style|iframe|object|embed|form)[^>]*>[\s\S]*?<\/\1>/gi, "");
-    return withoutExecutableBlocks.replace(/<\/?([a-z][\w-]*)([^>]*)>/gi, (full: string, tagName: string, attributes: string) => {
-      const tag = tagName.toLowerCase();
-      if (!allowedTags.has(tag)) return "";
-      if (full.startsWith("</")) return `</${tag}>`;
-      const safeAttributes = attributes.replace(/([:\w-]+)\s*=\s*(["'])(.*?)\2/gi, (attribute: string, name: string, quote: string, value: string) => {
-        const normalizedName = name.toLowerCase();
-        if (!PURIFY_CONFIG.ALLOWED_ATTR.includes(normalizedName)) return "";
-        if ((normalizedName === "href" || normalizedName === "src") && /^(?:javascript|vbscript|data):/i.test(value.trim())) return "";
-        return ` ${normalizedName}=${quote}${value.replace(/[<>]/g, "")}${quote}`;
-      });
-      return `<${tag}${safeAttributes}>`;
-    });
+    return sanitizeHtmlLibrary(html, SANITIZE_CONFIG);
   } catch (error) {
     logger.error("Error sanitizing HTML", error as Error);
     return ""; // Return empty string on error for safety
