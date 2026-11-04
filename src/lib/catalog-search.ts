@@ -18,7 +18,6 @@ function getCatalogUrls() {
   };
 }
 
-
 export interface BookResult {
   title: string;
   description: string;
@@ -300,7 +299,7 @@ export async function searchCatalog(
     } catch (networkErr) {
       // Network error on first attempt — retry once
       try {
-        await new Promise((resolve) => setTimeout(resolve, 600));
+        await new Promise(resolve => setTimeout(resolve, 600));
         response = await fetchCatalog(catalogUrl, formData.toString(), 1);
       } catch (retryErr) {
         logger.error("Catalog search retry failed", retryErr as Error);

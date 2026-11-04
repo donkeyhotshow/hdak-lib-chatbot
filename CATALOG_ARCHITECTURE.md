@@ -254,6 +254,7 @@ TIMELINE:
 ## Примеры SearchIntent распознавания
 
 ### 1. Поиск по названию (TITLE)
+
 ```
 Input:  "Знайди книгу Война и мир"
 Intent: { searchTerm: "Война и мир", searchType: "title" }
@@ -261,6 +262,7 @@ Pattern: /(?:знайди|знайти|пошук|шукаю|шукати).*кн
 ```
 
 ### 2. Поиск по автору (AUTHOR)
+
 ```
 Input:  "Книги Толстого"
 Intent: { searchTerm: "Толстой", searchType: "author" }
@@ -268,6 +270,7 @@ Pattern: /(?:книги|твори)\s+(?!про\s|з\s|по\s)([А-ЯҐЄІЇа-
 ```
 
 ### 3. УДК классификация (UDC)
+
 ```
 Input:  "УДК 821.161.1"
 Intent: { searchTerm: "821.161.1", searchType: "udc" }
@@ -275,6 +278,7 @@ Pattern: /УДК\s*([\d.]+(?:\.\d+)*)/i
 ```
 
 ### 4. Поиск по теме (SUBJECT)
+
 ```
 Input:  "Материалы на тему украинской истории"
 Intent: { searchTerm: "украинской истории", searchType: "subject" }
@@ -282,6 +286,7 @@ Pattern: /(?:книги|матеріали)\s+на\s+тему[:\s]+(.{3,60}?)(?:
 ```
 
 ### 5. Ключевые слова (KEYWORD)
+
 ```
 Input:  "Ключевые слова: искусство, живопись"
 Intent: { searchTerm: "искусство, живопись", searchType: "keyword" }
@@ -358,15 +363,15 @@ LLM ЗНАЕТ что каталог недоступен
 
 ### Типичные времена ответа:
 
-| Операция | Время |
-|----------|-------|
-| detectSearchIntent() | 1-2 ms |
-| checkCatalogAvailability() | 100-500 ms |
-| searchCatalog() (local) | 500-1500 ms |
-| searchCatalog() (slow) | 2000-3000 ms |
-| buildCatalogContext() | 5-10 ms |
+| Операция                   | Время        |
+| -------------------------- | ------------ |
+| detectSearchIntent()       | 1-2 ms       |
+| checkCatalogAvailability() | 100-500 ms   |
+| searchCatalog() (local)    | 500-1500 ms  |
+| searchCatalog() (slow)     | 2000-3000 ms |
+| buildCatalogContext()      | 5-10 ms      |
 | LLM response (first token) | 1000-2000 ms |
-| **TOTAL (user sees)** | **~2 сек** |
+| **TOTAL (user sees)**      | **~2 сек**   |
 
 Благодаря параллелизму, пользователь видит ответ примерно за 2 секунды, даже если каталог медленный.
 

@@ -3,17 +3,19 @@
 ## 🔴 КРИТИЧЕСКИЕ ОШИБКИ (Требуют немедленного исправления)
 
 ### 1. TypeScript ошибки в `route.ts` (строки 333-335)
+
 **Файл:** `src/app/api/chat/route.ts`
 **Проблема:** `SearchResult` может быть `false | SearchResult`, но код пытается обращаться к `result.books` без проверки типа.
 
 ```typescript
 // Ошибка на строке 333
-const recList = result.books  // TS2339: Property 'books' does not exist on type 'false'
+const recList = result.books // TS2339: Property 'books' does not exist on type 'false'
   .slice(0, 3)
-  .map((b, i) => `${i + 1}. ${b.title}${b.year ? ` (${b.year})` : ""}`) // TS7006: params 'b', 'i' need types
+  .map((b, i) => `${i + 1}. ${b.title}${b.year ? ` (${b.year})` : ""}`); // TS7006: params 'b', 'i' need types
 ```
 
 **Почему это проблема:**
+
 - TypeScript warning будет показываться как ошибка компиляции
 - Если `result` = `false`, приложение упадет с ошибкой "Cannot read property 'books' of false"
 - Params в map функции не типизированы
@@ -25,21 +27,26 @@ const recList = result.books  // TS2339: Property 'books' does not exist on type
 ## 🟡 СЕРЬЕЗНЫЕ UI/UX ПРОБЛЕМЫ
 
 ### 2. Отсутствие error boundary на мобильном
+
 **Файл:** `src/components/ErrorBoundary.tsx` и `page.tsx`
 **Проблема:**
+
 - Нет видимого обработчика ошибок на мобильном
 - Если приложение упадет (например, при неправильном парсинге JSON), пользователь видит только пустой экран
 - Нет кнопки "Попробовать снова"
 
-**Решение требуется:** 
+**Решение требуется:**
+
 - Добавить fallback UI в ErrorBoundary
 - Улучшить видимость ошибок на мобильном
 
 ---
 
 ### 3. Проблемы с текстом в сообщениях на мобильном
+
 **Файл:** `src/components/chat/ChatArea.tsx` (строка 306)
 **Проблема:**
+
 ```typescript
 {isUser ? (
   <p className="whitespace-pre-wrap">{msg.content}</p>  // Может быть очень длинный текст
@@ -49,15 +56,18 @@ const recList = result.books  // TS2339: Property 'books' does not exist on type
 - `whitespace-pre-wrap` сохраняет все пробелы, что может нарушить форматирование на мобильном
 - Нет `word-break` для длинных URL или текста
 
-**Решение требуется:** 
+**Решение требуется:**
+
 - Добавить `break-words` или `word-break: break-word`
 - Улучшить обработку длинных строк
 
 ---
 
 ### 4. Проблема с overflow таблиц в Markdown
+
 **Файл:** `src/components/chat/ChatArea.tsx` (строка 235-240)
 **Проблема:**
+
 ```typescript
 <div className="overflow-x-auto my-3 rounded-lg border border-[#E5E1D8]">
   <table className="text-[13px] border-collapse w-full min-w-[280px]"
@@ -67,15 +77,18 @@ const recList = result.books  // TS2339: Property 'books' does not exist on type
 - `overflow-x-auto` требует горизонтальной прокрутки, но это плохо для UX
 - Нет предупреждения пользователю, что нужно скроллить
 
-**Решение требуется:** 
+**Решение требуется:**
+
 - Улучшить адаптивность таблиц на мобильном
 - Добавить визуальный индикатор прокрутки
 
 ---
 
 ### 5. Проблема с код-блоками (Code blocks)
+
 **Файл:** `src/components/chat/ChatArea.tsx` (строка 217-232)
 **Проблема:**
+
 ```typescript
 code: ({ className, ...rest }: React.HTMLAttributes<HTMLElement>) => {
   const isInline = !className?.startsWith("language-");
@@ -89,7 +102,8 @@ code: ({ className, ...rest }: React.HTMLAttributes<HTMLElement>) => {
 - Нет копирования кода в один клик
 - Шрифт может быть слишком маленьким для чтения
 
-**Решение требуется:** 
+**Решение требуется:**
+
 - Добавить кнопку копирования кода
 - Улучшить шрифт для код-блоков
 - Сделать адаптивный размер шрифта
@@ -97,13 +111,16 @@ code: ({ className, ...rest }: React.HTMLAttributes<HTMLElement>) => {
 ---
 
 ### 6. Проблема с input keyboard layout shift
+
 **Файл:** `src/components/chat/ChatInput.tsx`
 **Проблема:**
+
 - На iOS при открытии клавиатуры может произойти layout shift
 - Bottom padding может быть недостаточным для iPhone с Dynamic Island
 - Textarea может быть слишком маленькой для ввода на мобильном
 
-**Решение требуется:** 
+**Решение требуется:**
+
 - Добавить `position: fixed` для input при открытии клавиатуры
 - Увеличить min-height textarea на мобильном
 
@@ -112,26 +129,32 @@ code: ({ className, ...rest }: React.HTMLAttributes<HTMLElement>) => {
 ## 🟠 ФУНКЦИОНАЛЬНЫЕ ПРОБЛЕМЫ
 
 ### 7. Проблема с рекомендациями (recommendations) при отсутствии books
+
 **Файл:** `src/app/api/chat/route.ts` (строка 327-338)
 **Проблема:**
+
 - Код проверяет `(result as any).books.length > 0`, но `result` может быть `false`
 - Если `result.books` пусто, сообщение с рекомендациями не показывается, но это молчаливо игнорируется
 - Нет обработки ошибок при парсинге каталога
 
-**Решение требуется:** 
+**Решение требуется:**
+
 - Добавить правильную type guard проверку
 - Улучшить обработку ошибок парсинга
 
 ---
 
-### 8. Проблема со статусом "isTyping" 
+### 8. Проблема со статусом "isTyping"
+
 **Файл:** `src/hooks/use-chat.ts`
 **Проблема:**
+
 - Нет timeout для состояния "Думає..." если поток зависнет
 - Если сервер не ответит за 60+ секунд, статус останется "Думає..." вечно
 - Нет механизма для автоматического прерывания долгого ответа
 
-**Решение требуется:** 
+**Решение требуется:**
+
 - Добавить timeout (например, 120 секунд)
 - Показать warning после 30 секунд
 - Добавить кнопку "Отменить" более заметно
@@ -139,26 +162,32 @@ code: ({ className, ...rest }: React.HTMLAttributes<HTMLElement>) => {
 ---
 
 ### 9. Проблема с кешированием сообщений
+
 **Файл:** `src/hooks/use-chat.ts`
 **Проблема:**
+
 - LocalStorage может быть отключен в некоторых браузерах / режимах
 - Нет fallback если localStorage недоступен
 - При переполнении localStorage приложение может упасть
 
-**Решение требуется:** 
+**Решение требуется:**
+
 - Добавить try-catch вокруг localStorage операций
 - Реализовать graceful degradation если localStorage недоступен
 
 ---
 
 ### 10. Проблема с push-уведомлениями на мобильном
+
 **Файл:** `src/hooks/use-push.ts`
 **Проблема:**
+
 - Push уведомления могут не работать на некоторых браузерах (например Firefox private mode)
 - Нет fallback для браузеров без поддержки Notification API
 - При отказе пользователя от уведомлений нет graceful handling
 
-**Решение требуется:** 
+**Решение требуется:**
+
 - Добавить better error handling
 - Показать user-friendly сообщение если уведомления недоступны
 
@@ -167,8 +196,10 @@ code: ({ className, ...rest }: React.HTMLAttributes<HTMLElement>) => {
 ## 🔵 УЛУЧШЕНИЯ UI/UX (Низкий приоритет)
 
 ### 11. Проблемы с читаемостью на очень маленьких экранах
+
 **Файл:** `src/components/chat/ChatArea.tsx`
 **Проблема:**
+
 - На экранах < 320px текст может быть слишком маленьким
 - Иконки могут быть невидимыми на очень маленьких размерах
 
@@ -177,8 +208,10 @@ code: ({ className, ...rest }: React.HTMLAttributes<HTMLElement>) => {
 ---
 
 ### 12. Нет loading skeleton для списка разговоров
+
 **Файл:** `src/components/chat/Sidebar.tsx`
 **Проблема:**
+
 - Список разговоров просто появляется, когда загружается
 - Нет skeleton/placeholder для лучшей UX во время загрузки
 
@@ -187,8 +220,10 @@ code: ({ className, ...rest }: React.HTMLAttributes<HTMLElement>) => {
 ---
 
 ### 13. Проблема с контрастом на светлом фоне
+
 **Файл:** `src/app/globals.css`
 **Проблема:**
+
 - Некоторые текста имеют низкий контраст (например, `text-[#7A756F]/40`)
 - Может быть проблемой для пользователей с плохим зрением
 
@@ -197,8 +232,10 @@ code: ({ className, ...rest }: React.HTMLAttributes<HTMLElement>) => {
 ---
 
 ### 14. Нет микро-анимаций для лучшей feedback
+
 **Файл:** Все компоненты
 **Проблема:**
+
 - На мобильном медленнее ощущается feedback от нажатия кнопок
 - Нет shake animation при ошибке
 - Нет success animation при отправке
@@ -209,12 +246,12 @@ code: ({ className, ...rest }: React.HTMLAttributes<HTMLElement>) => {
 
 ## РЕЗЮМЕ ПРИОРИТЕТОВ
 
-| Приоритет | Кол-во | Описание |
-|-----------|--------|---------|
-| 🔴 Критические | 1 | TypeScript ошибки - нужно исправить для компиляции |
-| 🟡 Серьезные | 8 | Проблемы UI/UX на мобильном - влияют на usability |
-| 🟠 Функциональные | 2 | Логические ошибки - могут привести к краху |
-| 🔵 Улучшения | 4 | Можно улучшить позже |
+| Приоритет         | Кол-во | Описание                                           |
+| ----------------- | ------ | -------------------------------------------------- |
+| 🔴 Критические    | 1      | TypeScript ошибки - нужно исправить для компиляции |
+| 🟡 Серьезные      | 8      | Проблемы UI/UX на мобильном - влияют на usability  |
+| 🟠 Функциональные | 2      | Логические ошибки - могут привести к краху         |
+| 🔵 Улучшения      | 4      | Можно улучшить позже                               |
 
 ## РЕКОМЕНДУЕМЫЙ ПОРЯДОК ИСПРАВЛЕНИЯ
 

@@ -385,7 +385,7 @@ export async function POST(request: NextRequest) {
         const recList = searchResult.books
           .slice(0, 3)
           .map(
-            (b: any, i: number) =>
+            (b, i: number) =>
               `${i + 1}. ${b.title}${b.year ? ` (${b.year})` : ""}`
           )
           .join("\n");
