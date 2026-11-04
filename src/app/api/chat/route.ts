@@ -12,6 +12,7 @@ import {
   buildCatalogContext,
   checkCatalogAvailability,
   SearchIntent,
+  BookResult,
 } from "@/lib/catalog-search";
 import { isForbiddenOrigin } from "@/lib/cors";
 import {
@@ -385,7 +386,7 @@ export async function POST(request: NextRequest) {
         const recList = searchResult.books
           .slice(0, 3)
           .map(
-            (b: any, i: number) =>
+            (b: BookResult, i: number) =>
               `${i + 1}. ${b.title}${b.year ? ` (${b.year})` : ""}`
           )
           .join("\n");

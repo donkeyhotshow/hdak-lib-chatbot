@@ -6,10 +6,29 @@
 import { stripHtml } from "@/lib/sanitize";
 import { logger } from "@/lib/logger";
 
+const DEFAULT_CATALOG_URL =
+  "https://library-service.com.ua:8443/khkhdak/DocumentSearchResult";
+const DEFAULT_CATALOG_FORM_URL =
+  "https://library-service.com.ua:8443/khkhdak/DocumentSearchForm";
+
+function readCatalogUrl(value: string | undefined, fallback: string): string {
+  const candidate = value?.trim() || "";
+  if (!candidate || /\s/.test(candidate)) return fallback;
+  try {
+    const parsed = new URL(candidate);
+    return parsed.protocol === "https:" ? candidate : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 function getCatalogUrls() {
   return {
-    search: process.env.CATALOG_URL?.trim() || "",
-    form: process.env.CATALOG_FORM_URL?.trim() || "",
+    search: readCatalogUrl(process.env.CATALOG_URL, DEFAULT_CATALOG_URL),
+    form: readCatalogUrl(
+      process.env.CATALOG_FORM_URL,
+      DEFAULT_CATALOG_FORM_URL
+    ),
   };
 }
 
@@ -201,22 +220,47 @@ export function parseBooksFromHtml(html: string, maxBooks = 10): SearchResult {
 
 // ─── Catalog API call ───────────────────────────────────────────────────────
 
+/** Load the catalog form first so the search carries its server session. */
+async function loadCatalogSession(formUrl: string): Promise<string> {
+  const response = await fetch(formUrl, {
+    method: "GET",
+    signal: AbortSignal.timeout(8000),
+  });
+  if (!response.ok) {
+    throw new Error(`Catalog form returned HTTP ${response.status}`);
+  }
+
+  const cookies =
+    typeof response.headers.getSetCookie === "function"
+      ? response.headers.getSetCookie()
+      : (response.headers.get("set-cookie")?.split(/,(?=\s*[^;=]+=[^;]+)/g) ??
+        []);
+  return cookies
+    .map(cookie => cookie.split(";", 1)[0])
+    .filter(Boolean)
+    .join("; ");
+}
+
 /** One retry (with 600 ms back-off) on transient network / 5xx errors. */
 async function fetchCatalog(
   url: string,
   body: string,
+  cookie: string,
   attempt = 0
 ): Promise<Response> {
   const res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      ...(cookie ? { Cookie: cookie } : {}),
+    },
     body,
     signal: AbortSignal.timeout(8000),
   });
   if (!res.ok && res.status >= 500 && attempt === 0) {
     // Retry once on server-side errors
     await new Promise(resolve => setTimeout(resolve, 600));
-    return fetchCatalog(url, body, 1);
+    return fetchCatalog(url, body, cookie, 1);
   }
   return res;
 }
@@ -286,17 +330,25 @@ export async function searchCatalog(
     formData.append("sorting_direction1", "asc");
     formData.append("i_lang", "ukr");
 
-    const { search: catalogUrl } = getCatalogUrls();
-    if (!catalogUrl) return { books: [], total: 0, unavailable: true };
+    const { search: catalogUrl, form: catalogFormUrl } = getCatalogUrls();
+    if (!catalogUrl || !catalogFormUrl)
+      return { books: [], total: 0, unavailable: true };
 
     let response: Response;
     try {
-      response = await fetchCatalog(catalogUrl, formData.toString());
+      const cookie = await loadCatalogSession(catalogFormUrl);
+      response = await fetchCatalog(catalogUrl, formData.toString(), cookie);
     } catch (networkErr) {
       // Network error on first attempt — retry once
       try {
         await new Promise(resolve => setTimeout(resolve, 600));
-        response = await fetchCatalog(catalogUrl, formData.toString(), 1);
+        const cookie = await loadCatalogSession(catalogFormUrl);
+        response = await fetchCatalog(
+          catalogUrl,
+          formData.toString(),
+          cookie,
+          1
+        );
       } catch (retryErr) {
         logger.error("Catalog search retry failed", retryErr as Error);
         throw networkErr;
