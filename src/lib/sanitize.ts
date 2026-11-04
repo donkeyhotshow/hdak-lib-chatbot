@@ -1,4 +1,3 @@
-import DOMPurify from "isomorphic-dompurify";
 import { logger } from "./logger";
 
 /**
@@ -59,8 +58,20 @@ export function sanitizeHtml(html: string): string {
       return "";
     }
 
-    const cleaned = DOMPurify.sanitize(html, PURIFY_CONFIG);
-    return cleaned;
+    const allowedTags = new Set(PURIFY_CONFIG.ALLOWED_TAGS);
+    const withoutExecutableBlocks = html.replace(/<(script|style|iframe|object|embed|form)[^>]*>[\s\S]*?<\/\1>/gi, "");
+    return withoutExecutableBlocks.replace(/<\/?([a-z][\w-]*)([^>]*)>/gi, (full: string, tagName: string, attributes: string) => {
+      const tag = tagName.toLowerCase();
+      if (!allowedTags.has(tag)) return "";
+      if (full.startsWith("</")) return `</${tag}>`;
+      const safeAttributes = attributes.replace(/([:\w-]+)\s*=\s*(["'])(.*?)\2/gi, (attribute: string, name: string, quote: string, value: string) => {
+        const normalizedName = name.toLowerCase();
+        if (!PURIFY_CONFIG.ALLOWED_ATTR.includes(normalizedName)) return "";
+        if ((normalizedName === "href" || normalizedName === "src") && /^(?:javascript|vbscript|data):/i.test(value.trim())) return "";
+        return ` ${normalizedName}=${quote}${value.replace(/[<>]/g, "")}${quote}`;
+      });
+      return `<${tag}${safeAttributes}>`;
+    });
   } catch (error) {
     logger.error("Error sanitizing HTML", error as Error);
     return ""; // Return empty string on error for safety
