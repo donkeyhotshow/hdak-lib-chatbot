@@ -1,8 +1,8 @@
-import nextCoreWebVitals from "eslint-config-next/core-web-vitals";
+import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTypescript from "eslint-config-next/typescript";
 
 export default [
-  ...nextCoreWebVitals,
+  ...nextVitals,
   ...nextTypescript,
   {
     ignores: [
@@ -13,7 +13,6 @@ export default [
       "next-env.d.ts",
       "examples/**",
       "skills/**",
-      "public/__manus__/**",
     ],
   },
 ];

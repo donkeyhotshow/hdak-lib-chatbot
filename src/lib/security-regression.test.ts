@@ -13,6 +13,19 @@ describe("security regression coverage", () => {
     expect(html).toContain("Hello");
   });
 
+  it("neutralizes XSS payload variants and preserves safe markup", () => {
+    const sanitized = sanitizeHtml(
+      '<ul><li>Safe</li></ul><img src="x" onerror="alert(1)"><div onclick="alert(1)">text</div><svg><script>alert(1)</script></svg><iframe src="https://evil.example"></iframe><a href="javascript:alert(1)">bad</a><a href="https://example.com">good</a><img src="data:text/html,<script>alert(1)</script>"><b><i>nested</i></b>'
+    );
+
+    expect(sanitized).toContain("<ul>");
+    expect(sanitized).toContain("Safe");
+    expect(sanitized).toContain('href="https://example.com"');
+    expect(sanitized).not.toMatch(
+      /script|onerror|onclick|javascript:|<svg|<iframe|data:/i
+    );
+  });
+
   it("allows only safe URL schemes", () => {
     expect(sanitizeUrl("https://example.com")).toBe("https://example.com");
     expect(sanitizeUrl("/catalog/item")).toBe("/catalog/item");

@@ -12,6 +12,7 @@ import {
   buildCatalogContext,
   checkCatalogAvailability,
   SearchIntent,
+  BookResult,
 } from "@/lib/catalog-search";
 import { isForbiddenOrigin } from "@/lib/cors";
 import {
@@ -49,8 +50,8 @@ function withTimeout<T>(
 
 const DEFAULT_LLM7_URL = "https://api.llm7.io/v1/chat/completions";
 const DEFAULT_LLM7_MODEL = "default";
-const DEFAULT_GROK_URL = "https://api.x.ai/v1/chat/completions";
-const DEFAULT_GROK_MODEL = "grok-3-mini";
+const DEFAULT_XAI_URL = "https://api.x.ai/v1/chat/completions";
+const DEFAULT_XAI_MODEL = "grok-3-mini";
 const DEFAULT_GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 const DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile";
 const DEFAULT_QWEN_URL =
@@ -64,10 +65,10 @@ function getLlmConfig() {
       url: process.env.LLM7_URL?.trim() || DEFAULT_LLM7_URL,
       model: process.env.LLM7_MODEL_NAME?.trim() || DEFAULT_LLM7_MODEL,
     },
-    grok: {
+    xai: {
       apiKey: process.env.GROK_API_KEY?.trim(),
-      url: process.env.GROK_URL?.trim() || DEFAULT_GROK_URL,
-      model: process.env.GROK_MODEL_NAME?.trim() || DEFAULT_GROK_MODEL,
+      url: process.env.GROK_URL?.trim() || DEFAULT_XAI_URL,
+      model: process.env.GROK_MODEL_NAME?.trim() || DEFAULT_XAI_MODEL,
     },
     groq: {
       apiKey: process.env.GROQ_API_KEY?.trim() || process.env.GROQ_API?.trim(),
@@ -210,7 +211,7 @@ async function streamLLM(
   const config = getLlmConfig();
 
   // Prefer explicitly configured providers, then fall back without exposing keys.
-  for (const provider of [config.llm7, config.grok, config.groq, config.qwen]) {
+  for (const provider of [config.llm7, config.groq, config.xai, config.qwen]) {
     if (!provider.apiKey) continue;
     for (let attempt = 1; attempt <= 2; attempt += 1) {
       try {
@@ -385,7 +386,7 @@ export async function POST(request: NextRequest) {
         const recList = searchResult.books
           .slice(0, 3)
           .map(
-            (b, i: number) =>
+            (b: BookResult, i: number) =>
               `${i + 1}. ${b.title}${b.year ? ` (${b.year})` : ""}`
           )
           .join("\n");

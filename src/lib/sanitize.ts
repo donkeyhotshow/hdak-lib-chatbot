@@ -1,73 +1,48 @@
+import sanitizeHtmlLibrary from "sanitize-html";
 import { logger } from "./logger";
 
 /**
- * Keep the rendered markdown surface deliberately small. The markdown
- * renderer already produces a known set of tags, so an allowlist is safer
- * here than bringing a browser DOM into the server bundle.
+ * Server-side allowlist for trusted markdown-like output.
+ * sanitize-html handles malformed markup, URL protocols, and event attributes.
  */
-const ALLOWED_TAGS = new Set([
-  "h1",
-  "h2",
-  "h3",
-  "h4",
-  "h5",
-  "h6",
-  "p",
-  "br",
-  "strong",
-  "em",
-  "b",
-  "i",
-  "u",
-  "code",
-  "pre",
-  "blockquote",
-  "ul",
-  "ol",
-  "li",
-  "table",
-  "thead",
-  "tbody",
-  "tr",
-  "th",
-  "td",
-  "a",
-  "img",
-]);
-
-const SAFE_ATTRIBUTES = new Set([
-  "href",
-  "title",
-  "target",
-  "rel",
-  "src",
-  "alt",
-  "width",
-  "height",
-]);
-
-function sanitizeTag(match: string): string {
-  const tagName = match.match(/^<\s*\/?\s*([a-z0-9]+)/i)?.[1]?.toLowerCase();
-  if (!tagName || !ALLOWED_TAGS.has(tagName)) return "";
-  if (/^<\s*\//.test(match)) return `</${tagName}>`;
-  if (tagName === "br") return "<br>";
-
-  const attributes = [...match.matchAll(/([a-z-]+)\s*=\s*(["'])(.*?)\2/gi)]
-    .filter(([, name]) => SAFE_ATTRIBUTES.has(name.toLowerCase()))
-    .map(([, name, quote, value]) => {
-      if (
-        (name.toLowerCase() === "href" || name.toLowerCase() === "src") &&
-        !sanitizeUrl(value)
-      ) {
-        return "";
-      }
-      const escaped = value.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
-      return `${name}="${escaped}"`;
-    })
-    .filter(Boolean);
-
-  return `<${tagName}${attributes.length ? ` ${attributes.join(" ")}` : ""}>`;
-}
+const SANITIZE_CONFIG: sanitizeHtmlLibrary.IOptions = {
+  allowedTags: [
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "p",
+    "br",
+    "strong",
+    "em",
+    "b",
+    "i",
+    "u",
+    "code",
+    "pre",
+    "blockquote",
+    "ul",
+    "ol",
+    "li",
+    "table",
+    "thead",
+    "tbody",
+    "tr",
+    "th",
+    "td",
+    "a",
+    "img",
+  ],
+  allowedAttributes: {
+    a: ["href", "title", "target", "rel"],
+    img: ["src", "alt", "width", "height"],
+    "*": [],
+  },
+  allowedSchemes: ["http", "https", "mailto"],
+  allowProtocolRelative: false,
+};
 
 /**
  * Sanitize HTML to prevent XSS attacks
@@ -79,17 +54,10 @@ export function sanitizeHtml(html: string): string {
       return "";
     }
 
-    return html
-      .replace(/<!--[\s\S]*?-->/g, "")
-      .replace(
-        /<(script|style|iframe|object|embed|form)[^>]*>[\s\S]*?<\/\1>/gi,
-        ""
-      )
-      .replace(/<[^>]+>/g, sanitizeTag)
-      .replace(/\son[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "");
+    return sanitizeHtmlLibrary(html, SANITIZE_CONFIG);
   } catch (error) {
     logger.error("Error sanitizing HTML", error as Error);
-    return "";
+    return ""; // Return empty string on error for safety
   }
 }
 

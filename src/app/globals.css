@@ -62,7 +62,7 @@
   --secondary: #eadfcf;
   --secondary-foreground: #3b2a1f;
   --muted: #eadfcf;
-  --muted-foreground: #7a6350;
+  --muted-foreground: #6b5240;
   --accent: #8b5e3c;
   --accent-foreground: #fffaf2;
   --destructive: #a63d2f;
@@ -1366,9 +1366,9 @@ textarea {
 /* Swipe back detection zone */
 /* Light navigation surface */
 .sidebar-premium {
-  background: #fbf8f3 !important;
+  background: #eadfcf !important;
   color: #3b2a1f;
-  border-right: 1px solid #e8ded2;
+  border-right: 1px solid #d9c9b0;
   box-shadow: 8px 0 24px rgba(59, 42, 31, 0.05);
 }
 .sidebar-header,

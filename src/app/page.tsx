@@ -2,7 +2,7 @@
 
 // REDESIGNED
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, Menu, Send, Square } from "lucide-react";
+import { BookOpen, Loader2, Menu, Send, Sparkles, Square } from "lucide-react";
 import { Sidebar } from "@/components/chat/Sidebar";
 import ReactMarkdown from "react-markdown";
 import { useToast } from "@/hooks/use-toast";
@@ -190,6 +190,12 @@ export default function ChatPage() {
   }, []);
 
   useEffect(() => {
+    if (window.localStorage.getItem("hdak-language") === "ru") {
+      window.localStorage.setItem("hdak-language", "uk");
+    }
+  }, []);
+
+  useEffect(() => {
     window.localStorage.setItem("hdak-language", language);
     document.documentElement.lang = language;
   }, [language]);
@@ -287,7 +293,7 @@ export default function ChatPage() {
                   className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-[#fffaf2] text-3xl"
                   style={{ animation: "breathe 2.6s ease-in-out infinite" }}
                 >
-                  📚
+                  <BookOpen size={30} strokeWidth={1.7} aria-hidden="true" />
                 </div>
                 <h2
                   className="text-[26px] font-semibold text-[#3b2a1f]"
@@ -300,7 +306,7 @@ export default function ChatPage() {
                 </p>
                 <div className="my-4 flex items-center gap-3 text-[#8b5e3c]/70">
                   <div className="h-px w-14 bg-[#8b5e3c]/25" />
-                  <span>✦</span>
+                  <Sparkles size={15} aria-hidden="true" />
                   <div className="h-px w-14 bg-[#8b5e3c]/25" />
                 </div>
                 <div className="grid max-w-[620px] grid-cols-1 gap-2 sm:grid-cols-2">
@@ -327,7 +333,11 @@ export default function ChatPage() {
                     >
                       {!isUser && (
                         <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full bg-[#fffaf2] text-sm">
-                          📚
+                          <BookOpen
+                            size={16}
+                            strokeWidth={1.7}
+                            aria-hidden="true"
+                          />
                         </div>
                       )}
                       <div
@@ -374,7 +384,12 @@ export default function ChatPage() {
                       </div>
                       {isUser && (
                         <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full bg-[#fffaf2] text-sm">
-                          👤
+                          <span
+                            className="text-xs font-semibold"
+                            aria-hidden="true"
+                          >
+                            Я
+                          </span>
                         </div>
                       )}
                     </div>
