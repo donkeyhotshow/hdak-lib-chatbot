@@ -348,6 +348,8 @@ export const Sidebar = memo(function Sidebar({
   const [open, setOpen] = useState(false);
   useEffect(() => {
     try {
+      // Library hours are an external clock-based value and must be refreshed after mount.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setOpen(isLibraryOpen());
     } catch {
       /* Intl not supported */
@@ -369,12 +371,18 @@ export const Sidebar = memo(function Sidebar({
   const prevConvCountRef = useRef(conversations.length);
   useEffect(() => {
     if (conversations.length !== prevConvCountRef.current) {
+      // Loading state follows the completion of the external conversation request.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsLoadingMore(false);
       prevConvCountRef.current = conversations.length;
     }
   }, [conversations.length]);
   useEffect(() => {
-    if (!isOpen) setSearch("");
+    if (!isOpen) {
+      // Clear transient filter state when the drawer closes.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSearch("");
+    }
   }, [isOpen]);
 
   // Focus trap for mobile sidebar
@@ -688,7 +696,18 @@ export const Sidebar = memo(function Sidebar({
             <div className="px-3 pb-2 pt-3 shrink-0 border-t border-[#e8ded2]">
               <div className="mb-2 flex items-center justify-between rounded-lg border border-[#e8ded2] bg-white p-1 text-xs">
                 {(["uk", "en"] as const).map(code => (
-                  <button key={code} onClick={() => onLanguageChange?.(code)} className={cn("flex-1 rounded-md px-2 py-1.5", language === code ? "bg-[#8b5e3c] text-white" : "text-[#806b58]")}>{code === "uk" ? "Українська" : "English"}</button>
+                  <button
+                    key={code}
+                    onClick={() => onLanguageChange?.(code)}
+                    className={cn(
+                      "flex-1 rounded-md px-2 py-1.5",
+                      language === code
+                        ? "bg-[#8b5e3c] text-white"
+                        : "text-[#806b58]"
+                    )}
+                  >
+                    {code === "uk" ? "Українська" : "English"}
+                  </button>
                 ))}
               </div>
               <button

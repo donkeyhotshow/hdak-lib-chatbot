@@ -37,7 +37,11 @@ function isRetryableError(error: unknown): boolean {
 
   if (error instanceof Error) {
     const message = error.message.toLowerCase();
-    return message.includes("network") || message.includes("timeout") || message.includes("econnrefused");
+    return (
+      message.includes("network") ||
+      message.includes("timeout") ||
+      message.includes("econnrefused")
+    );
   }
 
   return false;
@@ -46,8 +50,14 @@ function isRetryableError(error: unknown): boolean {
 /**
  * Calculates delay for exponential backoff
  */
-function calculateDelay(attempt: number, options: Required<RetryOptions>): number {
-  const delay = Math.min(options.initialDelay * Math.pow(options.backoffMultiplier, attempt - 1), options.maxDelay);
+function calculateDelay(
+  attempt: number,
+  options: Required<RetryOptions>
+): number {
+  const delay = Math.min(
+    options.initialDelay * Math.pow(options.backoffMultiplier, attempt - 1),
+    options.maxDelay
+  );
   // Add jitter (±10%)
   const jitter = delay * 0.1 * (Math.random() * 2 - 1);
   return Math.max(100, delay + jitter);
@@ -83,14 +93,17 @@ export async function withRetry<T>(
 
       // Calculate delay for next retry
       const delay = calculateDelay(attempt, mergedOptions);
-      logger.warn(`API call failed, retrying in ${delay}ms (attempt ${attempt}/${mergedOptions.maxRetries})`, {
-        error: lastError.message,
-      });
+      logger.warn(
+        `API call failed, retrying in ${delay}ms (attempt ${attempt}/${mergedOptions.maxRetries})`,
+        {
+          error: lastError.message,
+        }
+      );
 
       mergedOptions.onRetry?.(attempt, delay, lastError);
 
       // Wait before retrying
-      await new Promise((resolve) => setTimeout(resolve, delay));
+      await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
 
@@ -105,10 +118,20 @@ export async function fetchWithRetry(
   url: string,
   options?: RequestInit & RetryOptions
 ): Promise<Response> {
-  const { maxRetries, initialDelay, maxDelay, backoffMultiplier, onRetry, ...fetchOptions } = options || {};
+  const {
+    maxRetries,
+    initialDelay,
+    maxDelay,
+    backoffMultiplier,
+    onRetry,
+    ...fetchOptions
+  } = options || {};
 
-  return withRetry(
-    () => fetch(url, fetchOptions),
-    { maxRetries, initialDelay, maxDelay, backoffMultiplier, onRetry }
-  );
+  return withRetry(() => fetch(url, fetchOptions), {
+    maxRetries,
+    initialDelay,
+    maxDelay,
+    backoffMultiplier,
+    onRetry,
+  });
 }

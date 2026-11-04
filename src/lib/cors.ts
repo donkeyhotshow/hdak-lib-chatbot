@@ -22,7 +22,8 @@ export function isForbiddenOrigin(request: NextRequest): boolean {
     const requestUrl = new URL(request.url);
     const reqHost = requestUrl.hostname;
     const localHosts = ["localhost", "127.0.0.1", "0.0.0.0"];
-    const source = request.headers.get("origin") ?? request.headers.get("referer");
+    const source =
+      request.headers.get("origin") ?? request.headers.get("referer");
 
     // For mutating methods in production, require either Origin or Referer.
     // If both are missing, treat request as potentially forged (CSRF) and block it.

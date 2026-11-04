@@ -83,6 +83,7 @@
 ## ПРОВЕРКИ ДО PRODUCTION DEPLOYMENT
 
 ### Security Checklist
+
 - [ ] Нет XSS уязвимостей (протестировать payloads)
 - [ ] Нет CSRF уязвимостей (Origin + CSRF token)
 - [ ] Нет SQL injection (валидация Zod)
@@ -94,6 +95,7 @@
 - [ ] Все зависимости обновлены и проверены
 
 ### Performance Checklist
+
 - [ ] Нет утечек памяти (DevTools Memory)
 - [ ] История ограничена 500 сообщениями
 - [ ] Большие сообщения обрезаны
@@ -103,6 +105,7 @@
 - [ ] Нет бесконечных loops
 
 ### Reliability Checklist
+
 - [ ] Все ошибки логируются
 - [ ] Все API имеют timeout
 - [ ] Все запросы имеют retry логику
@@ -112,6 +115,7 @@
 - [ ] Graceful degradation (speech API, etc)
 
 ### Functionality Checklist
+
 - [ ] Chat работает end-to-end
 - [ ] История сохраняется и загружается
 - [ ] Каталог поиск работает
@@ -123,6 +127,7 @@
 ## ИНСТРУМЕНТЫ ДЛЯ ПРОВЕРКИ
 
 ### Security Scanning
+
 ```bash
 # Проверить зависимости на уязвимости
 npm audit
@@ -136,6 +141,7 @@ docker run -u zap -p 8080:8080 -v $(pwd):/zap/wrk owasp/zap2docker-stable
 ```
 
 ### Performance Profiling
+
 ```bash
 # Chrome DevTools
 F12 > Performance > Record > [actions] > Stop
@@ -148,6 +154,7 @@ F12 > Memory > Take heap snapshot > [actions] > Take another > Compare
 ```
 
 ### Code Quality
+
 ```bash
 # Type check
 pnpm exec tsc --noEmit
@@ -162,12 +169,14 @@ pnpm exec jest --coverage
 ## КРИТИЧЕСКИЕ ТЕСТЫ ДО DEPLOY
 
 ### Test 1: XSS Attack
+
 ```
 - Сообщение: ![](javascript:alert('xss'))
 - Ожидается: Не выполнить JavaScript
 ```
 
 ### Test 2: Race Condition
+
 ```
 - Быстро отправить 3 сообщения подряд
 - Проверить: Все 3 видны в истории правильно
@@ -175,6 +184,7 @@ pnpm exec jest --coverage
 ```
 
 ### Test 3: Large Message
+
 ```
 - Генерировать 1MB текст
 - Отправить в чат
@@ -182,12 +192,14 @@ pnpm exec jest --coverage
 ```
 
 ### Test 4: Rate Limit
+
 ```
 - Отправить 11 запросов за 1 сек
 - Ожидается: 11-й запрос вернет 429 Too Many Requests
 ```
 
 ### Test 5: Timeout
+
 ```
 - Отправить сообщение
 - Не отключать сеть сразу, дождаться >120 сек
@@ -195,6 +207,7 @@ pnpm exec jest --coverage
 ```
 
 ### Test 6: Memory Leak
+
 ```
 - DevTools > Memory > Take heap snapshot
 - Отправить 100 сообщений
@@ -226,4 +239,3 @@ pnpm exec jest --coverage
 **Создано**: май 2026  
 **Статус**: ТРЕБУЕТ ИСПРАВЛЕНИЯ  
 **Приоритет**: 🔴 КРИТИЧ
-
