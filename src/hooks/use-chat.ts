@@ -113,6 +113,7 @@ export function useChat(
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const requestIdRef = useRef(0);
+  const conversationLoadIdRef = useRef(0);
   const faqStoppedRef = useRef(false);
   const thinkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const typeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -147,8 +148,8 @@ export function useChat(
         setConversations(items || []);
         setHasMoreConversations(hasMore || false);
       }
-    } catch {
-      /* ignore cache parse errors */
+    } catch (error) {
+      logger.warn("Failed to parse cached conversations", { error });
     }
 
     fetch("/api/conversations?limit=15&offset=0", {
@@ -206,8 +207,8 @@ export function useChat(
         `hdak_msg_cache_${convId}`,
         JSON.stringify({ messages, ts: Date.now() })
       );
-    } catch (e) {
-      /* ignore quota errors */
+    } catch (error) {
+      logger.warn("Failed to cache messages", { error });
     }
   }, [messages]);
 
@@ -259,6 +260,8 @@ export function useChat(
   }, []);
 
   const loadConversation = useCallback(async (id: string) => {
+    const loadId = ++conversationLoadIdRef.current;
+    ++requestIdRef.current;
     clearTypingTimeout();
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -284,6 +287,9 @@ export function useChat(
       });
       if (res.ok) {
         const data = await res.json();
+        if (!isMountedRef.current || conversationLoadIdRef.current !== loadId) {
+          return;
+        }
         currentConversationRef.current = data;
         setCurrentConversation(data);
         const msgs = data.messages || [];
@@ -320,11 +326,15 @@ export function useChat(
         "Немає з'єднання з сервером. Перевірте інтернет і спробуйте ще раз."
       );
     } finally {
-      setIsLoadingConversation(false);
+      if (isMountedRef.current && conversationLoadIdRef.current === loadId) {
+        setIsLoadingConversation(false);
+      }
     }
-  }, []);
+  }, [clearTypingTimeout]);
 
   const createNewConversation = useCallback(() => {
+    ++conversationLoadIdRef.current;
+    ++requestIdRef.current;
     if (thinkTimerRef.current) {
       clearTimeout(thinkTimerRef.current);
       thinkTimerRef.current = null;
@@ -399,14 +409,16 @@ export function useChat(
           try {
             const cache = JSON.stringify({ items: next, ts: Date.now() });
             safeStorage.setItem("hdak_conv_cache", cache);
-          } catch (e) {
-            // L34: QuotaExceededError or SecurityError — silently clear stale cache
-            try {
-              safeStorage.removeItem("hdak_conv_cache");
-            } catch {
-              /* ignore */
+            } catch (error) {
+              logger.warn("Failed to update conversation cache", { error });
+              try {
+                safeStorage.removeItem("hdak_conv_cache");
+              } catch (removeError) {
+                logger.warn("Failed to clear conversation cache", {
+                  error: removeError,
+                });
+              }
             }
-          }
           return next;
         });
         if (currentConversationRef.current?.id === id) {
@@ -448,10 +460,12 @@ export function useChat(
       }
       typingTimeoutRef.current = setTimeout(() => {
         if (isMountedRef.current && isCurrentRequest()) {
+          controller.abort();
           isTypingRef.current = false;
           setIsTyping(false);
+          setStreamingMessageId(null);
           setError(
-            "Часова межа відповіді перевищена (120сек). Нат��сніть 'Зупинити' або спробуйте знову."
+            "Часова межа відповіді перевищена (120сек). Натисніть 'Зупинити' або спробуйте знову."
           );
         }
       }, 120000); // 120 seconds
@@ -701,6 +715,7 @@ export function useChat(
       }
 
       // M21: abort any active LLM fetch stream before starting FAQ
+      ++requestIdRef.current;
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
         abortControllerRef.current = null;
@@ -863,7 +878,7 @@ export function useChat(
       );
     }
     setStreamingMessageId(null);
-  }, []);
+  }, [clearTypingTimeout]);
 
   // M2+M20: prevent duplicate entries; read offset from ref so callback is stable
   const loadMoreConversations = useCallback(async () => {

@@ -27,7 +27,6 @@ import { logger } from "@/lib/logger";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-const MAX_MESSAGE_LENGTH = 2000;
 const DB_TIMEOUT_MS = 10_000;
 const LLM_STREAM_IDLE_TIMEOUT_MS = 30_000;
 

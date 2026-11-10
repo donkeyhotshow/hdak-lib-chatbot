@@ -1,4 +1,4 @@
-import React, { memo, useMemo, useEffect, useState, useRef } from "react";
+import React, { memo, useMemo, useState } from "react";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import {
@@ -95,26 +95,6 @@ const QUICK_MENU_EN = [
   },
 ] as const;
 
-const QUICK_CHIPS_UK = [
-  { id: "chip1", title: "Графік роботи", kw: "Який графік роботи бібліотеки?" },
-  { id: "chip2", title: "Як записатися", kw: "Як записатися до бібліотеки?" },
-  { id: "chip3", title: "Пошук книги", kw: "Як знайти книгу в каталозі?" },
-] as const;
-
-const QUICK_CHIPS_EN = [
-  { id: "chip1", title: "Library hours", kw: "What are the library hours?" },
-  {
-    id: "chip2",
-    title: "How to register",
-    kw: "How to register at the library?",
-  },
-  {
-    id: "chip3",
-    title: "Find a book",
-    kw: "How to find a book in the catalog?",
-  },
-] as const;
-
 const containerVariants: Variants = {
   animate: { transition: { staggerChildren: 0.04, delayChildren: 0.05 } },
 };
@@ -165,32 +145,6 @@ const BookIcon = memo(function BookIcon({
         strokeWidth="1"
       />
     </svg>
-  );
-});
-
-const QuickBtn = memo(function QuickBtn({
-  icon: Icon,
-  title,
-  kw,
-  isTyping,
-  onClick,
-}: {
-  icon: React.ElementType;
-  title: string;
-  kw: string;
-  isTyping: boolean;
-  onClick: (kw: string) => void;
-}) {
-  return (
-    <motion.button
-      variants={itemVariants}
-      onClick={() => onClick(kw)}
-      disabled={isTyping}
-      className="quick-btn disabled:opacity-40 disabled:cursor-not-allowed"
-    >
-      <Icon size={12} strokeWidth={1.8} className="quick-btn-icon shrink-0" />
-      <span className="quick-btn-text">{title}</span>
-    </motion.button>
   );
 });
 
@@ -484,7 +438,6 @@ function ChatAreaComponent({
   });
 
   const [showScrollButton, setShowScrollButton] = useState(false);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   const QUICK_MENU = locale === "en" ? QUICK_MENU_EN : QUICK_MENU_UK;
 
@@ -557,27 +510,20 @@ function ChatAreaComponent({
     }
   };
 
-  const { lastMsg, lastMsgHasCatalog, lastAssistantContent } = useMemo(() => {
+  const { lastMsg, lastAssistantContent } = useMemo(() => {
     let lastAssistant = "";
-    let lastAssistantMsg: Message | undefined;
     let last: Message | undefined;
     for (let i = messages.length - 1; i >= 0; i--) {
       if (!last) last = messages[i];
       if (messages[i].role === "ASSISTANT") {
         if (!lastAssistant) {
           lastAssistant = messages[i].content;
-          lastAssistantMsg = messages[i];
         }
         break;
       }
     }
-    const hasCatalog = lastAssistantMsg
-      ? lastAssistantMsg.content?.includes("[РЕЗУЛЬТАТИ КАТАЛОГУ") ||
-        lastAssistantMsg.content?.includes("Знайдено за")
-      : false;
     return {
       lastMsg: last,
-      lastMsgHasCatalog: hasCatalog,
       lastAssistantContent: lastAssistant,
     };
   }, [messages]);

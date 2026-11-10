@@ -335,7 +335,6 @@ function findSimilarFaq(
   const queryWords = new Set(queryTokens(query));
 
   for (const [question, entry] of Object.entries(entries)) {
-    const normalizedQuestion = normalize(question);
     const questionWords = queryTokens(question);
     const sharedWords = questionWords.filter(word =>
       queryWords.has(word)
