@@ -15,8 +15,7 @@ test.describe("Chat Functionality", () => {
   test("should display chat interface", async ({ page }) => {
     // Check main elements are visible
     const input = page.locator("textarea");
-    const sendBtn = page.locator(".send-btn");
-    const header = page.locator(".chat-header");
+
 
     await expect(input).toBeVisible();
     await expect(sendBtn).toBeVisible();
@@ -116,10 +115,6 @@ test.describe("Navigation", () => {
   });
 
   test("should create new conversation", async ({ page }) => {
-    const newChatBtn = page
-      .locator('[aria-label="Очистити чат"], button:has-text("НОВИЙ ЧАТ")')
-      .first();
-
     // First, we need at least one message
     const input = page.locator("textarea");
     await input.fill("тест");
@@ -181,7 +176,6 @@ test.describe("Mobile Specific", () => {
     await page.goto("/");
 
     const input = page.locator("textarea");
-    const inputBox = await input.boundingBox();
 
     // Focus input (simulates keyboard appearance)
     await input.focus();
@@ -245,7 +239,6 @@ test.describe("Performance", () => {
     await page.waitForSelector("textarea");
 
     const input = page.locator("textarea");
-    const sendBtn = page.locator(".send-btn");
 
     // Send multiple messages quickly
     for (let i = 0; i < 3; i++) {

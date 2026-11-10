@@ -9,16 +9,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useChat } from "@/hooks/use-chat";
 
 type Language = "uk" | "en";
-type ResourceItem = {
-  icon: string;
-  label: string;
-  href: string;
-};
-type ResourceGroup = {
-  title: string;
-  items: ResourceItem[];
-};
-
 const translations = {
   uk: {
     history: "Історія",
@@ -54,49 +44,6 @@ const translations = {
     ],
   },
 } as const;
-
-const resources: ResourceGroup[] = [
-  {
-    title: "Open access",
-    items: [
-      {
-        icon: "🗂️",
-        label: "Електронний каталог",
-        href: "https://library-service.com.ua:8443/khkhdak/DocumentSearchForm",
-      },
-      {
-        icon: "🏛️",
-        label: "Репозитарій ХДАК",
-        href: "https://repository.ac.kharkov.ua/home",
-      },
-      {
-        icon: "🎭",
-        label: "Культура України",
-        href: "http://elib.nplu.org/",
-      },
-    ],
-  },
-  {
-    title: "Open access",
-    items: [
-      {
-        icon: "📖",
-        label: "DOAJ",
-        href: "https://lib-hdak.in.ua/catalog-doaj.html",
-      },
-      {
-        icon: "📜",
-        label: "УкрІНТЕІ",
-        href: "http://nrat.ukrintei.ua/",
-      },
-      {
-        icon: "🏠",
-        label: "Сайт бібліотеки",
-        href: "https://lib-hdak.in.ua/",
-      },
-    ],
-  },
-];
 
 export default function ChatPage() {
   const { toast } = useToast();
