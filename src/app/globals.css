@@ -198,6 +198,7 @@
 .sidebar-link {
   display: flex;
   align-items: center;
+  min-height: 44px;
   gap: 8px;
   padding: 8px 10px;
   border-radius: 10px;
@@ -267,8 +268,8 @@
 }
 
 .sidebar-close-btn {
-  width: 30px;
-  height: 30px;
+  width: 44px;
+  height: 44px;
   border-radius: 8px;
   color: rgba(255, 255, 255, 0.28);
   background: transparent;
@@ -925,6 +926,7 @@
 }
 
 .sidebar-section-btn {
+  min-height: 44px;
   background: none;
   border: none;
   cursor: pointer;
@@ -969,7 +971,8 @@
 
 .sidebar-contact-row {
   display: flex;
-  align-items: baseline;
+  min-height: 44px;
+  align-items: center;
   justify-content: space-between;
   gap: 8px;
   padding: 5px 8px;
@@ -1005,8 +1008,8 @@
 }
 
 .sidebar-social-btn {
-  width: 30px;
-  height: 30px;
+  width: 44px;
+  height: 44px;
   border-radius: 8px;
   background: rgba(212, 168, 83, 0.07);
   border: 1px solid rgba(212, 168, 83, 0.1);
@@ -1026,6 +1029,7 @@
 
 .sidebar-website-btn {
   display: flex;
+  min-height: 44px;
   align-items: center;
   gap: 8px;
   width: 100%;

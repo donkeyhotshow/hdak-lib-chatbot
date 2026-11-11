@@ -27,9 +27,9 @@ import { logger } from "@/lib/logger";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-const MAX_MESSAGE_LENGTH = 2000;
 const DB_TIMEOUT_MS = 10_000;
-const LLM_STREAM_IDLE_TIMEOUT_MS = 30_000;
+const LLM_STREAM_IDLE_TIMEOUT_MS = 10_000;
+const LLM_CHAIN_TIMEOUT_MS = 45_000;
 
 // ─── Timeout wrapper for DB operations ──────────────────────────────────────
 
@@ -106,22 +106,25 @@ async function streamLLM(
   encoder: TextEncoder,
   signal: AbortSignal
 ): Promise<string> {
-  const sendChunk = (text: string) => {
-    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`));
-  };
-
   const tryProvider = async (
     url: string,
     apiKey: string,
-    model: string
+    model: string,
+    onChunk: (text: string) => void,
+    deadline: number
   ): Promise<string> => {
     const tc = new AbortController();
     let timer: ReturnType<typeof setTimeout> | null = null;
     const resetTimeout = () => {
       if (timer) clearTimeout(timer);
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) {
+        tc.abort(new Error("LLM provider chain deadline exceeded"));
+        return;
+      }
       timer = setTimeout(
         () => tc.abort(new Error("LLM stream timeout")),
-        LLM_STREAM_IDLE_TIMEOUT_MS
+        Math.min(LLM_STREAM_IDLE_TIMEOUT_MS, remaining)
       );
     };
     const onClientAbort = () => {
@@ -182,7 +185,7 @@ async function streamLLM(
             const delta = chunk.choices?.[0]?.delta?.content;
             if (delta) {
               full += delta;
-              sendChunk(delta);
+              onChunk(delta);
             }
           } catch {
             console.warn("Skipped malformed chunk (len:", data.length, ")");
@@ -209,13 +212,33 @@ async function streamLLM(
   }
 
   const config = getLlmConfig();
+  const deadline = Date.now() + LLM_CHAIN_TIMEOUT_MS;
 
   // Prefer explicitly configured providers, then fall back without exposing keys.
   for (const provider of [config.llm7, config.groq, config.xai, config.qwen]) {
     if (!provider.apiKey) continue;
     for (let attempt = 1; attempt <= 2; attempt += 1) {
+      if (signal.aborted) break;
+      if (Date.now() >= deadline) {
+        logger.warn("LLM provider chain reached its overall deadline");
+        throw new LlmUnavailableError();
+      }
       try {
-        return await tryProvider(provider.url, provider.apiKey, provider.model);
+        const chunks: string[] = [];
+        const response = await tryProvider(
+          provider.url,
+          provider.apiKey,
+          provider.model,
+          text => chunks.push(text),
+          deadline
+        );
+        if (!response.trim()) throw new Error("Provider returned an empty response");
+        for (const text of chunks) {
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify({ text })}\n\n`)
+          );
+        }
+        return response;
       } catch (e) {
         logger.error(
           `LLM provider failed (${provider.model}, attempt ${attempt})`,

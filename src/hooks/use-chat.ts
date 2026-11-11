@@ -4,7 +4,6 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { Message, Conversation } from "@/components/chat/types";
 import { getFaqResponse } from "@/lib/faq-responses";
 import { getSessionId, SESSION_HEADER } from "@/lib/session";
-import { withRetry } from "@/lib/retry";
 import { logger } from "@/lib/logger";
 
 // Safe localStorage wrapper for environments where localStorage is disabled/unavailable
@@ -113,6 +112,7 @@ export function useChat(
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const requestIdRef = useRef(0);
+  const conversationLoadIdRef = useRef(0);
   const faqStoppedRef = useRef(false);
   const thinkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const typeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -147,8 +147,8 @@ export function useChat(
         setConversations(items || []);
         setHasMoreConversations(hasMore || false);
       }
-    } catch {
-      /* ignore cache parse errors */
+    } catch (error) {
+      logger.warn("Failed to parse cached conversations", { error });
     }
 
     fetch("/api/conversations?limit=15&offset=0", {
@@ -179,7 +179,7 @@ export function useChat(
       })
       .catch(err => {
         if (err instanceof Error && err.name !== "AbortError") {
-          console.error("Failed to load conversations:", err);
+          logger.error("Failed to load conversations", err);
         }
       })
       .finally(() => {
@@ -206,8 +206,8 @@ export function useChat(
         `hdak_msg_cache_${convId}`,
         JSON.stringify({ messages, ts: Date.now() })
       );
-    } catch (e) {
-      /* ignore quota errors */
+    } catch (error) {
+      logger.warn("Failed to cache messages", { error });
     }
   }, [messages]);
 
@@ -244,7 +244,7 @@ export function useChat(
             }
           }
         } catch (err) {
-          console.error("Не вдалося оновити список розмов:", err);
+          logger.error("Failed to refresh conversations", err);
         }
         resolve();
       }, 300);
@@ -259,6 +259,8 @@ export function useChat(
   }, []);
 
   const loadConversation = useCallback(async (id: string) => {
+    const loadId = ++conversationLoadIdRef.current;
+    ++requestIdRef.current;
     clearTypingTimeout();
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -284,6 +286,9 @@ export function useChat(
       });
       if (res.ok) {
         const data = await res.json();
+        if (!isMountedRef.current || conversationLoadIdRef.current !== loadId) {
+          return;
+        }
         currentConversationRef.current = data;
         setCurrentConversation(data);
         const msgs = data.messages || [];
@@ -320,11 +325,16 @@ export function useChat(
         "Немає з'єднання з сервером. Перевірте інтернет і спробуйте ще раз."
       );
     } finally {
-      setIsLoadingConversation(false);
+      if (isMountedRef.current && conversationLoadIdRef.current === loadId) {
+        setIsLoadingConversation(false);
+      }
     }
-  }, []);
+  }, [clearTypingTimeout]);
 
   const createNewConversation = useCallback(() => {
+    ++conversationLoadIdRef.current;
+    ++requestIdRef.current;
+    clearTypingTimeout();
     if (thinkTimerRef.current) {
       clearTimeout(thinkTimerRef.current);
       thinkTimerRef.current = null;
@@ -342,7 +352,7 @@ export function useChat(
     setError(null);
     setIsTyping(false);
     setStreamingMessageId(null);
-  }, [setInputValue]);
+  }, [clearTypingTimeout, setInputValue]);
 
   const renameConversation = useCallback(
     async (id: string, title: string) => {
@@ -360,7 +370,7 @@ export function useChat(
           setCurrentConversation(prev => (prev ? { ...prev, title } : prev));
         }
       } catch (err) {
-        console.error("Не вдалося перейменувати:", err);
+        logger.error("Failed to rename conversation", err);
         toast({
           description: "Не вдалося перейменувати розмову",
           duration: 2000,
@@ -375,6 +385,7 @@ export function useChat(
     async (id: string, e: React.MouseEvent) => {
       e.stopPropagation();
       if (currentConversationRef.current?.id === id) {
+        clearTypingTimeout();
         abortControllerRef.current?.abort();
         abortControllerRef.current = null;
         if (thinkTimerRef.current) {
@@ -399,14 +410,16 @@ export function useChat(
           try {
             const cache = JSON.stringify({ items: next, ts: Date.now() });
             safeStorage.setItem("hdak_conv_cache", cache);
-          } catch (e) {
-            // L34: QuotaExceededError or SecurityError — silently clear stale cache
-            try {
-              safeStorage.removeItem("hdak_conv_cache");
-            } catch {
-              /* ignore */
+            } catch (error) {
+              logger.warn("Failed to update conversation cache", { error });
+              try {
+                safeStorage.removeItem("hdak_conv_cache");
+              } catch (removeError) {
+                logger.warn("Failed to clear conversation cache", {
+                  error: removeError,
+                });
+              }
             }
-          }
           return next;
         });
         if (currentConversationRef.current?.id === id) {
@@ -414,11 +427,11 @@ export function useChat(
           setMessages([]);
         }
       } catch (err) {
-        console.error("Не вдалося видалити:", err);
+        logger.error("Failed to delete conversation", err);
         toast({ description: "Не вдалося видалити розмову", duration: 2000 });
       }
     },
-    [toast]
+    [clearTypingTimeout, toast]
   );
 
   // H2: no inputValue/currentConversation in deps — read from refs instead
@@ -442,23 +455,24 @@ export function useChat(
       setIsTyping(true);
       setError(null);
 
-      // Clear any existing timeout and set new one for stuck typing state
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
-      typingTimeoutRef.current = setTimeout(() => {
-        if (isMountedRef.current && isCurrentRequest()) {
-          isTypingRef.current = false;
-          setIsTyping(false);
-          setError(
-            "Часова межа відповіді перевищена (120сек). Нат��сніть 'Зупинити' або спробуйте знову."
-          );
-        }
-      }, 120000); // 120 seconds
-
-      // H7: capture stable IDs for this specific send invocation
       const tempUserId = `temp-user-${crypto.randomUUID()}`;
       const botId = `bot-${crypto.randomUUID()}`;
+      clearTypingTimeout();
+      typingTimeoutRef.current = setTimeout(() => {
+        if (!isMountedRef.current || !isCurrentRequest()) return;
+        controller.abort();
+        isTypingRef.current = false;
+        setIsTyping(false);
+        setStreamingMessageId(null);
+        setError("Відповідь не надійшла вчасно. Спробуйте ще раз.");
+        setMessages(prev =>
+          prev.map(message =>
+            message.id === tempUserId || message.id === botId
+              ? { ...message, status: "error" }
+              : message
+          )
+        );
+      }, 75000);
 
       setMessages(prev => [
         ...prev,
@@ -474,30 +488,18 @@ export function useChat(
       let streamStarted = false;
 
       try {
-        const res = await withRetry(
-          () =>
-            fetch("/api/chat", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                ...sessionHeaders(),
-              },
-              body: JSON.stringify({
-                conversationId: currentConversationRef.current?.id || null,
-                message: text,
-              }),
-              signal: controller.signal,
-            }),
-          {
-            maxRetries: 2,
-            initialDelay: 1000,
-            onRetry: (attempt, delay) => {
-              logger.warn(
-                `API retry attempt ${attempt}, waiting ${Math.round(delay)}ms`
-              );
-            },
-          }
-        );
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...sessionHeaders(),
+          },
+          body: JSON.stringify({
+            conversationId: currentConversationRef.current?.id || null,
+            message: text,
+          }),
+          signal: controller.signal,
+        });
 
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
@@ -635,6 +637,7 @@ export function useChat(
         }
       } catch (err) {
         if (err instanceof Error && err.name === "AbortError") return;
+        if (!isCurrentRequest()) return;
 
         const isOffline =
           typeof navigator !== "undefined" && navigator.onLine === false;
@@ -676,6 +679,7 @@ export function useChat(
         }
       } finally {
         if (isCurrentRequest()) {
+          clearTypingTimeout();
           isTypingRef.current = false;
           setIsTyping(false);
         }
@@ -685,7 +689,7 @@ export function useChat(
       }
       // H20: removed isTyping — guard uses isTypingRef, no stale closure issue
     },
-    [setInputValue, refreshConversations, toast]
+    [clearTypingTimeout, setInputValue, refreshConversations, toast]
   );
 
   // H6+M21: clear old timers AND abort active fetch before starting FAQ animation
@@ -701,6 +705,7 @@ export function useChat(
       }
 
       // M21: abort any active LLM fetch stream before starting FAQ
+      ++requestIdRef.current;
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
         abortControllerRef.current = null;
@@ -814,8 +819,8 @@ export function useChat(
                 })
                 .catch(err => {
                   // C6: log FAQ save failures — conversation won't persist after reload
-                  console.error(
-                    "FAQ save failed — conversation will not persist:",
+                  logger.error(
+                    "FAQ save failed; conversation will not persist",
                     err
                   );
                   if (isMountedRef.current) {
@@ -863,7 +868,7 @@ export function useChat(
       );
     }
     setStreamingMessageId(null);
-  }, []);
+  }, [clearTypingTimeout]);
 
   // M2+M20: prevent duplicate entries; read offset from ref so callback is stable
   const loadMoreConversations = useCallback(async () => {
@@ -888,7 +893,7 @@ export function useChat(
       }
     } catch (err) {
       if (err instanceof Error && err.name !== "AbortError") {
-        console.error("Failed to load more conversations:", err);
+        logger.error("Failed to load more conversations", err);
       }
     } finally {
       isLoadingMoreRef.current = false;

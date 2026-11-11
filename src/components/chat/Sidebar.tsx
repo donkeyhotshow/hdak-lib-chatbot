@@ -8,19 +8,17 @@ import {
   FlaskConical,
   Star,
   X,
-  Trash2,
   Plus,
   ExternalLink,
   ChevronDown,
   Facebook,
   Instagram,
   Globe,
-  Pencil,
-  Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Conversation } from "./types";
 import { ALL_LINKS, LIBRARY, isLibraryOpen } from "@/lib/constants";
+import { ConversationItem } from "./ConversationItem";
 
 const MAIN_LINKS = [
   { icon: Search, title: "Електронний каталог", url: ALL_LINKS.catalog_search },
@@ -163,145 +161,6 @@ const SidebarSection = memo(function SidebarSection({
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
-  );
-});
-
-// ── ConvItem: rename + confirm-delete ────────────────────────────────────────
-const ConvItem = memo(function ConvItem({
-  conv,
-  isActive,
-  isNew,
-  onLoad,
-  onDelete,
-  onRename,
-}: {
-  conv: Conversation;
-  isActive: boolean;
-  isNew: boolean;
-  onLoad: (id: string) => void;
-  onDelete: (id: string, e: React.MouseEvent) => void;
-  onRename: (id: string, title: string) => void;
-}) {
-  const [editing, setEditing] = useState(false);
-  const [editVal, setEditVal] = useState(conv.title);
-  // M43: sync editVal if conv.title changes externally (e.g. rename from another source)
-  const prevTitleRef = React.useRef(conv.title);
-  React.useEffect(() => {
-    if (!editing && conv.title !== prevTitleRef.current) {
-      setEditVal(conv.title);
-      prevTitleRef.current = conv.title;
-    }
-  }, [conv.title, editing]);
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const deleteTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(
-    null
-  );
-  React.useEffect(
-    () => () => {
-      if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current);
-    },
-    []
-  );
-
-  const startEdit = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setEditVal(conv.title);
-    setEditing(true);
-  };
-
-  const submitEdit = (e: React.MouseEvent | React.KeyboardEvent) => {
-    e.stopPropagation();
-    const trimmed = editVal.trim();
-    if (trimmed && trimmed !== conv.title) onRename(conv.id, trimmed);
-    setEditing(false);
-  };
-
-  const handleDeleteClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (confirmDelete) {
-      onDelete(conv.id, e);
-    } else {
-      setConfirmDelete(true);
-      if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current);
-      deleteTimerRef.current = setTimeout(() => setConfirmDelete(false), 3000);
-    }
-  };
-
-  return (
-    <div
-      onClick={() => !editing && onLoad(conv.id)}
-      onKeyDown={e => {
-        if (!editing && (e.key === "Enter" || e.key === " ")) {
-          e.preventDefault();
-          onLoad(conv.id);
-        }
-      }}
-      role="button"
-      tabIndex={0}
-      aria-current={isActive ? "page" : undefined}
-      className={cn(
-        "group flex items-center gap-1.5 px-2 py-2 rounded-lg cursor-pointer transition-all",
-        isActive
-          ? "bg-[#D4A853]/10 border border-[#D4A853]/15"
-          : "hover:bg-white/[0.04] border border-transparent"
-      )}
-    >
-      {isNew && !isActive && (
-        <span className="w-1.5 h-1.5 rounded-full bg-[#D4A853]/70 shrink-0" />
-      )}
-      {editing ? (
-        <input
-          autoFocus
-          value={editVal}
-          onChange={e => setEditVal(e.target.value)}
-          onKeyDown={e => {
-            if (e.key === "Enter") submitEdit(e);
-            if (e.key === "Escape") setEditing(false);
-          }}
-          onClick={e => e.stopPropagation()}
-          aria-label="Назва розмови"
-          className="flex-1 min-w-0 bg-white/[0.06] text-white/90 text-[12px] px-1.5 py-0.5 rounded outline-none border border-[#D4A853]/30"
-        />
-      ) : (
-        <span className="text-[12.5px] leading-[1.45] text-white/65 group-hover:text-white/90 truncate flex-1 min-w-0 transition-colors">
-          {conv.title}
-        </span>
-      )}
-      <div className="flex items-center gap-0.5 shrink-0">
-        {editing ? (
-          <button
-            onClick={submitEdit}
-            className="p-2 text-[#D4A853]/60 hover:text-[#D4A853] transition-colors rounded min-w-[28px] min-h-[28px] flex items-center justify-center"
-            aria-label="Зберегти"
-          >
-            <Check size={11} strokeWidth={2} />
-          </button>
-        ) : (
-          <button
-            onClick={startEdit}
-            className="p-2 text-white/0 group-hover:text-white/20 hover:!text-[#D4A853]/60 transition-all rounded min-w-[28px] min-h-[28px] flex items-center justify-center"
-            aria-label="Перейменувати"
-          >
-            <Pencil size={10} strokeWidth={1.5} />
-          </button>
-        )}
-        <button
-          onClick={handleDeleteClick}
-          className={cn(
-            "p-2 transition-all rounded text-[10px] min-w-[28px] min-h-[28px] flex items-center justify-center",
-            confirmDelete
-              ? "text-red-400/80 bg-red-400/10 font-medium px-2.5"
-              : "text-white/0 group-hover:text-white/25 hover:!text-red-400/60"
-          )}
-          aria-label={confirmDelete ? "Підтвердити видалення" : "Видалити"}
-          title={
-            confirmDelete ? "Натисніть ще раз для підтвердження" : "Видалити"
-          }
-        >
-          {confirmDelete ? "×?" : <Trash2 size={11} strokeWidth={1.5} />}
-        </button>
-      </div>
     </div>
   );
 });
@@ -658,9 +517,9 @@ export const Sidebar = memo(function Sidebar({
                 )}
                 <div className="space-y-0.5">
                   {filtered.map(conv => (
-                    <ConvItem
-                      key={conv.id}
-                      conv={conv}
+            <ConversationItem
+              key={conv.id}
+              conversation={conv}
                       isActive={currentConversation?.id === conv.id}
                       isNew={conv.id === newConversationId}
                       onLoad={id => {
@@ -683,7 +542,7 @@ export const Sidebar = memo(function Sidebar({
                         loadMore();
                       }}
                       disabled={isLoadingMore}
-                      className="w-full py-1.5 text-[11px] text-[#D4A853]/30 hover:text-[#D4A853]/60 transition-colors text-center tracking-wide disabled:opacity-40 disabled:cursor-wait"
+                      className="min-h-11 w-full py-1.5 text-[11px] text-[#D4A853]/30 hover:text-[#D4A853]/60 transition-colors text-center tracking-wide disabled:opacity-40 disabled:cursor-wait"
                     >
                       {isLoadingMore ? "Завантаження..." : "Показати ще..."}
                     </button>
@@ -700,7 +559,7 @@ export const Sidebar = memo(function Sidebar({
                     key={code}
                     onClick={() => onLanguageChange?.(code)}
                     className={cn(
-                      "flex-1 rounded-md px-2 py-1.5",
+                      "min-h-11 flex-1 rounded-md px-2 py-1.5",
                       language === code
                         ? "bg-[#8b5e3c] text-white"
                         : "text-[#806b58]"

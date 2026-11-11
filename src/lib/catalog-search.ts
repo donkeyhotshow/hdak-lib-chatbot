@@ -278,18 +278,8 @@ export async function checkCatalogAvailability(): Promise<boolean> {
       signal: AbortSignal.timeout(3000),
     });
     return res.ok;
-  } catch (e) {
-    // Fallback to GET if HEAD is not supported
-    try {
-      const res = await fetch(catalogFormUrl, {
-        method: "GET",
-        signal: AbortSignal.timeout(3000),
-      });
-      return res.ok;
-    } catch (error) {
-      logger.error("Catalog HEAD/GET check failed", error as Error);
-      return false;
-    }
+  } catch {
+    return false;
   }
 }
 
