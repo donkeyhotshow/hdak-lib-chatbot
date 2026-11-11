@@ -59,29 +59,17 @@ export const ConversationItem = memo(function ConversationItem({
     deleteTimerRef.current = setTimeout(() => setConfirmDelete(false), 3000);
   };
 
-  const handleRowKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (!isEditing && (event.key === "Enter" || event.key === " ")) {
-      event.preventDefault();
-      onLoad(conversation.id);
-    }
-  };
-
   return (
     <div
-      onClick={() => !isEditing && onLoad(conversation.id)}
-      onKeyDown={handleRowKeyDown}
-      role="button"
-      tabIndex={0}
-      aria-current={isActive ? "page" : undefined}
       className={cn(
-        "group flex items-center gap-1.5 px-2 py-2 rounded-lg cursor-pointer transition-all",
+        "group flex items-center gap-1.5 px-2 py-1.5 rounded-lg transition-all",
         isActive
           ? "bg-[#D4A853]/10 border border-[#D4A853]/15"
           : "hover:bg-white/[0.04] border border-transparent"
       )}
     >
       {isNew && !isActive && (
-        <span className="w-1.5 h-1.5 rounded-full bg-[#D4A853]/70 shrink-0" />
+        <span aria-label="Непрочитана розмова" className="w-1.5 h-1.5 rounded-full bg-[#D4A853]/70 shrink-0" />
       )}
       {isEditing ? (
         <input
@@ -89,17 +77,21 @@ export const ConversationItem = memo(function ConversationItem({
           value={editValue}
           onChange={event => setEditValue(event.target.value)}
           onKeyDown={event => {
-            if (event.key === "Enter") submitEdit(event);
+            if (event.key === "Enter" && !event.nativeEvent.isComposing && event.keyCode !== 229) submitEdit(event);
             if (event.key === "Escape") setIsEditing(false);
           }}
-          onClick={event => event.stopPropagation()}
           aria-label="Назва розмови"
           className="flex-1 min-w-0 bg-white/[0.06] text-white/90 text-[12px] px-1.5 py-0.5 rounded outline-none border border-[#D4A853]/30"
         />
       ) : (
-        <span className="text-[12.5px] leading-[1.45] text-white/65 group-hover:text-white/90 truncate flex-1 min-w-0 transition-colors">
+        <button
+          type="button"
+          onClick={() => onLoad(conversation.id)}
+          aria-current={isActive ? "page" : undefined}
+          className="min-h-11 flex-1 min-w-0 text-left text-[12.5px] leading-[1.45] text-white/65 group-hover:text-white/90 truncate transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#D4A853]"
+        >
           {conversation.title}
-        </span>
+        </button>
       )}
       <div className="flex items-center gap-0.5 shrink-0">
         {isEditing ? (

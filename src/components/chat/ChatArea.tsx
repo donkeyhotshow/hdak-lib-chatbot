@@ -129,8 +129,8 @@ const markdownComponents = {
                       .join("")
                   : "";
             if (!text) return;
-            navigator.clipboard.writeText(text).catch(() => {
-              // Silently fail if clipboard is not available
+            navigator.clipboard.writeText(text).catch(error => {
+              logger.warn("Failed to copy code block", { error });
             });
           }}
           className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 md:opacity-100 px-2 py-1 bg-[#B87830]/80 hover:bg-[#B87830] text-white text-[11px] rounded transition-all"
@@ -432,6 +432,8 @@ function ChatAreaComponent({
 
           {error && (
             <motion.div
+              role="alert"
+              aria-live="assertive"
               variants={itemVariants}
               className="mb-6 w-full p-4 bg-red-50 rounded-2xl text-red-600 text-[14px] border border-red-100/50 flex items-center justify-between gap-4 shadow-sm"
             >
@@ -504,7 +506,11 @@ function ChatAreaComponent({
       >
         <div className="w-full max-w-[800px] mx-auto space-y-7">
           {error && (
-            <div className="flex items-center justify-between gap-3 px-4 py-3 text-red-600 text-[13.5px] bg-red-50 border border-red-100 rounded-xl shadow-sm">
+            <div
+              role="alert"
+              aria-live="assertive"
+              className="flex items-center justify-between gap-3 px-4 py-3 text-red-600 text-[13.5px] bg-red-50 border border-red-100 rounded-xl shadow-sm"
+            >
               <div className="flex items-center gap-2">
                 <AlertCircle size={15} />
                 <span className="font-medium">{error}</span>

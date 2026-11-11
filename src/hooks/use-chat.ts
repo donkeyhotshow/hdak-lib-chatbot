@@ -4,7 +4,6 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { Message, Conversation } from "@/components/chat/types";
 import { getFaqResponse } from "@/lib/faq-responses";
 import { getSessionId, SESSION_HEADER } from "@/lib/session";
-import { withRetry } from "@/lib/retry";
 import { logger } from "@/lib/logger";
 
 // Safe localStorage wrapper for environments where localStorage is disabled/unavailable
@@ -180,7 +179,7 @@ export function useChat(
       })
       .catch(err => {
         if (err instanceof Error && err.name !== "AbortError") {
-          console.error("Failed to load conversations:", err);
+          logger.error("Failed to load conversations", err);
         }
       })
       .finally(() => {
@@ -245,7 +244,7 @@ export function useChat(
             }
           }
         } catch (err) {
-          console.error("Не вдалося оновити список розмов:", err);
+          logger.error("Failed to refresh conversations", err);
         }
         resolve();
       }, 300);
@@ -335,6 +334,7 @@ export function useChat(
   const createNewConversation = useCallback(() => {
     ++conversationLoadIdRef.current;
     ++requestIdRef.current;
+    clearTypingTimeout();
     if (thinkTimerRef.current) {
       clearTimeout(thinkTimerRef.current);
       thinkTimerRef.current = null;
@@ -352,7 +352,7 @@ export function useChat(
     setError(null);
     setIsTyping(false);
     setStreamingMessageId(null);
-  }, [setInputValue]);
+  }, [clearTypingTimeout, setInputValue]);
 
   const renameConversation = useCallback(
     async (id: string, title: string) => {
@@ -370,7 +370,7 @@ export function useChat(
           setCurrentConversation(prev => (prev ? { ...prev, title } : prev));
         }
       } catch (err) {
-        console.error("Не вдалося перейменувати:", err);
+        logger.error("Failed to rename conversation", err);
         toast({
           description: "Не вдалося перейменувати розмову",
           duration: 2000,
@@ -385,6 +385,7 @@ export function useChat(
     async (id: string, e: React.MouseEvent) => {
       e.stopPropagation();
       if (currentConversationRef.current?.id === id) {
+        clearTypingTimeout();
         abortControllerRef.current?.abort();
         abortControllerRef.current = null;
         if (thinkTimerRef.current) {
@@ -426,11 +427,11 @@ export function useChat(
           setMessages([]);
         }
       } catch (err) {
-        console.error("Не вдалося видалити:", err);
+        logger.error("Failed to delete conversation", err);
         toast({ description: "Не вдалося видалити розмову", duration: 2000 });
       }
     },
-    [toast]
+    [clearTypingTimeout, toast]
   );
 
   // H2: no inputValue/currentConversation in deps — read from refs instead
@@ -454,25 +455,24 @@ export function useChat(
       setIsTyping(true);
       setError(null);
 
-      // Clear any existing timeout and set new one for stuck typing state
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
-      typingTimeoutRef.current = setTimeout(() => {
-        if (isMountedRef.current && isCurrentRequest()) {
-          controller.abort();
-          isTypingRef.current = false;
-          setIsTyping(false);
-          setStreamingMessageId(null);
-          setError(
-            "Часова межа відповіді перевищена (120сек). Натисніть 'Зупинити' або спробуйте знову."
-          );
-        }
-      }, 120000); // 120 seconds
-
-      // H7: capture stable IDs for this specific send invocation
       const tempUserId = `temp-user-${crypto.randomUUID()}`;
       const botId = `bot-${crypto.randomUUID()}`;
+      clearTypingTimeout();
+      typingTimeoutRef.current = setTimeout(() => {
+        if (!isMountedRef.current || !isCurrentRequest()) return;
+        controller.abort();
+        isTypingRef.current = false;
+        setIsTyping(false);
+        setStreamingMessageId(null);
+        setError("Відповідь не надійшла вчасно. Спробуйте ще раз.");
+        setMessages(prev =>
+          prev.map(message =>
+            message.id === tempUserId || message.id === botId
+              ? { ...message, status: "error" }
+              : message
+          )
+        );
+      }, 75000);
 
       setMessages(prev => [
         ...prev,
@@ -488,30 +488,18 @@ export function useChat(
       let streamStarted = false;
 
       try {
-        const res = await withRetry(
-          () =>
-            fetch("/api/chat", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                ...sessionHeaders(),
-              },
-              body: JSON.stringify({
-                conversationId: currentConversationRef.current?.id || null,
-                message: text,
-              }),
-              signal: controller.signal,
-            }),
-          {
-            maxRetries: 2,
-            initialDelay: 1000,
-            onRetry: (attempt, delay) => {
-              logger.warn(
-                `API retry attempt ${attempt}, waiting ${Math.round(delay)}ms`
-              );
-            },
-          }
-        );
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...sessionHeaders(),
+          },
+          body: JSON.stringify({
+            conversationId: currentConversationRef.current?.id || null,
+            message: text,
+          }),
+          signal: controller.signal,
+        });
 
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
@@ -649,6 +637,7 @@ export function useChat(
         }
       } catch (err) {
         if (err instanceof Error && err.name === "AbortError") return;
+        if (!isCurrentRequest()) return;
 
         const isOffline =
           typeof navigator !== "undefined" && navigator.onLine === false;
@@ -690,6 +679,7 @@ export function useChat(
         }
       } finally {
         if (isCurrentRequest()) {
+          clearTypingTimeout();
           isTypingRef.current = false;
           setIsTyping(false);
         }
@@ -699,7 +689,7 @@ export function useChat(
       }
       // H20: removed isTyping — guard uses isTypingRef, no stale closure issue
     },
-    [setInputValue, refreshConversations, toast]
+    [clearTypingTimeout, setInputValue, refreshConversations, toast]
   );
 
   // H6+M21: clear old timers AND abort active fetch before starting FAQ animation
@@ -829,8 +819,8 @@ export function useChat(
                 })
                 .catch(err => {
                   // C6: log FAQ save failures — conversation won't persist after reload
-                  console.error(
-                    "FAQ save failed — conversation will not persist:",
+                  logger.error(
+                    "FAQ save failed; conversation will not persist",
                     err
                   );
                   if (isMountedRef.current) {
@@ -903,7 +893,7 @@ export function useChat(
       }
     } catch (err) {
       if (err instanceof Error && err.name !== "AbortError") {
-        console.error("Failed to load more conversations:", err);
+        logger.error("Failed to load more conversations", err);
       }
     } finally {
       isLoadingMoreRef.current = false;

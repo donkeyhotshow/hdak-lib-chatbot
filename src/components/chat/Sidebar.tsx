@@ -542,7 +542,7 @@ export const Sidebar = memo(function Sidebar({
                         loadMore();
                       }}
                       disabled={isLoadingMore}
-                      className="w-full py-1.5 text-[11px] text-[#D4A853]/30 hover:text-[#D4A853]/60 transition-colors text-center tracking-wide disabled:opacity-40 disabled:cursor-wait"
+                      className="min-h-11 w-full py-1.5 text-[11px] text-[#D4A853]/30 hover:text-[#D4A853]/60 transition-colors text-center tracking-wide disabled:opacity-40 disabled:cursor-wait"
                     >
                       {isLoadingMore ? "Завантаження..." : "Показати ще..."}
                     </button>
@@ -559,7 +559,7 @@ export const Sidebar = memo(function Sidebar({
                     key={code}
                     onClick={() => onLanguageChange?.(code)}
                     className={cn(
-                      "flex-1 rounded-md px-2 py-1.5",
+                      "min-h-11 flex-1 rounded-md px-2 py-1.5",
                       language === code
                         ? "bg-[#8b5e3c] text-white"
                         : "text-[#806b58]"

@@ -2,6 +2,7 @@
 
 // REDESIGNED
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { sanitizeUrl } from "@/lib/sanitize";
 import { BookOpen, Loader2, Menu, Send, Sparkles, Square } from "lucide-react";
 import { Sidebar } from "@/components/chat/Sidebar";
 import ReactMarkdown from "react-markdown";
@@ -15,6 +16,11 @@ const translations = {
     resources: "Ресурси",
     newChat: "Новий чат",
     ask: "Чим можу допомогти?",
+    send: "Надіслати повідомлення",
+    stop: "Зупинити генерацію",
+    retry: "Спробувати ще раз",
+    remaining: "залишилось",
+    maxLength: "максимум",
     subtitle:
       "Поставте запитання про каталог, ресурси або бібліотечні сервіси.",
     hint: "Enter — надіслати · Shift+Enter — новий рядок",
@@ -25,6 +31,8 @@ const translations = {
       "Де перевірити наукові статті?",
       "Підбери джерела для курсової",
       "Що є в електронному каталозі?",
+      "Який графік роботи бібліотеки?",
+      "Як зв’язатися з бібліотекою?",
     ],
   },
   en: {
@@ -32,6 +40,11 @@ const translations = {
     resources: "Resources",
     newChat: "New chat",
     ask: "How can I help?",
+    send: "Send message",
+    stop: "Stop generating",
+    retry: "Try again",
+    remaining: "remaining",
+    maxLength: "max",
     subtitle: "Ask about the catalog, research resources, or library services.",
     hint: "Enter — send · Shift+Enter — new line",
     placeholder: "Type your message...",
@@ -41,17 +54,15 @@ const translations = {
       "Where can I search research papers?",
       "Suggest sources for coursework",
       "What is in the e-catalog?",
+      "What are the library’s opening hours?",
+      "How can I contact the library?",
     ],
   },
 } as const;
 
 export default function ChatPage() {
   const { toast } = useToast();
-  const [language, setLanguage] = useState<Language>(() => {
-    if (typeof window === "undefined") return "uk";
-    const saved = window.localStorage.getItem("hdak-language");
-    return saved === "en" ? "en" : "uk";
-  });
+  const [language, setLanguage] = useState<Language>("uk");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const sidebarRef = useRef<HTMLElement>(null);
@@ -60,6 +71,8 @@ export default function ChatPage() {
   const {
     messages,
     inputValue,
+    error,
+    retryLastMessage,
     setInputValue,
     isTyping,
     isLoadingConversation,
@@ -82,6 +95,7 @@ export default function ChatPage() {
 
   const t = translations[language];
   const isEmptyState = messages.length === 0;
+  const canRetry = messages.some(message => message.status === "error");
   const lastMessage = messages[messages.length - 1];
   const followUpSuggestions = useMemo(() => {
     if (isTyping || !lastMessage || lastMessage.role !== "ASSISTANT") return [];
@@ -137,13 +151,21 @@ export default function ChatPage() {
   }, []);
 
   useEffect(() => {
-    if (window.localStorage.getItem("hdak-language") === "ru") {
-      window.localStorage.setItem("hdak-language", "uk");
-    }
+    const timer = window.setTimeout(() => {
+      try {
+        const savedLanguage = window.localStorage.getItem("hdak-language");
+        if (savedLanguage === "en") setLanguage("en");
+        if (savedLanguage !== "uk" && savedLanguage !== "en") {
+          window.localStorage.setItem("hdak-language", "uk");
+        }
+      } catch {
+        // Keep the default language when browser storage is unavailable.
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   useEffect(() => {
-    window.localStorage.setItem("hdak-language", language);
     document.documentElement.lang = language;
   }, [language]);
 
@@ -215,10 +237,17 @@ export default function ChatPage() {
           loadMore={() => void loadMoreConversations()}
           isLoadingConversations={isLoadingConversations}
           language={language}
-          onLanguageChange={setLanguage}
+          onLanguageChange={nextLanguage => {
+            setLanguage(nextLanguage);
+            try {
+              window.localStorage.setItem("hdak-language", nextLanguage);
+            } catch {
+              // Language changes still work for the current session.
+            }
+          }}
         />
         <button
-          className="fixed left-3 top-3 z-30 rounded-lg border border-[#d9c9b0] bg-white p-2 text-[#3b2a1f] shadow-sm md:hidden"
+                  className="fixed left-3 top-3 z-30 flex size-11 items-center justify-center rounded-lg border border-[#d9c9b0] bg-white text-[#3b2a1f] shadow-sm md:hidden"
           onClick={() => setSidebarOpen(true)}
           aria-label="Відкрити меню"
         >
@@ -261,7 +290,7 @@ export default function ChatPage() {
                     <button
                       key={example}
                       onClick={() => handleFaqSend(example)}
-                      className="rounded-full border border-[#7a6350]/40 bg-[#fffaf2]/70 px-4 py-2 text-sm text-[#3b2a1f] transition hover:border-[#8b5e3c]"
+                      className="min-h-11 rounded-full border border-[#7a6350]/40 bg-[#fffaf2]/70 px-4 py-2 text-sm text-[#3b2a1f] transition hover:border-[#8b5e3c]"
                     >
                       {example}
                     </button>
@@ -300,16 +329,20 @@ export default function ChatPage() {
                               p: ({ children }) => (
                                 <p className="mb-2 last:mb-0">{children}</p>
                               ),
-                              a: ({ children, href }) => (
-                                <a
-                                  href={href}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="break-all underline underline-offset-2"
-                                >
-                                  {children}
-                                </a>
-                              ),
+                              a: ({ children, href }) => {
+                                const safeHref = href ? sanitizeUrl(href) : "";
+                                if (!safeHref) return <>{children}</>;
+                                return (
+                                  <a
+                                    href={safeHref}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="break-all underline underline-offset-2"
+                                  >
+                                    {children}
+                                  </a>
+                                );
+                              },
                               ul: ({ children }) => (
                                 <ul className="mb-2 list-disc pl-5">
                                   {children}
@@ -374,7 +407,7 @@ export default function ChatPage() {
                         key={question}
                         type="button"
                         onClick={() => handleFaqSend(question)}
-                        className="max-w-full rounded-xl border border-[#8b5e3c]/25 bg-[#fffaf2]/80 px-3 py-2 text-left text-xs leading-5 text-[#5d4637] transition hover:border-[#8b5e3c]/60 hover:bg-[#fffaf2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5e3c]/50"
+                        className="min-h-11 max-w-full rounded-xl border border-[#8b5e3c]/25 bg-[#fffaf2]/80 px-3 py-2 text-left text-xs leading-5 text-[#5d4637] transition hover:border-[#8b5e3c]/60 hover:bg-[#fffaf2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5e3c]/50"
                       >
                         {question}
                       </button>
@@ -385,6 +418,24 @@ export default function ChatPage() {
               </div>
             )}
           </section>
+
+          {error && (
+            <div
+              role="alert"
+              className="mb-2 flex items-start justify-between gap-3 rounded-xl border border-red-300/60 bg-red-50 px-4 py-3 text-sm text-red-800"
+            >
+              <span>{error}</span>
+              {canRetry && !isTyping && (
+                <button
+                  type="button"
+                  onClick={retryLastMessage}
+                  className="min-h-11 shrink-0 rounded-lg px-3 font-semibold underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-700/50"
+                >
+                  {t.retry}
+                </button>
+              )}
+            </div>
+          )}
 
           <section className="sticky bottom-0 shrink-0 pb-[calc(12px+env(safe-area-inset-bottom))] pt-2 sm:pb-[22px] sm:pt-3">
             <div
@@ -398,7 +449,10 @@ export default function ChatPage() {
                   value={inputValue}
                   onChange={e => setInputValue(e.target.value)}
                   onKeyDown={e => {
-                    if ((e.nativeEvent as KeyboardEvent).isComposing) return;
+                    if (
+                      (e.nativeEvent as KeyboardEvent).isComposing ||
+                      e.keyCode === 229
+                    ) return;
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
                       if (isTyping) {
@@ -409,7 +463,10 @@ export default function ChatPage() {
                     }
                   }}
                   placeholder={t.placeholder}
-                  className="max-h-[120px] min-h-[42px] flex-1 resize-none overflow-y-auto bg-transparent px-2 py-2 text-sm leading-6 text-[#3b2a1f] outline-none placeholder:text-[#7a6350] focus-visible:ring-0"
+                  aria-label={t.placeholder}
+                  aria-describedby="composer-hint"
+                  maxLength={2000}
+                  className="max-h-[120px] min-h-[44px] flex-1 resize-none overflow-y-auto bg-transparent px-2 py-2 text-sm leading-6 text-[#3b2a1f] outline-none placeholder:text-[#7a6350] focus-visible:ring-0"
                 />
                 <button
                   onClick={() => (isTyping ? handleStop() : handleSend())}
@@ -424,8 +481,13 @@ export default function ChatPage() {
                   )}
                 </button>
               </div>
-              <div className="mt-2 px-2 text-[11px] text-[#7a6350]">
-                {t.hint}
+              <div className="mt-2 flex items-center justify-between gap-3 px-2 text-[11px] text-[#7a6350]">
+                <span id="composer-hint">{t.hint} · {t.maxLength} 2000</span>
+                {inputValue.length > 1800 && (
+                  <span className="shrink-0 tabular-nums" aria-live="polite">
+                    {2000 - inputValue.length} {t.remaining}
+                  </span>
+                )}
               </div>
             </div>
           </section>
