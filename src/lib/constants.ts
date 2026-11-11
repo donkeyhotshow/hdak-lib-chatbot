@@ -65,8 +65,8 @@ export const LIBRARY = {
 
 /**
  * Чи бібліотека зараз відкрита.
- * Санітарний день абонементів — остання п'ятниця місяця (зачинено весь день).
- * Враховує обідню перерву 13:00–13:45 та таймзону Europe/Kyiv.
+ * Повертає true, якщо відкритий хоча б один підрозділ.
+ * Враховує години роботи, перерву абонементу та таймзону Europe/Kyiv.
  */
 export function isLibraryOpen(now = new Date()): boolean {
   // H8: correct timezone conversion — extract parts directly from Intl formatter
@@ -76,9 +76,6 @@ export function isLibraryOpen(now = new Date()): boolean {
     hour: "numeric",
     minute: "numeric",
     weekday: "short",
-    day: "numeric",
-    month: "numeric",
-    year: "numeric",
     hour12: false,
   });
   const parts = Object.fromEntries(
@@ -88,9 +85,6 @@ export function isLibraryOpen(now = new Date()): boolean {
   const dayName = parts.weekday; // 'Mon', 'Tue', ... 'Sun'
   const hour = parseInt(parts.hour, 10);
   const min = parseInt(parts.minute, 10);
-  const dayNum = parseInt(parts.day, 10);
-  const monthNum = parseInt(parts.month, 10);
-  const yearNum = parseInt(parts.year, 10);
 
   // Map weekday name to 0-6 (Sun=0)
   const dayMap: Record<string, number> = {
@@ -104,18 +98,8 @@ export function isLibraryOpen(now = new Date()): boolean {
   };
   const day = dayMap[dayName] ?? -1;
 
-  // Check if today is the last Friday of the month (санітарний день абонементів)
-  if (day === 5) {
-    // Correct logic: if adding 7 days moves us to the next month, it's the last Friday
-    const nextWeek = new Date(Date.UTC(yearNum, monthNum - 1, dayNum + 7));
-    const nextWeekMonth = nextWeek.getUTCMonth() + 1;
-    if (nextWeekMonth !== monthNum) return false;
-  }
-
-  // Check if today is the last Thursday of the month (санітарний день читального залу та автоматизації)
-  // isLibraryOpen() reflects the general "is anything open" status — if abonement is closed
-  // but reading room is open (Thursday), we still return true for the general status.
-  // The system prompt lists both schedules separately for accurate per-department info.
+  // Sanitary days close individual departments, not the entire library.
+  // This general indicator reports whether any department is open today.
 
   // Lunch break 13:00–13:45 (weekdays only)
   // Lunch break: 13:00 (inclusive) to 13:45 (exclusive)

@@ -1,99 +1,13 @@
 import React, { memo, useMemo, useState } from "react";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import ReactMarkdown from "react-markdown";
-import {
-  Search,
-  Clock,
-  BookOpen,
-  MapPin,
-  ClipboardList,
-  Globe,
-  Copy,
-  ArrowDown,
-  AlertCircle,
-} from "lucide-react";
+import { Copy, ArrowDown, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Message } from "./types";
 import { logger } from "@/lib/logger";
 import { sanitizeUrl } from "@/lib/sanitize";
+import { getSuggestions, QUICK_MENU } from "./chat-suggestions";
 
-const QUICK_MENU_UK = [
-  {
-    id: "schedule",
-    title: "Графік роботи",
-    icon: Clock,
-    kw: "Який графік роботи бібліотеки?",
-  },
-  {
-    id: "register",
-    title: "Як записатися",
-    icon: ClipboardList,
-    kw: "Як записатися до бібліотеки?",
-  },
-  {
-    id: "catalog",
-    title: "Каталог",
-    icon: Search,
-    kw: "Як знайти книгу в каталозі?",
-  },
-  {
-    id: "contacts",
-    title: "Контакти",
-    icon: MapPin,
-    kw: "Які контакти бібліотеки?",
-  },
-  {
-    id: "rules",
-    title: "Правила",
-    icon: BookOpen,
-    kw: "Які правила користування бібліотекою?",
-  },
-  {
-    id: "resources",
-    title: "Ресурси",
-    icon: Globe,
-    kw: "Які електронні ресурси доступні?",
-  },
-] as const;
-
-const QUICK_MENU_EN = [
-  {
-    id: "schedule",
-    title: "Library hours",
-    icon: Clock,
-    kw: "What are the library hours?",
-  },
-  {
-    id: "register",
-    title: "How to register",
-    icon: ClipboardList,
-    kw: "How to register at the library?",
-  },
-  {
-    id: "catalog",
-    title: "Catalog",
-    icon: Search,
-    kw: "How to find a book in the catalog?",
-  },
-  {
-    id: "contacts",
-    title: "Contacts",
-    icon: MapPin,
-    kw: "What are the library contacts?",
-  },
-  {
-    id: "rules",
-    title: "Rules",
-    icon: BookOpen,
-    kw: "What are the library rules?",
-  },
-  {
-    id: "resources",
-    title: "Resources",
-    icon: Globe,
-    kw: "What electronic resources are available?",
-  },
-] as const;
 
 const containerVariants: Variants = {
   animate: { transition: { staggerChildren: 0.04, delayChildren: 0.05 } },
@@ -439,59 +353,7 @@ function ChatAreaComponent({
 
   const [showScrollButton, setShowScrollButton] = useState(false);
 
-  const QUICK_MENU = locale === "en" ? QUICK_MENU_EN : QUICK_MENU_UK;
-
-  const getSuggestions = (content: string): string[] => {
-    const c = content.toLowerCase();
-    if (locale === "en") {
-      if (/schedule|hours|working|open/i.test(c))
-        return [
-          "How to register at the library?",
-          "What are the library contacts?",
-        ];
-      if (/book|author|catalog|title|find/i.test(c))
-        return [
-          "How to find a book in the catalog?",
-          "What electronic resources are available?",
-        ];
-      if (/research|thesis|scopus|repository|science/i.test(c))
-        return [
-          "What electronic resources are available?",
-          "How to find a book in the catalog?",
-        ];
-      if (/register|membership|card/i.test(c))
-        return [
-          "What are the library hours?",
-          "What are the library contacts?",
-        ];
-      return [
-        "How to find a book in the catalog?",
-        "What are the library hours?",
-        "What are the library contacts?",
-      ];
-    }
-    if (/графік|розклад|години|відкри|зачин/i.test(c))
-      return ["Як записатися до бібліотеки?", "Які контакти бібліотеки?"];
-    if (/книг|автор|каталог|видання|збірник|підручник|поезі|знайд/i.test(c))
-      return [
-        "Як знайти книгу в каталозі?",
-        "Які електронні ресурси доступні?",
-      ];
-    if (/наук|стат|дисертац|scopus|research|репозитар/i.test(c))
-      return [
-        "Які електронні ресурси доступні?",
-        "Як знайти книгу в каталозі?",
-      ];
-    if (/запис|квиток|реєстрац/i.test(c))
-      return ["Який графік роботи бібліотеки?", "Які контакти бібліотеки?"];
-    if (/контакт|телефон|email|адрес/i.test(c))
-      return ["Який графік роботи бібліотеки?", "Як записатися до бібліотеки?"];
-    return [
-      "Як знайти книгу в каталозі?",
-      "Який графік роботи бібліотеки?",
-      "Які контакти бібліотеки?",
-    ];
-  };
+  const quickMenu = QUICK_MENU[locale];
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
@@ -534,7 +396,9 @@ function ChatAreaComponent({
     !!lastMsg &&
     lastMsg.role === "ASSISTANT" &&
     lastMsg.id !== streamingMessageId;
-  const dynamicChips = showChips ? getSuggestions(lastAssistantContent) : [];
+  const dynamicChips = showChips
+    ? getSuggestions(lastAssistantContent, locale)
+    : [];
 
   if (messages.length === 0 && !isLoadingConversation) {
     return (
@@ -587,7 +451,7 @@ function ChatAreaComponent({
             variants={containerVariants}
             className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full"
           >
-            {QUICK_MENU.map((item, idx) => (
+            {quickMenu.map((item, idx) => (
               <motion.button
                 key={item.id}
                 variants={itemVariants}
