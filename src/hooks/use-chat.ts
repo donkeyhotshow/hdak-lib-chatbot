@@ -258,78 +258,84 @@ export function useChat(
     }
   }, []);
 
-  const loadConversation = useCallback(async (id: string) => {
-    const loadId = ++conversationLoadIdRef.current;
-    ++requestIdRef.current;
-    clearTypingTimeout();
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
-    }
-    if (thinkTimerRef.current) {
-      clearTimeout(thinkTimerRef.current);
-      thinkTimerRef.current = null;
-    }
-    if (typeIntervalRef.current) {
-      clearInterval(typeIntervalRef.current);
-      typeIntervalRef.current = null;
-    }
-    isTypingRef.current = false;
-    setIsTyping(false);
-    setStreamingMessageId(null);
-
-    setIsLoadingConversation(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/conversations/${id}`, {
-        headers: sessionHeaders(),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (!isMountedRef.current || conversationLoadIdRef.current !== loadId) {
-          return;
-        }
-        currentConversationRef.current = data;
-        setCurrentConversation(data);
-        const msgs = data.messages || [];
-        setMessages(msgs);
-        // P5: cache messages for this conversation id
-        try {
-          safeStorage.setItem(
-            `hdak_msg_cache_${id}`,
-            JSON.stringify({ messages: msgs, ts: Date.now() })
-          );
-        } catch (error) {
-          logger.warn("Failed to cache conversation messages", { error });
-        }
-      } else {
-        // Fallback to cache if server fails
-        try {
-          const cached = safeStorage.getItem(`hdak_msg_cache_${id}`);
-          if (cached) {
-            const { messages: msgs } = JSON.parse(cached);
-            setMessages(msgs);
-          }
-        } catch (error) {
-          logger.warn("Failed to restore cached conversation messages", {
-            error,
-          });
-        }
-        setError("Не вдалося завантажити розмову. Перевірте з'єднання.");
+  const loadConversation = useCallback(
+    async (id: string) => {
+      const loadId = ++conversationLoadIdRef.current;
+      ++requestIdRef.current;
+      clearTypingTimeout();
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
       }
-    } catch (err) {
-      if (err instanceof Error && err.name === "AbortError") return;
+      if (thinkTimerRef.current) {
+        clearTimeout(thinkTimerRef.current);
+        thinkTimerRef.current = null;
+      }
+      if (typeIntervalRef.current) {
+        clearInterval(typeIntervalRef.current);
+        typeIntervalRef.current = null;
+      }
+      isTypingRef.current = false;
       setIsTyping(false);
       setStreamingMessageId(null);
-      setError(
-        "Немає з'єднання з сервером. Перевірте інтернет і спробуйте ще раз."
-      );
-    } finally {
-      if (isMountedRef.current && conversationLoadIdRef.current === loadId) {
-        setIsLoadingConversation(false);
+
+      setIsLoadingConversation(true);
+      setError(null);
+      try {
+        const res = await fetch(`/api/conversations/${id}`, {
+          headers: sessionHeaders(),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (
+            !isMountedRef.current ||
+            conversationLoadIdRef.current !== loadId
+          ) {
+            return;
+          }
+          currentConversationRef.current = data;
+          setCurrentConversation(data);
+          const msgs = data.messages || [];
+          setMessages(msgs);
+          // P5: cache messages for this conversation id
+          try {
+            safeStorage.setItem(
+              `hdak_msg_cache_${id}`,
+              JSON.stringify({ messages: msgs, ts: Date.now() })
+            );
+          } catch (error) {
+            logger.warn("Failed to cache conversation messages", { error });
+          }
+        } else {
+          // Fallback to cache if server fails
+          try {
+            const cached = safeStorage.getItem(`hdak_msg_cache_${id}`);
+            if (cached) {
+              const { messages: msgs } = JSON.parse(cached);
+              setMessages(msgs);
+            }
+          } catch (error) {
+            logger.warn("Failed to restore cached conversation messages", {
+              error,
+            });
+          }
+          setError("Не вдалося завантажити розмову. Перевірте з'єднання.");
+        }
+      } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") return;
+        setIsTyping(false);
+        setStreamingMessageId(null);
+        setError(
+          "Немає з'єднання з сервером. Перевірте інтернет і спробуйте ще раз."
+        );
+      } finally {
+        if (isMountedRef.current && conversationLoadIdRef.current === loadId) {
+          setIsLoadingConversation(false);
+        }
       }
-    }
-  }, [clearTypingTimeout]);
+    },
+    [clearTypingTimeout]
+  );
 
   const createNewConversation = useCallback(() => {
     ++conversationLoadIdRef.current;
@@ -410,16 +416,16 @@ export function useChat(
           try {
             const cache = JSON.stringify({ items: next, ts: Date.now() });
             safeStorage.setItem("hdak_conv_cache", cache);
-            } catch (error) {
-              logger.warn("Failed to update conversation cache", { error });
-              try {
-                safeStorage.removeItem("hdak_conv_cache");
-              } catch (removeError) {
-                logger.warn("Failed to clear conversation cache", {
-                  error: removeError,
-                });
-              }
+          } catch (error) {
+            logger.warn("Failed to update conversation cache", { error });
+            try {
+              safeStorage.removeItem("hdak_conv_cache");
+            } catch (removeError) {
+              logger.warn("Failed to clear conversation cache", {
+                error: removeError,
+              });
             }
+          }
           return next;
         });
         if (currentConversationRef.current?.id === id) {
@@ -532,6 +538,7 @@ export function useChat(
           if (!pendingText) return;
           const toFlush = pendingText;
           pendingText = "";
+          if (!isMountedRef.current || !isCurrentRequest()) return;
           setMessages(prev =>
             prev.map(m =>
               m.id === botId ? { ...m, content: m.content + toFlush } : m

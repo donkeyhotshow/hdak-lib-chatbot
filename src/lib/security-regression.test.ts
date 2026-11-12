@@ -1,6 +1,15 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi, afterEach } from "vitest";
+import React from "react";
+import ReactMarkdown from "react-markdown";
+import { renderToStaticMarkup } from "react-dom/server";
+import { NextRequest } from "next/server";
 import { sanitizeHtml, sanitizeUrl, sanitizeText } from "@/lib/sanitize";
-import { ChatMessageSchema, CatalogSearchSchema } from "@/lib/validation";
+import {
+  ChatMessageSchema,
+  CatalogSearchSchema,
+  DspaceSyncSchema,
+} from "@/lib/validation";
+import { isForbiddenOrigin } from "@/lib/cors";
 
 describe("security regression coverage", () => {
   it("removes executable HTML and unsafe URLs from rendered content", () => {
@@ -11,6 +20,18 @@ describe("security regression coverage", () => {
     expect(html).not.toContain("script");
     expect(html).not.toContain("javascript:");
     expect(html).toContain("Hello");
+  });
+
+  it("does not render raw HTML in Markdown content", () => {
+    const markup = renderToStaticMarkup(
+      React.createElement(
+        ReactMarkdown,
+        { skipHtml: true },
+        '<img src=x onerror="alert(1)"><script>alert(1)</script>'
+      )
+    );
+
+    expect(markup).not.toMatch(/<img|<script|onerror/i);
   });
 
   it("neutralizes XSS payload variants and preserves safe markup", () => {
@@ -61,5 +82,49 @@ describe("security regression coverage", () => {
     expect(
       CatalogSearchSchema.safeParse({ query: "history", limit: 101 }).success
     ).toBe(false);
+  });
+
+  it("validates DSpace sync modes and rejects unexpected properties", () => {
+    expect(DspaceSyncSchema.parse({})).toEqual({ mode: "mock" });
+    expect(DspaceSyncSchema.safeParse({ mode: "rest" }).success).toBe(true);
+    expect(DspaceSyncSchema.safeParse({ mode: "shell" }).success).toBe(false);
+    expect(
+      DspaceSyncSchema.safeParse({ mode: "mock", extra: true }).success
+    ).toBe(false);
+  });
+});
+
+describe("production origin protection", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("allows same-origin requests but rejects a different port", () => {
+    vi.stubEnv("NODE_ENV", "production");
+
+    const sameOrigin = new NextRequest("https://library.example/api/chat", {
+      method: "POST",
+      headers: { origin: "https://library.example" },
+    });
+    const differentPort = new NextRequest("https://library.example/api/chat", {
+      method: "POST",
+      headers: { origin: "https://library.example:8443" },
+    });
+
+    expect(isForbiddenOrigin(sameOrigin)).toBe(false);
+    expect(isForbiddenOrigin(differentPort)).toBe(true);
+  });
+
+  it("rejects cross-origin and origin-less state-changing requests", () => {
+    vi.stubEnv("NODE_ENV", "production");
+
+    const crossOrigin = new NextRequest("https://library.example/api/chat", {
+      method: "POST",
+      headers: { origin: "https://attacker.example" },
+    });
+    const noOrigin = new NextRequest("https://library.example/api/chat", {
+      method: "POST",
+    });
+
+    expect(isForbiddenOrigin(crossOrigin)).toBe(true);
+    expect(isForbiddenOrigin(noOrigin)).toBe(true);
   });
 });

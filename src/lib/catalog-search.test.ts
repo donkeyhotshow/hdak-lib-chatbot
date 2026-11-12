@@ -86,11 +86,29 @@ describe("catalog search", () => {
       searchType: "subject",
     });
     expect(
+      detectSearchIntent("Які матеріали бібліотеки є про документальне кіно?")
+    ).toEqual({
+      searchTerm: "документальне кіно",
+      searchType: "subject",
+    });
+    expect(
       detectSearchIntent("Where can I find books about film directing?")
     ).toEqual({
       searchTerm: "film directing",
       searchType: "subject",
     });
+  });
+
+  it("filters catalog rows that do not match the requested terms", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (_input, init) =>
+      init?.method === "GET"
+        ? new Response("<form />", { status: 200 })
+        : new Response(bookHtml, { status: 200 })
+    );
+
+    await expect(
+      searchCatalog("документальне кіно", "subject")
+    ).resolves.toEqual({ books: [], total: 0, unavailable: false });
   });
 
   it("builds a source-aware empty-result context", () => {

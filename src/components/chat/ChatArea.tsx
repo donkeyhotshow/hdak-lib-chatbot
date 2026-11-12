@@ -8,7 +8,6 @@ import { logger } from "@/lib/logger";
 import { sanitizeUrl } from "@/lib/sanitize";
 import { getSuggestions, QUICK_MENU } from "./chat-suggestions";
 
-
 const containerVariants: Variants = {
   animate: { transition: { staggerChildren: 0.04, delayChildren: 0.05 } },
 };
@@ -79,6 +78,7 @@ const markdownComponents = {
   a: (props: React.AnchorHTMLAttributes<HTMLAnchorElement>) => {
     const { href: rawHref, children, title } = props;
     const href = rawHref ? sanitizeUrl(rawHref) : "";
+    if (!href) return <>{children}</>;
     return (
       <a
         target="_blank"
