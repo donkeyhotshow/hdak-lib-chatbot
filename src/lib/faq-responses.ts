@@ -20,13 +20,17 @@ export const FAQ_RESPONSES: Record<string, FaqResponse> = {
       [
         `Звісно, ось актуальний графік роботи бібліотеки ХДАК:`,
         ``,
-        `| День | Години роботи |`,
-        `|------|--------------|`,
-        `| Понеділок – П'ятниця | **9:00 – 16:45** _(перерва 13:00–13:45)_ |`,
-        `| Субота | **9:00 – 13:30** |`,
-        `| Неділя | вихідний |`,
+        `**Абонемент:**`,
+        `- Понеділок – п'ятниця: **9:00–16:45** _(перерва 13:00–13:45)_`,
+        `- Субота та неділя: вихідні`,
+        `- Санітарний день: остання п'ятниця місяця`,
         ``,
-        `> ⚠️ **Санітарний день** — остання п'ятниця кожного місяця _(абонементи не працюють)_`,
+        `**Читальний зал:**`,
+        `- Понеділок – п'ятниця: **9:00–16:45**`,
+        `- Субота: **9:00–13:30**; неділя: вихідний`,
+        `- Санітарний день: останній четвер місяця`,
+        ``,
+        `**Автоматизація:** понеділок – п'ятниця, **9:00–16:45** _(перерва 13:00–13:45)_; санітарний день — останній четвер місяця.`,
         ``,
         isLibraryOpen()
           ? `🟢 **Зараз бібліотека відкрита** — чекаємо на вас!`
@@ -110,7 +114,6 @@ export const FAQ_RESPONSES: Record<string, FaqResponse> = {
       ``,
       `**📍 Адреса:**`,
       `${LIBRARY.addressUk}`,
-      `_(поруч зі ст. метро «Історичний музей»)_`,
       ``,
       `---`,
       ``,
@@ -118,7 +121,7 @@ export const FAQ_RESPONSES: Record<string, FaqResponse> = {
       ``,
       `**📧 Email:** [${LIBRARY.email}](mailto:${LIBRARY.email})`,
       ``,
-      `**💬 Viber / Telegram:** [${LIBRARY.messenger}](https://t.me/+${LIBRARY.messenger.replace("+", "")})`,
+      `**💬 Месенджери:** [Viber](${ALL_LINKS.viber}) · [Telegram](${ALL_LINKS.telegram})`,
       ``,
       `---`,
       ``,
@@ -200,7 +203,7 @@ export const FAQ_RESPONSES: Record<string, FaqResponse> = {
       ``,
       `---`,
       ``,
-      `> 💡 Для доступу до платних баз даних — зверніться до бібліотекаря або скористайтеся **мережею ХДАК**.`,
+      `> 💡 Для доступу до платних баз даних — зверніться ��о бібліотекаря або скористайтеся **мережею ХДАК**.`,
       ``,
       `_Потрібна допомога з пошуком наукової інформації? Напишіть — підкажу._`,
     ].join("\n"),
@@ -244,6 +247,9 @@ const FAQ_UK_ALIASES: Record<string, string[]> = {
     "бібліотека відкрита",
     "розклад бібліотеки",
     "години роботи",
+    "чи працює бібліотека в суботу",
+    "чи відкрита бібліотека в суботу",
+    "чи працює бібліотека в останню п'ятницю місяця",
   ],
   "Як записатися до бібліотеки?": [
     "як стати читачем",
@@ -275,7 +281,6 @@ const FAQ_UK_ALIASES: Record<string, string[]> = {
     "де знайти статті",
     "електронні ресурси",
     "доступ до scopus",
-    "репозитарій",
   ],
 };
 
@@ -335,7 +340,6 @@ function findSimilarFaq(
   const queryWords = new Set(queryTokens(query));
 
   for (const [question, entry] of Object.entries(entries)) {
-    const normalizedQuestion = normalize(question);
     const questionWords = queryTokens(question);
     const sharedWords = questionWords.filter(word =>
       queryWords.has(word)
@@ -345,9 +349,10 @@ function findSimilarFaq(
     );
     const score = matchingAlias
       ? 100
-      : sharedWords / Math.max(questionWords.length, 1);
+      : sharedWords /
+        Math.max(queryWords.size + questionWords.length - sharedWords, 1);
 
-    if (score >= 0.34 && (!best || score > best.score)) {
+    if (score >= 0.55 && (!best || score > best.score)) {
       best = { score, entry };
     }
   }

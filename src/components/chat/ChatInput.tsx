@@ -89,7 +89,7 @@ export function ChatInput({
   }, [isTyping, isListening, stopSpeech]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if ((e.nativeEvent as KeyboardEvent).isComposing) return;
+    if ((e.nativeEvent as KeyboardEvent).isComposing || e.keyCode === 229) return;
     if (e.key === "Enter" && !e.shiftKey && !isTyping) {
       e.preventDefault();
       if (textareaRef.current) textareaRef.current.style.height = "auto";

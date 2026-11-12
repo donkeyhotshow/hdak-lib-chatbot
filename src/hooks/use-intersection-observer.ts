@@ -65,7 +65,7 @@ export function useIntersectionObserver(
         observerRef.current.disconnect();
       }
     };
-  }, [threshold, root, rootMargin, handleIntersection]);
+  }, [threshold, root, rootMargin, handleIntersection, onIntersect]);
 
   return ref;
 }

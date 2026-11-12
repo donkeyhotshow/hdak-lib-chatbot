@@ -15,8 +15,7 @@ test.describe("Chat Functionality", () => {
   test("should display chat interface", async ({ page }) => {
     // Check main elements are visible
     const input = page.locator("textarea");
-    const sendBtn = page.locator('button[aria-label="Send"]');
-    const header = page.locator('main').first();
+
 
     await expect(input).toBeVisible();
     await expect(sendBtn).toBeVisible();
@@ -184,7 +183,6 @@ test.describe("Mobile Specific", () => {
     await page.goto("/");
 
     const input = page.locator("textarea");
-    const inputBox = await input.boundingBox();
 
     // Focus input (simulates keyboard appearance)
     await input.focus();
@@ -248,7 +246,6 @@ test.describe("Performance", () => {
     await page.waitForSelector("textarea");
 
     const input = page.locator("textarea");
-    const sendBtn = page.locator('button[aria-label="Send"]');
 
     // Send multiple messages quickly
     for (let i = 0; i < 3; i++) {
