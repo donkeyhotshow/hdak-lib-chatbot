@@ -467,8 +467,8 @@ export const Sidebar = memo(function Sidebar({
               if (isMobile && info.offset.x < -60) setIsOpen(false);
             }}
             className="sidebar-premium h-full fixed md:relative z-50 flex flex-col"
-            role="dialog"
-            aria-modal={isMobile ? "true" : "false"}
+            role={isMobile ? "dialog" : undefined}
+            aria-modal={isMobile ? "true" : undefined}
             aria-label="Бокове меню"
           >
             {/* HEADER */}
@@ -715,7 +715,7 @@ export const Sidebar = memo(function Sidebar({
                   createNewConversation();
                   handleNavClick();
                 }}
-                className="btn-new-chat w-full py-3 md:py-3 rounded-xl text-[11px] flex items-center justify-center gap-2 tracking-[0.12em] min-h-[44px] md:min-h-auto active:scale-95 transition-transform"
+                className="btn-new-chat w-full py-3 md:py-3 rounded-xl text-[11px] flex items-center justify-center gap-2 tracking-[0.12em] min-h-[44px] active:scale-95 transition-transform"
               >
                 <Plus size={14} strokeWidth={2.5} />
                 <span>НОВИЙ ЧАТ</span>

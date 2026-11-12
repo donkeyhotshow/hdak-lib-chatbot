@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { parseBooksFromHtml, searchCatalog } from "@/lib/catalog-search";
+import {
+  buildCatalogContext,
+  detectSearchIntent,
+  parseBooksFromHtml,
+  searchCatalog,
+} from "@/lib/catalog-search";
 
 const bookHtml = `
   <html><body>
@@ -73,6 +78,30 @@ describe("catalog search", () => {
         ),
       })
     );
+  });
+
+  it("recognizes textbook and English subject searches", () => {
+    expect(detectSearchIntent("Знайди підручники з психології")).toEqual({
+      searchTerm: "психології",
+      searchType: "subject",
+    });
+    expect(
+      detectSearchIntent("Where can I find books about film directing?")
+    ).toEqual({
+      searchTerm: "film directing",
+      searchType: "subject",
+    });
+  });
+
+  it("builds a source-aware empty-result context", () => {
+    const context = buildCatalogContext(
+      { searchTerm: "психології", searchType: "subject" },
+      { books: [], total: 0, unavailable: false },
+      "https://catalog.example/search"
+    );
+
+    expect(context).toContain("нічого не знайдено");
+    expect(context).toContain("https://catalog.example/search");
   });
 
   it("falls back when a catalog env value is malformed", async () => {

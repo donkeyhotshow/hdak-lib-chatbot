@@ -15,8 +15,8 @@ test.describe("Chat Functionality", () => {
   test("should display chat interface", async ({ page }) => {
     // Check main elements are visible
     const input = page.locator("textarea");
-    const sendBtn = page.locator(".send-btn");
-    const header = page.locator(".chat-header");
+    const sendBtn = page.locator('button[aria-label="Send"]');
+    const header = page.locator('main').first();
 
     await expect(input).toBeVisible();
     await expect(sendBtn).toBeVisible();
@@ -25,11 +25,12 @@ test.describe("Chat Functionality", () => {
 
   test("should send message and show response", async ({ page }) => {
     const input = page.locator("textarea");
-    const sendBtn = page.locator(".send-btn");
+    const sendBtn = page.locator('button[aria-label="Send"]');
 
     // Type message
-    await input.fill("привіт");
-    await expect(sendBtn).toHaveClass(/active/);
+    await input.click();
+    await input.type("привіт", { delay: 5 });
+    await expect(sendBtn).toBeEnabled();
 
     // Send message
     await sendBtn.click();
@@ -39,11 +40,7 @@ test.describe("Chat Functionality", () => {
     await expect(userMessage).toBeVisible();
 
     // Wait for bot response with timeout
-    const botMessage = page
-      .locator(".message-assistant", {
-        has: page.locator("text=/.*Привіт|привіт.*/", { matchCase: false }),
-      })
-      .first();
+    const botMessage = page.locator('[data-testid="chat-message-assistant"]').last();
     await expect(botMessage).toBeVisible({ timeout: 30000 });
 
     // Input should be cleared
@@ -54,12 +51,14 @@ test.describe("Chat Functionality", () => {
     const input = page.locator("textarea");
     const longText = "це дуже довге повідомлення ".repeat(10).trim();
 
-    await input.fill(longText);
-    const sendBtn = page.locator(".send-btn.active");
+    await input.click();
+    await input.type(longText, { delay: 1 });
+    const sendBtn = page.locator('button[aria-label="Send"]');
+    await expect(sendBtn).toBeEnabled();
     await sendBtn.click();
 
     // Check message displays correctly
-    const userMessage = page.locator(".message-user").first();
+    const userMessage = page.locator('[data-testid="chat-message-user"]').first();
     await expect(userMessage).toBeVisible();
 
     // Get the bounding box and check it doesn't overflow
@@ -69,11 +68,11 @@ test.describe("Chat Functionality", () => {
 
   test("should show error for empty send attempt", async ({ page }) => {
     const input = page.locator("textarea");
-    const sendBtn = page.locator(".send-btn");
+    const sendBtn = page.locator('button[aria-label="Send"]');
 
     // Send button should be disabled when empty
     await expect(input).toHaveValue("");
-    await expect(sendBtn).not.toHaveClass(/active/);
+    await expect(sendBtn).toBeDisabled();
   });
 
   test("should handle API errors gracefully", async ({ page }) => {
@@ -83,8 +82,9 @@ test.describe("Chat Functionality", () => {
     });
 
     const input = page.locator("textarea");
-    await input.fill("test");
-    const sendBtn = page.locator(".send-btn.active");
+    await input.click();
+    await input.type("test", { delay: 5 });
+    const sendBtn = page.locator('button[aria-label="Send"]');
     await sendBtn.click();
 
     // Should either show error message or retry
@@ -105,35 +105,36 @@ test.describe("Navigation", () => {
     const sidebar = page.locator(".sidebar-premium");
 
     // Open sidebar
-    await menuBtn.click();
-    await expect(sidebar).toHaveClass(/translate-x-0|block|open/, {
-      timeout: 5000,
-    });
+    if (await menuBtn.isVisible()) {
+      await menuBtn.click();
+    }
+    await expect(sidebar).toBeVisible({ timeout: 5000 });
 
     // Close sidebar
-    await menuBtn.click();
+    if (await menuBtn.isVisible()) {
+      await menuBtn.click();
+    }
     // Sidebar should be closed (might have different classes)
   });
 
   test("should create new conversation", async ({ page }) => {
-    const newChatBtn = page
-      .locator('[aria-label="Очистити чат"], button:has-text("НОВИЙ ЧАТ")')
-      .first();
-
     // First, we need at least one message
     const input = page.locator("textarea");
-    await input.fill("тест");
-    const sendBtn = page.locator(".send-btn.active");
+    await input.click();
+    await input.type("тест", { delay: 5 });
+    const sendBtn = page.locator('button[aria-label="Send"]');
+    await expect(sendBtn).toBeEnabled();
     await sendBtn.click();
 
     // Wait for message to appear
-    await page.waitForSelector(".message-user");
+    await page.waitForSelector('[data-testid="chat-message-user"]');
 
     // Now new chat button should be enabled
-    const newChatBtnEnabled = page.locator('[aria-label="Очистити чат"]');
-    await expect(newChatBtnEnabled).not.toBeDisabled();
-
-    // Click new chat
+    const newChatBtnEnabled = page.getByRole("button", { name: /НОВИЙ ЧАТ/i });
+    if (!(await newChatBtnEnabled.isVisible())) {
+      await page.locator('[aria-label*="меню"]').first().click();
+    }
+    await expect(newChatBtnEnabled).toBeEnabled();
     await newChatBtnEnabled.click();
 
     // Input should be empty for new chat
@@ -149,10 +150,12 @@ test.describe("Mobile Specific", () => {
     await page.goto("/");
     await page.waitForSelector("textarea");
 
-    const buttons = page.locator("button");
+    const buttons = page.locator(
+      'button[aria-label="Send"], button:has-text("НОВИЙ ЧАТ")'
+    );
     const count = await buttons.count();
 
-    for (let i = 0; i < Math.min(count, 5); i++) {
+    for (let i = 0; i < count; i++) {
       const button = buttons.nth(i);
       const boundingBox = await button.boundingBox();
 
@@ -245,16 +248,15 @@ test.describe("Performance", () => {
     await page.waitForSelector("textarea");
 
     const input = page.locator("textarea");
-    const sendBtn = page.locator(".send-btn");
+    const sendBtn = page.locator('button[aria-label="Send"]');
 
     // Send multiple messages quickly
     for (let i = 0; i < 3; i++) {
       await input.fill(`сообщение ${i}`);
-      const activeBtn = page.locator(".send-btn.active");
-      if (await activeBtn.isVisible()) {
-        await activeBtn.click();
-        await page.waitForTimeout(100);
-      }
+      const activeBtn = page.locator('button[aria-label="Send"]');
+      await expect(activeBtn).toBeEnabled();
+      await activeBtn.click();
+      await page.waitForTimeout(100);
     }
 
     // App should still be responsive

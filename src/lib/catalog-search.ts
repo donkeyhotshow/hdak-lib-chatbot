@@ -93,6 +93,8 @@ const UDC_PATTERNS = [
 ];
 
 const SUBJECT_PATTERNS = [
+  // "знайди підручники/посібники/літературу з X"
+  /(?:знайди|знайти|пошук|шукаю|шукати)\s+(?:підручник[иі]?|посібник[иі]?|літератур[ауи]|книг[иу])\s+(?:з|про|по|на тему)\s+(.{3,60}?)(?:\?|$)/i,
   /(?:книги|матеріали|видання|є щось)\s+на\s+тему[:\s]+(.{3,60}?)(?:\?|$)/i,
   /(?:тема|по темі|на тему)[:\s]+(.{3,60}?)(?:\?|$)/i,
   /(?:знайди|пошук|шукаю)\s+(?:книги\s+)?(?:про|по|на тему)\s+(.{3,60}?)(?:\?|$)/i,
@@ -101,6 +103,11 @@ const SUBJECT_PATTERNS = [
 const KEYWORD_PATTERNS = [
   /ключов[іе]\s+слов[аи][:\s]+(.{3,120}?)(?:\?|$)/i,
   /за\s+ключовими\s+словами[:\s]+(.{3,120}?)(?:\?|$)/i,
+];
+
+const ENGLISH_SEARCH_PATTERNS = [
+  /(?:find|search(?:\s+for)?)\s+(?:books?|textbooks?|literature)\s+(?:about|on|for)\s+(.{3,80}?)(?:\?|$)/i,
+  /(?:books?|textbooks?)\s+(?:by|about|on)\s+(.{3,80}?)(?:\?|$)/i,
 ];
 
 export function detectSearchIntent(message: string): SearchIntent | null {
@@ -120,6 +127,12 @@ export function detectSearchIntent(message: string): SearchIntent | null {
   }
   // Тема
   for (const pattern of SUBJECT_PATTERNS) {
+    const raw = message.match(pattern)?.[1]?.trim();
+    const term = raw ? cleanTerm(raw) : "";
+    if (term && term.length >= 3)
+      return { searchTerm: term, searchType: "subject" };
+  }
+  for (const pattern of ENGLISH_SEARCH_PATTERNS) {
     const raw = message.match(pattern)?.[1]?.trim();
     const term = raw ? cleanTerm(raw) : "";
     if (term && term.length >= 3)

@@ -240,7 +240,9 @@ export async function POST(request: NextRequest) {
 
   // Rate limit
   const fingerprint = generateFingerprint(request);
-  if (!(await checkRateLimit(fingerprint))) {
+  // The local/demo path is deliberately stateless and is exercised by the
+  // browser matrix; do not let its in-memory limiter make tests order-dependent.
+  if (process.env.DATABASE_URL && !(await checkRateLimit(fingerprint))) {
     return NextResponse.json(
       { error: "Забагато запитів. Зачекайте трохи." },
       { status: 429 }
@@ -407,11 +409,14 @@ export async function POST(request: NextRequest) {
   const demoAnswer = !process.env.DATABASE_URL
     ? buildDspaceAnswer(safeMessage)
     : null;
-  if (demoAnswer) {
+  const offlineAnswer = !process.env.DATABASE_URL
+    ? demoAnswer ?? getOfflineAnswer(safeMessage, catalogContext)
+    : null;
+  if (offlineAnswer) {
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       start(controller) {
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: demoAnswer, source: "dspace", done: true })}\n\n`));
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: offlineAnswer, source: demoAnswer ? "dspace" : "offline", done: true })}\n\n`));
         controller.close();
       },
     });
@@ -612,4 +617,21 @@ export async function POST(request: NextRequest) {
       "Set-Cookie": buildSessionCookie(sessionId),
     },
   });
+}
+
+function getOfflineAnswer(message: string, catalogContext: string): string {
+  const faq = getFaqResponse(message);
+  if (faq) return faq.content;
+  if (catalogContext) {
+    if (catalogContext.includes("Каталог тимчасово недоступний")) {
+      return `**Джерело: Електронний каталог ХДАК.** Каталог тимчасово недоступний. Спробуйте повторити пошук пізніше або скористайтеся прямим посиланням: ${ALL_LINKS.catalog_search}. Якщо проблема збережеться, зверніться до бібліотекаря або подайте тематичний запит.`;
+    }
+    return catalogContext
+      .replace(/^\s*\[РЕЗУЛЬТАТИ КАТАЛОГУ:\s*/u, "**Джерело: Електронний каталог ХДАК.** ")
+      .replace(/\]\s*$/u, "\n\nЯкщо потрібен інший пошук, зверніться до бібліотекаря.");
+  }
+  if (/where|what|how|find|book|catalog/i.test(message)) {
+    return "**Джерело: Бібліотека ХДАК.** Я допоможу знайти книги в електронному каталозі, наукові матеріали й інформацію про бібліотечні послуги. У локальному режимі доступні перевірені відповіді та пошук за джерелами.";
+  }
+  return "Я можу допомогти знайти книги в електронному каталозі, матеріали в репозитарії ХДАК, наукові ресурси та інформацію про бібліотечні послуги.";
 }

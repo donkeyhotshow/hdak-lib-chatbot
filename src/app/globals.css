@@ -1387,7 +1387,20 @@ textarea {
 .sidebar-premium .sidebar-subtext,
 .sidebar-premium .sidebar-contact-label,
 .sidebar-premium .sidebar-contact-value {
-  color: #806b58 !important;
+  color: #5a4030 !important;
+}
+.sidebar-premium .sidebar-status-open {
+  color: #14532d !important;
+}
+.sidebar-premium .sidebar-status-closed {
+  color: #991b1b !important;
+}
+.sidebar-premium .sidebar-status-hours {
+  color: currentColor !important;
+  opacity: 1;
+}
+.sidebar-premium .text-white\/25 {
+  color: #5a4030 !important;
 }
 .sidebar-premium .sidebar-link:hover,
 .sidebar-premium .sidebar-contact-row:hover,
@@ -1399,7 +1412,25 @@ textarea {
   color: #5f4938 !important;
 }
 .sidebar-premium .sidebar-close-btn {
-  color: #806b58 !important;
+  color: #5a4030 !important;
+  min-width: 44px;
+  min-height: 44px;
+}
+.sidebar-premium .sidebar-link,
+.sidebar-premium .sidebar-contact-row,
+.sidebar-premium .sidebar-social-btn,
+.sidebar-premium .sidebar-website-btn,
+.sidebar-premium button {
+  min-height: 44px;
+}
+.sidebar-premium .sidebar-website-btn,
+.sidebar-premium .sidebar-social-btn {
+  color: #6a4628 !important;
+}
+.sidebar-premium .sidebar-contact-label,
+.sidebar-premium .sidebar-contact-value,
+.sidebar-premium .sidebar-subtitle {
+  color: #5a4030 !important;
 }
 .sidebar-premium .btn-new-chat {
   background: #8b5e3c !important;

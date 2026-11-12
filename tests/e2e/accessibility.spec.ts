@@ -38,7 +38,7 @@ test("mobile navigation supports keyboard focus and escape", async ({
   await menuButton.focus();
   await expect(menuButton).toBeFocused();
   await menuButton.press("Enter");
-  await expect(page.getByText("НОВИЙ ЧАТ")).toBeVisible();
+  await expect(page.getByRole("button", { name: "НОВИЙ ЧАТ" })).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(
     page.getByRole("button", { name: /відкрити меню/i })
