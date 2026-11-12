@@ -20,20 +20,23 @@ export function isForbiddenOrigin(request: NextRequest): boolean {
     }
 
     const requestUrl = new URL(request.url);
-    const reqHost = requestUrl.hostname;
     const localHosts = ["localhost", "127.0.0.1", "0.0.0.0"];
     const source =
       request.headers.get("origin") ?? request.headers.get("referer");
 
     // For mutating methods in production, require either Origin or Referer.
     // If both are missing, treat request as potentially forged (CSRF) and block it.
-    // This returns true (forbidden) for POST/PATCH/DELETE and false for GET/HEAD/OPTIONS.
     if (!source) return isMutating;
 
-    const sourceHost = new URL(source).hostname;
-    if (sourceHost === reqHost) return false;
-    if (localHosts.includes(sourceHost) && localHosts.includes(reqHost))
+    const sourceUrl = new URL(source);
+    if (sourceUrl.origin === requestUrl.origin) return false;
+    if (
+      sourceUrl.protocol === requestUrl.protocol &&
+      localHosts.includes(sourceUrl.hostname) &&
+      localHosts.includes(requestUrl.hostname)
+    ) {
       return false;
+    }
     return true;
   } catch {
     // Malformed origin header — treat as forbidden

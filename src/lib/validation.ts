@@ -93,6 +93,14 @@ export const FaqSaveSchema = z.object({
 
 export type FaqSave = z.infer<typeof FaqSaveSchema>;
 
+export const DspaceSyncSchema = z
+  .object({
+    mode: z.enum(["mock", "rest", "oai-pmh"]).default("mock"),
+  })
+  .strict();
+
+export type DspaceSyncInput = z.infer<typeof DspaceSyncSchema>;
+
 /**
  * Safe validation function that catches and logs errors
  */
