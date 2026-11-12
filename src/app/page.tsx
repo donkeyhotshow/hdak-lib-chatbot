@@ -254,6 +254,7 @@ export default function ChatPage() {
           <Menu size={20} />
         </button>
         <main className="mx-auto flex h-[100dvh] min-h-0 min-w-0 w-full max-w-[860px] flex-1 flex-col px-3 pt-[env(safe-area-inset-top)] sm:px-6">
+          <h1 className="sr-only">Бібліотечний чат ХДАК</h1>
           <section
             className={`min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 pt-4 sm:px-0 sm:py-6 sm:pb-6 ${
               isEmptyState ? "pb-4" : "pb-[160px]"
@@ -306,6 +307,7 @@ export default function ChatPage() {
                       key={message.id}
                       className={`flex items-end gap-2 ${isUser ? "justify-end" : "justify-start"}`}
                       style={{ animation: "msgIn .22s ease-out" }}
+                      data-testid={isUser ? "chat-message-user" : "chat-message-assistant"}
                     >
                       {!isUser && (
                         <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full bg-[#fffaf2] text-sm">

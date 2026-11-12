@@ -62,6 +62,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ items, hasMore, offset, limit });
   } catch (error) {
+    if (!process.env.DATABASE_URL) {
+      return NextResponse.json({ items: [], hasMore: false, offset: 0, limit: PAGE_SIZE, mode: "memory" });
+    }
     console.error("Conversations list failed", error);
     return NextResponse.json(
       { error: "Помилка завантаження розмов" },
@@ -118,6 +121,15 @@ export async function POST(request: NextRequest) {
       .returning();
     return NextResponse.json(newConv);
   } catch (error) {
+    if (!process.env.DATABASE_URL) {
+      return NextResponse.json({
+        id: crypto.randomUUID(),
+        title,
+        sessionId,
+        createdAt: new Date().toISOString(),
+        mode: "memory",
+      });
+    }
     console.error("Conversation creation failed", error);
     return NextResponse.json(
       { error: "Не вдалося зберегти розмову. Спробуйте ще раз." },
