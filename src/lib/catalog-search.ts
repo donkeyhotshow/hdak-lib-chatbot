@@ -93,6 +93,8 @@ const UDC_PATTERNS = [
 ];
 
 const SUBJECT_PATTERNS = [
+  // "які матеріали/книги бібліотеки є про X"
+  /(?:які|який|яка)\s+(?:матеріали|книги|видання|літературу).*?\s+(?:про|з|на тему)\s+(.{3,60}?)(?:\?|$)/i,
   // "знайди підручники/посібники/літературу з X"
   /(?:знайди|знайти|пошук|шукаю|шукати)\s+(?:підручник[иі]?|посібник[иі]?|літератур[ауи]|книг[иу])\s+(?:з|про|по|на тему)\s+(.{3,60}?)(?:\?|$)/i,
   /(?:книги|матеріали|видання|є щось)\s+на\s+тему[:\s]+(.{3,60}?)(?:\?|$)/i,
@@ -297,6 +299,20 @@ export async function checkCatalogAvailability(): Promise<boolean> {
   }
 }
 
+function matchesCatalogQuery(book: BookResult, searchTerm: string): boolean {
+  const terms = searchTerm
+    .toLocaleLowerCase("uk-UA")
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter(term => term.length >= 3);
+  if (terms.length === 0) return true;
+
+  const searchableText = `${book.title} ${book.description}`.toLocaleLowerCase("uk-UA");
+  return terms.every(term => {
+    const stem = term.length >= 7 ? term.slice(0, -2) : term;
+    return searchableText.includes(term) || searchableText.includes(stem);
+  });
+}
+
 export async function searchCatalog(
   searchTerm: string,
   searchType: "title" | "author" | "general" | "udc" | "subject" | "keyword",
@@ -361,7 +377,11 @@ export async function searchCatalog(
 
     if (!response.ok) return { books: [], total: 0, unavailable: true };
     const html = await response.text();
-    return parseBooksFromHtml(html, safePageSize);
+    const parsed = parseBooksFromHtml(html, safePageSize);
+    const books = parsed.books.filter(book =>
+      matchesCatalogQuery(book, safeTerm)
+    );
+    return { ...parsed, books, total: books.length };
   } catch (err) {
     logger.error(
       "Catalog search failed",
