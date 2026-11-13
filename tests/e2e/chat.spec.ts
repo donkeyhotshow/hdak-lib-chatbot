@@ -15,7 +15,8 @@ test.describe("Chat Functionality", () => {
   test("should display chat interface", async ({ page }) => {
     // Check main elements are visible
     const input = page.locator("textarea");
-
+    const sendBtn = page.locator('button[aria-label="Send"]');
+    const header = page.locator("main").first();
 
     await expect(input).toBeVisible();
     await expect(sendBtn).toBeVisible();
