@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDspaceStatus, syncDspace } from "@/lib/dspace";
+import {
+  getDspaceStatus,
+  isDspaceAdminAuthorized,
+  syncDspace,
+} from "@/lib/dspace";
 import { DspaceSyncSchema, validateInput } from "@/lib/validation";
 import { isForbiddenOrigin } from "@/lib/cors";
 import { checkRateLimit, generateFingerprint } from "@/lib/rate-limit";
@@ -36,6 +40,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { error: "Непідтримуваний режим синхронізації" },
       { status: 400 }
+    );
+  }
+
+  if (
+    !isDspaceAdminAuthorized(
+      request.headers.get("x-dspace-admin-token"),
+      parsed.data.mode
+    )
+  ) {
+    return NextResponse.json(
+      {
+        error: process.env.DSPACE_ADMIN_TOKEN
+          ? "Потрібен дійсний токен адміністратора DSpace"
+          : "Для live-синхронізації налаштуйте DSPACE_ADMIN_TOKEN",
+      },
+      { status: process.env.DSPACE_ADMIN_TOKEN ? 401 : 503 }
     );
   }
 
