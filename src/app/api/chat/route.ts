@@ -58,9 +58,14 @@ const DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile";
 const DEFAULT_QWEN_URL =
   "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions";
 const DEFAULT_QWEN_MODEL = "qwen-turbo";
+const DEFAULT_GEMINI_MODEL = "gemini-3.8-flash";
 
 function getLlmConfig() {
   return {
+    gemini: {
+      apiKey: (process.env.GEMINI_API_KEY || process.env.gemini_api_key)?.trim(),
+      model: process.env.GEMINI_MODEL_NAME?.trim() || DEFAULT_GEMINI_MODEL,
+    },
     llm7: {
       apiKey: process.env.HDAKLLM?.trim(),
       url: process.env.LLM7_URL?.trim() || DEFAULT_LLM7_URL,
@@ -205,6 +210,98 @@ async function streamLLM(
     }
   };
 
+  const tryGemini = async (
+    apiKey: string,
+    model: string,
+    onChunk: (text: string) => void,
+    deadline: number
+  ): Promise<string> => {
+    const tc = new AbortController();
+    const timeoutMs = Math.max(1000, Math.min(30_000, deadline - Date.now()));
+    const timer = setTimeout(() => tc.abort(new Error("Gemini timeout")), timeoutMs);
+    const onClientAbort = () => {
+      clearTimeout(timer);
+      tc.abort(signal.reason);
+    };
+    signal.addEventListener("abort", onClientAbort, { once: true });
+
+    let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
+      const systemMsg = msgs.find(m => m.role === "system");
+      const chatMsgs = msgs.filter(m => m.role !== "system");
+
+      const contents = chatMsgs.map(m => ({
+        role: m.role === "user" ? "user" : "model",
+        parts: [{ text: m.content }],
+      }));
+
+      const bodyPayload: Record<string, unknown> = { contents };
+      if (systemMsg) {
+        bodyPayload.systemInstruction = {
+          parts: [{ text: systemMsg.content }],
+        };
+      }
+
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(bodyPayload),
+        signal: signal.aborted ? signal : tc.signal,
+      });
+
+      if (!res.ok) {
+        throw new Error(`Gemini HTTP error ${res.status}`);
+      }
+      if (!res.body) {
+        throw new Error("No response body from Gemini");
+      }
+
+      reader = res.body.getReader();
+      const dec = new TextDecoder();
+      let full = "";
+      let buf = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          buf += dec.decode();
+          break;
+        }
+
+        buf += dec.decode(value, { stream: true });
+        const lines = buf.split("\n");
+        buf = lines.pop() ?? "";
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed.startsWith("data:")) continue;
+          const data = trimmed.slice(5).trim();
+          if (!data || data === "[DONE]") continue;
+          try {
+            const chunk = JSON.parse(data);
+            const text = chunk.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (text) {
+              full += text;
+              onChunk(text);
+            }
+          } catch {
+            // skip malformed
+          }
+        }
+      }
+      return full;
+    } finally {
+      clearTimeout(timer);
+      signal.removeEventListener("abort", onClientAbort);
+      try {
+        await reader?.cancel();
+      } catch {
+        // no-op
+      }
+    }
+  };
+
   // Early bail if client already disconnected
   if (signal.aborted) {
     throw signal.reason instanceof Error
@@ -214,6 +311,39 @@ async function streamLLM(
 
   const config = getLlmConfig();
   const deadline = Date.now() + LLM_CHAIN_TIMEOUT_MS;
+
+  // 1. Try Gemini first if configured
+  if (config.gemini.apiKey) {
+    for (let attempt = 1; attempt <= 2; attempt += 1) {
+      if (signal.aborted) break;
+      if (Date.now() >= deadline) {
+        logger.warn("LLM provider chain reached its overall deadline");
+        throw new LlmUnavailableError();
+      }
+      try {
+        const chunks: string[] = [];
+        const response = await tryGemini(
+          config.gemini.apiKey,
+          config.gemini.model,
+          text => chunks.push(text),
+          deadline
+        );
+        if (!response.trim()) throw new Error("Gemini returned an empty response");
+        for (const text of chunks) {
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify({ text })}\n\n`)
+          );
+        }
+        return response;
+      } catch (e) {
+        logger.error(
+          `Gemini provider failed (${config.gemini.model}, attempt ${attempt})`,
+          e instanceof Error ? e : new Error(String(e))
+        );
+        if (signal.aborted) break;
+      }
+    }
+  }
 
   // Prefer explicitly configured providers, then fall back without exposing keys.
   for (const provider of [config.llm7, config.groq, config.xai, config.qwen]) {

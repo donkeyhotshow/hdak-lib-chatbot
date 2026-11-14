@@ -3,6 +3,9 @@ import { checkCatalogAvailability } from "@/lib/catalog-search";
 
 export async function GET() {
   const configuredProviders = [
+    (process.env.GEMINI_API_KEY || process.env.gemini_api_key)?.trim()
+      ? "gemini"
+      : null,
     process.env.HDAKLLM?.trim() ? "llm7" : null,
     process.env.GROK_API_KEY?.trim() ? "xai" : null,
     process.env.GROQ_API_KEY?.trim() || process.env.GROQ_API?.trim()
@@ -11,6 +14,8 @@ export async function GET() {
     process.env.QWEN_API_KEY?.trim() ? "qwen" : null,
   ].filter((provider): provider is string => Boolean(provider));
   const providerKeys = [
+    "GEMINI_API_KEY",
+    "gemini_api_key",
     "HDAKLLM",
     "GROK_API_KEY",
     "GROQ_API_KEY",

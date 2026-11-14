@@ -1,7 +1,7 @@
 import React, { memo, useMemo, useState } from "react";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import ReactMarkdown from "react-markdown";
-import { Copy, ArrowDown, AlertCircle } from "lucide-react";
+import { Copy, ArrowDown, AlertCircle, Search, ExternalLink, BookMarked } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Message } from "./types";
 import { logger } from "@/lib/logger";
@@ -79,6 +79,42 @@ const markdownComponents = {
     const { href: rawHref, children, title } = props;
     const href = rawHref ? sanitizeUrl(rawHref) : "";
     if (!href) return <>{children}</>;
+
+    const isCatalog = href.includes("DocumentSearchForm") || href.includes("library-service.com.ua");
+    const isRepo = href.includes("repository.ac.kharkov.ua");
+
+    if (isCatalog) {
+      return (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 my-2 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#B87830] to-[#9E6220] text-white text-[13px] font-medium shadow-sm hover:shadow-md hover:brightness-105 active:scale-[0.98] transition-all no-underline"
+          title={title}
+        >
+          <Search size={14} className="shrink-0 text-white/90" />
+          <span>{children || "Відкрити електронний каталог ХДАК"}</span>
+          <ExternalLink size={12} className="shrink-0 text-white/70" />
+        </a>
+      );
+    }
+
+    if (isRepo) {
+      return (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 my-2 px-3.5 py-1.5 rounded-xl bg-[#2A2520]/[0.06] border border-[#2A2520]/15 text-[#2A2520] hover:bg-[#2A2520]/10 text-[13px] font-medium transition-all no-underline"
+          title={title}
+        >
+          <BookMarked size={14} className="shrink-0 text-[#B87830]" />
+          <span>{children || "Відкрити Репозитарій ХДАК"}</span>
+          <ExternalLink size={12} className="shrink-0 opacity-60" />
+        </a>
+      );
+    }
+
     return (
       <a
         target="_blank"
