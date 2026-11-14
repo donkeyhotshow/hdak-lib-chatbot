@@ -81,3 +81,12 @@
 - [x] Test vector search with sample documents
 - [x] Optimize embedding and retrieval performance
 - [x] Document RAG implementation and usage
+
+## DSpace Integration & Sync Admin
+
+- [x] Add real DSpace REST API harvester with normalized metadata, limits, timeout, and graceful error handling.
+- [x] Add paginated OAI-PMH harvester with `resumptionToken` support and normalized Dublin Core metadata.
+- [x] Preserve mock sync → search → chat flow for local demonstrations.
+- [x] Add protected `/api/dspace/admin` status and manual-sync API.
+- [x] Add Ukrainian `/admin/dspace` status page with source configuration, item count, last sync time, error state, token input, and Mock/REST/OAI-PMH controls.
+- [x] Document DSpace production environment variables and add the admin route to the route manifest.
