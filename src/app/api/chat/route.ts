@@ -63,7 +63,11 @@ const DEFAULT_GEMINI_MODEL = "gemini-3.8-flash";
 function getLlmConfig() {
   return {
     gemini: {
-      apiKey: (process.env.GEMINI_API_KEY || process.env.gemini_api_key)?.trim(),
+      apiKey: (
+        process.env.GEMINI_API_KEY ||
+        process.env.gemini_api_key ||
+        process.env.GEMINIAPI
+      )?.trim(),
       model: process.env.GEMINI_MODEL_NAME?.trim() || DEFAULT_GEMINI_MODEL,
     },
     llm7: {
