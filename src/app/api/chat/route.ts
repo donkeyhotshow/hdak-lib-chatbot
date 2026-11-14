@@ -582,38 +582,12 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  // Persist user message & get/create conversation
+  // Persist user message & get/create conversation with graceful fallback if DB is unreachable
   let convId = conversationId;
-  if (!convId) {
-    const [newConv] = await withTimeout(
-      db
-        .insert(conversations)
-        .values({
-          title: safeMessage.substring(0, 50),
-          sessionId,
-        })
-        .returning(),
-      DB_TIMEOUT_MS,
-      "create conversation"
-    );
-    convId = newConv.id;
-  } else {
-    // Verify conversation exists AND belongs to this session
-    const [existing] = await withTimeout(
-      db
-        .select({ id: conversations.id })
-        .from(conversations)
-        .where(
-          and(
-            eq(conversations.id, convId),
-            eq(conversations.sessionId, sessionId)
-          )
-        ),
-      DB_TIMEOUT_MS,
-      "verify conversation"
-    );
-    if (!existing) {
-      // Either doesn't exist or belongs to another session — create new
+  let history: Array<{ role: string; content: string }> = [];
+
+  try {
+    if (!convId) {
       const [newConv] = await withTimeout(
         db
           .insert(conversations)
@@ -623,39 +597,78 @@ export async function POST(request: NextRequest) {
           })
           .returning(),
         DB_TIMEOUT_MS,
-        "create conversation fallback"
+        "create conversation"
       );
       convId = newConv.id;
+    } else {
+      // Verify conversation exists AND belongs to this session
+      const [existing] = await withTimeout(
+        db
+          .select({ id: conversations.id })
+          .from(conversations)
+          .where(
+            and(
+              eq(conversations.id, convId),
+              eq(conversations.sessionId, sessionId)
+            )
+          ),
+        DB_TIMEOUT_MS,
+        "verify conversation"
+      );
+      if (!existing) {
+        // Either doesn't exist or belongs to another session — create new
+        const [newConv] = await withTimeout(
+          db
+            .insert(conversations)
+            .values({
+              title: safeMessage.substring(0, 50),
+              sessionId,
+            })
+            .returning(),
+          DB_TIMEOUT_MS,
+          "create conversation fallback"
+        );
+        convId = newConv.id;
+      }
     }
+
+    if (convId) {
+      await withTimeout(
+        db
+          .insert(messagesTable)
+          .values({ conversationId: convId, role: "USER", content: safeMessage }),
+        DB_TIMEOUT_MS,
+        "insert user message"
+      );
+
+      const dbHistory = await withTimeout(
+        db
+          .select()
+          .from(messagesTable)
+          .where(eq(messagesTable.conversationId, convId))
+          .orderBy(desc(messagesTable.createdAt))
+          .limit(10),
+        DB_TIMEOUT_MS,
+        "load history"
+      );
+      history = [...dbHistory].reverse().map(m => ({
+        role: m.role.toLowerCase() === "user" ? "user" : "assistant",
+        content: m.content,
+      }));
+    }
+  } catch (dbError) {
+    logger.warn(
+      "DB conversation persistence failed, continuing in memory/stateless mode",
+      dbError instanceof Error ? dbError : new Error(String(dbError))
+    );
+    history = [{ role: "user", content: safeMessage }];
   }
-
-  await withTimeout(
-    db
-      .insert(messagesTable)
-      .values({ conversationId: convId, role: "USER", content: safeMessage }),
-    DB_TIMEOUT_MS,
-    "insert user message"
-  );
-
-  const history = await withTimeout(
-    db
-      .select()
-      .from(messagesTable)
-      .where(eq(messagesTable.conversationId, convId))
-      .orderBy(desc(messagesTable.createdAt))
-      .limit(10),
-    DB_TIMEOUT_MS,
-    "load history"
-  );
 
   const apiMessages: ChatMessage[] = [
     { role: "system", content: buildSystemPrompt(catalogContext) },
-    ...[...history].reverse().map(m => ({
-      role: (m.role.toLowerCase() === "user" ? "user" : "assistant") as
-        | "user"
-        | "assistant",
-      content: m.content,
-    })),
+    ...(history.length > 0
+      ? (history as ChatMessage[])
+      : [{ role: "user" as const, content: safeMessage }]),
   ];
 
   // Streaming SSE response
@@ -680,11 +693,17 @@ export async function POST(request: NextRequest) {
                 `data: ${JSON.stringify({ text: curatedText, source: "knowledge_base" })}\n\n`
               )
             );
-            await db.insert(messagesTable).values({
-              conversationId: convId,
-              role: "ASSISTANT",
-              content: curatedText,
-            });
+            if (convId) {
+              try {
+                await db.insert(messagesTable).values({
+                  conversationId: convId,
+                  role: "ASSISTANT",
+                  content: curatedText,
+                });
+              } catch (dbErr) {
+                logger.warn("Failed to persist curated FAQ answer", dbErr instanceof Error ? dbErr : new Error(String(dbErr)));
+              }
+            }
             controller.enqueue(
               encoder.encode(
                 `data: ${JSON.stringify({ done: true, source: "knowledge_base", conversationId: convId })}\n\n`
@@ -700,25 +719,27 @@ export async function POST(request: NextRequest) {
             request.signal
           );
 
-          try {
-            await db.insert(messagesTable).values({
-              conversationId: convId,
-              role: "ASSISTANT",
-              content: fullResponse,
-            });
-          } catch (e) {
-            logger.error(
-              "Не вдалося зберегти відповідь",
-              e instanceof Error ? e : new Error(String(e))
-            );
+          if (convId) {
             try {
-              controller.enqueue(
-                encoder.encode(
-                  `data: ${JSON.stringify({ error: "Відповідь сформовано, але не вдалося зберегти історію.", done: true, conversationId: convId })}\n\n`
-                )
+              await db.insert(messagesTable).values({
+                conversationId: convId,
+                role: "ASSISTANT",
+                content: fullResponse,
+              });
+            } catch (e) {
+              logger.error(
+                "Не вдалося зберегти відповідь",
+                e instanceof Error ? e : new Error(String(e))
               );
-            } catch {
-              // The client may have disconnected before the persistence error was reported.
+              try {
+                controller.enqueue(
+                  encoder.encode(
+                    `data: ${JSON.stringify({ error: "Відповідь сформовано, але не вдалося зберегти історію.", done: true, conversationId: convId })}\n\n`
+                  )
+                );
+              } catch {
+                // The client may have disconnected before the persistence error was reported.
+              }
             }
           }
 
