@@ -1,500 +1,175 @@
-"use client";
+﻿"use client";
 
-// REDESIGNED
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { sanitizeUrl } from "@/lib/sanitize";
-import { BookOpen, Loader2, Menu, Send, Sparkles, Square } from "lucide-react";
-import { Sidebar } from "@/components/chat/Sidebar";
-import ReactMarkdown from "react-markdown";
+import React, { useState, useEffect, useRef } from "react";
+import { Menu, X, Trash2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useChat } from "@/hooks/use-chat";
-
-type Language = "uk" | "en";
-const translations = {
-  uk: {
-    history: "Історія",
-    resources: "Ресурси",
-    newChat: "Новий чат",
-    ask: "Чим можу допомогти?",
-    send: "Надіслати повідомлення",
-    stop: "Зупинити генерацію",
-    retry: "Спробувати ще раз",
-    remaining: "залишилось",
-    maxLength: "максимум",
-    subtitle:
-      "Поставте запитання про каталог, ресурси або бібліотечні сервіси.",
-    hint: "Enter — надіслати · Shift+Enter — новий рядок",
-    placeholder: "Напишіть запитання...",
-    noConversations: "Поки що немає розмов",
-    examples: [
-      "Як знайти книги з режисури?",
-      "Де перевірити наукові статті?",
-      "Підбери джерела для курсової",
-      "Що є в електронному каталозі?",
-      "Який графік роботи бібліотеки?",
-      "Як зв’язатися з бібліотекою?",
-    ],
-  },
-  en: {
-    history: "History",
-    resources: "Resources",
-    newChat: "New chat",
-    ask: "How can I help?",
-    send: "Send message",
-    stop: "Stop generating",
-    retry: "Try again",
-    remaining: "remaining",
-    maxLength: "max",
-    subtitle: "Ask about the catalog, research resources, or library services.",
-    hint: "Enter — send · Shift+Enter — new line",
-    placeholder: "Type your message...",
-    noConversations: "No conversations yet",
-    examples: [
-      "How can I find directing books?",
-      "Where can I search research papers?",
-      "Suggest sources for coursework",
-      "What is in the e-catalog?",
-      "What are the library’s opening hours?",
-      "How can I contact the library?",
-    ],
-  },
-} as const;
+import { Sidebar } from "@/components/chat/Sidebar";
+import { ChatInput } from "@/components/chat/ChatInput";
+import { ChatArea } from "@/components/chat/ChatArea";
 
 export default function ChatPage() {
-  const { toast } = useToast();
-  const [language, setLanguage] = useState<Language>("uk");
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  // Fix #18: avoid hydration mismatch - start null, resolve after mount
+  const [isSidebarOpen, setSidebarOpen] = useState<boolean | null>(null);
   const sidebarRef = useRef<HTMLElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    setSidebarOpen(window.innerWidth >= 768);
+  }, []);
+
+  const { toast } = useToast();
 
   const {
     messages,
     inputValue,
-    error,
-    retryLastMessage,
     setInputValue,
     isTyping,
     isLoadingConversation,
     isLoadingConversations,
+    error,
     conversations,
     currentConversation,
-    messagesEndRef,
+    streamingMessageId,
     hasMoreConversations,
+    messagesEndRef,
     handleSend,
     handleFaqSend,
     handleStop,
     loadConversation,
     createNewConversation,
-    loadMoreConversations,
-    formatTime,
     deleteConversation,
     renameConversation,
     newConversationId,
+    loadMoreConversations,
+    formatTime,
+    copyToClipboard,
+    retryLastMessage,
   } = useChat(toast);
 
-  const t = translations[language];
-  const isEmptyState = messages.length === 0;
-  const canRetry = messages.some(message => message.status === "error");
-  const lastMessage = messages[messages.length - 1];
-  const followUpSuggestions = useMemo(() => {
-    if (isTyping || !lastMessage || lastMessage.role !== "ASSISTANT") return [];
-    const text = lastMessage.content.toLowerCase();
-    if (/графік|розклад|годин|hours|schedule|open/i.test(text)) {
-      return language === "uk"
-        ? ["Як записатися до бібліотеки?", "Які контакти бібліотеки?"]
-        : ["How to register at the library?", "What are the library contacts?"];
-    }
-    if (/книг|каталог|автор|book|catalog|author/i.test(text)) {
-      return language === "uk"
-        ? ["Як знайти книгу в каталозі?", "Які електронні ресурси доступні?"]
-        : [
-            "How to find a book in the catalog?",
-            "What electronic resources are available?",
-          ];
-    }
-    return language === "uk"
-      ? ["Як знайти книгу в каталозі?", "Який графік роботи бібліотеки?"]
-      : ["How to find a book in the catalog?", "What are the library hours?"];
-  }, [isTyping, language, lastMessage]);
-
-  const adjustTextarea = () => {
-    if (!textareaRef.current) return;
-    textareaRef.current.style.height = "auto";
-    textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 100)}px`;
-  };
-
+  // Close sidebar on mobile click-outside or Escape key (M24)
   useEffect(() => {
-    const link = document.createElement("link");
-    link.href =
-      "https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&family=Source+Sans+3:wght@400;500;600&display=swap";
-    link.rel = "stylesheet";
-    document.head.appendChild(link);
-    return () => {
-      document.head.removeChild(link);
-    };
-  }, []);
-
-  useEffect(() => {
-    adjustTextarea();
-  }, [inputValue]);
-
-  useEffect(() => {
-    const media = window.matchMedia("(max-width: 767px)");
-    const sync = () => {
-      setIsMobile(media.matches);
-      setSidebarOpen(!media.matches);
-    };
-    sync();
-    media.addEventListener("change", sync);
-    return () => media.removeEventListener("change", sync);
-  }, []);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      try {
-        const savedLanguage = window.localStorage.getItem("hdak-language");
-        if (savedLanguage === "en") setLanguage("en");
-        if (savedLanguage !== "uk" && savedLanguage !== "en") {
-          window.localStorage.setItem("hdak-language", "uk");
-        }
-      } catch {
-        // Keep the default language when browser storage is unavailable.
+    if (!isSidebarOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (
+        window.innerWidth < 768 &&
+        sidebarRef.current &&
+        !sidebarRef.current.contains(e.target as Node)
+      ) {
+        setSidebarOpen(false);
       }
-    }, 0);
-    return () => window.clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    document.documentElement.lang = language;
-  }, [language]);
-
-  useEffect(() => {
-    if (!sidebarOpen) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setSidebarOpen(false);
     };
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", onKeyDown);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && window.innerWidth < 768) setSidebarOpen(false);
+    };
+    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKeyDown);
     return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [sidebarOpen]);
+  }, [isSidebarOpen]);
 
-  const containerStyle = useMemo(
-    () =>
-      ({
-        backgroundColor: "var(--background)",
-        color: "var(--foreground)",
-        fontFamily: "'Source Sans 3', sans-serif",
-        backgroundImage:
-          "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='f'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23f)' opacity='0.035'/%3E%3C/svg%3E\")",
-      }) as React.CSSProperties,
-    []
-  );
+  // Avoid layout flash: render nothing until sidebar state is resolved
+  if (isSidebarOpen === null) {
+    return (
+      <div
+        className="h-screen flex items-center justify-center bg-antique-paper"
+        aria-busy="true"
+      >
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-[#B87830]/10 animate-pulse" />
+          <span className="text-[13px] text-[#7A756F]/50">Завантаження...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-[100dvh] overflow-x-hidden" style={containerStyle}>
-      <style>{` 
-        @keyframes breathe {
-          0%,100% { box-shadow: 0 0 32px rgba(200,168,75,0.22); }
-          50% { box-shadow: 0 0 64px rgba(200,168,75,0.38); }
-        }
-        @keyframes msgIn {
-          from { opacity:0; transform:translateY(8px); }
-          to { opacity:1; transform:translateY(0); }
-        }
-        @keyframes dotPulse {
-          0%,100% { transform:scale(.75); opacity:.3; }
-          50% { transform:scale(1.2); opacity:.9; }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          *, *::before, *::after {
-            animation-duration: .01ms !important;
-            animation-iteration-count: 1 !important;
-            scroll-behavior: auto !important;
-            transition-duration: .01ms !important;
-          }
-        }
-      `}</style>
+    <div className="h-screen flex bg-antique-paper bg-ambient-glow overflow-hidden">
+      <Sidebar
+        isOpen={isSidebarOpen}
+        setIsOpen={setSidebarOpen}
+        sidebarRef={sidebarRef}
+        conversations={conversations}
+        currentConversation={currentConversation}
+        loadConversation={loadConversation}
+        deleteConversation={deleteConversation}
+        renameConversation={renameConversation}
+        newConversationId={newConversationId}
+        createNewConversation={createNewConversation}
+        hasMore={hasMoreConversations}
+        loadMore={loadMoreConversations}
+        isLoadingConversations={isLoadingConversations}
+      />
 
-      <div className="flex min-h-[100dvh] min-w-0">
-        <Sidebar
-          isOpen={sidebarOpen}
-          setIsOpen={setSidebarOpen}
-          isMobile={isMobile}
-          sidebarRef={sidebarRef}
-          conversations={conversations}
-          currentConversation={currentConversation}
-          newConversationId={newConversationId}
-          loadConversation={id => void loadConversation(id)}
-          deleteConversation={deleteConversation}
-          renameConversation={renameConversation}
-          createNewConversation={createNewConversation}
-          hasMore={hasMoreConversations}
-          loadMore={() => void loadMoreConversations()}
-          isLoadingConversations={isLoadingConversations}
-          language={language}
-          onLanguageChange={nextLanguage => {
-            setLanguage(nextLanguage);
-            try {
-              window.localStorage.setItem("hdak-language", nextLanguage);
-            } catch {
-              // Language changes still work for the current session.
-            }
-          }}
-        />
-        <button
-                  className="fixed left-3 top-3 z-30 flex size-11 items-center justify-center rounded-lg border border-[#d9c9b0] bg-white text-[#3b2a1f] shadow-sm md:hidden"
-          onClick={() => setSidebarOpen(true)}
-          aria-label="Відкрити меню"
-        >
-          <Menu size={20} />
-        </button>
-        <main className="mx-auto flex h-[100dvh] min-h-0 min-w-0 w-full max-w-[860px] flex-1 flex-col px-3 pt-[env(safe-area-inset-top)] sm:px-6">
-          <h1 className="sr-only">Бібліотечний чат ХДАК</h1>
-          <section
-            className={`min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 pt-4 sm:px-0 sm:py-6 sm:pb-6 ${
-              isEmptyState ? "pb-4" : "pb-[160px]"
-            }`}
+      <main className="flex-1 flex flex-col min-w-0 relative h-full overflow-hidden">
+        <header className="chat-header relative min-h-[48px] flex items-center justify-between px-4 border-b border-[#2A2520]/[0.04] bg-white/50 backdrop-blur-sm shrink-0">
+          <button
+            onClick={() => setSidebarOpen((v) => !(v ?? false))}
+            className="w-11 h-11 flex items-center justify-center rounded-xl text-[#7A756F] hover:text-[#2A2520] hover:bg-[#2A2520]/[0.04] transition-all"
+            aria-label={isSidebarOpen ? "Закрити меню" : "Відкрити меню"}
           >
-            {isLoadingConversation ? (
-              <div className="flex h-full items-center justify-center text-[#7a6350]">
-                <Loader2 className="animate-spin" />
-              </div>
-            ) : isEmptyState ? (
-              <div className="flex min-h-full flex-col items-center justify-start pt-8 text-center sm:justify-center sm:pt-0">
-                <div
-                  className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-[#fffaf2] text-3xl"
-                  style={{ animation: "breathe 2.6s ease-in-out infinite" }}
-                >
-                  <BookOpen size={30} strokeWidth={1.7} aria-hidden="true" />
-                </div>
-                <h2
-                  className="text-[26px] font-semibold text-[#3b2a1f]"
-                  style={{ fontFamily: "'Lora', serif" }}
-                >
-                  {t.ask}
-                </h2>
-                <p className="mt-2 max-w-[520px] text-sm text-[#7a6350]">
-                  {t.subtitle}
-                </p>
-                <div className="my-4 flex items-center gap-3 text-[#8b5e3c]/70">
-                  <div className="h-px w-14 bg-[#8b5e3c]/25" />
-                  <Sparkles size={15} aria-hidden="true" />
-                  <div className="h-px w-14 bg-[#8b5e3c]/25" />
-                </div>
-                <div className="grid max-w-[620px] grid-cols-1 gap-2 sm:grid-cols-2">
-                  {t.examples.map(example => (
-                    <button
-                      key={example}
-                      onClick={() => handleFaqSend(example)}
-                      className="min-h-11 rounded-full border border-[#7a6350]/40 bg-[#fffaf2]/70 px-4 py-2 text-sm text-[#3b2a1f] transition hover:border-[#8b5e3c]"
-                    >
-                      {example}
-                    </button>
-                  ))}
-                </div>
-              </div>
+            {isSidebarOpen ? (
+              <X size={17} strokeWidth={1.5} />
             ) : (
-              <div className="space-y-[14px]">
-                {messages.map(message => {
-                  const isUser = message.role === "USER";
-                  return (
-                    <div
-                      key={message.id}
-                      className={`flex items-end gap-2 ${isUser ? "justify-end" : "justify-start"}`}
-                      style={{ animation: "msgIn .22s ease-out" }}
-                      data-testid={isUser ? "chat-message-user" : "chat-message-assistant"}
-                    >
-                      {!isUser && (
-                        <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full bg-[#fffaf2] text-sm">
-                          <BookOpen
-                            size={16}
-                            strokeWidth={1.7}
-                            aria-hidden="true"
-                          />
-                        </div>
-                      )}
-                      <div
-                        className={`max-w-[min(82%,620px)] rounded-2xl border px-3 py-2 text-sm leading-relaxed sm:px-4 ${
-                          isUser
-                            ? "rounded-tr-[3px] border-[#8b5e3c]/30 bg-[#8b5e3c] text-[#3b2a1f]"
-                            : "rounded-tl-[3px] border-[#7a6350]/35 bg-[#fffaf2] text-[#3b2a1f]"
-                        }`}
-                      >
-                        <div className="break-words [overflow-wrap:anywhere]">
-                          <ReactMarkdown
-                            components={{
-                              p: ({ children }) => (
-                                <p className="mb-2 last:mb-0">{children}</p>
-                              ),
-                              a: ({ children, href }) => {
-                                const safeHref = href ? sanitizeUrl(href) : "";
-                                if (!safeHref) return <>{children}</>;
-                                return (
-                                  <a
-                                    href={safeHref}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="break-all underline underline-offset-2"
-                                  >
-                                    {children}
-                                  </a>
-                                );
-                              },
-                              ul: ({ children }) => (
-                                <ul className="mb-2 list-disc pl-5">
-                                  {children}
-                                </ul>
-                              ),
-                              ol: ({ children }) => (
-                                <ol className="mb-2 list-decimal pl-5">
-                                  {children}
-                                </ol>
-                              ),
-                            }}
-                          >
-                            {message.content}
-                          </ReactMarkdown>
-                        </div>
-                        <div className="mt-1 text-[10px] text-[#7a6350]">
-                          {formatTime(message.createdAt)}
-                        </div>
-                      </div>
-                      {isUser && (
-                        <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full bg-[#fffaf2] text-sm">
-                          <span
-                            className="text-xs font-semibold"
-                            aria-hidden="true"
-                          >
-                            Я
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-
-                {isTyping && (
-                  <div className="flex items-end gap-2">
-                    <div className="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-[#fffaf2] text-sm">
-                      📚
-                    </div>
-                    <div className="rounded-2xl rounded-tl-[3px] border border-[#7a6350]/35 bg-[#fffaf2] px-3 py-2">
-                      <div className="flex items-center gap-1.5">
-                        {[0, 1, 2].map(index => (
-                          <span
-                            key={index}
-                            className="block h-2 w-2 rounded-full bg-[#8b5e3c]"
-                            style={{
-                              animation: `dotPulse .9s ease-in-out ${index * 0.18}s infinite`,
-                            }}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {!isTyping && followUpSuggestions.length > 0 && (
-                  <div
-                    className="ml-8 flex flex-wrap gap-2 pt-1"
-                    aria-label="Запропоновані запитання"
-                  >
-                    {followUpSuggestions.map(question => (
-                      <button
-                        key={question}
-                        type="button"
-                        onClick={() => handleFaqSend(question)}
-                        className="min-h-11 max-w-full rounded-xl border border-[#8b5e3c]/25 bg-[#fffaf2]/80 px-3 py-2 text-left text-xs leading-5 text-[#5d4637] transition hover:border-[#8b5e3c]/60 hover:bg-[#fffaf2] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5e3c]/50"
-                      >
-                        {question}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                <div ref={messagesEndRef} />
-              </div>
+              <Menu size={17} strokeWidth={1.5} />
             )}
-          </section>
-
-          {error && (
-            <div
-              role="alert"
-              className="mb-2 flex items-start justify-between gap-3 rounded-xl border border-red-300/60 bg-red-50 px-4 py-3 text-sm text-red-800"
-            >
-              <span>{error}</span>
-              {canRetry && !isTyping && (
-                <button
-                  type="button"
-                  onClick={retryLastMessage}
-                  className="min-h-11 shrink-0 rounded-lg px-3 font-semibold underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-700/50"
-                >
-                  {t.retry}
-                </button>
-              )}
-            </div>
-          )}
-
-          <section className="sticky bottom-0 shrink-0 pb-[calc(12px+env(safe-area-inset-bottom))] pt-2 sm:pb-[22px] sm:pt-3">
-            <div
-              className="rounded-2xl border border-[#d9c9b0] p-3 shadow-[0_10px_24px_rgba(59,42,31,0.12)] backdrop-blur-sm focus-within:border-[#8b5e3c]/60 focus-within:shadow-[0_0_0_1px_rgba(139,94,60,.25),0_12px_30px_rgba(59,42,31,.12)]"
-              style={{ backgroundColor: "rgba(255, 250, 242, 0.96)" }}
-            >
-              <div className="flex items-end gap-2">
-                <textarea
-                  ref={textareaRef}
-                  rows={1}
-                  value={inputValue}
-                  onChange={e => setInputValue(e.target.value)}
-                  onKeyDown={e => {
-                    if (
-                      (e.nativeEvent as KeyboardEvent).isComposing ||
-                      e.keyCode === 229
-                    ) return;
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      if (isTyping) {
-                        handleStop();
-                      } else {
-                        handleSend();
-                      }
-                    }
-                  }}
-                  placeholder={t.placeholder}
-                  aria-label={t.placeholder}
-                  aria-describedby="composer-hint"
-                  maxLength={2000}
-                  className="max-h-[120px] min-h-[44px] flex-1 resize-none overflow-y-auto bg-transparent px-2 py-2 text-sm leading-6 text-[#3b2a1f] outline-none placeholder:text-[#7a6350] focus-visible:ring-0"
-                />
-                <button
-                  onClick={() => (isTyping ? handleStop() : handleSend())}
-                  className="mb-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#8b5e3c] text-[#1b1404] transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8b5e3c]/50 disabled:cursor-not-allowed disabled:opacity-60"
-                  disabled={!isTyping && inputValue.trim().length === 0}
-                  aria-label={isTyping ? "Stop" : "Send"}
-                >
-                  {isTyping ? (
-                    <Square size={14} fill="currentColor" />
-                  ) : (
-                    <Send size={14} />
-                  )}
-                </button>
-              </div>
-              <div className="mt-2 flex items-center justify-between gap-3 px-2 text-[11px] text-[#7a6350]">
-                <span id="composer-hint">{t.hint} · {t.maxLength} 2000</span>
-                {inputValue.length > 1800 && (
-                  <span className="shrink-0 tabular-nums" aria-live="polite">
-                    {2000 - inputValue.length} {t.remaining}
-                  </span>
+          </button>
+          <div className="flex flex-col items-center">
+            <h1 className="logo-text text-[22px] m-0 leading-none">ХДАК</h1>
+            <div className="flex items-center gap-1 mt-0.5">
+              <span
+                className={cn(
+                  "w-1.5 h-1.5 rounded-full shrink-0",
+                  error
+                    ? "bg-red-400"
+                    : isTyping
+                      ? "bg-amber-400 animate-pulse"
+                      : "bg-emerald-400",
                 )}
-              </div>
+              />
+              <span className="text-[10px] font-medium tracking-wide text-[#7A756F]/60">
+                {error ? "Помилка" : isTyping ? "Думає..." : "Онлайн"}
+              </span>
             </div>
-          </section>
-        </main>
-      </div>
+          </div>
+          <button
+            onClick={createNewConversation}
+            disabled={messages.length === 0}
+            className="w-11 h-11 flex items-center justify-center rounded-xl text-[#7A756F] hover:text-[#2A2520] hover:bg-[#2A2520]/[0.04] transition-all disabled:opacity-0 disabled:pointer-events-none"
+            aria-label="Очистити чат"
+            title="Очистити чат"
+          >
+            <Trash2 size={15} strokeWidth={1.6} />
+          </button>
+        </header>
+
+        <div className="h-px bg-gradient-to-r from-transparent via-[#B87830]/20 to-transparent shrink-0" />
+
+        <ChatArea
+          messages={messages}
+          isTyping={isTyping}
+          isLoadingConversation={isLoadingConversation}
+          error={error}
+          handleFaqSend={handleFaqSend}
+          streamingMessageId={streamingMessageId}
+          messagesEndRef={messagesEndRef}
+          formatTime={formatTime}
+          copyToClipboard={copyToClipboard}
+          onRetry={retryLastMessage}
+        />
+
+        <ChatInput
+          inputValue={inputValue}
+          setInputValue={setInputValue}
+          isTyping={isTyping}
+          handleSend={handleSend}
+          onStop={handleStop}
+          currentConversationId={currentConversation?.id}
+          onSpeechError={(msg) => toast({ description: msg, duration: 4000 })}
+        />
+      </main>
     </div>
   );
 }
