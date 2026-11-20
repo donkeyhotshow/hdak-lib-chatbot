@@ -1,28 +1,36 @@
 import { createHash } from "crypto";
+import { NextResponse } from "next/server";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
-// ---------------------------------------------------------------------------
-// Upstash Redis rate limiter (production)
-// ---------------------------------------------------------------------------
-let upstashLimiter: Ratelimit | null = null;
+export type RedisRateLimitConfig = { url: string; token: string };
 
-if (
-  process.env.UPSTASH_REDIS_REST_URL &&
-  process.env.UPSTASH_REDIS_REST_TOKEN
-) {
-  const redis = new Redis({
-    url: process.env.UPSTASH_REDIS_REST_URL,
-    token: process.env.UPSTASH_REDIS_REST_TOKEN,
-  });
-
-  upstashLimiter = new Ratelimit({
-    redis,
-    limiter: Ratelimit.slidingWindow(15, "60 s"),
-    analytics: true,
-    prefix: "hdak-chatbot",
-  });
+export function getRateLimitPrefix(
+  env: NodeJS.ProcessEnv = process.env
+): string {
+  return `hdak-chatbot:${env.VERCEL_ENV || env.NODE_ENV || "development"}`;
 }
+
+export function getRedisRateLimitConfig(
+  env: NodeJS.ProcessEnv = process.env
+): RedisRateLimitConfig | null {
+  const url = env.UPSTASH_REDIS_REST_URL?.trim() || env.KV_REST_API_URL?.trim();
+  const token =
+    env.UPSTASH_REDIS_REST_TOKEN?.trim() || env.KV_REST_API_TOKEN?.trim();
+
+  return url && token ? { url, token } : null;
+}
+
+const redisConfig = getRedisRateLimitConfig();
+const sharedRedis = redisConfig ? new Redis(redisConfig) : null;
+const upstashLimiter = sharedRedis
+  ? new Ratelimit({
+      redis: sharedRedis,
+      limiter: Ratelimit.slidingWindow(15, "60 s"),
+      analytics: true,
+      prefix: getRateLimitPrefix(),
+    })
+  : null;
 
 // ---------------------------------------------------------------------------
 // In-memory fallback (development / when Upstash is not configured)
@@ -109,14 +117,43 @@ function checkRateLimitMemory(
  * Uses Upstash Redis in production, falls back to in-memory in development.
  * @returns `true` if the request is allowed, `false` if rate-limited.
  */
-export async function checkRateLimit(key: string): Promise<boolean> {
-  if (upstashLimiter) {
-    const { success } = await upstashLimiter.limit(key);
+export async function applySharedRateLimit(
+  limiter: { limit: (key: string) => Promise<{ success: boolean }> },
+  key: string
+): Promise<boolean> {
+  try {
+    const { success } = await limiter.limit(key);
     return success;
+  } catch {
+    // Fail closed: a shared-store outage must never disable production limits.
+    return false;
   }
+}
 
-  // Fallback: 15 requests per 60 seconds
+export async function checkRateLimitStore(): Promise<boolean> {
+  if (!sharedRedis) return false;
+
+  try {
+    return (await sharedRedis.ping()) === "PONG";
+  } catch {
+    return false;
+  }
+}
+
+export async function checkRateLimit(key: string): Promise<boolean> {
+  if (upstashLimiter) return applySharedRateLimit(upstashLimiter, key);
+
+  // Production must never fall back to per-instance state or allow unbounded use.
+  if (process.env.NODE_ENV === "production") return false;
+
   return checkRateLimitMemory(key, 15, 60_000);
+}
+
+export function rateLimitResponse(message: string): NextResponse {
+  return NextResponse.json(
+    { error: message },
+    { status: 429, headers: { "Retry-After": "60" } }
+  );
 }
 
 /**

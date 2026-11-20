@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { checkRateLimit, generateFingerprint } from "@/lib/rate-limit";
+import {
+  checkRateLimit,
+  generateFingerprint,
+  rateLimitResponse,
+} from "@/lib/rate-limit";
 import { searchCatalog, getCatalogFormUrl } from "@/lib/catalog-search";
 import { isForbiddenOrigin } from "@/lib/cors";
 import { logger } from "@/lib/logger";
@@ -14,7 +18,7 @@ export async function GET(request: NextRequest) {
   // Rate limiting
   const fingerprint = generateFingerprint(request);
   if (!(await checkRateLimit(fingerprint))) {
-    return NextResponse.json({ error: "Забагато запитів" }, { status: 429 });
+    return rateLimitResponse("Забагато запитів");
   }
 
   const { searchParams } = new URL(request.url);
@@ -43,12 +47,7 @@ export async function GET(request: NextRequest) {
   try {
     let searchTerm: string;
     let searchType:
-      | "title"
-      | "author"
-      | "general"
-      | "udc"
-      | "subject"
-      | "keyword";
+      "title" | "author" | "general" | "udc" | "subject" | "keyword";
 
     if (udc) {
       searchTerm = udc;

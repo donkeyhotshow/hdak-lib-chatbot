@@ -208,7 +208,7 @@ export const Sidebar = memo(function Sidebar({
   useEffect(() => {
     try {
       // Library hours are an external clock-based value and must be refreshed after mount.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+
       setOpen(isLibraryOpen());
     } catch {
       /* Intl not supported */
@@ -231,7 +231,7 @@ export const Sidebar = memo(function Sidebar({
   useEffect(() => {
     if (conversations.length !== prevConvCountRef.current) {
       // Loading state follows the completion of the external conversation request.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+
       setIsLoadingMore(false);
       prevConvCountRef.current = conversations.length;
     }
@@ -239,7 +239,7 @@ export const Sidebar = memo(function Sidebar({
   useEffect(() => {
     if (!isOpen) {
       // Clear transient filter state when the drawer closes.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+
       setSearch("");
     }
   }, [isOpen]);
@@ -517,9 +517,9 @@ export const Sidebar = memo(function Sidebar({
                 )}
                 <div className="space-y-0.5">
                   {filtered.map(conv => (
-            <ConversationItem
-              key={conv.id}
-              conversation={conv}
+                    <ConversationItem
+                      key={conv.id}
+                      conversation={conv}
                       isActive={currentConversation?.id === conv.id}
                       isNew={conv.id === newConversationId}
                       onLoad={id => {

@@ -247,7 +247,7 @@ export default function ChatPage() {
           }}
         />
         <button
-                  className="fixed left-3 top-3 z-30 flex size-11 items-center justify-center rounded-lg border border-[#d9c9b0] bg-white text-[#3b2a1f] shadow-sm md:hidden"
+          className="fixed left-3 top-3 z-30 flex size-11 items-center justify-center rounded-lg border border-[#d9c9b0] bg-white text-[#3b2a1f] shadow-sm md:hidden"
           onClick={() => setSidebarOpen(true)}
           aria-label="Відкрити меню"
         >
@@ -307,7 +307,9 @@ export default function ChatPage() {
                       key={message.id}
                       className={`flex items-end gap-2 ${isUser ? "justify-end" : "justify-start"}`}
                       style={{ animation: "msgIn .22s ease-out" }}
-                      data-testid={isUser ? "chat-message-user" : "chat-message-assistant"}
+                      data-testid={
+                        isUser ? "chat-message-user" : "chat-message-assistant"
+                      }
                     >
                       {!isUser && (
                         <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full bg-[#fffaf2] text-sm">
@@ -454,7 +456,8 @@ export default function ChatPage() {
                     if (
                       (e.nativeEvent as KeyboardEvent).isComposing ||
                       e.keyCode === 229
-                    ) return;
+                    )
+                      return;
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
                       if (isTyping) {
@@ -484,7 +487,9 @@ export default function ChatPage() {
                 </button>
               </div>
               <div className="mt-2 flex items-center justify-between gap-3 px-2 text-[11px] text-[#7a6350]">
-                <span id="composer-hint">{t.hint} · {t.maxLength} 2000</span>
+                <span id="composer-hint">
+                  {t.hint} · {t.maxLength} 2000
+                </span>
                 {inputValue.length > 1800 && (
                   <span className="shrink-0 tabular-nums" aria-live="polite">
                     {2000 - inputValue.length} {t.remaining}

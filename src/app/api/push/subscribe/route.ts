@@ -8,7 +8,11 @@ import {
   validateInput,
 } from "@/lib/validation";
 import { isForbiddenOrigin } from "@/lib/cors";
-import { checkRateLimit, generateFingerprint } from "@/lib/rate-limit";
+import {
+  checkRateLimit,
+  generateFingerprint,
+  rateLimitResponse,
+} from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   if (isForbiddenOrigin(request)) {
@@ -17,7 +21,7 @@ export async function POST(request: NextRequest) {
 
   const fingerprint = generateFingerprint(request);
   if (!(await checkRateLimit(fingerprint))) {
-    return NextResponse.json({ error: "Забагато запитів" }, { status: 429 });
+    return rateLimitResponse("Забагато запитів");
   }
 
   let body: unknown;
@@ -87,7 +91,7 @@ export async function DELETE(request: NextRequest) {
   // Rate-limit DELETE same as POST to prevent enumeration attacks
   const fingerprint = generateFingerprint(request);
   if (!(await checkRateLimit(fingerprint))) {
-    return NextResponse.json({ error: "Забагато запитів" }, { status: 429 });
+    return rateLimitResponse("Забагато запитів");
   }
 
   let body: unknown;

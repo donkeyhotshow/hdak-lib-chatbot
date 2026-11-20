@@ -69,7 +69,10 @@ export const ConversationItem = memo(function ConversationItem({
       )}
     >
       {isNew && !isActive && (
-        <span aria-label="Непрочитана розмова" className="w-1.5 h-1.5 rounded-full bg-[#D4A853]/70 shrink-0" />
+        <span
+          aria-label="Непрочитана розмова"
+          className="w-1.5 h-1.5 rounded-full bg-[#D4A853]/70 shrink-0"
+        />
       )}
       {isEditing ? (
         <input
@@ -77,7 +80,12 @@ export const ConversationItem = memo(function ConversationItem({
           value={editValue}
           onChange={event => setEditValue(event.target.value)}
           onKeyDown={event => {
-            if (event.key === "Enter" && !event.nativeEvent.isComposing && event.keyCode !== 229) submitEdit(event);
+            if (
+              event.key === "Enter" &&
+              !event.nativeEvent.isComposing &&
+              event.keyCode !== 229
+            )
+              submitEdit(event);
             if (event.key === "Escape") setIsEditing(false);
           }}
           aria-label="Назва розмови"

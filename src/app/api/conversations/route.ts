@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { db, conversations } from "@/lib/db";
 import { desc, eq } from "drizzle-orm";
 import { stripHtml } from "@/lib/sanitize";
-import { checkRateLimit, generateFingerprint } from "@/lib/rate-limit";
+import {
+  checkRateLimit,
+  generateFingerprint,
+  rateLimitResponse,
+} from "@/lib/rate-limit";
 import { isForbiddenOrigin } from "@/lib/cors";
 import {
   getSessionIdStrict,
@@ -16,7 +20,7 @@ const MAX_TITLE_LENGTH = 200;
 export async function GET(request: NextRequest) {
   const fingerprint = generateFingerprint(request);
   if (!(await checkRateLimit(fingerprint))) {
-    return NextResponse.json({ error: "Забагато запитів" }, { status: 429 });
+    return rateLimitResponse("Забагато запитів");
   }
   if (isForbiddenOrigin(request)) {
     return NextResponse.json({ error: "Заборонений запит" }, { status: 403 });
@@ -62,15 +66,24 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ items, hasMore, offset, limit });
   } catch (error) {
-    console.warn("Conversations list fallback to empty/memory mode:", error instanceof Error ? error.message : String(error));
-    return NextResponse.json({ items: [], hasMore: false, offset: 0, limit: PAGE_SIZE, mode: "fallback" });
+    console.warn(
+      "Conversations list fallback to empty/memory mode:",
+      error instanceof Error ? error.message : String(error)
+    );
+    return NextResponse.json({
+      items: [],
+      hasMore: false,
+      offset: 0,
+      limit: PAGE_SIZE,
+      mode: "fallback",
+    });
   }
 }
 
 export async function POST(request: NextRequest) {
   const fingerprint = generateFingerprint(request);
   if (!(await checkRateLimit(fingerprint))) {
-    return NextResponse.json({ error: "Забагато запитів" }, { status: 429 });
+    return rateLimitResponse("Забагато запитів");
   }
   if (isForbiddenOrigin(request)) {
     return NextResponse.json({ error: "Заборонений запит" }, { status: 403 });
@@ -115,7 +128,10 @@ export async function POST(request: NextRequest) {
       .returning();
     return NextResponse.json(newConv);
   } catch (error) {
-    console.warn("Conversation creation fallback to in-memory conversation:", error instanceof Error ? error.message : String(error));
+    console.warn(
+      "Conversation creation fallback to in-memory conversation:",
+      error instanceof Error ? error.message : String(error)
+    );
     return NextResponse.json({
       id: crypto.randomUUID(),
       title,

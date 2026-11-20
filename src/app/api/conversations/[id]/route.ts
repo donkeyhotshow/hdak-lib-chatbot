@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { db, conversations, messages } from "@/lib/db";
 import { eq, and, desc } from "drizzle-orm";
 import { stripHtml } from "@/lib/sanitize";
-import { checkRateLimit, generateFingerprint } from "@/lib/rate-limit";
+import {
+  checkRateLimit,
+  generateFingerprint,
+  rateLimitResponse,
+} from "@/lib/rate-limit";
 import { isForbiddenOrigin } from "@/lib/cors";
 import {
   isValidUuid,
@@ -19,7 +23,7 @@ export async function GET(
 ) {
   const fingerprint = generateFingerprint(request);
   if (!(await checkRateLimit(fingerprint))) {
-    return NextResponse.json({ error: "Забагато запитів" }, { status: 429 });
+    return rateLimitResponse("Забагато запитів");
   }
   if (isForbiddenOrigin(request)) {
     return NextResponse.json({ error: "Заборонений запит" }, { status: 403 });
@@ -77,7 +81,7 @@ export async function DELETE(
 ) {
   const fingerprint = generateFingerprint(request);
   if (!(await checkRateLimit(fingerprint))) {
-    return NextResponse.json({ error: "Забагато запитів" }, { status: 429 });
+    return rateLimitResponse("Забагато запитів");
   }
   if (isForbiddenOrigin(request)) {
     return NextResponse.json({ error: "Заборонене джерело" }, { status: 403 });
@@ -128,7 +132,7 @@ export async function PATCH(
 ) {
   const fingerprint = generateFingerprint(request);
   if (!(await checkRateLimit(fingerprint))) {
-    return NextResponse.json({ error: "Забагато запитів" }, { status: 429 });
+    return rateLimitResponse("Забагато запитів");
   }
   if (isForbiddenOrigin(request)) {
     return NextResponse.json({ error: "Заборонене джерело" }, { status: 403 });

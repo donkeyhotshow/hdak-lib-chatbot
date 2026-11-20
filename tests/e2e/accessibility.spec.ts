@@ -16,6 +16,9 @@ for (const viewport of viewports) {
     });
     await page.goto("/");
     await expect(page.locator("main")).toBeVisible();
+    if (viewport.width >= 768) {
+      await expect(page.locator(".sidebar-premium")).toHaveCSS("opacity", "1");
+    }
 
     const accessibility = await new AxeBuilder({ page }).analyze();
     expect(accessibility.violations).toEqual([]);

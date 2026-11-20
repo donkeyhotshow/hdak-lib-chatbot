@@ -40,14 +40,14 @@ Lockfiles: `pnpm-lock.yaml` используется; в корне также �
 
 ### Команды
 
-| Команда | Результат | Доказательство |
-|---|---|---|
-| `pnpm install --frozen-lockfile` | РАБОТАЕТ | lockfile up to date; pnpm 10.4.1 |
-| `pnpm lint` | РАБОТАЕТ частично | 0 errors, 21 warnings |
-| `pnpm check` | РАБОТАЕТ | `tsc --noEmit`, exit 0 |
-| `pnpm run build` | РАБОТАЕТ | Next 16.2.2 build, 15 static pages, exit 0 |
-| `pnpm test` | РАБОТАЕТ | 3 files, 16 passed |
-| `pnpm e2e` | НЕ ПРОВЕРЕНО | 180 test cases scheduled, browser launch failed: missing WebKit executable |
+| Команда                          | Результат         | Доказательство                                                             |
+| -------------------------------- | ----------------- | -------------------------------------------------------------------------- |
+| `pnpm install --frozen-lockfile` | РАБОТАЕТ          | lockfile up to date; pnpm 10.4.1                                           |
+| `pnpm lint`                      | РАБОТАЕТ частично | 0 errors, 21 warnings                                                      |
+| `pnpm check`                     | РАБОТАЕТ          | `tsc --noEmit`, exit 0                                                     |
+| `pnpm run build`                 | РАБОТАЕТ          | Next 16.2.2 build, 15 static pages, exit 0                                 |
+| `pnpm test`                      | РАБОТАЕТ          | 3 files, 16 passed                                                         |
+| `pnpm e2e`                       | НЕ ПРОВЕРЕНО      | 180 test cases scheduled, browser launch failed: missing WebKit executable |
 
 Lint warnings включают: duplicate `lint` key (`package.json:11,14`), unused `MAX_MESSAGE_LENGTH` (`src/app/api/chat/route.ts:30`), unused resource/quick-chip code, missing React Hook dependencies и прочие unused variables. Ошибок ESLint нет.
 
@@ -67,7 +67,12 @@ Lint warnings включают: duplicate `lint` key (`package.json:11,14`), unu
 `/api/ready` корректно сообщает о критически отсутствующих DB/provider env: `src/app/api/ready/route.ts:30–53`. В запущенном v0 preview endpoint реально ответил HTTP 200:
 
 ```json
-{"status":"ready","configuredProviders":["xai"],"catalog":"ok","message":"All critical systems are configured"}
+{
+  "status": "ready",
+  "configuredProviders": ["xai"],
+  "catalog": "ok",
+  "message": "All critical systems are configured"
+}
 ```
 
 ## 2. Автотесты
@@ -109,11 +114,11 @@ Lint warnings включают: duplicate `lint` key (`package.json:11,14`), unu
 
 Проверенные запросы к `http://localhost:3000/api/chat`:
 
-| Сценарий | HTTP | Результат |
-|---|---:|---|
-| malformed JSON `{` | 400 | `Невірний формат запиту` |
-| `{ "message": "" }` | 400 | Zod: `message: Message cannot be empty` |
-| message из 2001 `x` | 400 | Zod: `Message too long (max 2000 characters)` |
+| Сценарий            | HTTP | Результат                                     |
+| ------------------- | ---: | --------------------------------------------- |
+| malformed JSON `{`  |  400 | `Невірний формат запиту`                      |
+| `{ "message": "" }` |  400 | Zod: `message: Message cannot be empty`       |
+| message из 2001 `x` |  400 | Zod: `Message too long (max 2000 characters)` |
 
 HTML перед дальнейшей обработкой очищается `stripHtml(message).trim()` (`route.ts:275–282`). Константа `MAX_MESSAGE_LENGTH` в `route.ts:30` не используется; фактический лимит сейчас задаёт Zod.
 
@@ -292,15 +297,15 @@ No reproducible 5-request TTFB/full-response benchmark was run. Build passes, bu
 
 ## 4. Сверка с текстом работы
 
-| Утверждение | Статус | Доказательство |
-|---|---|---|
-| FAQ → catalog → system prompt → LLM, без RAG/vector search | ПОДТВЕРЖДЕНО для active runtime | `chat/route.ts:295–395`, `:464–470`; активного embedding/vector модуля не найдено |
-| Next.js 16, React 19, TypeScript, PostgreSQL/Neon, Drizzle, Upstash, Vercel | ПОДТВЕРЖДЕНО ПО КОДУ | package, `db.ts`, `rate-limit.ts`, `vercel.json` |
-| UI только украинский и английский; русские запросы → украинский ответ | ПОДТВЕРЖДЕНО ПО КОДУ | translations в `page.tsx`; policy в `prompts.ts:36–42` |
-| Передачи диалога библиотекарю нет, только контакты | ПОДТВЕРЖДЕНО ПО КОДУ | prompt contacts/resources; отдельного handoff workflow не найдено |
-| Голосового ввода и озвучки нет | ПРОТИВОРЕЧИТ КОДУ | `ChatInput.tsx:2–65`, `use-speech.ts` реализуют розпізнавання речи через Speech Recognition API |
-| Нет авторизации, сессии анонимные | ПОДТВЕРЖДЕНО | `session.ts:1–34`; auth provider/routes не найдены |
-| История старше 90 дней удаляется | ЧАСТИЧНО | cleanup route есть, но `vercel.json` не содержит cron; автоматический запуск не доказан |
+| Утверждение                                                                 | Статус                          | Доказательство                                                                                  |
+| --------------------------------------------------------------------------- | ------------------------------- | ----------------------------------------------------------------------------------------------- |
+| FAQ → catalog → system prompt → LLM, без RAG/vector search                  | ПОДТВЕРЖДЕНО для active runtime | `chat/route.ts:295–395`, `:464–470`; активного embedding/vector модуля не найдено               |
+| Next.js 16, React 19, TypeScript, PostgreSQL/Neon, Drizzle, Upstash, Vercel | ПОДТВЕРЖДЕНО ПО КОДУ            | package, `db.ts`, `rate-limit.ts`, `vercel.json`                                                |
+| UI только украинский и английский; русские запросы → украинский ответ       | ПОДТВЕРЖДЕНО ПО КОДУ            | translations в `page.tsx`; policy в `prompts.ts:36–42`                                          |
+| Передачи диалога библиотекарю нет, только контакты                          | ПОДТВЕРЖДЕНО ПО КОДУ            | prompt contacts/resources; отдельного handoff workflow не найдено                               |
+| Голосового ввода и озвучки нет                                              | ПРОТИВОРЕЧИТ КОДУ               | `ChatInput.tsx:2–65`, `use-speech.ts` реализуют розпізнавання речи через Speech Recognition API |
+| Нет авторизации, сессии анонимные                                           | ПОДТВЕРЖДЕНО                    | `session.ts:1–34`; auth provider/routes не найдены                                              |
+| История старше 90 дней удаляется                                            | ЧАСТИЧНО                        | cleanup route есть, но `vercel.json` не содержит cron; автоматический запуск не доказан         |
 
 Исправленная формулировка на украинском:
 

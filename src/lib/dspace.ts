@@ -32,7 +32,8 @@ const MOCK_ITEMS: DspaceItem[] = [
     id: "mock-1",
     title: "Цифрові технології в культурі та мистецтві",
     authors: ["Коваленко, О. В."],
-    abstract: "Дослідження цифрових практик у культурних інституціях та мистецькій освіті.",
+    abstract:
+      "Дослідження цифрових практик у культурних інституціях та мистецькій освіті.",
     date: "2024",
     url: "https://repository.ac.kharkov.ua/handle/mock-1",
     source: "dspace-mock",
@@ -41,7 +42,8 @@ const MOCK_ITEMS: DspaceItem[] = [
     id: "mock-2",
     title: "Менеджмент соціокультурної діяльності",
     authors: ["Шейко, В. М.", "Кушнаренко, Н. М."],
-    abstract: "Матеріали про організацію, планування та оцінювання соціокультурних проєктів.",
+    abstract:
+      "Матеріали про організацію, планування та оцінювання соціокультурних проєктів.",
     date: "2023",
     url: "https://repository.ac.kharkov.ua/handle/mock-2",
     source: "dspace-mock",
@@ -50,7 +52,8 @@ const MOCK_ITEMS: DspaceItem[] = [
     id: "mock-3",
     title: "Українська культура: історія та сучасність",
     authors: ["Харківська державна академія культури"],
-    abstract: "Наукові праці та оглядові матеріали з історії української культури.",
+    abstract:
+      "Наукові праці та оглядові матеріали з історії української культури.",
     date: "2022",
     url: "https://repository.ac.kharkov.ua/handle/mock-3",
     source: "dspace-mock",
@@ -126,8 +129,12 @@ function decodeXml(value: string): string {
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
     .replace(/&apos;/g, "'")
-    .replace(/&#(\d+);/g, (_, code: string) => String.fromCodePoint(Number(code)))
-    .replace(/&#x([\da-f]+);/gi, (_, code: string) => String.fromCodePoint(parseInt(code, 16)))
+    .replace(/&#(\d+);/g, (_, code: string) =>
+      String.fromCodePoint(Number(code))
+    )
+    .replace(/&#x([\da-f]+);/gi, (_, code: string) =>
+      String.fromCodePoint(parseInt(code, 16))
+    )
     .replace(/<[^>]+>/g, "")
     .trim();
 }
@@ -175,17 +182,18 @@ function parseOaiRecords(xml: string, maxItems: number): DspaceItem[] {
     });
 }
 
-function metadataValues(
-  metadata: unknown,
-  keys: string[]
-): string[] {
+function metadataValues(metadata: unknown, keys: string[]): string[] {
   if (!metadata || typeof metadata !== "object") return [];
   const record = metadata as Record<string, unknown>;
   const values: string[] = [];
 
   for (const key of keys) {
     const value = record[key];
-    const candidates = Array.isArray(value) ? value : value === undefined ? [] : [value];
+    const candidates = Array.isArray(value)
+      ? value
+      : value === undefined
+        ? []
+        : [value];
     for (const candidate of candidates) {
       if (typeof candidate === "string") values.push(candidate);
       else if (candidate && typeof candidate === "object") {
@@ -210,7 +218,9 @@ async function fetchRestItems(): Promise<DspaceItem[]> {
 
   const url = new URL(`${endpoint.replace(/\/$/, "")}/discover/search/objects`);
   url.searchParams.set("size", String(getMaxItems()));
-  const response = await fetch(url, { signal: AbortSignal.timeout(getTimeoutMs()) });
+  const response = await fetch(url, {
+    signal: AbortSignal.timeout(getTimeoutMs()),
+  });
   if (!response.ok) throw new Error(`DSpace REST HTTP ${response.status}`);
 
   const payload = (await response.json()) as {
@@ -229,11 +239,31 @@ async function fetchRestItems(): Promise<DspaceItem[]> {
   return objects.slice(0, getMaxItems()).map((object, index) => {
     const value = object._embedded?.indexableObject ?? {};
     const metadata = value.metadata;
-    const title = metadataValues(metadata, ["dc.title", "title"])[0] ?? String(value.name ?? value.title ?? `Матеріал ${index + 1}`);
-    const authors = metadataValues(metadata, ["dc.contributor.author", "dc.creator", "author", "creator"]);
-    const abstract = metadataValues(metadata, ["dc.description", "abstract", "description"])[0] ?? String(value.abstract ?? "");
-    const date = metadataValues(metadata, ["dc.date.issued", "dc.date", "dateIssued", "date"])[0] ?? "";
-    const handle = metadataValues(metadata, ["dc.identifier.uri", "handle"])[0] ?? String(value.handle ?? value.uuid ?? `rest-${index + 1}`);
+    const title =
+      metadataValues(metadata, ["dc.title", "title"])[0] ??
+      String(value.name ?? value.title ?? `Матеріал ${index + 1}`);
+    const authors = metadataValues(metadata, [
+      "dc.contributor.author",
+      "dc.creator",
+      "author",
+      "creator",
+    ]);
+    const abstract =
+      metadataValues(metadata, [
+        "dc.description",
+        "abstract",
+        "description",
+      ])[0] ?? String(value.abstract ?? "");
+    const date =
+      metadataValues(metadata, [
+        "dc.date.issued",
+        "dc.date",
+        "dateIssued",
+        "date",
+      ])[0] ?? "";
+    const handle =
+      metadataValues(metadata, ["dc.identifier.uri", "handle"])[0] ??
+      String(value.handle ?? value.uuid ?? `rest-${index + 1}`);
     return {
       id: String(value.uuid ?? handle),
       title,
@@ -253,7 +283,10 @@ async function fetchOaiItems(): Promise<DspaceItem[]> {
   const maxItems = getMaxItems();
   const firstUrl = new URL(endpoint);
   firstUrl.searchParams.set("verb", "ListRecords");
-  firstUrl.searchParams.set("metadataPrefix", firstUrl.searchParams.get("metadataPrefix") || "oai_dc");
+  firstUrl.searchParams.set(
+    "metadataPrefix",
+    firstUrl.searchParams.get("metadataPrefix") || "oai_dc"
+  );
   if (process.env.DSPACE_OAI_SET?.trim()) {
     firstUrl.searchParams.set("set", process.env.DSPACE_OAI_SET.trim());
   }
@@ -326,7 +359,10 @@ export function searchDspace(query: string, limit = 5): DspaceItem[] {
     .filter(token => token.length >= 3);
   return items
     .filter(item => {
-      const haystack = `${item.title} ${item.authors.join(" ")} ${item.abstract}`.toLocaleLowerCase("uk-UA");
+      const haystack =
+        `${item.title} ${item.authors.join(" ")} ${item.abstract}`.toLocaleLowerCase(
+          "uk-UA"
+        );
       return tokens.some(token => haystack.includes(token));
     })
     .slice(0, limit);

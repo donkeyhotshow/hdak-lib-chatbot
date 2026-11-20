@@ -68,22 +68,25 @@ export function useChat(
   toast: (opts: { description: string; duration?: number }) => void
 ): UseChatReturn {
   const [messages, setMessages] = useState<Message[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   // H2: use ref for inputValue so handleSend doesn't recreate on every keystroke
   const inputValueRef = useRef("");
   const [inputValue, setInputValueState] = useState("");
-  const setInputValue = useCallback((v: string) => {
-    inputValueRef.current = v;
-    setInputValueState(v);
-    if (v.trim()) setError(null);
-  }, []);
+  const setInputValue = useCallback(
+    (v: string) => {
+      inputValueRef.current = v;
+      setInputValueState(v);
+      if (v.trim()) setError(null);
+    },
+    [setError]
+  );
 
   const [isTyping, setIsTyping] = useState(false);
   // M27: ref mirrors isTyping for synchronous double-send guard
   const isTypingRef = useRef(false);
   // Timeout for stuck typing state (120 seconds max)
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversation, setCurrentConversation] =
     useState<Conversation | null>(null);
@@ -138,14 +141,16 @@ export function useChat(
   useEffect(() => {
     isMountedRef.current = true;
     const controller = new AbortController();
-    setIsLoadingConversations(true);
     // L12: Load from cache first for zero-latency UI immersion
     try {
       const cached = safeStorage.getItem("hdak_conv_cache");
       if (cached) {
         const { items, hasMore } = JSON.parse(cached);
-        setConversations(items || []);
-        setHasMoreConversations(hasMore || false);
+        queueMicrotask(() => {
+          if (controller.signal.aborted) return;
+          setConversations(items || []);
+          setHasMoreConversations(hasMore || false);
+        });
       }
     } catch (error) {
       logger.warn("Failed to parse cached conversations", { error });
@@ -358,7 +363,7 @@ export function useChat(
     setError(null);
     setIsTyping(false);
     setStreamingMessageId(null);
-  }, [clearTypingTimeout, setInputValue]);
+  }, [clearTypingTimeout, setError, setInputValue]);
 
   const renameConversation = useCallback(
     async (id: string, title: string) => {
@@ -962,7 +967,7 @@ export function useChat(
     setError(null);
     isTypingRef.current = false;
     handleSend(lastUserContent);
-  }, [handleSend, messages]);
+  }, [handleSend, messages, setError]);
 
   return {
     messages,

@@ -1,7 +1,14 @@
 import React, { memo, useMemo, useState } from "react";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import ReactMarkdown from "react-markdown";
-import { Copy, ArrowDown, AlertCircle, Search, ExternalLink, BookMarked } from "lucide-react";
+import {
+  Copy,
+  ArrowDown,
+  AlertCircle,
+  Search,
+  ExternalLink,
+  BookMarked,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Message } from "./types";
 import { logger } from "@/lib/logger";
@@ -80,7 +87,9 @@ const markdownComponents = {
     const href = rawHref ? sanitizeUrl(rawHref) : "";
     if (!href) return <>{children}</>;
 
-    const isCatalog = href.includes("DocumentSearchForm") || href.includes("library-service.com.ua");
+    const isCatalog =
+      href.includes("DocumentSearchForm") ||
+      href.includes("library-service.com.ua");
     const isRepo = href.includes("repository.ac.kharkov.ua");
 
     if (isCatalog) {
