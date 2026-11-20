@@ -7,6 +7,7 @@ import { sanitizeHtml, sanitizeUrl, sanitizeText } from "@/lib/sanitize";
 import {
   ChatMessageSchema,
   CatalogSearchSchema,
+  CatalogSearchParamsSchema,
   DspaceSyncSchema,
 } from "@/lib/validation";
 import { isForbiddenOrigin } from "@/lib/cors";
@@ -81,6 +82,24 @@ describe("security regression coverage", () => {
     ).toBe(true);
     expect(
       CatalogSearchSchema.safeParse({ query: "history", limit: 101 }).success
+    ).toBe(false);
+  });
+
+  it("validates catalog query parameters and rejects malformed pagination", () => {
+    expect(CatalogSearchParamsSchema.safeParse({ q: "history" }).success).toBe(
+      true
+    );
+    expect(
+      CatalogSearchParamsSchema.safeParse({ udc: "78.01", page: "3" }).success
+    ).toBe(true);
+    expect(CatalogSearchParamsSchema.safeParse({ q: "x" }).success).toBe(false);
+    expect(
+      CatalogSearchParamsSchema.safeParse({ q: "history", page: "3abc" })
+        .success
+    ).toBe(false);
+    expect(
+      CatalogSearchParamsSchema.safeParse({ q: "history", unexpected: "x" })
+        .success
     ).toBe(false);
   });
 

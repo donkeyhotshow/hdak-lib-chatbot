@@ -3,8 +3,7 @@ import { checkRateLimit, generateFingerprint } from "@/lib/rate-limit";
 import { searchCatalog, getCatalogFormUrl } from "@/lib/catalog-search";
 import { isForbiddenOrigin } from "@/lib/cors";
 import { logger } from "@/lib/logger";
-
-const UDC_RE = /^\d+(?:\.\d+)*$/;
+import { CatalogSearchParamsSchema } from "@/lib/validation";
 
 export async function GET(request: NextRequest) {
   // CORS check
@@ -19,55 +18,27 @@ export async function GET(request: NextRequest) {
   }
 
   const { searchParams } = new URL(request.url);
-  const query = searchParams.get("q");
-  const author = searchParams.get("author");
-  const title = searchParams.get("title");
-  const udc = searchParams.get("udc");
-  const subject = searchParams.get("subject");
-  const keyword = searchParams.get("keyword");
-  const page = searchParams.get("page");
-
-  if (!query && !author && !title && !udc && !subject && !keyword) {
+  const rawParams = Object.fromEntries(searchParams.entries());
+  const parsedParams = CatalogSearchParamsSchema.safeParse(rawParams);
+  if (!parsedParams.success) {
     return NextResponse.json(
       {
-        error:
-          "Вкажіть параметр пошуку: q, author, title, udc, subject або keyword",
+        error: "Параметри пошуку мають некоректний формат",
         catalogUrl: getCatalogFormUrl(),
       },
       { status: 400 }
     );
   }
 
-  // Validate UDC — only digits and dots
-  if (udc !== null && !UDC_RE.test(udc)) {
-    return NextResponse.json(
-      {
-        error:
-          "Невалідний УДК: допустимі лише цифри та крапки (наприклад: 78.01)",
-        catalogUrl: getCatalogFormUrl(),
-      },
-      { status: 400 }
-    );
-  }
-
-  const pageNum = Math.min(
-    10000,
-    Math.max(1, Number.parseInt(page || "1", 10) || 1)
-  );
-  const selectedTerm =
-    udc || subject || keyword || author || title || query || "";
-  if (
-    selectedTerm.length > 200 ||
-    /[\u0000-\u0008\u000B\u000C\u000E-\u001F]/.test(selectedTerm)
-  ) {
-    return NextResponse.json(
-      {
-        error: "Параметр пошуку має некоректний формат",
-        catalogUrl: getCatalogFormUrl(),
-      },
-      { status: 400 }
-    );
-  }
+  const {
+    q: query,
+    author,
+    title,
+    udc,
+    subject,
+    keyword,
+    page: pageNum,
+  } = parsedParams.data;
 
   try {
     let searchTerm: string;
