@@ -60,7 +60,7 @@ x-dspace-admin-token: <DSPACE_ADMIN_TOKEN>
 або:
 
 ```json
-{"mode":"oai-pmh"}
+{ "mode": "oai-pmh" }
 ```
 
 Застарілий endpoint `/api/dspace/sync` збережено для сумісності; live-режим також захищений тим самим токеном.

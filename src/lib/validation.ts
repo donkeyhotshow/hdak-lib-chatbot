@@ -56,7 +56,36 @@ export const CatalogSearchSchema = z.object({
   limit: z.number().int().positive().max(100).default(10),
 });
 
+export const CatalogSearchParamsSchema = z
+  .object({
+    q: z.string().trim().min(2).max(200).optional(),
+    author: z.string().trim().min(2).max(200).optional(),
+    title: z.string().trim().min(2).max(200).optional(),
+    udc: z
+      .string()
+      .regex(/^\d+(?:\.\d+)*$/)
+      .max(200)
+      .optional(),
+    subject: z.string().trim().min(2).max(200).optional(),
+    keyword: z.string().trim().min(2).max(200).optional(),
+    page: z.coerce.number().int().min(1).max(10_000).default(1),
+  })
+  .strict()
+  .refine(
+    params =>
+      Boolean(
+        params.q ||
+        params.author ||
+        params.title ||
+        params.udc ||
+        params.subject ||
+        params.keyword
+      ),
+    "Specify a search term"
+  );
+
 export type CatalogSearch = z.infer<typeof CatalogSearchSchema>;
+export type CatalogSearchParams = z.infer<typeof CatalogSearchParamsSchema>;
 
 // Push subscription validation
 export const PushSubscriptionSchema = z.object({

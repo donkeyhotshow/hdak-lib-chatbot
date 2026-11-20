@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 import { db, conversations } from "@/lib/db";
 import { lt } from "drizzle-orm";
 import { timingSafeEqual } from "crypto";
-import { checkRateLimit, generateFingerprint } from "@/lib/rate-limit";
+import {
+  checkRateLimit,
+  generateFingerprint,
+  rateLimitResponse,
+} from "@/lib/rate-limit";
 
 // Cleanup conversations older than 90 days
 // Call via cron: POST /api/cleanup with Authorization: Bearer <secret>
@@ -40,7 +44,7 @@ export async function POST(request: Request) {
   // Rate limit
   const fingerprint = generateFingerprint(request);
   if (!(await checkRateLimit(fingerprint))) {
-    return NextResponse.json({ error: "Забагато запитів" }, { status: 429 });
+    return rateLimitResponse("Забагато запитів");
   }
 
   try {

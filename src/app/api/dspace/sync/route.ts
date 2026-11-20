@@ -6,7 +6,11 @@ import {
 } from "@/lib/dspace";
 import { DspaceSyncSchema, validateInput } from "@/lib/validation";
 import { isForbiddenOrigin } from "@/lib/cors";
-import { checkRateLimit, generateFingerprint } from "@/lib/rate-limit";
+import {
+  checkRateLimit,
+  generateFingerprint,
+  rateLimitResponse,
+} from "@/lib/rate-limit";
 import { logger } from "@/lib/logger";
 
 export const runtime = "nodejs";
@@ -22,7 +26,7 @@ export async function POST(request: NextRequest) {
 
   const fingerprint = generateFingerprint(request);
   if (!(await checkRateLimit(fingerprint))) {
-    return NextResponse.json({ error: "Забагато запитів" }, { status: 429 });
+    return rateLimitResponse("Забагато запитів");
   }
 
   let body: unknown;

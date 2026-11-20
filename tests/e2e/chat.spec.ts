@@ -40,7 +40,9 @@ test.describe("Chat Functionality", () => {
     await expect(userMessage).toBeVisible();
 
     // Wait for bot response with timeout
-    const botMessage = page.locator('[data-testid="chat-message-assistant"]').last();
+    const botMessage = page
+      .locator('[data-testid="chat-message-assistant"]')
+      .last();
     await expect(botMessage).toBeVisible({ timeout: 30000 });
 
     // Input should be cleared
@@ -58,7 +60,9 @@ test.describe("Chat Functionality", () => {
     await sendBtn.click();
 
     // Check message displays correctly
-    const userMessage = page.locator('[data-testid="chat-message-user"]').first();
+    const userMessage = page
+      .locator('[data-testid="chat-message-user"]')
+      .first();
     await expect(userMessage).toBeVisible();
 
     // Get the bounding box and check it doesn't overflow

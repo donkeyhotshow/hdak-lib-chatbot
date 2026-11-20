@@ -4,11 +4,7 @@ import { useState, useCallback } from "react";
 import { SESSION_HEADER, getSessionId } from "@/lib/session";
 
 export type PushState =
-  | "idle"
-  | "requesting"
-  | "subscribed"
-  | "denied"
-  | "unsupported";
+  "idle" | "requesting" | "subscribed" | "denied" | "unsupported";
 
 const VAPID_PUBLIC = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 

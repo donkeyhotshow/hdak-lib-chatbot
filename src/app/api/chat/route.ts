@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { db, conversations, messages as messagesTable } from "@/lib/db";
 import { eq, desc, and } from "drizzle-orm";
 import { stripHtml } from "@/lib/sanitize";
-import { checkRateLimit, generateFingerprint } from "@/lib/rate-limit";
+import {
+  checkRateLimit,
+  generateFingerprint,
+  rateLimitResponse,
+} from "@/lib/rate-limit";
+import { isDatabaseConfigured } from "@/lib/database-config";
 import { ALL_LINKS } from "@/lib/constants";
 import { buildSystemPrompt } from "@/lib/prompts";
 import { getFaqResponse } from "@/lib/faq-responses";
@@ -222,7 +227,10 @@ async function streamLLM(
   ): Promise<string> => {
     const tc = new AbortController();
     const timeoutMs = Math.max(1000, Math.min(30_000, deadline - Date.now()));
-    const timer = setTimeout(() => tc.abort(new Error("Gemini timeout")), timeoutMs);
+    const timer = setTimeout(
+      () => tc.abort(new Error("Gemini timeout")),
+      timeoutMs
+    );
     const onClientAbort = () => {
       clearTimeout(timer);
       tc.abort(signal.reason);
@@ -332,7 +340,8 @@ async function streamLLM(
           text => chunks.push(text),
           deadline
         );
-        if (!response.trim()) throw new Error("Gemini returned an empty response");
+        if (!response.trim())
+          throw new Error("Gemini returned an empty response");
         for (const text of chunks) {
           controller.enqueue(
             encoder.encode(`data: ${JSON.stringify({ text })}\n\n`)
@@ -367,7 +376,8 @@ async function streamLLM(
           text => chunks.push(text),
           deadline
         );
-        if (!response.trim()) throw new Error("Provider returned an empty response");
+        if (!response.trim())
+          throw new Error("Provider returned an empty response");
         for (const text of chunks) {
           controller.enqueue(
             encoder.encode(`data: ${JSON.stringify({ text })}\n\n`)
@@ -395,15 +405,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Заборонене джерело" }, { status: 403 });
   }
 
-  // Rate limit
-  const fingerprint = generateFingerprint(request);
-  // The local/demo path is deliberately stateless and is exercised by the
-  // browser matrix; do not let its in-memory limiter make tests order-dependent.
-  if (process.env.DATABASE_URL && !(await checkRateLimit(fingerprint))) {
+  if (process.env.NODE_ENV === "production" && !isDatabaseConfigured()) {
     return NextResponse.json(
-      { error: "Забагато запитів. Зачекайте трохи." },
-      { status: 429 }
+      { error: "Сервіс тимчасово не готовий" },
+      { status: 503 }
     );
+  }
+
+  const fingerprint = generateFingerprint(request);
+  if (!(await checkRateLimit(fingerprint))) {
+    return rateLimitResponse("Забагато запитів. Зачекайте трохи.");
   }
 
   // Parse body with size guard
@@ -563,22 +574,30 @@ export async function POST(request: NextRequest) {
   // Keep the documented mock/demo flow usable before production DB and LLM
   // credentials are connected. Production requests continue through the full
   // persistence + provider pipeline below.
-  const demoAnswer = !process.env.DATABASE_URL
+  const demoAnswer = !isDatabaseConfigured()
     ? buildDspaceAnswer(safeMessage)
     : null;
-  const offlineAnswer = !process.env.DATABASE_URL
-    ? demoAnswer ?? getOfflineAnswer(safeMessage, catalogContext)
+  const offlineAnswer = !isDatabaseConfigured()
+    ? (demoAnswer ?? getOfflineAnswer(safeMessage, catalogContext))
     : null;
   if (offlineAnswer) {
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       start(controller) {
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: offlineAnswer, source: demoAnswer ? "dspace" : "offline", done: true })}\n\n`));
+        controller.enqueue(
+          encoder.encode(
+            `data: ${JSON.stringify({ text: offlineAnswer, source: demoAnswer ? "dspace" : "offline", done: true })}\n\n`
+          )
+        );
         controller.close();
       },
     });
     return new Response(stream, {
-      headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" },
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      },
     });
   }
 
@@ -634,9 +653,11 @@ export async function POST(request: NextRequest) {
 
     if (convId) {
       await withTimeout(
-        db
-          .insert(messagesTable)
-          .values({ conversationId: convId, role: "USER", content: safeMessage }),
+        db.insert(messagesTable).values({
+          conversationId: convId,
+          role: "USER",
+          content: safeMessage,
+        }),
         DB_TIMEOUT_MS,
         "insert user message"
       );
@@ -701,7 +722,10 @@ export async function POST(request: NextRequest) {
                   content: curatedText,
                 });
               } catch (dbErr) {
-                logger.warn("Failed to persist curated FAQ answer", dbErr instanceof Error ? dbErr : new Error(String(dbErr)));
+                logger.warn(
+                  "Failed to persist curated FAQ answer",
+                  dbErr instanceof Error ? dbErr : new Error(String(dbErr))
+                );
               }
             }
             controller.enqueue(
@@ -805,8 +829,14 @@ function getOfflineAnswer(message: string, catalogContext: string): string {
       return `**Джерело: Електронний каталог ХДАК.** Каталог тимчасово недоступний. Спробуйте повторити пошук пізніше або скористайтеся прямим посиланням: ${ALL_LINKS.catalog_search}. Якщо проблема збережеться, зверніться до бібліотекаря або подайте тематичний запит.`;
     }
     return catalogContext
-      .replace(/^\s*\[РЕЗУЛЬТАТИ КАТАЛОГУ:\s*/u, "**Джерело: Електронний каталог ХДАК.** ")
-      .replace(/\]\s*$/u, "\n\nЯкщо потрібен інший пошук, зверніться до бібліотекаря.");
+      .replace(
+        /^\s*\[РЕЗУЛЬТАТИ КАТАЛОГУ:\s*/u,
+        "**Джерело: Електронний каталог ХДАК.** "
+      )
+      .replace(
+        /\]\s*$/u,
+        "\n\nЯкщо потрібен інший пошук, зверніться до бібліотекаря."
+      );
   }
   if (/where|what|how|find|book|catalog/i.test(message)) {
     return "**Джерело: Бібліотека ХДАК.** Я допоможу знайти книги в електронному каталозі, наукові матеріали й інформацію про бібліотечні послуги. У локальному режимі доступні перевірені відповіді та пошук за джерелами.";

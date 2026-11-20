@@ -42,10 +42,9 @@ export async function searchCatalogWithPuppeteer(
   pageSize: number
 ): Promise<SearchResult> {
   try {
-    const load = new Function(
-      "specifier",
-      "return import(specifier)"
-    ) as (specifier: string) => Promise<{
+    const load = new Function("specifier", "return import(specifier)") as (
+      specifier: string
+    ) => Promise<{
       default?: PuppeteerModule;
       launch?: PuppeteerModule["launch"];
     }>;

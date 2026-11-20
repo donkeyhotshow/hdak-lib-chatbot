@@ -220,12 +220,11 @@ console.log("\n" + "═".repeat(55));
 console.log(" HDAK Chatbot — Production Checklist");
 console.log("═".repeat(55));
 
-  for (const r of results) {
+for (const r of results) {
   const icon = r.ok ? "✅" : r.critical ? "❌" : "⚠️";
   const label = r.critical && !r.ok ? " [CRITICAL]" : "";
   console.log(`${icon} ${r.name}${label}`);
   if (!r.ok && r.detail) console.log(`   → ${r.detail}`);
-
 }
 
 const total = results.length;

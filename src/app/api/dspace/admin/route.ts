@@ -7,7 +7,11 @@ import {
 } from "@/lib/dspace";
 import { DspaceSyncSchema, validateInput } from "@/lib/validation";
 import { isForbiddenOrigin } from "@/lib/cors";
-import { checkRateLimit, generateFingerprint } from "@/lib/rate-limit";
+import {
+  checkRateLimit,
+  generateFingerprint,
+  rateLimitResponse,
+} from "@/lib/rate-limit";
 import { logger } from "@/lib/logger";
 
 export const runtime = "nodejs";
@@ -32,14 +36,17 @@ export async function POST(request: NextRequest) {
 
   const fingerprint = generateFingerprint(request);
   if (!(await checkRateLimit(`dspace-admin:${fingerprint}`))) {
-    return NextResponse.json({ error: "Забагато запитів" }, { status: 429 });
+    return rateLimitResponse("Забагато запитів");
   }
 
   let body: unknown;
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Невірний формат запиту" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Невірний формат запиту" },
+      { status: 400 }
+    );
   }
 
   const parsed = await validateInput(DspaceSyncSchema, body);
@@ -63,7 +70,9 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    return NextResponse.json(snapshotWithStatus(await syncDspace(parsed.data.mode)));
+    return NextResponse.json(
+      snapshotWithStatus(await syncDspace(parsed.data.mode))
+    );
   } catch (error) {
     logger.error("Не вдалося запустити admin-синхронізацію DSpace", error);
     return NextResponse.json(

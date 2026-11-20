@@ -306,7 +306,9 @@ function matchesCatalogQuery(book: BookResult, searchTerm: string): boolean {
     .filter(term => term.length >= 3);
   if (terms.length === 0) return true;
 
-  const searchableText = `${book.title} ${book.description}`.toLocaleLowerCase("uk-UA");
+  const searchableText = `${book.title} ${book.description}`.toLocaleLowerCase(
+    "uk-UA"
+  );
   return terms.every(term => {
     const stem = term.length >= 7 ? term.slice(0, -2) : term;
     return searchableText.includes(term) || searchableText.includes(stem);

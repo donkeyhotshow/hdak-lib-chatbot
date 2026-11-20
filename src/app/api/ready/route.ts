@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
+import { sql } from "drizzle-orm";
+import { db } from "@/lib/db";
 import { checkCatalogAvailability } from "@/lib/catalog-search";
+import { isDatabaseConfigured } from "@/lib/database-config";
+import { checkRateLimitStore } from "@/lib/rate-limit";
 
 export async function GET() {
   const configuredProviders = [
@@ -27,15 +31,11 @@ export async function GET() {
     "GROQ_API",
     "QWEN_API_KEY",
   ] as const;
-  const hasDatabaseUrl = Boolean(
-    process.env.DATABASE_URL ||
-    process.env.NEON_DATABASE_URL ||
-    process.env.NEON_POSTGRES_URL ||
-    process.env.NEON_POSTGRES_PRISMA_URL ||
-    process.env.NEON_POSTGRES_URL_NON_POOLING
-  );
+  const hasDatabaseUrl = isDatabaseConfigured();
 
-  const missingInfra = hasDatabaseUrl ? [] : ["DATABASE_URL"];
+  const missingInfra = hasDatabaseUrl
+    ? []
+    : ["DATABASE_URL, HDAK_DATABASE_URL, or NEON_DATABASE_URL"];
   const hasProvider = providerKeys.some(key => Boolean(process.env[key]));
 
   if (missingInfra.length > 0 || !hasProvider) {
@@ -54,11 +54,46 @@ export async function GET() {
     );
   }
 
+  let database = "ok";
+  try {
+    await db.execute(sql`select 1`);
+  } catch {
+    database = "unreachable";
+    return NextResponse.json(
+      {
+        status: "not_ready",
+        database,
+        message: "Database connectivity check failed",
+      },
+      { status: 503 }
+    );
+  }
+
+  const sharedRateLimitReady = await checkRateLimitStore();
+  const rateLimitStore = sharedRateLimitReady
+    ? "ok"
+    : process.env.NODE_ENV === "production"
+      ? "unavailable"
+      : "not_configured";
+  if (process.env.NODE_ENV === "production" && !sharedRateLimitReady) {
+    return NextResponse.json(
+      {
+        status: "not_ready",
+        database,
+        rateLimitStore,
+        message: "Shared rate-limit storage is unavailable",
+      },
+      { status: 503 }
+    );
+  }
+
   const catalog = (await checkCatalogAvailability()) ? "ok" : "unreachable";
 
   return NextResponse.json({
     status: "ready",
     configuredProviders,
+    database,
+    rateLimitStore,
     catalog,
     message: "All critical systems are configured",
   });
