@@ -143,6 +143,11 @@
       "esbuild": "0.25.12",
       "katex": "0.18.2",
       "postcss-selector-parser": "6.1.5"
-    }
+    },
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "sharp",
+      "unrs-resolver"
+    ]
   }
 }

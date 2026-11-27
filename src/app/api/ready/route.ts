@@ -69,6 +69,18 @@ export async function GET() {
     );
   }
 
+  // Read-only checks validate relation resolution, required columns and SELECT access.
+  try {
+    await db.execute(sql`select id, session_id, title, created_at from conversations limit 0`);
+    await db.execute(sql`select id, conversation_id, role, content, created_at from messages limit 0`);
+    await db.execute(sql`select id, session_id, endpoint, p256dh, auth, remind_at, sent, created_at from push_subscriptions limit 0`);
+  } catch {
+    return NextResponse.json(
+      { status: "not_ready", database, schema: "invalid", message: "Required database schema is unavailable" },
+      { status: 503 }
+    );
+  }
+
   const sharedRateLimitReady = await checkRateLimitStore();
   const rateLimitStore = sharedRateLimitReady
     ? "ok"
@@ -93,6 +105,7 @@ export async function GET() {
     status: "ready",
     configuredProviders,
     database,
+    schema: "ok",
     rateLimitStore,
     catalog,
     message: "All critical systems are configured",
