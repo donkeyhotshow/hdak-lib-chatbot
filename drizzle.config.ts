@@ -1,11 +1,8 @@
 import { defineConfig } from "drizzle-kit";
 
-const connectionString =
-  process.env.DATABASE_URL ||
-  process.env.NEON_DATABASE_URL ||
-  process.env.NEON_POSTGRES_URL ||
-  process.env.NEON_POSTGRES_PRISMA_URL ||
-  process.env.NEON_POSTGRES_URL_NON_POOLING;
+import { getDatabaseUrl } from "./src/lib/database-config";
+
+const connectionString = getDatabaseUrl();
 
 if (!connectionString) {
   throw new Error(
