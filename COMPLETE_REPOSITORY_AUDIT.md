@@ -19,7 +19,6 @@ Total tracked files: 206 (`git -c core.quotePath=false ls-files`)
 .gitkeep
 .prettierignore
 .prettierrc
-.replit
 CHANGELOG.md
 COMPLETE_REPOSITORY_AUDIT.md
 DEPLOYMENT.md
@@ -35,7 +34,6 @@ attached_assets/Pasted-You-are-working-on-the-HDAK-Library-Chatbot-hdak-lib-ch_1
 attached_assets/{3F11AFE1-A667-45BC-A722-5D11D0F877FE}_1773357798128.png
 client/index.html
 client/public/.gitkeep
-client/public/__manus__/debug-collector.js
 client/src/App.tsx
 client/src/_core/hooks/useAuth.ts
 client/src/components/AIChatBox.tsx
@@ -43,7 +41,6 @@ client/src/components/DashboardLayout.tsx
 client/src/components/DashboardLayoutSkeleton.tsx
 client/src/components/DocumentCard.tsx
 client/src/components/ErrorBoundary.tsx
-client/src/components/ManusDialog.tsx
 client/src/components/Map.tsx
 client/src/components/Markdown.tsx
 client/src/components/ui/accordion.tsx
@@ -139,7 +136,6 @@ railway.json
 references/ai-sdk-react-query.md
 references/ai-sdk.md
 render.yaml
-replit.md
 seed-db.mjs
 seed-db.ts
 server/_core/bodyLimit.test.ts
@@ -168,7 +164,6 @@ server/_core/systemRouter.ts
 server/_core/trpc.test.ts
 server/_core/trpc.ts
 server/_core/types/cookie.d.ts
-server/_core/types/manusTypes.ts
 server/_core/vite.ts
 server/_core/voiceTranscription.ts
 server/auth.logout.test.ts
@@ -232,7 +227,6 @@ vitest.config.ts
 ├── .gitkeep
 ├── .prettierignore
 ├── .prettierrc
-├── .replit
 ├── CHANGELOG.md
 ├── COMPLETE_REPOSITORY_AUDIT.md
 ├── DEPLOYMENT.md
@@ -251,7 +245,6 @@ vitest.config.ts
 │   ├── index.html
 │   ├── public
 │   │   ├── .gitkeep
-│   │   └── __manus__
 │   │       └── debug-collector.js
 │   └── src
 │       ├── App.tsx
@@ -264,7 +257,6 @@ vitest.config.ts
 │       │   ├── DashboardLayoutSkeleton.tsx
 │       │   ├── DocumentCard.tsx
 │       │   ├── ErrorBoundary.tsx
-│       │   ├── ManusDialog.tsx
 │       │   ├── Map.tsx
 │       │   ├── Markdown.tsx
 │       │   └── ui
@@ -370,7 +362,6 @@ vitest.config.ts
 │   ├── ai-sdk-react-query.md
 │   └── ai-sdk.md
 ├── render.yaml
-├── replit.md
 ├── seed-db.mjs
 ├── seed-db.ts
 ├── server
@@ -402,7 +393,6 @@ vitest.config.ts
 │   │   ├── trpc.ts
 │   │   ├── types
 │   │   │   ├── cookie.d.ts
-│   │   │   └── manusTypes.ts
 │   │   ├── vite.ts
 │   │   └── voiceTranscription.ts
 │   ├── auth.logout.test.ts

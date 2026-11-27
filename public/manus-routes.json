@@ -1,6 +1,0 @@
-{
-  "routes": [
-    { "path": "/", "title": "Чат бібліотеки ХДАК" },
-    { "path": "/admin/dspace", "title": "Статус синхронізації DSpace" }
-  ]
-}
